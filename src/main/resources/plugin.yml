@@ -1,0 +1,6 @@
+name: BiliCraftTicketSystem
+version: '${project.version}'
+author: BigBrother
+main: com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem
+api-version: '1.20'
+depend: [TrainCarts]
