@@ -3,4 +3,9 @@ version: '${project.version}'
 author: BigBrother
 main: com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem
 api-version: '1.20'
-depend: [TrainCarts]
+depend: [Train_Carts]
+
+commands:
+  ticket-system:
+    description: 帕拉伦国有铁路车票系统指令
+    aliases: [ ticket, tickets ]

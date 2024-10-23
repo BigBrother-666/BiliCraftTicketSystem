@@ -1,0 +1,18 @@
+title: 帕拉伦国有铁路车票系统
+size: 9
+
+items:
+  "start":
+    name: 起始站
+    material: DIAMOND_BLOCK
+    slot: 0
+    lore:
+      - ""
+      - ""
+  "stop":
+    name: 终到站
+    material: DIAMOND_BLOCK
+    slot: 1
+    lore:
+      - ""
+      - ""
