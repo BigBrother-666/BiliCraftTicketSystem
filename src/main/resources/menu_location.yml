@@ -1,0 +1,24 @@
+title: <rainbow>帕拉伦国有铁路车票系统-车站选择</rainbow>
+size: 54
+
+items:
+  "新赫洛堡站":
+    name: <blue>新赫洛堡站
+    material: DIAMOND_BLOCK
+    slot: 0
+  "秋华町站":
+    name: <blue>秋华町站
+    material: DIAMOND_BLOCK
+    slot: 1
+  "诺亚站":
+    name: <blue>诺亚站
+    material: DIAMOND_BLOCK
+    slot: 2
+  "赤脊湾站":
+    name: <blue>赤脊湾站
+    material: DIAMOND_BLOCK
+    slot: 3
+  "新特拉姆站":
+    name: <blue>新特拉姆站
+    material: DIAMOND_BLOCK
+    slot: 4

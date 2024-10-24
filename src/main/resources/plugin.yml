@@ -3,9 +3,23 @@ version: '${project.version}'
 author: BigBrother
 main: com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem
 api-version: '1.20'
-depend: [Train_Carts]
+depend: [ Train_Carts ]
 
 commands:
-  ticket-system:
+  ticket:
     description: 帕拉伦国有铁路车票系统指令
-    aliases: [ ticket, tickets ]
+    aliases: [ ticket ]
+
+permissions:
+  bcts.ticket.open:
+    description: "使用车票系统权限"
+    default: op
+  bcts.ticket.reload:
+    description: "重载配置文件权限"
+    default: op
+  bcts.ticket.menuitem:
+    description: "添加自定义物品权限"
+    default: op
+  bcts.ticket.give:
+    description: "转增车票权限"
+    default: op

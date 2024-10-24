@@ -3,45 +3,52 @@ package com.bigbrother.bilicraftticketsystem.config;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
+import lombok.AllArgsConstructor;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
+import java.util.logging.Level;
 
 @SuppressWarnings("unchecked")
 public class Menu {
+    @AllArgsConstructor
     public static class CustomMenu {
         public Inventory inventory;
-        public String title;
+        public Component title;
     }
 
     public static CustomMenu mainMenu;
     public static CustomMenu speedMenu;
     public static CustomMenu locationMenu;
     public static FileConfiguration itemsConfig;
-    public static Map<String, Map<String, Integer>> itemLoc;
+    public static Map<Component, Map<Integer, String>> itemLoc;
 
     public static void loadMenu(BiliCraftTicketSystem plugin) {
         itemsConfig = new FileConfiguration(plugin, "menuitems.yml");
-        createMenu("menu_main.yml", plugin, mainMenu);
-        createMenu("menu_speed.yml", plugin, speedMenu);
-        createMenu("menu_location.yml", plugin, locationMenu);
+        itemsConfig.load();
+        itemLoc = new HashMap<>();
+        mainMenu = createMenu("menu_main.yml", plugin);
+        speedMenu = createMenu("menu_speed.yml", plugin);
+        locationMenu = createMenu("menu_location.yml", plugin);
+        plugin.getLogger().log(Level.INFO, "成功加载菜单配置！");
     }
 
-    private static void createMenu(String filePath, BiliCraftTicketSystem plugin, CustomMenu menu) {
+    private static CustomMenu createMenu(String filePath, BiliCraftTicketSystem plugin) {
         FileConfiguration menuConf = new FileConfiguration(plugin, filePath);
         menuConf.load();
         ConfigurationNode items = menuConf.getNode("items");
-        Inventory inventory = Bukkit.createInventory(null, menuConf.get("size", 54), Component.text(menuConf.get("title","")));
+        Component title = MiniMessage.miniMessage().deserialize(menuConf.get("title",""));
+        Inventory inventory = Bukkit.createInventory(null, menuConf.get("size", 54), title);
+        Map<Integer, String> temp = new HashMap<>();
         for (Map.Entry<String, Object> entry : items.getValues().entrySet()) {
             ConfigurationNode item = items.getNode(entry.getKey());
 
@@ -53,24 +60,21 @@ public class Menu {
             } else {
                 customItem = new ItemStack(Material.valueOf(item.get("material","").trim()));
             }
-            if (customItem == null) {
-                return;
-            }
             ItemMeta itemMeta = customItem.getItemMeta();
             List<Component> lore = new ArrayList<>();
-            for (String s : (List<String>)item.get("lore", List.class)) {
-                lore.add(Component.text(s));
+            for (String s : item.get("lore", List.of(""))) {
+                lore.add(MiniMessage.miniMessage().deserialize(s));
             }
             itemMeta.lore(lore);
-            itemMeta.displayName(Component.text(item.get("name","")));
+            itemMeta.displayName(MiniMessage.miniMessage().deserialize(item.get("name","")));
             customItem.setItemMeta(itemMeta);
 
             // 添加物品
             inventory.setItem(item.get("slot",0), customItem);
-            itemLoc.put(menuConf.get("title",""), Map.of(item.getName(), item.get("slot",0)));
+            temp.put(item.get("slot",0), item.getName());
         }
-        menu.inventory = inventory;
-        menu.title = menuConf.get("title","");
+        itemLoc.put(title, temp);
+        return new CustomMenu(inventory, title);
     }
 
     // 保存物品到配置文件
@@ -83,11 +87,12 @@ public class Menu {
 
     // 从配置文件中读取物品
     public static ItemStack loadItemFromFile(String path) {
+        path = path.trim();
         if (itemsConfig.contains(path)) {
             // 反序列化
-            Map<String, Object> itemData = itemsConfig.get(path, Map.class);
+            Map<String, Object> itemData = itemsConfig.getNode(path).getValues();
             return ItemStack.deserialize(itemData);
         }
-        return new ItemStack(Material.AIR);
+        return null;
     }
 }

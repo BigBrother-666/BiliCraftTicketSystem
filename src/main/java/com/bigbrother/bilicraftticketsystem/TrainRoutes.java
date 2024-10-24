@@ -7,17 +7,12 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
+import java.util.logging.Level;
 
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
 
 public class TrainRoutes {
-    private static List<PathInfo> pathInfoList;
-    private final Graph graph;
-
-    public TrainRoutes() {
-        graph = readGraphFromFile("src/main/resources/routes.txt");
-        pathInfoList = new ArrayList<>();
-    }
+    private static Graph graph;
 
     @Data
     public static class PathInfo {
@@ -26,8 +21,8 @@ public class TrainRoutes {
             this.tags = tags;
             this.distance = distance;
             this.price = price;
-            this.start = path.getFirst();
-            this.end = path.getLast();
+            this.start = path.get(0);
+            this.end = path.get(path.size() - 1);
         }
 
         private List<String> path;
@@ -60,7 +55,7 @@ public class TrainRoutes {
         }
 
         // 获取所有路径
-        public void findAllPaths(String start, Set<String> end, List<String> path, Set<String> visited) {
+        public void findAllPaths(String start, Set<String> end, List<String> path, Set<String> visited, List<PathInfo> pathInfoList) {
             visited.add(start);
             path.add(start);
 
@@ -80,7 +75,7 @@ public class TrainRoutes {
                 if (edges != null) {
                     for (Edge edge : edges) {
                         if (!visited.contains(edge.target)) {
-                            findAllPaths(edge.target, end, path, visited);
+                            findAllPaths(edge.target, end, path, visited, pathInfoList);
                         }
                     }
                 }
@@ -117,8 +112,8 @@ public class TrainRoutes {
     }
 
     // 从文件中读取图
-    public static Graph readGraphFromFile(String filename) {
-        Graph graph = new Graph();
+    public static void readGraphFromFile(String filename) {
+        graph = new Graph();
         try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
             String line;
             while ((line = br.readLine()) != null) {
@@ -131,12 +126,13 @@ public class TrainRoutes {
                 }
             }
         } catch (IOException e) {
-            plugin.getLogger().warning("文件读取错误: " + e.getMessage());
+            plugin.getLogger().log(Level.WARNING,"路径文件读取错误: " + e.getMessage());
         }
-        return graph;
+        plugin.getLogger().log(Level.INFO,"路径解析成功！");
     }
 
-    public List<PathInfo> getPathInfoList(String startStation, String endStation) {
+    public static List<PathInfo> getPathInfoList(String startStation, String endStation) {
+        List<PathInfo> pathInfoList = new ArrayList<>();
         Set<String> start = new HashSet<>();
         Set<String> end = new HashSet<>();
         for (String k : graph.adjacencyList.keySet()) {
@@ -159,7 +155,7 @@ public class TrainRoutes {
         for (String s : start) {
             List<String> path = new ArrayList<>();
             Set<String> visited = new HashSet<>();
-            graph.findAllPaths(s, end, path, visited);
+            graph.findAllPaths(s, end, path, visited, pathInfoList);
         }
 
         return pathInfoList;

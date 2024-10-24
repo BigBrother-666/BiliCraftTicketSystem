@@ -1,18 +1,19 @@
-title: 帕拉伦国有铁路车票系统
-size: 9
+title: <rainbow>帕拉伦国有铁路车票系统-主界面</rainbow>
+size: 27
 
 items:
   "start":
-    name: 起始站
+    name: <green>点击选择起始站
     material: DIAMOND_BLOCK
-    slot: 0
-    lore:
-      - ""
-      - ""
+    slot: 10
+
   "stop":
-    name: 终到站
+    name: <green>点击选择终到站
     material: DIAMOND_BLOCK
-    slot: 1
+    slot: 12
+
+  "buy":
+    name: <red>点击购买
+    material: DIAMOND_BLOCK
+    slot: 16
     lore:
-      - ""
-      - ""
