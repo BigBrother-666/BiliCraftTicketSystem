@@ -20,7 +20,6 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         // 生成配置文件
         saveResource("config.yml", /* replace */ false);
         saveResource("menu_main.yml", /* replace */ false);
-        saveResource("menu_speed.yml", /* replace */ false);
         saveResource("menu_location.yml", /* replace */ false);
         saveResource("menuitems.yml", /* replace */ false);
         saveResource("message.yml", /* replace */ false);

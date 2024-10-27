@@ -12,8 +12,8 @@ items:
     material: DIAMOND_BLOCK
     slot: 12
 
-  "buy":
-    name: <red>点击购买
+  "search":
+    name: <red>点击查询车票
     material: DIAMOND_BLOCK
     slot: 16
     lore:

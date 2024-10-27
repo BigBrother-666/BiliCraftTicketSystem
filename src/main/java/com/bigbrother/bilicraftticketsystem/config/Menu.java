@@ -27,17 +27,17 @@ public class Menu {
     }
 
     public static CustomMenu mainMenu;
-    public static CustomMenu speedMenu;
     public static CustomMenu locationMenu;
     public static FileConfiguration itemsConfig;
-    public static Map<Component, Map<Integer, String>> itemLoc;
+    public static Map<Component, Map<Integer, String>> itemLocReverse;
+    public static Map<Component, Map<String, Integer>> itemLoc;
 
     public static void loadMenu(BiliCraftTicketSystem plugin) {
         itemsConfig = new FileConfiguration(plugin, "menuitems.yml");
         itemsConfig.load();
+        itemLocReverse = new HashMap<>();
         itemLoc = new HashMap<>();
         mainMenu = createMenu("menu_main.yml", plugin);
-        speedMenu = createMenu("menu_speed.yml", plugin);
         locationMenu = createMenu("menu_location.yml", plugin);
         plugin.getLogger().log(Level.INFO, "成功加载菜单配置！");
     }
@@ -48,7 +48,8 @@ public class Menu {
         ConfigurationNode items = menuConf.getNode("items");
         Component title = MiniMessage.miniMessage().deserialize(menuConf.get("title",""));
         Inventory inventory = Bukkit.createInventory(null, menuConf.get("size", 54), title);
-        Map<Integer, String> temp = new HashMap<>();
+        Map<Integer, String> tempReverse = new HashMap<>();
+        Map<String, Integer> temp = new HashMap<>();
         for (Map.Entry<String, Object> entry : items.getValues().entrySet()) {
             ConfigurationNode item = items.getNode(entry.getKey());
 
@@ -71,8 +72,10 @@ public class Menu {
 
             // 添加物品
             inventory.setItem(item.get("slot",0), customItem);
-            temp.put(item.get("slot",0), item.getName());
+            tempReverse.put(item.get("slot",0), item.getName());
+            temp.put(item.getName(), item.get("slot",0));
         }
+        itemLocReverse.put(title, tempReverse);
         itemLoc.put(title, temp);
         return new CustomMenu(inventory, title);
     }
