@@ -1,0 +1,11 @@
+# 每公里价格
+price-per-km: 0.3
+
+# 跨站车车票名（不需要设置tag，speedLimit）
+express-ticket-name: express
+
+# 可设置的最大/最小速度
+speed:
+  max: 5.0
+  min: 2.0
+  step: 0.2

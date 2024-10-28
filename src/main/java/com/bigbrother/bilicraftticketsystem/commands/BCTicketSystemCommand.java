@@ -4,6 +4,7 @@ import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.config.Menu;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -26,6 +27,11 @@ public class BCTicketSystemCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        if (args.length == 1 && args[0].equals("reload")) {
+            subCommandReload(commandSender);
+            return true;
+        }
+
         if (!(commandSender instanceof Player)) {
             commandSender.sendMessage(Component.text("该指令必须玩家执行", NamedTextColor.RED));
             return false;
@@ -48,20 +54,17 @@ public class BCTicketSystemCommand implements CommandExecutor {
                 case "give":
                     subCommandGive(player, args);
                     break;
-                case "reload":
-                    subCommandReload(player);
-                    break;
             }
         }
         return true;
     }
 
-    private void subCommandReload(Player player) {
-        if (!player.hasPermission("bcts.ticket.reload")) {
+    private void subCommandReload(CommandSender commandSender) {
+        if (!commandSender.hasPermission("bcts.ticket.reload")) {
             return;
         }
-        Menu.loadMenu(plugin);
-        player.sendMessage(Component.text("配置文件重载成功", NamedTextColor.GREEN));
+        Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, plugin::loadConfig, 20);
+        commandSender.sendMessage(Component.text("配置文件重载中...", NamedTextColor.GREEN));
     }
 
     private void subCommandGive(Player player, @NotNull String[] args) {

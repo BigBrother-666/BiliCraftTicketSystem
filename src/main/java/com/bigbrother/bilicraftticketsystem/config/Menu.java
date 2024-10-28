@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import lombok.AllArgsConstructor;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -24,11 +25,12 @@ public class Menu {
     public static class CustomMenu {
         public Inventory inventory;
         public Component title;
+        public List<Integer> ticketSlots;
     }
 
     public static CustomMenu mainMenu;
     public static CustomMenu locationMenu;
-    public static FileConfiguration itemsConfig;
+    private static FileConfiguration itemsConfig;
     public static Map<Component, Map<Integer, String>> itemLocReverse;
     public static Map<Component, Map<String, Integer>> itemLoc;
 
@@ -39,14 +41,14 @@ public class Menu {
         itemLoc = new HashMap<>();
         mainMenu = createMenu("menu_main.yml", plugin);
         locationMenu = createMenu("menu_location.yml", plugin);
-        plugin.getLogger().log(Level.INFO, "成功加载菜单配置！");
+        plugin.getLogger().log(Level.INFO, "成功加载菜单！");
     }
 
     private static CustomMenu createMenu(String filePath, BiliCraftTicketSystem plugin) {
         FileConfiguration menuConf = new FileConfiguration(plugin, filePath);
         menuConf.load();
         ConfigurationNode items = menuConf.getNode("items");
-        Component title = MiniMessage.miniMessage().deserialize(menuConf.get("title",""));
+        Component title = MiniMessage.miniMessage().deserialize(menuConf.get("title","")).decoration(TextDecoration.ITALIC, false);
         Inventory inventory = Bukkit.createInventory(null, menuConf.get("size", 54), title);
         Map<Integer, String> tempReverse = new HashMap<>();
         Map<String, Integer> temp = new HashMap<>();
@@ -64,10 +66,10 @@ public class Menu {
             ItemMeta itemMeta = customItem.getItemMeta();
             List<Component> lore = new ArrayList<>();
             for (String s : item.get("lore", List.of(""))) {
-                lore.add(MiniMessage.miniMessage().deserialize(s));
+                lore.add(MiniMessage.miniMessage().deserialize(s).decoration(TextDecoration.ITALIC, false));
             }
             itemMeta.lore(lore);
-            itemMeta.displayName(MiniMessage.miniMessage().deserialize(item.get("name","")));
+            itemMeta.displayName(MiniMessage.miniMessage().deserialize(item.get("name","")).decoration(TextDecoration.ITALIC, false));
             customItem.setItemMeta(itemMeta);
 
             // 添加物品
@@ -77,7 +79,7 @@ public class Menu {
         }
         itemLocReverse.put(title, tempReverse);
         itemLoc.put(title, temp);
-        return new CustomMenu(inventory, title);
+        return new CustomMenu(inventory, title, menuConf.getList("ticket-slots", Integer.class));
     }
 
     // 保存物品到配置文件

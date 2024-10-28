@@ -10,27 +10,30 @@ import java.util.*;
 import java.util.logging.Level;
 
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
+import static com.bigbrother.bilicraftticketsystem.config.MainConfig.pricePerKm;
 
 public class TrainRoutes {
     private static Graph graph;
 
     @Data
     public static class PathInfo {
-        public PathInfo(List<String> path, List<String> tags, double distance, double price) {
+        public PathInfo(List<String> path, Set<String> tags, double distance, double price, String startPlatform) {
             this.path = path;
             this.tags = tags;
             this.distance = distance;
             this.price = price;
             this.start = path.get(0);
             this.end = path.get(path.size() - 1);
+            this.startPlatform = startPlatform;
         }
 
         private List<String> path;
-        private List<String> tags;
+        private Set<String> tags;
         private double distance;
         private double price;
         private String start;
         private String end;
+        private String startPlatform;
     }
 
     public static class Graph {
@@ -61,15 +64,19 @@ public class TrainRoutes {
 
             if (end.contains(start)) {
                 List<String> outPath = new ArrayList<>();
-                List<String> tags = new ArrayList<>();
+                Set<String> tags = new HashSet<>();
                 for (int i = 0; i < path.size(); i++) {
-                    outPath.add(path.get(i).split("-")[0]);
+                    if (!outPath.contains(path.get(i).split("-")[0])) {
+                        outPath.add(path.get(i).split("-")[0]);
+                    }
                     if (i != 0 && i != path.size() - 1) {
                         tags.add(path.get(i).split("-")[3]);
                     }
                 }
                 double distance = calculateTotalDistance(path);
-                pathInfoList.add(new PathInfo(outPath, tags, distance, calculateFare(distance)));
+                if (distance > 0) {
+                    pathInfoList.add(new PathInfo(outPath, tags, distance, calculateFare(distance), path.get(0).substring(0, path.get(0).lastIndexOf("-"))));
+                }
             } else {
                 List<Edge> edges = adjacencyList.get(start);
                 if (edges != null) {
@@ -107,7 +114,7 @@ public class TrainRoutes {
 
         // 计算票价
         public double calculateFare(double distance) {
-            return Math.round(distance * 0.3 * 100.0) / 100.0;
+            return Math.round(distance * pricePerKm * 100.0) / 100.0;
         }
     }
 

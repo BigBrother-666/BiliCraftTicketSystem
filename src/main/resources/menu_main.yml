@@ -12,8 +12,25 @@ items:
     material: DIAMOND_BLOCK
     slot: 12
 
+  "speed":
+    name: <green>选择最大速度
+    material: DIAMOND_BLOCK
+    slot: 14
+
   "search":
     name: <red>点击查询车票
     material: DIAMOND_BLOCK
     slot: 16
     lore:
+
+# 存放车票的格子
+ticket-slots:
+  - 18
+  - 19
+  - 20
+  - 21
+  - 22
+  - 23
+  - 24
+  - 25
+  - 26
