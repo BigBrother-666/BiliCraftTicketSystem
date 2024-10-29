@@ -1,9 +1,9 @@
 package com.bigbrother.bilicraftticketsystem;
 
 import lombok.Data;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
@@ -16,7 +16,7 @@ public class TrainRoutes {
     private static Graph graph;
 
     @Data
-    public static class PathInfo {
+    public static class PathInfo implements Comparable<PathInfo> {
         public PathInfo(List<String> path, Set<String> tags, double distance, double price, String startPlatform) {
             this.path = path;
             this.tags = tags;
@@ -34,6 +34,11 @@ public class TrainRoutes {
         private String start;
         private String end;
         private String startPlatform;
+
+        @Override
+        public int compareTo(@NotNull TrainRoutes.PathInfo other) {
+            return Double.compare(this.price, other.price);
+        }
     }
 
     public static class Graph {
@@ -65,16 +70,19 @@ public class TrainRoutes {
             if (end.contains(start)) {
                 List<String> outPath = new ArrayList<>();
                 Set<String> tags = new HashSet<>();
+                boolean repeat = false;
                 for (int i = 0; i < path.size(); i++) {
                     if (!outPath.contains(path.get(i).split("-")[0])) {
                         outPath.add(path.get(i).split("-")[0]);
                     }
                     if (i != 0 && i != path.size() - 1) {
-                        tags.add(path.get(i).split("-")[3]);
+                        if (!tags.add(path.get(i).split("-")[3])) {
+                            repeat = true;
+                        }
                     }
                 }
                 double distance = calculateTotalDistance(path);
-                if (distance > 0) {
+                if (distance > 0 && !repeat) {
                     pathInfoList.add(new PathInfo(outPath, tags, distance, calculateFare(distance), path.get(0).substring(0, path.get(0).lastIndexOf("-"))));
                 }
             } else {
@@ -126,9 +134,9 @@ public class TrainRoutes {
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split("\\|");
                 if (parts.length == 3) {
-                    String source = parts[0].trim().replace("-->", "");
+                    String source = parts[0].replace("-->", "").trim();
                     double distance = Double.parseDouble(parts[1].trim());
-                    String target = parts[2].trim().replace(";", "");
+                    String target = parts[2].replace(";", "").trim();
                     graph.addEdge(source, target, distance);
                 }
             }
@@ -143,14 +151,17 @@ public class TrainRoutes {
         Set<String> start = new HashSet<>();
         Set<String> end = new HashSet<>();
         for (String k : graph.adjacencyList.keySet()) {
-            if (k.startsWith(startStation.split("-")[0])) {
+            String[] splitStart = startStation.split("-");
+            String[] splitKey = k.split("-");
+            if (k.startsWith(splitStart[0]) && !splitKey[2].startsWith(splitKey[0].substring(0, splitKey[0].lastIndexOf("站")))) {
                 start.add(k);
             }
             if (k.startsWith(endStation.split("-")[0])) {
                 end.add(k);
             }
             for (Graph.Edge edge : graph.adjacencyList.get(k)) {
-                if (edge.target.startsWith(startStation.split("-")[0])) {
+                String[] splitTarget = edge.target.split("-");
+                if (edge.target.startsWith(splitStart[0]) && !splitTarget[2].startsWith(splitTarget[0].substring(0, splitTarget[0].lastIndexOf("站")))) {
                     start.add(edge.target);
                 }
                 if (edge.target.startsWith(endStation.split("-")[0])) {
@@ -165,6 +176,8 @@ public class TrainRoutes {
             graph.findAllPaths(s, end, path, visited, pathInfoList);
         }
 
+        // 按照价格排序
+        Collections.sort(pathInfoList);
         return pathInfoList;
     }
 }

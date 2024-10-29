@@ -2,17 +2,19 @@ package com.bigbrother.bilicraftticketsystem;
 
 import com.bigbrother.bilicraftticketsystem.commands.BCTicketSystemCommand;
 import com.bigbrother.bilicraftticketsystem.listeners.PlayerListeners;
+import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
+import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
-import java.util.logging.Level;
 
 import static com.bigbrother.bilicraftticketsystem.config.MainConfig.loadMainConfig;
 import static com.bigbrother.bilicraftticketsystem.config.Menu.loadMenu;
 
 public final class BiliCraftTicketSystem extends JavaPlugin {
     public static BiliCraftTicketSystem plugin;
+    public static Economy econ = null;
 
     @Override
     public void onEnable() {
@@ -27,9 +29,18 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
 
         // 注册指令
         new BCTicketSystemCommand(this);
+
         // 注册监听器
         Bukkit.getPluginManager().registerEvents(new PlayerListeners(), this);
 
+        // 加载经济系统
+        if (!setupEconomy() ) {
+            getLogger().severe("Vault初始化失败！");
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+
+        // 加载配置文件
         Bukkit.getScheduler().runTaskLaterAsynchronously(this, this::loadConfig, 20);
     }
 
@@ -37,6 +48,18 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         loadMainConfig(this);
         loadMenu(this);
         TrainRoutes.readGraphFromFile(this.getDataFolder().getPath() + File.separator + "routes.txt");
+    }
+
+    private boolean setupEconomy() {
+        if (getServer().getPluginManager().getPlugin("Vault") == null) {
+            return false;
+        }
+        RegisteredServiceProvider<Economy> rsp = getServer().getServicesManager().getRegistration(Economy.class);
+        if (rsp == null) {
+            return false;
+        }
+        econ = rsp.getProvider();
+        return true;
     }
 
     @Override

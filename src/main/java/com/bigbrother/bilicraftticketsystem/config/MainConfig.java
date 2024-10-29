@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import lombok.Data;
 
+import java.util.List;
 import java.util.logging.Level;
 
 @Data
@@ -14,16 +15,28 @@ public class MainConfig {
     public static double speedStep;
     public static String expressTicketName;
     public static double pricePerKm;
+    public static ConfigurationNode message;
+    public static int maxUses;
+    public static List<String> discount;
 
     public static void loadMainConfig(BiliCraftTicketSystem plugin) {
-        FileConfiguration itemsConfig = new FileConfiguration(plugin, "config.yml");
-        itemsConfig.load();
-        expressTicketName = itemsConfig.get("express-ticket-name", "express");
-        pricePerKm = itemsConfig.get("price-per-km", 0.3);
-        ConfigurationNode speed = itemsConfig.getNode("speed");
+        FileConfiguration mainConfig = new FileConfiguration(plugin, "config.yml");
+        mainConfig.load();
+
+        expressTicketName = mainConfig.get("express-ticket-name", "express");
+        pricePerKm = mainConfig.get("price-per-km", 0.3);
+
+        ConfigurationNode speed = mainConfig.getNode("speed");
         maxSpeed = speed.get("max", 5.0);
         minSpeed = speed.get("min", 2.0);
         speedStep = speed.get("step", 0.2);
+
+        message = mainConfig.getNode("message");
+
+        ConfigurationNode uses = mainConfig.getNode("uses");
+        maxUses = uses.get("max", 50);
+        discount = uses.getList("discount", String.class);
+
         plugin.getLogger().log(Level.INFO, "成功加载主配置！");
     }
 }

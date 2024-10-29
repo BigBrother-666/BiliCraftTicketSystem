@@ -8,6 +8,8 @@ import com.bigbrother.bilicraftticketsystem.entity.PlayerOption;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.milkbowl.vault.economy.EconomyResponse;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -25,7 +27,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
+import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.econ;
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
+import static com.bigbrother.bilicraftticketsystem.config.MainConfig.message;
 
 public class PlayerListeners implements Listener {
 
@@ -67,24 +71,27 @@ public class PlayerListeners implements Listener {
         Player player = (Player) event.getWhoClicked();
         String itemName = itemSlot.get(event.getSlot());
         if (itemName == null) {
-            return;
+            itemName = "";
         }
         PlayerOption option = playerOptionMap.get(player);
+        List<Integer> ticketSlots = Menu.mainMenu.ticketSlots;
         switch (itemName) {
             case "start":
                 option.setStartStationFlag(true);
                 player.openInventory(Menu.locationMenu.inventory);
+                playerOptionMap.get(player).getTickets().clear();
                 break;
             case "stop":
                 option.setStartStationFlag(false);
                 player.openInventory(Menu.locationMenu.inventory);
+                playerOptionMap.get(player).getTickets().clear();
                 break;
             case "speed":
                 // 设置速度
-                if (event.isLeftClick() && option.getSpeed() < MainConfig.maxSpeed) {
+                if (event.isLeftClick()) {
                     double targetSpeed = option.getSpeed() + MainConfig.speedStep;
                     option.setSpeed(Math.min(MainConfig.maxSpeed, targetSpeed));
-                } else if (event.isRightClick() && option.getSpeed() > MainConfig.minSpeed) {
+                } else if (event.isRightClick()) {
                     double targetSpeed = option.getSpeed() - MainConfig.speedStep;
                     option.setSpeed(Math.max(MainConfig.minSpeed, targetSpeed));
                 }
@@ -101,26 +108,75 @@ public class PlayerListeners implements Listener {
                 itemMeta.lore(lore);
                 speedItem.setItemMeta(itemMeta);
                 break;
+            case "uses":
+                // 设置使用次数
+                if (event.isLeftClick()) {
+                    double targetUses = option.getUses() + 5;
+                    option.setUses((int) Math.min(MainConfig.maxUses, targetUses));
+                } else if (event.isRightClick()) {
+                    double targetUses = option.getUses() - 1;
+                    option.setUses((int) Math.max(1, targetUses));
+                }
+                // 动态设置lore
+                ItemStack usesItem = event.getCurrentItem();
+                if (usesItem == null) {
+                    return;
+                }
+                ItemMeta usesItemMeta = usesItem.getItemMeta();
+                List<Component> usesLore = new ArrayList<>();
+                usesLore.add(Component.text("当前选择的使用次数：%d次".formatted(option.getUses()), NamedTextColor.GOLD));
+                usesLore.add(Component.text("左键+5次，右键-1次", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+                usesItemMeta.lore(usesLore);
+                usesItem.setItemMeta(usesItemMeta);
+                break;
             case "search":
+                // cooldown 1s
+                if (option.isSearchedFlag()) {
+                    return;
+                }
+                option.setSearchedFlag(true);
+                Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, () -> option.setSearchedFlag(false), 20);
+
                 List<TrainRoutes.PathInfo> pathInfoList = TrainRoutes.getPathInfoList(option.getStartStationString(), option.getEndStationString());
                 plugin.getLogger().log(Level.INFO, pathInfoList.toString());
-                List<Integer> ticketSlots = Menu.mainMenu.ticketSlots;
                 if (pathInfoList.isEmpty()) {
                     ItemStack barrier = new ItemStack(Material.BARRIER);
                     ItemMeta barrierMeta = barrier.getItemMeta();
-                    barrierMeta.displayName(Component.text("所选两站没有直达方案！", NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
+                    barrierMeta.displayName(Component.text("所选两站暂时没有直达方案！", NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
                     barrier.setItemMeta(barrierMeta);
                     event.getView().setItem(ticketSlots.get(0), barrier);
                 } else {
                     // 显示车票
                     for (int i = 0; i < ticketSlots.size() && pathInfoList.size() > i; i++) {
-                        event.getView().setItem(ticketSlots.get(i), BCTicket.createTicket(option, pathInfoList.get(i)).getItem(player));
+                        BCTicket ticket = BCTicket.createTicket(option, pathInfoList.get(i));
+                        event.getView().setItem(ticketSlots.get(i), ticket.getItem(player));
+                        option.getTickets().put(ticketSlots.get(i), ticket);
                     }
                 }
                 break;
             default:
+                // 点击车票
+                ItemStack item0 = event.getView().getItem(Menu.mainMenu.ticketSlots.get(0));
+                if (ticketSlots.contains(event.getSlot()) && item0 != null && !item0.getType().equals(Material.BARRIER)) {
+                    BCTicket bcTicket = option.getTickets().get(event.getSlot());
+                    EconomyResponse r = econ.withdrawPlayer(player, bcTicket.getTotalPrice());
+
+                    if (r.transactionSuccess()) {
+                        player.sendMessage(Component.text(
+                                message.get("buy-success", "您成功花费{cost}购买了{name}")
+                                        .replace("{cost}", "%.2f".formatted(r.amount))
+                                        .replace("{name}", bcTicket.getItemName())));
+                        bcTicket.giveTo(player);
+                    } else {
+                        player.sendMessage(Component.text(
+                                message.get("buy-failure", "车票购买失败：{error}")
+                                        .replace("{error}", r.errorMessage)));
+                    }
+                    event.getView().close();
+                }
                 break;
         }
+        updateTickets(event);
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
@@ -139,11 +195,12 @@ public class PlayerListeners implements Listener {
                 ItemStack endStation = event.getView().getItem(itemSlot.get("stop"));
                 ItemStack search = event.getView().getItem(itemSlot.get("search"));
                 ItemStack speed = event.getView().getItem(itemSlot.get("speed"));
-                if (startStation == null || endStation == null || search == null || speed == null) {
+                ItemStack uses = event.getView().getItem(itemSlot.get("uses"));
+                if (startStation == null || endStation == null || search == null || speed == null || uses == null) {
                     return;
                 }
 
-                // 显示选择的参数
+                // 初始化物品动态lore
                 PlayerOption option = playerOptionMap.get(player);
 
                 ItemMeta itemMeta = startStation.getItemMeta();
@@ -169,7 +226,31 @@ public class PlayerListeners implements Listener {
                 lore.add(Component.text("最大%.1fkm/h，最小%.1fkm/h".formatted(MainConfig.maxSpeed * 20 * 3.6, MainConfig.minSpeed * 20 * 3.6), NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
                 itemMeta.lore(lore);
                 speed.setItemMeta(itemMeta);
+
+                itemMeta = uses.getItemMeta();
+                List<Component> usesLore = new ArrayList<>();
+                usesLore.add(Component.text("当前选择的使用次数：%d次".formatted(option.getUses()), NamedTextColor.GOLD));
+                usesLore.add(Component.text("左键+5次，右键-1次", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+                itemMeta.lore(usesLore);
+                uses.setItemMeta(itemMeta);
             }
+        }
+    }
+
+    private void updateTickets(InventoryClickEvent event) {
+        Player player = (Player) event.getWhoClicked();
+        PlayerOption playerOption = playerOptionMap.get(player);
+        Map<Integer, BCTicket> tickets = playerOption.getTickets();
+        ItemStack item0 = event.getView().getItem(Menu.mainMenu.ticketSlots.get(0));
+        if (tickets.isEmpty() && item0 != null && !item0.getType().equals(Material.BARRIER)) {
+            for (Integer ticketSlot : Menu.mainMenu.ticketSlots) {
+                event.getView().setItem(ticketSlot, new ItemStack(Material.AIR));
+            }
+            return;
+        }
+        for (Map.Entry<Integer, BCTicket> entry: tickets.entrySet()) {
+            entry.getValue().updateProperties(playerOption);
+            event.getView().setItem(entry.getKey(), entry.getValue().getItem(player));
         }
     }
 }

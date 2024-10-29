@@ -17,6 +17,11 @@ items:
     material: DIAMOND_BLOCK
     slot: 14
 
+  "uses":
+    name: <green>选择车票可使用次数
+    material: DIAMOND_BLOCK
+    slot: 15
+
   "search":
     name: <red>点击查询车票
     material: DIAMOND_BLOCK
