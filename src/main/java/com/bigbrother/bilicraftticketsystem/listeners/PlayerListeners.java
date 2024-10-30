@@ -21,10 +21,7 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Level;
 
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.econ;
@@ -34,7 +31,7 @@ import static com.bigbrother.bilicraftticketsystem.config.MainConfig.message;
 public class PlayerListeners implements Listener {
 
     // 记录玩家的选择
-    private static final Map<Player, PlayerOption> playerOptionMap = new HashMap<>();
+    private static final Map<UUID, PlayerOption> playerOptionMap = new HashMap<>();
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
@@ -57,10 +54,10 @@ public class PlayerListeners implements Listener {
         if (currentItem == null) {
             return;
         }
-        if (playerOptionMap.get(player).isStartStationFlag()) {
-            playerOptionMap.get(player).setStartStation(Component.text(itemSlot.get(event.getSlot()), NamedTextColor.GOLD));
+        if (playerOptionMap.get(player.getUniqueId()).isStartStationFlag()) {
+            playerOptionMap.get(player.getUniqueId()).setStartStation(Component.text(itemSlot.get(event.getSlot()), NamedTextColor.GOLD));
         } else {
-            playerOptionMap.get(player).setEndStation(Component.text(itemSlot.get(event.getSlot()), NamedTextColor.GOLD));
+            playerOptionMap.get(player.getUniqueId()).setEndStation(Component.text(itemSlot.get(event.getSlot()), NamedTextColor.GOLD));
         }
         event.getView().close();
         player.openInventory(Menu.mainMenu.inventory);
@@ -73,18 +70,18 @@ public class PlayerListeners implements Listener {
         if (itemName == null) {
             itemName = "";
         }
-        PlayerOption option = playerOptionMap.get(player);
+        PlayerOption option = playerOptionMap.get(player.getUniqueId());
         List<Integer> ticketSlots = Menu.mainMenu.ticketSlots;
         switch (itemName) {
             case "start":
                 option.setStartStationFlag(true);
                 player.openInventory(Menu.locationMenu.inventory);
-                playerOptionMap.get(player).getTickets().clear();
+                playerOptionMap.get(player.getUniqueId()).getTickets().clear();
                 break;
             case "stop":
                 option.setStartStationFlag(false);
                 player.openInventory(Menu.locationMenu.inventory);
-                playerOptionMap.get(player).getTickets().clear();
+                playerOptionMap.get(player.getUniqueId()).getTickets().clear();
                 break;
             case "speed":
                 // 设置速度
@@ -131,7 +128,7 @@ public class PlayerListeners implements Listener {
                 break;
             case "search":
                 // cooldown 1s
-                if (option.isSearchedFlag()) {
+                if (option.isSearchedFlag() || !option.canSearch()) {
                     return;
                 }
                 option.setSearchedFlag(true);
@@ -172,6 +169,7 @@ public class PlayerListeners implements Listener {
                                 message.get("buy-failure", "车票购买失败：{error}")
                                         .replace("{error}", r.errorMessage)));
                     }
+                    option.setUses(1);
                     event.getView().close();
                 }
                 break;
@@ -186,8 +184,8 @@ public class PlayerListeners implements Listener {
             Map<String, Integer> itemSlot = Menu.itemLoc.get(title);
             if (title.equals(Menu.mainMenu.title)) {
                 // 先创建option
-                if (!playerOptionMap.containsKey(player)) {
-                    playerOptionMap.put(player, new PlayerOption());
+                if (!playerOptionMap.containsKey(player.getUniqueId())) {
+                    playerOptionMap.put(player.getUniqueId(), new PlayerOption());
                 }
 
                 // 获取item
@@ -201,7 +199,7 @@ public class PlayerListeners implements Listener {
                 }
 
                 // 初始化物品动态lore
-                PlayerOption option = playerOptionMap.get(player);
+                PlayerOption option = playerOptionMap.get(player.getUniqueId());
 
                 ItemMeta itemMeta = startStation.getItemMeta();
                 itemMeta.lore(List.of(Component.text("当前选择：", NamedTextColor.GREEN).append(option.getStartStation())));
@@ -239,7 +237,7 @@ public class PlayerListeners implements Listener {
 
     private void updateTickets(InventoryClickEvent event) {
         Player player = (Player) event.getWhoClicked();
-        PlayerOption playerOption = playerOptionMap.get(player);
+        PlayerOption playerOption = playerOptionMap.get(player.getUniqueId());
         Map<Integer, BCTicket> tickets = playerOption.getTickets();
         ItemStack item0 = event.getView().getItem(Menu.mainMenu.ticketSlots.get(0));
         if (tickets.isEmpty() && item0 != null && !item0.getType().equals(Material.BARRIER)) {

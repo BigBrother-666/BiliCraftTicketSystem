@@ -1,6 +1,9 @@
 package com.bigbrother.bilicraftticketsystem.entity;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
+import com.bergerkiller.bukkit.common.map.MapDisplay;
+import com.bergerkiller.bukkit.tc.tickets.TCTicketDisplay;
 import com.bergerkiller.bukkit.tc.tickets.Ticket;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bigbrother.bilicraftticketsystem.TrainRoutes;
@@ -15,12 +18,24 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 
 @AllArgsConstructor
 @Getter
 public class BCTicket {
+    // Keys used in NBT
+    public static final String KEY_TICKET_NAME = "ticketName";
+    public static final String KEY_TICKET_CREATION_TIME = "ticketCreationTime";
+    public static final String KEY_TICKET_NUMBER_OF_USES = "ticketNumberOfUses";
+    public static final String KEY_TICKET_OWNER_UUID = "ticketOwner";
+    public static final String KEY_TICKET_OWNER_NAME = "ticketOwnerName";
+    public static final String KEY_TICKET_MAX_SPEED = "ticketMaxSpeed";
+    public static final String KEY_TICKET_ORIGIN_PRICE = "ticketOriginPrice";
+    public static final String KEY_TICKET_ITEM_NAME = "ticketItemName";
+    public static final String KEY_TICKET_TAGS = "ticketTags";
+
     private Ticket ticket;
     private TrainRoutes.PathInfo pathInfo;
     private String itemName;
@@ -48,7 +63,7 @@ public class BCTicket {
     }
 
     public ItemStack getItem(Player player) {
-        ItemStack item = this.ticket.createItem(player);
+        ItemStack item = createItem(player, ticket);
         ItemMeta itemMeta = item.getItemMeta();
         List<Component> lore = new ArrayList<>();
         lore.add(Component.text("起始站 ---> 终到站：", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false));
@@ -92,6 +107,8 @@ public class BCTicket {
             lore.remove(lore.size() - 1);
             lore.remove(lore.size() - 2);
         }
+        itemMeta.lore(lore);
+        item.setItemMeta(itemMeta);
         if (!player.getInventory().addItem(item).isEmpty()) {
             // 背包满 车票丢到地上
             player.getWorld().dropItemNaturally(player.getLocation(), item);
@@ -119,5 +136,23 @@ public class BCTicket {
         this.itemName = option.getUses() == 1 ?
                 "%s->%s 单次票".formatted(this.pathInfo.getStart(), this.pathInfo.getEnd()) :
                 "%s->%s %s次票".formatted(this.pathInfo.getStart(), this.pathInfo.getEnd(), option.getUses());
+    }
+
+    private ItemStack createItem(Player owner, Ticket ticket) {
+        return CommonItemStack.of(MapDisplay.createMapItem(TCTicketDisplay.class))
+                .updateCustomData(tag -> {
+                    tag.putValue("plugin", "TrainCarts");
+                    tag.putValue(KEY_TICKET_NAME, ticket.getName());
+                    tag.putValue(KEY_TICKET_CREATION_TIME, System.currentTimeMillis());
+                    tag.putValue(KEY_TICKET_NUMBER_OF_USES, 0);
+                    tag.putUUID(KEY_TICKET_OWNER_UUID, owner.getUniqueId());
+                    tag.putValue(KEY_TICKET_OWNER_NAME, owner.getName());
+                    tag.putValue(KEY_TICKET_MAX_SPEED, ticket.getProperties().get("speedLimit"));
+                    tag.putValue(KEY_TICKET_ORIGIN_PRICE, this.pathInfo.getPrice());
+                    tag.putValue(KEY_TICKET_ITEM_NAME, this.itemName);
+                    tag.putValue(KEY_TICKET_TAGS, String.join(",", this.pathInfo.getTags()));
+                })
+                .setCustomNameMessage(ticket.getName())
+                .toBukkit();
     }
 }

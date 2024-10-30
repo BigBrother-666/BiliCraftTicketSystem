@@ -14,6 +14,7 @@ public class MainConfig {
     public static double minSpeed;
     public static double speedStep;
     public static String expressTicketName;
+    public static String commonTrainTag;
     public static double pricePerKm;
     public static ConfigurationNode message;
     public static int maxUses;
@@ -24,6 +25,7 @@ public class MainConfig {
         mainConfig.load();
 
         expressTicketName = mainConfig.get("express-ticket-name", "express");
+        commonTrainTag = mainConfig.get("common-train-tag", "common");
         pricePerKm = mainConfig.get("price-per-km", 0.3);
 
         ConfigurationNode speed = mainConfig.getNode("speed");

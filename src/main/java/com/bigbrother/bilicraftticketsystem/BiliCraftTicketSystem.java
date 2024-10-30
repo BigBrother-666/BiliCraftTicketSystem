@@ -2,6 +2,7 @@ package com.bigbrother.bilicraftticketsystem;
 
 import com.bigbrother.bilicraftticketsystem.commands.BCTicketSystemCommand;
 import com.bigbrother.bilicraftticketsystem.listeners.PlayerListeners;
+import com.bigbrother.bilicraftticketsystem.listeners.TrainListeners;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.RegisteredServiceProvider;
@@ -32,6 +33,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
 
         // 注册监听器
         Bukkit.getPluginManager().registerEvents(new PlayerListeners(), this);
+        Bukkit.getPluginManager().registerEvents(new TrainListeners(), this);
 
         // 加载经济系统
         if (!setupEconomy() ) {
