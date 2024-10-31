@@ -2,6 +2,16 @@ title: <rainbow>帕拉伦国有铁路车票系统-主界面</rainbow>
 size: 27
 
 items:
+  "help":
+    name: <green>注意事项
+    material: DIAMOND_BLOCK
+    slot: 10
+    lore:
+      - "<yellow>购票后，为了避免对您造成损失，请务必前往正确的站台乘车。"
+      - "<yellow>第一名玩家上车后，后续上车的玩家，必须持有相同的车票才能上车。"
+      - "<yellow>到达终点站后，请及时下车，列车会在再次出站后强制销毁。"
+      - "<yellow>到站前请不要下车，下车再次上车仍会消耗一张车票。"
+
   "start":
     name: <green>点击选择起始站
     material: DIAMOND_BLOCK
@@ -26,7 +36,6 @@ items:
     name: <red>点击查询车票
     material: DIAMOND_BLOCK
     slot: 16
-    lore:
 
 # 存放车票的格子
 ticket-slots:

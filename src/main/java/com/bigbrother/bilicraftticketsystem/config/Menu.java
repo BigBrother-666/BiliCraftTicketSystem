@@ -9,17 +9,14 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Level;
 
-@SuppressWarnings("unchecked")
 public class Menu {
     @AllArgsConstructor
     public static class CustomMenu {
@@ -30,23 +27,34 @@ public class Menu {
 
     public static CustomMenu mainMenu;
     public static CustomMenu locationMenu;
+    private static FileConfiguration mainMenuConfig;
+    private static FileConfiguration locationMenuConfig;
     private static FileConfiguration itemsConfig;
     public static Map<Component, Map<Integer, String>> itemLocReverse;
     public static Map<Component, Map<String, Integer>> itemLoc;
 
-    public static void loadMenu(BiliCraftTicketSystem plugin) {
+    private static Map<UUID, List<CustomMenu>> playerMenu = new HashMap<>();
+
+    public static void loadMenuConfig(BiliCraftTicketSystem plugin) {
         itemsConfig = new FileConfiguration(plugin, "menuitems.yml");
         itemsConfig.load();
         itemLocReverse = new HashMap<>();
         itemLoc = new HashMap<>();
-        mainMenu = createMenu("menu_main.yml", plugin);
-        locationMenu = createMenu("menu_location.yml", plugin);
-        plugin.getLogger().log(Level.INFO, "成功加载菜单！");
+        mainMenuConfig = new FileConfiguration(plugin, "menu_main.yml");
+        locationMenuConfig = new FileConfiguration(plugin, "menu_location.yml");
+        plugin.getLogger().log(Level.INFO, "成功加载菜单配置文件！");
     }
 
-    private static CustomMenu createMenu(String filePath, BiliCraftTicketSystem plugin) {
-        FileConfiguration menuConf = new FileConfiguration(plugin, filePath);
-        menuConf.load();
+    public void loadMenu() {
+        mainMenu = createMenu(mainMenuConfig);
+        locationMenu = createMenu(locationMenuConfig);
+    }
+
+    public static CustomMenu getMenu(Player player, EnumMenu enumMenu) {
+        return null;
+    }
+
+    private static CustomMenu createMenu(FileConfiguration menuConf) {
         ConfigurationNode items = menuConf.getNode("items");
         Component title = MiniMessage.miniMessage().deserialize(menuConf.get("title","")).decoration(TextDecoration.ITALIC, false);
         Inventory inventory = Bukkit.createInventory(null, menuConf.get("size", 54), title);
