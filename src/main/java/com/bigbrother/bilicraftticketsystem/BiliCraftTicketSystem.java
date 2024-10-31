@@ -1,6 +1,7 @@
 package com.bigbrother.bilicraftticketsystem;
 
 import com.bigbrother.bilicraftticketsystem.commands.BCTicketSystemCommand;
+import com.bigbrother.bilicraftticketsystem.config.Menu;
 import com.bigbrother.bilicraftticketsystem.listeners.PlayerListeners;
 import com.bigbrother.bilicraftticketsystem.listeners.TrainListeners;
 import net.milkbowl.vault.economy.Economy;
@@ -11,7 +12,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.io.File;
 
 import static com.bigbrother.bilicraftticketsystem.config.MainConfig.loadMainConfig;
-import static com.bigbrother.bilicraftticketsystem.config.Menu.loadMenu;
 
 public final class BiliCraftTicketSystem extends JavaPlugin {
     public static BiliCraftTicketSystem plugin;
@@ -48,7 +48,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
 
     public void loadConfig() {
         loadMainConfig(this);
-        loadMenu(this);
+        Menu.loadMenuConfig(this);
         TrainRoutes.readGraphFromFile(this.getDataFolder().getPath() + File.separator + "routes.txt");
     }
 

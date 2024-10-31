@@ -3,8 +3,8 @@ package com.bigbrother.bilicraftticketsystem.listeners;
 import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.config.Menu;
-import com.bigbrother.bilicraftticketsystem.entity.BCTicket;
-import com.bigbrother.bilicraftticketsystem.entity.PlayerOption;
+import com.bigbrother.bilicraftticketsystem.ticket.BCTicket;
+import com.bigbrother.bilicraftticketsystem.ticket.PlayerOption;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -134,22 +134,25 @@ public class PlayerListeners implements Listener {
                 option.setSearchedFlag(true);
                 Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, () -> option.setSearchedFlag(false), 20);
 
-                List<TrainRoutes.PathInfo> pathInfoList = TrainRoutes.getPathInfoList(option.getStartStationString(), option.getEndStationString());
-                plugin.getLogger().log(Level.INFO, pathInfoList.toString());
-                if (pathInfoList.isEmpty()) {
-                    ItemStack barrier = new ItemStack(Material.BARRIER);
-                    ItemMeta barrierMeta = barrier.getItemMeta();
-                    barrierMeta.displayName(Component.text("所选两站暂时没有直达方案！", NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
-                    barrier.setItemMeta(barrierMeta);
-                    event.getView().setItem(ticketSlots.get(0), barrier);
-                } else {
-                    // 显示车票
-                    for (int i = 0; i < ticketSlots.size() && pathInfoList.size() > i; i++) {
-                        BCTicket ticket = BCTicket.createTicket(option, pathInfoList.get(i));
-                        event.getView().setItem(ticketSlots.get(i), ticket.getItem(player));
-                        option.getTickets().put(ticketSlots.get(i), ticket);
+                // 异步计算路径并显示结果
+                Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                    List<TrainRoutes.PathInfo> pathInfoList = TrainRoutes.getPathInfoList(option.getStartStationString(), option.getEndStationString());
+                    plugin.getLogger().log(Level.INFO, pathInfoList.toString());
+                    if (pathInfoList.isEmpty()) {
+                        ItemStack barrier = new ItemStack(Material.BARRIER);
+                        ItemMeta barrierMeta = barrier.getItemMeta();
+                        barrierMeta.displayName(Component.text("所选两站暂时没有直达方案！", NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
+                        barrier.setItemMeta(barrierMeta);
+                        event.getView().setItem(ticketSlots.get(0), barrier);
+                    } else {
+                        // 显示车票
+                        for (int i = 0; i < ticketSlots.size() && pathInfoList.size() > i; i++) {
+                            BCTicket ticket = BCTicket.createTicket(option, pathInfoList.get(i));
+                            event.getView().setItem(ticketSlots.get(i), ticket.getItem(player));
+                            option.getTickets().put(ticketSlots.get(i), ticket);
+                        }
                     }
-                }
+                });
                 break;
             default:
                 // 点击车票
@@ -160,14 +163,16 @@ public class PlayerListeners implements Listener {
 
                     if (r.transactionSuccess()) {
                         player.sendMessage(Component.text(
-                                message.get("buy-success", "您成功花费{cost}购买了{name}")
-                                        .replace("{cost}", "%.2f".formatted(r.amount))
-                                        .replace("{name}", bcTicket.getItemName())));
+                                        message.get("buy-success", "您成功花费{cost}购买了{name}")
+                                                .replace("{cost}", "%.2f".formatted(r.amount))
+                                                .replace("{name}", bcTicket.getItemName()))
+                                .decoration(TextDecoration.ITALIC, false));
                         bcTicket.giveTo(player);
                     } else {
                         player.sendMessage(Component.text(
-                                message.get("buy-failure", "车票购买失败：{error}")
-                                        .replace("{error}", r.errorMessage)));
+                                        message.get("buy-failure", "车票购买失败：{error}")
+                                                .replace("{error}", r.errorMessage))
+                                .decoration(TextDecoration.ITALIC, false));
                     }
                     option.setUses(1);
                     event.getView().close();
@@ -246,7 +251,7 @@ public class PlayerListeners implements Listener {
             }
             return;
         }
-        for (Map.Entry<Integer, BCTicket> entry: tickets.entrySet()) {
+        for (Map.Entry<Integer, BCTicket> entry : tickets.entrySet()) {
             entry.getValue().updateProperties(playerOption);
             event.getView().setItem(entry.getKey(), entry.getValue().getItem(player));
         }

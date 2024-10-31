@@ -1,4 +1,4 @@
-package com.bigbrother.bilicraftticketsystem.entity;
+package com.bigbrother.bilicraftticketsystem.ticket;
 
 import lombok.Data;
 import net.kyori.adventure.text.Component;

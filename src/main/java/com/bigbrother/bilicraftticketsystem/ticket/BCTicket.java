@@ -1,11 +1,9 @@
-package com.bigbrother.bilicraftticketsystem.entity;
+package com.bigbrother.bilicraftticketsystem.ticket;
 
-import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.common.map.MapDisplay;
-import com.bergerkiller.bukkit.tc.tickets.TCTicketDisplay;
-import com.bergerkiller.bukkit.tc.tickets.Ticket;
-import com.bergerkiller.bukkit.tc.tickets.TicketStore;
+import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
+import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import lombok.AllArgsConstructor;
@@ -18,7 +16,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 
@@ -29,6 +26,7 @@ public class BCTicket {
     public static final String KEY_TICKET_NAME = "ticketName";
     public static final String KEY_TICKET_CREATION_TIME = "ticketCreationTime";
     public static final String KEY_TICKET_NUMBER_OF_USES = "ticketNumberOfUses";
+    public static final String KEY_TICKET_MAX_NUMBER_OF_USES = "ticketMaxNumberOfUses";
     public static final String KEY_TICKET_OWNER_UUID = "ticketOwner";
     public static final String KEY_TICKET_OWNER_NAME = "ticketOwnerName";
     public static final String KEY_TICKET_MAX_SPEED = "ticketMaxSpeed";
@@ -36,19 +34,12 @@ public class BCTicket {
     public static final String KEY_TICKET_ITEM_NAME = "ticketItemName";
     public static final String KEY_TICKET_TAGS = "ticketTags";
 
-    private Ticket ticket;
+    private PlayerOption option;
     private TrainRoutes.PathInfo pathInfo;
     private String itemName;
     private double totalPrice;
 
     public static BCTicket createTicket(PlayerOption option, TrainRoutes.PathInfo info) {
-        Ticket ticket = TicketStore.getTicket(MainConfig.expressTicketName);
-        ConfigurationNode properties = new ConfigurationNode();
-        properties.set("speedLimit", option.getSpeed());
-        properties.set("tags", info.getTags());
-        ticket.setProperties(properties);
-        ticket.setMaxNumberOfUses(option.getUses());
-        ticket.setName(MainConfig.expressTicketName);
         String name = option.getUses() == 1 ? "%s->%s 单次票".formatted(info.getStart(), info.getEnd()) : "%s->%s %s次票".formatted(info.getStart(), info.getEnd(), option.getUses());
         double totalPrice = info.getPrice() * option.getUses();
         for (String s : MainConfig.discount) {
@@ -59,11 +50,11 @@ public class BCTicket {
             }
         }
 
-        return new BCTicket(ticket, info, name, totalPrice);
+        return new BCTicket(option, info, name, totalPrice);
     }
 
     public ItemStack getItem(Player player) {
-        ItemStack item = createItem(player, ticket);
+        ItemStack item = createItem(player);
         ItemMeta itemMeta = item.getItemMeta();
         List<Component> lore = new ArrayList<>();
         lore.add(Component.text("起始站 ---> 终到站：", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false));
@@ -105,7 +96,7 @@ public class BCTicket {
         List<Component> lore = itemMeta.lore();
         if (lore != null && lore.size() > 2) {
             lore.remove(lore.size() - 1);
-            lore.remove(lore.size() - 2);
+            lore.remove(lore.size() - 1);
         }
         itemMeta.lore(lore);
         item.setItemMeta(itemMeta);
@@ -116,10 +107,7 @@ public class BCTicket {
     }
 
     public void updateProperties(PlayerOption option) {
-        ConfigurationNode properties = new ConfigurationNode();
-        properties.set("speedLimit", option.getSpeed());
-        ticket.setProperties(properties);
-        ticket.setMaxNumberOfUses(option.getUses());
+        this.option = option;
 
         // 重新计算票价
         double totalPrice = this.pathInfo.getPrice() * option.getUses();
@@ -138,21 +126,47 @@ public class BCTicket {
                 "%s->%s %s次票".formatted(this.pathInfo.getStart(), this.pathInfo.getEnd(), option.getUses());
     }
 
-    private ItemStack createItem(Player owner, Ticket ticket) {
-        return CommonItemStack.of(MapDisplay.createMapItem(TCTicketDisplay.class))
+    private ItemStack createItem(Player owner) {
+        return CommonItemStack.of(MapDisplay.createMapItem(BCTicketDisplay.class))
                 .updateCustomData(tag -> {
                     tag.putValue("plugin", "TrainCarts");
-                    tag.putValue(KEY_TICKET_NAME, ticket.getName());
+                    tag.putValue(KEY_TICKET_NAME, MainConfig.expressTicketName);
                     tag.putValue(KEY_TICKET_CREATION_TIME, System.currentTimeMillis());
                     tag.putValue(KEY_TICKET_NUMBER_OF_USES, 0);
+                    tag.putValue(KEY_TICKET_MAX_NUMBER_OF_USES, option.getUses());
                     tag.putUUID(KEY_TICKET_OWNER_UUID, owner.getUniqueId());
                     tag.putValue(KEY_TICKET_OWNER_NAME, owner.getName());
-                    tag.putValue(KEY_TICKET_MAX_SPEED, ticket.getProperties().get("speedLimit"));
+                    tag.putValue(KEY_TICKET_MAX_SPEED, option.getSpeed());
                     tag.putValue(KEY_TICKET_ORIGIN_PRICE, this.pathInfo.getPrice());
                     tag.putValue(KEY_TICKET_ITEM_NAME, this.itemName);
                     tag.putValue(KEY_TICKET_TAGS, String.join(",", this.pathInfo.getTags()));
                 })
-                .setCustomNameMessage(ticket.getName())
+                .setCustomNameMessage(MainConfig.expressTicketName)
                 .toBukkit();
+    }
+
+    public static CommonItemStack deepCopy(Player owner, CommonItemStack origin) {
+        CommonTagCompound customData = origin.getCustomData();
+
+        CommonItemStack commonItemStack = CommonItemStack.of(MapDisplay.createMapItem(BCTicketDisplay.class))
+                .updateCustomData(tag -> {
+                    tag.putValue("plugin", "TrainCarts");
+                    tag.putValue(KEY_TICKET_NAME, MainConfig.expressTicketName);
+                    tag.putValue(KEY_TICKET_CREATION_TIME, System.currentTimeMillis());
+                    tag.putValue(KEY_TICKET_NUMBER_OF_USES, 0);
+                    tag.putValue(KEY_TICKET_MAX_NUMBER_OF_USES, 1);
+                    tag.putUUID(KEY_TICKET_OWNER_UUID, owner.getUniqueId());
+                    tag.putValue(KEY_TICKET_OWNER_NAME, owner.getName());
+                    tag.putValue(KEY_TICKET_MAX_SPEED, customData.getValue(KEY_TICKET_MAX_SPEED, 2));
+                    tag.putValue(KEY_TICKET_ORIGIN_PRICE, customData.getValue(KEY_TICKET_ORIGIN_PRICE, 0));
+                    tag.putValue(KEY_TICKET_ITEM_NAME, customData.getValue(KEY_TICKET_ITEM_NAME, "Unknown"));
+                    tag.putValue(KEY_TICKET_TAGS, customData.getValue(KEY_TICKET_TAGS, ""));
+                })
+                .setCustomNameMessage(MainConfig.expressTicketName);
+        for (ChatText lore : origin.getLores()) {
+            commonItemStack.addLore(lore);
+        }
+        commonItemStack.setCustomName(origin.getDisplayName());
+        return commonItemStack;
     }
 }
