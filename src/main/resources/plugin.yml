@@ -20,6 +20,3 @@ permissions:
   bcts.ticket.menuitem:
     description: "添加自定义物品权限"
     default: op
-  bcts.ticket.give:
-    description: "转增车票权限"
-    default: op
