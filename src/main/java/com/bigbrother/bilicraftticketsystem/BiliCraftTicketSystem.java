@@ -1,9 +1,11 @@
 package com.bigbrother.bilicraftticketsystem;
 
+import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bigbrother.bilicraftticketsystem.commands.BCTicketSystemCommand;
 import com.bigbrother.bilicraftticketsystem.config.Menu;
 import com.bigbrother.bilicraftticketsystem.listeners.PlayerListeners;
 import com.bigbrother.bilicraftticketsystem.listeners.TrainListeners;
+import com.bigbrother.bilicraftticketsystem.signactions.CustomSignActionAnnounce;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.RegisteredServiceProvider;
@@ -16,6 +18,7 @@ import static com.bigbrother.bilicraftticketsystem.config.MainConfig.loadMainCon
 public final class BiliCraftTicketSystem extends JavaPlugin {
     public static BiliCraftTicketSystem plugin;
     public static Economy econ = null;
+    public final CustomSignActionAnnounce signActionAnnounce = new CustomSignActionAnnounce();
 
     @Override
     public void onEnable() {
@@ -44,6 +47,9 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
 
         // 加载配置文件
         Bukkit.getScheduler().runTaskLaterAsynchronously(this, this::loadConfig, 20);
+
+        // 注册控制牌
+        SignAction.register(signActionAnnounce, true);
     }
 
     public void loadConfig() {
@@ -67,5 +73,6 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     @Override
     public void onDisable() {
         // Plugin shutdown logic
+        SignAction.unregister(signActionAnnounce);
     }
 }
