@@ -6,7 +6,7 @@
 
     <groupId>com.bigbrother</groupId>
     <artifactId>BiliCraftTicketSystem</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
 
     <name>BiliCraftTicketSystem</name>
@@ -52,7 +52,7 @@
                             <goal>copy-resources</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>/home/dyh/文档/bilicraft/servers/paper1.20.4-1/plugins</outputDirectory>
+                            <outputDirectory>F:\minecraft-servers\paper-1.20.4\plugins</outputDirectory>
                             <resources>
                                 <resource>
                                     <directory>${project.build.directory}</directory>
