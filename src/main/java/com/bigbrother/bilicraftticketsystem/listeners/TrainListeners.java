@@ -62,7 +62,7 @@ public class TrainListeners implements Listener {
             Ticket ticket = TicketStore.getTicketFromItem(mainHand);
             TrainProperties trainProperties = new_member.getGroup().getProperties();
             Collection<String> trainTags = trainProperties.getTags();
-            if (!trainProperties.getTickets().contains("/")) {
+            if (!trainProperties.getTickets().contains(MainConfig.expressTicketName)) {
                 return;
             }
             if (ticket == null && trainTags.contains(MainConfig.commonTrainTag)) {
