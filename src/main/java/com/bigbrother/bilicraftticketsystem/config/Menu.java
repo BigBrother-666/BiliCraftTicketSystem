@@ -48,6 +48,7 @@ public class Menu {
         locationMenuConfig.load();
         itemLocReverse = new HashMap<>();
         itemLoc = new HashMap<>();
+        playerMenu.clear();
         plugin.getLogger().log(Level.INFO, "成功加载菜单配置文件！");
     }
 
@@ -69,6 +70,8 @@ public class Menu {
         Inventory inventory = Bukkit.createInventory(null, menuConf.get("size", 54), title);
         Map<Integer, String> tempReverse = new HashMap<>();
         Map<String, Integer> temp = new HashMap<>();
+
+        int slotCount = 0; // 无slot处理
         for (Map.Entry<String, Object> entry : items.getValues().entrySet()) {
             ConfigurationNode item = items.getNode(entry.getKey());
 
@@ -82,7 +85,7 @@ public class Menu {
             }
             ItemMeta itemMeta = customItem.getItemMeta();
             List<Component> lore = new ArrayList<>();
-            for (String s : item.get("lore", List.of(""))) {
+            for (String s : item.getList("lore", String.class, Collections.emptyList())) {
                 lore.add(MiniMessage.miniMessage().deserialize(s).decoration(TextDecoration.ITALIC, false));
             }
             itemMeta.lore(lore);
@@ -90,12 +93,13 @@ public class Menu {
             customItem.setItemMeta(itemMeta);
 
             // 添加物品
-            inventory.setItem(item.get("slot",0), customItem);
-            tempReverse.put(item.get("slot",0), item.getName());
-            temp.put(item.getName(), item.get("slot",0));
+            inventory.setItem(item.get("slot",slotCount), customItem);
+            tempReverse.put(item.get("slot",slotCount), item.getName());
+            temp.put(item.getName(), item.get("slot",slotCount));
+            slotCount++;
         }
-        itemLocReverse.put(title, tempReverse);
-        itemLoc.put(title, temp);
+        itemLocReverse.putIfAbsent(title, tempReverse);
+        itemLoc.putIfAbsent(title, temp);
         return new CustomMenu(inventory, title, menuConf.getList("ticket-slots", Integer.class));
     }
 
@@ -115,6 +119,6 @@ public class Menu {
             Map<String, Object> itemData = itemsConfig.getNode(path).getValues();
             return ItemStack.deserialize(itemData);
         }
-        return null;
+        return new ItemStack(Material.AIR);
     }
 }

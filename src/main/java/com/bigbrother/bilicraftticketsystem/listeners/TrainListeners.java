@@ -19,6 +19,7 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.milkbowl.vault.economy.EconomyResponse;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -109,8 +110,8 @@ public class TrainListeners implements Listener {
                 if (trainHintRecord.containsKey(trainProperties.getTrainName())) {
                     if (!trainHintRecord.get(trainProperties.getTrainName()).add(player.getUniqueId())) {
                         player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("forbidden-get-on", "")).decoration(TextDecoration.ITALIC, false));
+                        return;
                     }
-                    return;
                 } else {
                     trainHintRecord.put(trainProperties.getTrainName(), new HashSet<>());
                     trainHintRecord.get(trainProperties.getTrainName()).add(player.getUniqueId());
@@ -145,7 +146,6 @@ public class TrainListeners implements Listener {
                         .clickEvent(ClickEvent.callback(audience -> {
                             EconomyResponse r = econ.withdrawPlayer(player, ticketNbt.getValue(BCTicket.KEY_TICKET_ORIGIN_PRICE, 0.0));
 
-
                             if (r.transactionSuccess()) {
                                 player.sendMessage(MiniMessage.miniMessage().deserialize(
                                                 message.get("buy-success", "您成功花费 %.2f 购买了 %s")
@@ -155,6 +155,10 @@ public class TrainListeners implements Listener {
                                     // 背包满 车票丢到地上
                                     player.getWorld().dropItemNaturally(player.getLocation(), trainTicket);
                                 }
+                                // 记录log
+                                Bukkit.getConsoleSender().sendMessage(MiniMessage.miniMessage().deserialize(
+                                        "<gold>[帕拉伦国有铁路车票系统] <green>玩家 %s 成功花费 %.2f 购买了 %s"
+                                                .formatted(player.getName(), r.amount, ticketName)));
                             } else {
                                 player.sendMessage(MiniMessage.miniMessage().deserialize(
                                                 message.get("buy-failure", "车票购买失败：%s")

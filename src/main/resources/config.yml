@@ -28,5 +28,5 @@ message:
   buy-failure: <gold>[帕拉伦国有铁路车票系统] <red>车票购买失败：%s
   forbidden-get-on: <gold>[帕拉伦国有铁路车票系统] <red>主手车票不正确或列车已经驶离起始站，禁止上车
   check-failed: <gold>[帕拉伦国有铁路车票系统] <red>检票失败！主手没有这趟列车的车票。本次列车的车票信息：
-  quick-buy: <gold>[帕拉伦国有铁路车票系统] <green>点击花费 <bold>%.2f银币</bold> 快速购买一张此列车的单程票
+  quick-buy: <gold>[帕拉伦国有铁路车票系统] <green><underlined>点击花费 <bold>%.2f银币</bold> 快速购买一张此列车的单程票
   wiki: <gold>[帕拉伦国有铁路车票系统] <green><underlined><click:open_url:https://www.yuque.com/sasanarx/bilicraft/iunb5gkspevng8gf#>点击打开帕拉伦国有铁路wiki页面

@@ -158,7 +158,7 @@ public class BCTicket {
                     tag.putUUID(KEY_TICKET_OWNER_UUID, owner.getUniqueId());
                     tag.putValue(KEY_TICKET_OWNER_NAME, owner.getName());
                     tag.putValue(KEY_TICKET_MAX_SPEED, customData.getValue(KEY_TICKET_MAX_SPEED, 2));
-                    tag.putValue(KEY_TICKET_ORIGIN_PRICE, customData.getValue(KEY_TICKET_ORIGIN_PRICE, 0));
+                    tag.putValue(KEY_TICKET_ORIGIN_PRICE, customData.getValue(KEY_TICKET_ORIGIN_PRICE, 0.0));
                     tag.putValue(KEY_TICKET_ITEM_NAME, customData.getValue(KEY_TICKET_ITEM_NAME, "Unknown"));
                     tag.putValue(KEY_TICKET_TAGS, customData.getValue(KEY_TICKET_TAGS, ""));
                 })

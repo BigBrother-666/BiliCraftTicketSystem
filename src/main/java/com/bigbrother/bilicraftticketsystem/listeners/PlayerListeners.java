@@ -23,7 +23,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.*;
-import java.util.logging.Level;
 
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.econ;
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
@@ -36,7 +35,10 @@ public class PlayerListeners implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
-        if (event.getWhoClicked() instanceof Player && event.getView().getType() == InventoryType.CHEST) {
+        if (event.getClickedInventory() == null || !event.getClickedInventory().getType().equals(InventoryType.CHEST)) {
+            return;
+        }
+        if (event.getWhoClicked() instanceof Player && event.getView().getType().equals(InventoryType.CHEST)) {
             Component title = event.getView().title();
             Player player = ((Player) event.getWhoClicked()).getPlayer();
             if (player == null) {
@@ -142,7 +144,6 @@ public class PlayerListeners implements Listener {
                 // 异步计算路径并显示结果
                 Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
                     List<TrainRoutes.PathInfo> pathInfoList = TrainRoutes.getPathInfoList(option.getStartStationString(), option.getEndStationString());
-                    plugin.getLogger().log(Level.INFO, pathInfoList.toString());
                     if (pathInfoList.isEmpty()) {
                         ItemStack barrier = new ItemStack(Material.BARRIER);
                         ItemMeta barrierMeta = barrier.getItemMeta();
@@ -169,6 +170,9 @@ public class PlayerListeners implements Listener {
                 ItemStack item0 = event.getView().getItem(Menu.getMenu(player).mainMenu.ticketSlots.get(0));
                 if (ticketSlots.contains(event.getSlot()) && item0 != null && !item0.getType().equals(Material.BARRIER)) {
                     BCTicket bcTicket = option.getTickets().get(event.getSlot());
+                    if (bcTicket == null) {
+                        return;
+                    }
                     EconomyResponse r = econ.withdrawPlayer(player, bcTicket.getTotalPrice());
 
                     if (r.transactionSuccess()) {
@@ -177,6 +181,10 @@ public class PlayerListeners implements Listener {
                                                 .formatted(r.amount, bcTicket.getItemName()))
                                 .decoration(TextDecoration.ITALIC, false));
                         bcTicket.giveTo(player);
+                        // 记录log
+                        Bukkit.getConsoleSender().sendMessage(MiniMessage.miniMessage().deserialize(
+                                "<gold>[帕拉伦国有铁路车票系统] <green>玩家 %s 成功花费 %.2f 购买了 %s"
+                                        .formatted(player.getName(), r.amount, bcTicket.getItemName())));
                     } else {
                         player.sendMessage(MiniMessage.miniMessage().deserialize(
                                         message.get("buy-failure", "车票购买失败：%s")
