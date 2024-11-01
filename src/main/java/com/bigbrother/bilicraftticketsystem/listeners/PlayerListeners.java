@@ -8,6 +8,7 @@ import com.bigbrother.bilicraftticketsystem.ticket.PlayerOption;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -37,11 +38,15 @@ public class PlayerListeners implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         if (event.getWhoClicked() instanceof Player && event.getView().getType() == InventoryType.CHEST) {
             Component title = event.getView().title();
-            if (title.equals(Menu.mainMenu.title)) {
+            Player player = ((Player) event.getWhoClicked()).getPlayer();
+            if (player == null) {
+                return;
+            }
+            if (title.equals(Menu.getMenu(player).mainMenu.title)) {
                 // 主菜单处理逻辑
                 event.setCancelled(true);
                 mainMenu(Menu.itemLocReverse.get(title), event);
-            } else if (title.equals(Menu.locationMenu.title)) {
+            } else if (title.equals(Menu.getMenu(player).locationMenu.title)) {
                 event.setCancelled(true);
                 locationMenu(Menu.itemLocReverse.get(title), event);
             }
@@ -60,7 +65,7 @@ public class PlayerListeners implements Listener {
             playerOptionMap.get(player.getUniqueId()).setEndStation(Component.text(itemSlot.get(event.getSlot()), NamedTextColor.GOLD));
         }
         event.getView().close();
-        player.openInventory(Menu.mainMenu.inventory);
+        player.openInventory(Menu.getMenu(player).mainMenu.inventory);
 //        if (currentItem != )
     }
 
@@ -71,16 +76,16 @@ public class PlayerListeners implements Listener {
             itemName = "";
         }
         PlayerOption option = playerOptionMap.get(player.getUniqueId());
-        List<Integer> ticketSlots = Menu.mainMenu.ticketSlots;
+        List<Integer> ticketSlots = Menu.getMenu(player).mainMenu.ticketSlots;
         switch (itemName) {
             case "start":
                 option.setStartStationFlag(true);
-                player.openInventory(Menu.locationMenu.inventory);
+                player.openInventory(Menu.getMenu(player).locationMenu.inventory);
                 playerOptionMap.get(player.getUniqueId()).getTickets().clear();
                 break;
             case "stop":
                 option.setStartStationFlag(false);
-                player.openInventory(Menu.locationMenu.inventory);
+                player.openInventory(Menu.getMenu(player).locationMenu.inventory);
                 playerOptionMap.get(player.getUniqueId()).getTickets().clear();
                 break;
             case "speed":
@@ -154,24 +159,28 @@ public class PlayerListeners implements Listener {
                     }
                 });
                 break;
+            case "help":
+                // 打开wiki页面
+                event.getView().close();
+                player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("wiki", "https://www.yuque.com/sasanarx/bilicraft/iunb5gkspevng8gf#")));
+                break;
             default:
                 // 点击车票
-                ItemStack item0 = event.getView().getItem(Menu.mainMenu.ticketSlots.get(0));
+                ItemStack item0 = event.getView().getItem(Menu.getMenu(player).mainMenu.ticketSlots.get(0));
                 if (ticketSlots.contains(event.getSlot()) && item0 != null && !item0.getType().equals(Material.BARRIER)) {
                     BCTicket bcTicket = option.getTickets().get(event.getSlot());
                     EconomyResponse r = econ.withdrawPlayer(player, bcTicket.getTotalPrice());
 
                     if (r.transactionSuccess()) {
-                        player.sendMessage(Component.text(
-                                        message.get("buy-success", "您成功花费{cost}购买了{name}")
-                                                .replace("{cost}", "%.2f".formatted(r.amount))
-                                                .replace("{name}", bcTicket.getItemName()))
+                        player.sendMessage(MiniMessage.miniMessage().deserialize(
+                                        message.get("buy-success", "您成功花费 %.2f 购买了 %s"
+                                                .formatted(r.amount, bcTicket.getItemName())))
                                 .decoration(TextDecoration.ITALIC, false));
                         bcTicket.giveTo(player);
                     } else {
-                        player.sendMessage(Component.text(
-                                        message.get("buy-failure", "车票购买失败：{error}")
-                                                .replace("{error}", r.errorMessage))
+                        player.sendMessage(MiniMessage.miniMessage().deserialize(
+                                        message.get("buy-failure", "车票购买失败：%s"
+                                                .formatted(r.errorMessage)))
                                 .decoration(TextDecoration.ITALIC, false));
                     }
                     option.setUses(1);
@@ -187,7 +196,7 @@ public class PlayerListeners implements Listener {
         if (event.getPlayer() instanceof Player player && event.getView().getType() == InventoryType.CHEST) {
             Component title = event.getView().title();
             Map<String, Integer> itemSlot = Menu.itemLoc.get(title);
-            if (title.equals(Menu.mainMenu.title)) {
+            if (title.equals(Menu.getMenu(player).mainMenu.title)) {
                 // 先创建option
                 if (!playerOptionMap.containsKey(player.getUniqueId())) {
                     playerOptionMap.put(player.getUniqueId(), new PlayerOption());
@@ -244,9 +253,9 @@ public class PlayerListeners implements Listener {
         Player player = (Player) event.getWhoClicked();
         PlayerOption playerOption = playerOptionMap.get(player.getUniqueId());
         Map<Integer, BCTicket> tickets = playerOption.getTickets();
-        ItemStack item0 = event.getView().getItem(Menu.mainMenu.ticketSlots.get(0));
+        ItemStack item0 = event.getView().getItem(Menu.getMenu(player).mainMenu.ticketSlots.get(0));
         if (tickets.isEmpty() && item0 != null && !item0.getType().equals(Material.BARRIER)) {
-            for (Integer ticketSlot : Menu.mainMenu.ticketSlots) {
+            for (Integer ticketSlot : Menu.getMenu(player).mainMenu.ticketSlots) {
                 event.getView().setItem(ticketSlot, new ItemStack(Material.AIR));
             }
             return;

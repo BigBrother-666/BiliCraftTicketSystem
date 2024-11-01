@@ -18,6 +18,10 @@ import java.util.*;
 import java.util.logging.Level;
 
 public class Menu {
+    public Menu() {
+        loadMenu();
+    }
+
     @AllArgsConstructor
     public static class CustomMenu {
         public Inventory inventory;
@@ -25,23 +29,25 @@ public class Menu {
         public List<Integer> ticketSlots;
     }
 
-    public static CustomMenu mainMenu;
-    public static CustomMenu locationMenu;
+    public CustomMenu mainMenu;
+    public CustomMenu locationMenu;
     private static FileConfiguration mainMenuConfig;
     private static FileConfiguration locationMenuConfig;
     private static FileConfiguration itemsConfig;
     public static Map<Component, Map<Integer, String>> itemLocReverse;
     public static Map<Component, Map<String, Integer>> itemLoc;
 
-    private static Map<UUID, List<CustomMenu>> playerMenu = new HashMap<>();
+    private static final Map<UUID, Menu> playerMenu = new HashMap<>();
 
     public static void loadMenuConfig(BiliCraftTicketSystem plugin) {
-        itemsConfig = new FileConfiguration(plugin, "menuitems.yml");
+        itemsConfig = new FileConfiguration(plugin, EnumMenu.ITEMS.getFileName());
         itemsConfig.load();
+        mainMenuConfig = new FileConfiguration(plugin, EnumMenu.MAIN.getFileName());
+        mainMenuConfig.load();
+        locationMenuConfig = new FileConfiguration(plugin, EnumMenu.LOCATION.getFileName());
+        locationMenuConfig.load();
         itemLocReverse = new HashMap<>();
         itemLoc = new HashMap<>();
-        mainMenuConfig = new FileConfiguration(plugin, "menu_main.yml");
-        locationMenuConfig = new FileConfiguration(plugin, "menu_location.yml");
         plugin.getLogger().log(Level.INFO, "成功加载菜单配置文件！");
     }
 
@@ -50,8 +56,11 @@ public class Menu {
         locationMenu = createMenu(locationMenuConfig);
     }
 
-    public static CustomMenu getMenu(Player player, EnumMenu enumMenu) {
-        return null;
+    public static Menu getMenu(Player player) {
+        if (!playerMenu.containsKey(player.getUniqueId())) {
+            playerMenu.put(player.getUniqueId(), new Menu());
+        }
+        return playerMenu.get(player.getUniqueId());
     }
 
     private static CustomMenu createMenu(FileConfiguration menuConf) {
