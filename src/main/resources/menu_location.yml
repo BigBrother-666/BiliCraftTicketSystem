@@ -2,23 +2,80 @@ title: <rainbow>帕拉伦国有铁路车票系统-车站选择</rainbow>
 size: 54
 
 items:
+  # -------------------- 班戟列岛 --------------------
   "新赫洛堡站":
-    name: <blue>新赫洛堡站
-    material: DIAMOND_BLOCK
-    slot: 0
-  "秋华町站":
-    name: <blue>秋华町站
-    material: DIAMOND_BLOCK
-    slot: 1
-  "诺亚站":
-    name: <blue>诺亚站
-    material: DIAMOND_BLOCK
-    slot: 2
+    name: <gold>新赫洛堡站
+    material: GOLD_BLOCK
+  "长岛站":
+    name: <gold>长岛站
+    material: GOLD_BLOCK
+  "银月岛站":
+    name: <gold>银月岛站
+    material: GOLD_BLOCK
+
+  # -------------------- 舒芙蕾 --------------------
   "赤脊湾站":
-    name: <blue>赤脊湾站
+    name: <red>赤脊湾站
     material: DIAMOND_BLOCK
-    slot: 3
+  "春风平原站":
+    name: <red>春风平原站
+    material: DIAMOND_BLOCK
+  "大绿龙岛站":
+    name: <red>大绿龙岛站
+    material: DIAMOND_BLOCK
+  "鹅城站":
+    name: <red>鹅城站
+    material: DIAMOND_BLOCK
+  "丰饶台地站":
+    name: <red>丰饶台地站
+    material: DIAMOND_BLOCK
+  "丰饶台地西站":
+    name: <red>丰饶台地西站
+    material: DIAMOND_BLOCK
+  "龙爪半岛站":
+    name: <red>龙爪半岛站
+    material: DIAMOND_BLOCK
+  "暖风河谷站":
+    name: <red>暖风河谷站
+    material: DIAMOND_BLOCK
+
+  # -------------------- 慕斯 --------------------
+  "德芙站":
+    name: <yellow>德芙站
+    material: REDSTONE_BLOCK
+  "恶土站":
+    name: <yellow>恶土站
+    material: REDSTONE_BLOCK
+  "贸易海岸站":
+    name: <yellow>贸易海岸站
+    material: REDSTONE_BLOCK
+  "西州湾站":
+    name: <yellow>西州湾站
+    material: REDSTONE_BLOCK
+
+  # -------------------- 普拉米尔 --------------------
+  "匕首半岛站":
+    name: <blue>匕首半岛站
+    material: EMERALD_BLOCK
+  "黄昏岛站":
+    name: <blue>黄昏岛站
+    material: EMERALD_BLOCK
+  "翡翠岛站":
+    name: <blue>翡翠岛站
+    material: EMERALD_BLOCK
+
+  # -------------------- 瓦尔德 --------------------
+  "秋华町站":
+    name: <aqua>秋华町站
+    material: LAPIS_BLOCK
+  "世界树原野站":
+    name: <aqua>世界树原野站
+    material: LAPIS_BLOCK
   "新特拉姆站":
-    name: <blue>新特拉姆站
-    material: DIAMOND_BLOCK
-    slot: 4
+    name: <aqua>新特拉姆站
+    material: LAPIS_BLOCK
+
+  # -------------------- 蒙布朗 --------------------
+  "诺亚站":
+    name: <white>诺亚站
+    material: IRON_BLOCK

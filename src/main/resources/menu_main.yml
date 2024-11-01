@@ -1,11 +1,11 @@
 title: <rainbow>帕拉伦国有铁路车票系统-主界面</rainbow>
-size: 27
+size: 54
 
 items:
   "help":
-    name: <green>注意事项
-    material: DIAMOND_BLOCK
-    slot: 1
+    name: <green><bold>注意事项</bold>
+    material: item-warn
+    slot: 29
     lore:
       - "<yellow>购票后，为了避免对您造成损失，请务必前往正确的站台乘车。"
       - "<yellow>第一名玩家上车后，后续上车的玩家，必须持有相同的车票才能上车。"
@@ -15,38 +15,164 @@ items:
       - "<gold>点击打开wiki页面查看线路图和详细使用方法"
 
   "start":
-    name: <green>点击选择起始站
-    material: DIAMOND_BLOCK
+    name: <green><bold>点击选择起始站</bold>
+    material: item-start
     slot: 10
 
   "stop":
-    name: <green>点击选择终到站
-    material: DIAMOND_BLOCK
-    slot: 12
+    name: <green><bold>点击选择终到站</bold>
+    material: item-stop
+    slot: 19
 
   "speed":
-    name: <green>选择最大速度
-    material: DIAMOND_BLOCK
-    slot: 14
+    name: <green><bold>选择最大速度</bold>
+    material: item-speed
+    slot: 28
 
   "uses":
-    name: <green>选择车票可使用次数
-    material: DIAMOND_BLOCK
-    slot: 15
+    name: <green><bold>选择车票可使用次数</bold>
+    material: item-uses
+    slot: 37
 
   "search":
-    name: <red>点击查询车票
-    material: DIAMOND_BLOCK
-    slot: 16
+    name: <red><bold>点击查询车票</bold>
+    material: item-search
+    slot: 20
+
+  # --------------------------------------------------
+
+  "border1":
+    name: <grey>我是边界
+    material: ORANGE_STAINED_GLASS_PANE
+    slot: 0
+  "border2":
+    name: <grey>我是边界
+    material: ORANGE_STAINED_GLASS_PANE
+    slot: 1
+  "border3":
+    name: <grey>我是边界
+    material: ORANGE_STAINED_GLASS_PANE
+    slot: 2
+  "border4":
+    name: <grey>我是边界
+    material: ORANGE_STAINED_GLASS_PANE
+    slot: 3
+  "border5":
+    name: <grey>我是边界
+    material: ORANGE_STAINED_GLASS_PANE
+    slot: 4
+  "border6":
+    name: <grey>我是边界
+    material: ORANGE_STAINED_GLASS_PANE
+    slot: 5
+  "border7":
+    name: <grey>我是边界
+    material: ORANGE_STAINED_GLASS_PANE
+    slot: 6
+  "border8":
+    name: <grey>我是边界
+    material: ORANGE_STAINED_GLASS_PANE
+    slot: 7
+  "border9":
+    name: <grey>我是边界
+    material: ORANGE_STAINED_GLASS_PANE
+    slot: 8
+  "border10":
+    name: <grey>我是边界
+    material: ORANGE_STAINED_GLASS_PANE
+    slot: 9
+  "border11":
+    name: <grey>我是边界
+    material: ORANGE_STAINED_GLASS_PANE
+    slot: 11
+  "border12":
+    name: <grey>我是边界
+    material: ORANGE_STAINED_GLASS_PANE
+    slot: 12
+  "border13":
+    name: <grey>我是边界
+    material: ORANGE_STAINED_GLASS_PANE
+    slot: 18
+  "border14":
+    name: <grey>我是边界
+    material: ORANGE_STAINED_GLASS_PANE
+    slot: 21
+  "border15":
+    name: <grey>我是边界
+    material: ORANGE_STAINED_GLASS_PANE
+    slot: 27
+  "border16":
+    name: <grey>我是边界
+    material: ORANGE_STAINED_GLASS_PANE
+    slot: 30
+  "border17":
+    name: <grey>我是边界
+    material: ORANGE_STAINED_GLASS_PANE
+    slot: 36
+  "border18":
+    name: <grey>我是边界
+    material: ORANGE_STAINED_GLASS_PANE
+    slot: 38
+  "border19":
+    name: <grey>我是边界
+    material: ORANGE_STAINED_GLASS_PANE
+    slot: 39
+  "border20":
+    name: <grey>我是边界
+    material: ORANGE_STAINED_GLASS_PANE
+    slot: 45
+  "border21":
+    name: <grey>我是边界
+    material: ORANGE_STAINED_GLASS_PANE
+    slot: 46
+  "border22":
+    name: <grey>我是边界
+    material: ORANGE_STAINED_GLASS_PANE
+    slot: 47
+  "border23":
+    name: <grey>我是边界
+    material: ORANGE_STAINED_GLASS_PANE
+    slot: 48
+  "border24":
+    name: <grey>我是边界
+    material: ORANGE_STAINED_GLASS_PANE
+    slot: 49
+  "border25":
+    name: <grey>我是边界
+    material: ORANGE_STAINED_GLASS_PANE
+    slot: 50
+  "border26":
+    name: <grey>我是边界
+    material: ORANGE_STAINED_GLASS_PANE
+    slot: 51
+  "border27":
+    name: <grey>我是边界
+    material: ORANGE_STAINED_GLASS_PANE
+    slot: 52
+  "border28":
+    name: <grey>我是边界
+    material: ORANGE_STAINED_GLASS_PANE
+    slot: 53
 
 # 存放车票的格子
 ticket-slots:
-  - 18
-  - 19
-  - 20
-  - 21
+  - 13
+  - 14
+  - 15
+  - 16
+  - 17
   - 22
   - 23
   - 24
   - 25
   - 26
+  - 31
+  - 32
+  - 33
+  - 34
+  - 35
+  - 40
+  - 41
+  - 42
+  - 43
+  - 44
