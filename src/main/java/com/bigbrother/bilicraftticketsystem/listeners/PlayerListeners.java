@@ -173,14 +173,14 @@ public class PlayerListeners implements Listener {
 
                     if (r.transactionSuccess()) {
                         player.sendMessage(MiniMessage.miniMessage().deserialize(
-                                        message.get("buy-success", "您成功花费 %.2f 购买了 %s"
-                                                .formatted(r.amount, bcTicket.getItemName())))
+                                        message.get("buy-success", "您成功花费 %.2f 购买了 %s")
+                                                .formatted(r.amount, bcTicket.getItemName()))
                                 .decoration(TextDecoration.ITALIC, false));
                         bcTicket.giveTo(player);
                     } else {
                         player.sendMessage(MiniMessage.miniMessage().deserialize(
-                                        message.get("buy-failure", "车票购买失败：%s"
-                                                .formatted(r.errorMessage)))
+                                        message.get("buy-failure", "车票购买失败：%s")
+                                                .formatted(r.errorMessage))
                                 .decoration(TextDecoration.ITALIC, false));
                     }
                     option.setUses(1);
