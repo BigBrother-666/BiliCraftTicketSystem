@@ -5,6 +5,7 @@ import com.bigbrother.bilicraftticketsystem.config.Menu;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -87,7 +88,7 @@ public class BCTicketSystemCommand implements CommandExecutor {
             player.sendMessage(Component.text("成功保存物品" + args[2], NamedTextColor.GREEN));
         } else if (args.length > 2 && args[1].equals("get")) {
             ItemStack itemStack = Menu.loadItemFromFile(args[2]);
-            if (itemStack == null) {
+            if (itemStack.getType() == Material.AIR) {
                 player.sendMessage(Component.text("物品不存在", NamedTextColor.RED));
                 return;
             }
