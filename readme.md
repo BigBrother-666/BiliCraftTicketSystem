@@ -20,3 +20,7 @@
 | ticket                         | bcts.ticket.open     | 打开车票购买界面                                                                     |
 | ticket reload                  | bcts.ticket.reload   | 重载所有配置文件                                                                     |
 | ticket item <add/get> <自定义物品名> | bcts.ticket.menuitem | 将手中的物品保存到配置文件（menuitems.yml）/获取自定义物品，以便编辑菜单界面使用。使用时，在material后面填写item-自定义物品名 |
+
+## 5. 控制牌更改
+### 5.1 Announce
+新增支持换行符`\n`。
