@@ -5,16 +5,12 @@ import com.bigbrother.bilicraftticketsystem.config.Menu;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
-
-import java.io.IOException;
-import java.util.Map;
 
 public class BCTicketSystemCommand implements CommandExecutor {
     private final BiliCraftTicketSystem plugin;
@@ -45,15 +41,13 @@ public class BCTicketSystemCommand implements CommandExecutor {
                 return false;
             }
             // 打开购票界面
-            player.openInventory(Menu.mainMenu.inventory);
+            player.openInventory(Menu.getMenu(player).mainMenu.inventory);
         } else {
-            switch (args[0]) {
-                case "menuitem":
-                    subCommandMenuitem(player, args);
-                    break;
-                case "give":
-                    subCommandGive(player, args);
-                    break;
+            if (args[0].equals("menuitem")) {
+                subCommandMenuitem(player, args);
+                //                case "give":
+//                    subCommandGive(player, args);
+//                    break;
             }
         }
         return true;
@@ -67,17 +61,22 @@ public class BCTicketSystemCommand implements CommandExecutor {
         commandSender.sendMessage(Component.text("配置文件重载中...", NamedTextColor.GREEN));
     }
 
-    private void subCommandGive(Player player, @NotNull String[] args) {
-        if (!player.hasPermission("bcts.ticket.give")) {
-            return;
-        }
-        if (args.length == 2) {
-            // 验证主手物品是车票
-            // 移除物品，给予另一名玩家，修改owner
-        } else {
-            player.sendMessage(Component.text("指令格式有误", NamedTextColor.RED));
-        }
-    }
+//    private void subCommandGive(Player player, @NotNull String[] args) {
+//        if (!player.hasPermission("bcts.ticket.give")) {
+//            return;
+//        }
+//        if (args.length == 2) {
+//            // 验证主手物品是车票
+//            if (TicketStore.isTicketItem(player.getInventory().getItemInMainHand())) {
+//                // 移除物品，给予另一名玩家，修改owner
+//                Player other = Bukkit.getPlayer(args[1]);
+//            } else {
+//                player.sendMessage(Component.text("手持的物品不是车票！", NamedTextColor.RED));
+//            }
+//        } else {
+//            player.sendMessage(Component.text("指令格式有误", NamedTextColor.RED));
+//        }
+//    }
 
     private void subCommandMenuitem(Player player, @NotNull String[] args) {
         if (!player.hasPermission("bcts.ticket.menuitem")) {

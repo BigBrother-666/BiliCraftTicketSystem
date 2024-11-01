@@ -3,7 +3,6 @@ package com.bigbrother.bilicraftticketsystem.listeners;
 import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
-import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.GroupRemoveEvent;
 import com.bergerkiller.bukkit.tc.events.seat.MemberBeforeSeatEnterEvent;
@@ -17,6 +16,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.entity.Entity;
@@ -28,10 +28,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.*;
-import java.util.logging.Level;
 
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.econ;
-import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
 import static com.bigbrother.bilicraftticketsystem.config.MainConfig.message;
 
 public class TrainListeners implements Listener {
@@ -110,7 +108,7 @@ public class TrainListeners implements Listener {
                 // 防止提示出现多次
                 if (trainHintRecord.containsKey(trainProperties.getTrainName())) {
                     if (!trainHintRecord.get(trainProperties.getTrainName()).add(player.getUniqueId())) {
-                        player.sendMessage(Component.text("主手车票不正确或列车已经驶离起始站，禁止上车", NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
+                        player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("forbidden-get-on", "")).decoration(TextDecoration.ITALIC, false));
                     }
                     return;
                 } else {
@@ -133,7 +131,7 @@ public class TrainListeners implements Listener {
                     tag.putValue(BCTicket.KEY_TICKET_MAX_NUMBER_OF_USES, 1);
                 });
 
-                player.sendMessage(Component.text("检票失败！主手没有这趟列车的车票。本次列车的车票信息：", NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
+                player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("check-failed", "")).decoration(TextDecoration.ITALIC, false));
                 if (itemMeta.lore() == null) {
                     return;
                 }
@@ -142,26 +140,25 @@ public class TrainListeners implements Listener {
                 }
                 trainTicket.setItemMeta(itemMeta);
 
-                player.sendMessage(Component.text("点我花费%.2f银币快速购买一张此列车的单程票".formatted(ticketNbt.getValue(BCTicket.KEY_TICKET_ORIGIN_PRICE, 0.0)), NamedTextColor.GREEN)
+                player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("quick-buy", "").formatted(ticketNbt.getValue(BCTicket.KEY_TICKET_ORIGIN_PRICE, 0.0)))
                         .decoration(TextDecoration.ITALIC, false)
-                        .decoration(TextDecoration.UNDERLINED, true)
                         .clickEvent(ClickEvent.callback(audience -> {
                             EconomyResponse r = econ.withdrawPlayer(player, ticketNbt.getValue(BCTicket.KEY_TICKET_ORIGIN_PRICE, 0.0));
 
+
                             if (r.transactionSuccess()) {
-                                player.sendMessage(Component.text(
-                                                message.get("buy-success", "您成功花费{cost}购买了{name}")
-                                                        .replace("{cost}", "%.2f".formatted(r.amount))
-                                                        .replace("{name}", ticketName))
+                                player.sendMessage(MiniMessage.miniMessage().deserialize(
+                                                message.get("buy-success", "您成功花费 %.2f 购买了 %s")
+                                                        .formatted(r.amount, ticketName))
                                         .decoration(TextDecoration.ITALIC, false));
                                 if (!player.getInventory().addItem(trainTicket).isEmpty()) {
                                     // 背包满 车票丢到地上
                                     player.getWorld().dropItemNaturally(player.getLocation(), trainTicket);
                                 }
                             } else {
-                                player.sendMessage(Component.text(
-                                                message.get("buy-failure", "车票购买失败：{error}")
-                                                        .replace("{error}", r.errorMessage))
+                                player.sendMessage(MiniMessage.miniMessage().deserialize(
+                                                message.get("buy-failure", "车票购买失败：%s")
+                                                        .formatted(r.errorMessage))
                                         .decoration(TextDecoration.ITALIC, false));
                             }
                         })));
