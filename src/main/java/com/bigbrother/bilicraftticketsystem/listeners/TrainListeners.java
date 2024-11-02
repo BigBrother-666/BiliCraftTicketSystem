@@ -50,7 +50,7 @@ public class TrainListeners implements Listener {
                 return;
             }
             CartProperties prop = new_member.getProperties();
-            if (!prop.getPlayersEnter()) {
+            if (!prop.getPlayersEnter() || new_member.isUnloaded()) {
                 return;
             }
             if (prop.getCanOnlyOwnersEnter() && !prop.hasOwnership(player)) {

@@ -8,6 +8,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
 import static com.bigbrother.bilicraftticketsystem.config.MainConfig.pricePerKm;
@@ -37,7 +38,19 @@ public class TrainRoutes {
 
         @Override
         public int compareTo(@NotNull TrainRoutes.PathInfo other) {
-            return Double.compare(this.price, other.price);
+            return Double.compare(this.distance, other.distance);
+        }
+        @Override
+        public int hashCode() {
+            return Objects.hash(path);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+            if (obj == null || getClass() != obj.getClass()) return false;
+            PathInfo pathInfo = (PathInfo) obj;
+            return Objects.equals(path, pathInfo.path);
         }
     }
 
@@ -66,16 +79,17 @@ public class TrainRoutes {
         public void findAllPaths(String start, Set<String> end, List<String> path, Set<String> visited, List<PathInfo> pathInfoList) {
             visited.add(start);
             path.add(start);
-
-            if (end.contains(start)) {
+            if (end.contains(start) && path.size() > 1) {
                 List<String> outPath = new ArrayList<>();
                 Set<String> tags = new HashSet<>();
                 boolean repeat = false;
                 for (int i = 0; i < path.size(); i++) {
-                    if (!outPath.contains(path.get(i).split("-")[0])) {
+                    if (!outPath.contains(path.get(i).split("-")[0]) || i == path.size() - 1) {
                         outPath.add(path.get(i).split("-")[0]);
+                    } else if (i != path.size() - 1 && !outPath.get(outPath.size() - 1).equals(path.get(i).split("-")[0])) {
+                        repeat = true;
                     }
-                    if (i != 0 && i != path.size() - 1) {
+                    if (i != path.size() - 1) {
                         if (!tags.add(path.get(i).split("-")[3])) {
                             repeat = true;
                         }
@@ -176,8 +190,12 @@ public class TrainRoutes {
             graph.findAllPaths(s, end, path, visited, pathInfoList);
         }
 
+        // 去重
+        pathInfoList = pathInfoList.stream().distinct().collect(Collectors.toList());
+
         // 按照价格排序
         Collections.sort(pathInfoList);
+
         return pathInfoList;
     }
 }
