@@ -46,9 +46,6 @@ public class BCTicketSystemCommand implements CommandExecutor {
         } else {
             if (args[0].equals("menuitem")) {
                 subCommandMenuitem(player, args);
-                //                case "give":
-//                    subCommandGive(player, args);
-//                    break;
             }
         }
         return true;
@@ -56,10 +53,11 @@ public class BCTicketSystemCommand implements CommandExecutor {
 
     private void subCommandReload(CommandSender commandSender) {
         if (!commandSender.hasPermission("bcts.ticket.reload")) {
+            commandSender.sendMessage(Component.text("你没有权限使用这条命令喵~", NamedTextColor.RED));
             return;
         }
-        Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, plugin::loadConfig, 20);
         commandSender.sendMessage(Component.text("配置文件重载中...", NamedTextColor.GREEN));
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, sender -> plugin.loadConfig(commandSender));
     }
 
 //    private void subCommandGive(Player player, @NotNull String[] args) {
@@ -81,6 +79,7 @@ public class BCTicketSystemCommand implements CommandExecutor {
 
     private void subCommandMenuitem(Player player, @NotNull String[] args) {
         if (!player.hasPermission("bcts.ticket.menuitem")) {
+            player.sendMessage(Component.text("你没有权限使用这条命令喵~", NamedTextColor.RED));
             return;
         }
         if (args.length > 2 && args[1].equals("add")) {
