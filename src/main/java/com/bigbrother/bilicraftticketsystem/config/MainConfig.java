@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import lombok.Data;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -19,6 +20,7 @@ public class MainConfig {
     public static ConfigurationNode message;
     public static int maxUses;
     public static List<String> discount;
+    public static String skip;
 
     public static void loadMainConfig(BiliCraftTicketSystem plugin) {
         FileConfiguration mainConfig = new FileConfiguration(plugin, "config.yml");
@@ -37,7 +39,9 @@ public class MainConfig {
 
         ConfigurationNode uses = mainConfig.getNode("uses");
         maxUses = uses.get("max", 50);
-        discount = uses.getList("discount", String.class);
+        discount = uses.getList("discount", String.class, Collections.emptyList());
+
+        skip = mainConfig.get("skip", "");
 
         plugin.getLogger().log(Level.INFO, "成功加载主配置！");
     }

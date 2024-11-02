@@ -22,6 +22,9 @@ uses:
     - 11-25-0.7
     - 26-50-0.6
 
+# 跨站车发车后跳过的控制牌，按照skip控制牌格式（filter ignore skip）
+skip: "announce 0 2"
+
 # 提示信息
 message:
   buy-success: <gold>[帕拉伦国有铁路车票系统] <green>您成功花费 <bold>%.2f银币</bold> 购买了 <bold>%s</bold>

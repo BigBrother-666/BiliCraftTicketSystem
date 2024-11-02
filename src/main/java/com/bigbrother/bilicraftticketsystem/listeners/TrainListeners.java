@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.tc.events.GroupRemoveEvent;
 import com.bergerkiller.bukkit.tc.events.seat.MemberBeforeSeatEnterEvent;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
 import com.bergerkiller.bukkit.tc.tickets.Ticket;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
@@ -81,6 +82,12 @@ public class TrainListeners implements Listener {
             if (ticketTags != null) {
                 // 列车为初始车 或 主手车票tag和列车tag一致，可以上车
                 if (trainTags.contains(MainConfig.commonTrainTag) || ticketTags.size() == trainTags.size() && trainTags.containsAll(ticketTags)) {
+                    // 设置skip
+                    String[] split = MainConfig.skip.split(" ");
+                    if (split.length == 3) {
+                        trainProperties.setSkipOptions(SignSkipOptions.create(Integer.parseInt(split[1]), Integer.parseInt(split[2]), split[0]));
+                    }
+
                     // 设置其他属性
                     trainProperties.apply(ticket.getProperties());
                     // 设置速度和tag
