@@ -84,11 +84,13 @@ public class PlayerListeners implements Listener {
                 option.setStartStationFlag(true);
                 player.openInventory(Menu.getMenu(player).locationMenu.inventory);
                 playerOptionMap.get(player.getUniqueId()).getTickets().clear();
+                updateTickets(event);
                 break;
             case "stop":
                 option.setStartStationFlag(false);
                 player.openInventory(Menu.getMenu(player).locationMenu.inventory);
                 playerOptionMap.get(player.getUniqueId()).getTickets().clear();
+                updateTickets(event);
                 break;
             case "speed":
                 // 设置速度
@@ -111,6 +113,7 @@ public class PlayerListeners implements Listener {
                 lore.add(Component.text("最大%.1fkm/h，最小%.1fkm/h".formatted(MainConfig.maxSpeed * 20 * 3.6, MainConfig.minSpeed * 20 * 3.6), NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
                 itemMeta.lore(lore);
                 speedItem.setItemMeta(itemMeta);
+                updateTickets(event);
                 break;
             case "uses":
                 // 设置使用次数
@@ -132,6 +135,7 @@ public class PlayerListeners implements Listener {
                 usesLore.add(Component.text("左键+5次，右键-1次", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
                 usesItemMeta.lore(usesLore);
                 usesItem.setItemMeta(usesItemMeta);
+                updateTickets(event);
                 break;
             case "search":
                 // cooldown 1s
@@ -159,6 +163,7 @@ public class PlayerListeners implements Listener {
                         }
                     }
                 });
+                updateTickets(event);
                 break;
             case "help":
                 // 打开wiki页面
@@ -196,7 +201,6 @@ public class PlayerListeners implements Listener {
                 }
                 break;
         }
-        updateTickets(event);
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
@@ -261,8 +265,7 @@ public class PlayerListeners implements Listener {
         Player player = (Player) event.getWhoClicked();
         PlayerOption playerOption = playerOptionMap.get(player.getUniqueId());
         Map<Integer, BCTicket> tickets = playerOption.getTickets();
-        ItemStack item0 = event.getView().getItem(Menu.getMenu(player).mainMenu.ticketSlots.get(0));
-        if (tickets.isEmpty() && item0 != null && !item0.getType().equals(Material.BARRIER)) {
+        if (tickets.isEmpty()) {
             for (Integer ticketSlot : Menu.getMenu(player).mainMenu.ticketSlots) {
                 event.getView().setItem(ticketSlot, new ItemStack(Material.AIR));
             }
