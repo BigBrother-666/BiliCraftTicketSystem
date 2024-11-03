@@ -6,6 +6,7 @@ import com.bigbrother.bilicraftticketsystem.config.Menu;
 import com.bigbrother.bilicraftticketsystem.listeners.PlayerListeners;
 import com.bigbrother.bilicraftticketsystem.listeners.TrainListeners;
 import com.bigbrother.bilicraftticketsystem.signactions.CustomSignActionAnnounce;
+import com.bigbrother.bilicraftticketsystem.signactions.CustomSignActionSpawn;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.milkbowl.vault.economy.Economy;
@@ -24,6 +25,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     public static BiliCraftTicketSystem plugin;
     public static Economy econ = null;
     public final CustomSignActionAnnounce signActionAnnounce = new CustomSignActionAnnounce();
+    public final CustomSignActionSpawn signActionSpawn = new CustomSignActionSpawn();
 
     @Override
     public void onEnable() {
@@ -55,6 +57,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
 
         // 注册控制牌
         SignAction.register(signActionAnnounce, true);
+        SignAction.register(signActionSpawn);
     }
 
     public void loadConfig(CommandSender sender) {
@@ -94,5 +97,6 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     public void onDisable() {
         // Plugin shutdown logic
         SignAction.unregister(signActionAnnounce);
+        SignAction.unregister(signActionSpawn);
     }
 }

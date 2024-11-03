@@ -18,7 +18,7 @@ public class TrainRoutes {
 
     @Data
     public static class PathInfo implements Comparable<PathInfo> {
-        public PathInfo(List<String> path, Set<String> tags, double distance, double price, String startPlatform) {
+        public PathInfo(List<String> path, Set<String> tags, double distance, double price, String startPlatform, String startPlatformTag) {
             this.path = path;
             this.tags = tags;
             this.distance = distance;
@@ -26,6 +26,7 @@ public class TrainRoutes {
             this.start = path.get(0);
             this.end = path.get(path.size() - 1);
             this.startPlatform = startPlatform;
+            this.startPlatformTag = startPlatformTag;
         }
 
         private List<String> path;
@@ -35,6 +36,7 @@ public class TrainRoutes {
         private String start;
         private String end;
         private String startPlatform;
+        private String startPlatformTag;
 
         @Override
         public int compareTo(@NotNull TrainRoutes.PathInfo other) {
@@ -97,7 +99,14 @@ public class TrainRoutes {
                 }
                 double distance = calculateTotalDistance(path);
                 if (distance > 0 && !repeat) {
-                    pathInfoList.add(new PathInfo(outPath, tags, distance, calculateFare(distance), path.get(0).substring(0, path.get(0).lastIndexOf("-"))));
+                    pathInfoList.add(new PathInfo(
+                            outPath,
+                            tags,
+                            distance,
+                            calculateFare(distance),
+                            path.get(0).substring(0, path.get(0).lastIndexOf("-")),
+                            path.get(0).split("-")[3] + "-" + path.get(0).split("-")[2]
+                    ));
                 }
             } else {
                 List<Edge> edges = adjacencyList.get(start);

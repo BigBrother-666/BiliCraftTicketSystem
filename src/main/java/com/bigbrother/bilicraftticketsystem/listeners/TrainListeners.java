@@ -79,7 +79,30 @@ public class TrainListeners implements Listener {
                 ticketTags = List.of(nbt.getValue(BCTicket.KEY_TICKET_TAGS, "").split(","));
             }
 
-            if (ticketTags != null) {
+            if (!TicketStore.isTicketOwner(player, mainHand)) {
+                return;
+            }
+
+            if (ticketTags != null && !ticketTags.get(0).isEmpty()) {
+                // 检查是否是正确的站台
+                // 寻找用来判断的tag
+                String ticketStartStationTag = nbt.getValue(BCTicket.KEY_TICKET_START_PLATFORM_TAG, "");
+                if (!ticketStartStationTag.isEmpty()) {
+                    for (String trainTag : trainTags) {
+                        String[] split = trainTag.split("-");
+                        if (split.length == 2) {
+                            // 找到
+                            if (!ticketStartStationTag.split("-")[0].equals(split[0]) || !ticketStartStationTag.split("-")[1].startsWith(split[1])) {
+                                // 错误的站台
+                                player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("wrong-platform", "")));
+                                event.setCancelled(true);
+                                return;
+                            }
+                            break;
+                        }
+                    }
+                }
+
                 // 列车为初始车 或 主手车票tag和列车tag一致，可以上车
                 if (trainTags.contains(MainConfig.commonTrainTag) || ticketTags.size() == trainTags.size() && trainTags.containsAll(ticketTags)) {
                     // 设置skip
