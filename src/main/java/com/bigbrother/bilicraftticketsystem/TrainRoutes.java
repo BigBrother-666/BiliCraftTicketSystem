@@ -86,15 +86,21 @@ public class TrainRoutes {
                 Set<String> tags = new HashSet<>();
                 boolean repeat = false;
                 for (int i = 0; i < path.size(); i++) {
-                    if (!outPath.contains(path.get(i).split("-")[0]) || i == path.size() - 1) {
-                        outPath.add(path.get(i).split("-")[0]);
-                    } else if (i != path.size() - 1 && !outPath.get(outPath.size() - 1).equals(path.get(i).split("-")[0])) {
-                        repeat = true;
-                    }
+                    // 添加tag
                     if (i != path.size() - 1) {
                         if (!tags.add(path.get(i).split("-")[3])) {
                             repeat = true;
                         }
+                    }
+                    // 车站名为空（只包含tag的节点 ---tag）
+                    if (path.get(i).split("-")[0].isEmpty()) {
+                        continue;
+                    }
+                    // 添加path
+                    if (!outPath.contains(path.get(i).split("-")[0]) || i == path.size() - 1) {
+                        outPath.add(path.get(i).split("-")[0]);
+                    } else if (i != path.size() - 1 && !outPath.get(outPath.size() - 1).equals(path.get(i).split("-")[0])) {
+                        repeat = true;
                     }
                 }
                 double distance = calculateTotalDistance(path);
