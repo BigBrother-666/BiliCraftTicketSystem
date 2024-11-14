@@ -20,3 +20,6 @@ permissions:
   bcts.ticket.menuitem:
     description: "添加自定义物品权限"
     default: op
+  bcts.ticket.nbt:
+    description: "查看和设置nbt的权限"
+    default: op

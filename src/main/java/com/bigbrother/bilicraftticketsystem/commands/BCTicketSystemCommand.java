@@ -1,5 +1,9 @@
 package com.bigbrother.bilicraftticketsystem.commands;
 
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
+import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
+import com.bergerkiller.bukkit.common.wrappers.HumanHand;
+import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.config.Menu;
 import net.kyori.adventure.text.Component;
@@ -46,9 +50,44 @@ public class BCTicketSystemCommand implements CommandExecutor {
         } else {
             if (args[0].equals("menuitem")) {
                 subCommandMenuitem(player, args);
+            } else if (args[0].equals("nbt")) {
+                subCommandNbt(player, args);
             }
         }
         return true;
+    }
+
+    private void subCommandNbt(Player player, @NotNull String[] args) {
+        if (!player.hasPermission("bcts.ticket.nbt")) {
+            player.sendMessage(Component.text("你没有权限使用这条命令喵~", NamedTextColor.RED));
+            return;
+        }
+        if (args.length >= 2) {
+            // 验证主手物品是车票
+            if (TicketStore.isTicketItem(player.getInventory().getItemInMainHand())) {
+                CommonItemStack mainHandTicket = CommonItemStack.of(HumanHand.getItemInMainHand(player));
+                CommonTagCompound nbt = mainHandTicket.getCustomData();
+                if (args.length > 2 && !args[2].trim().isEmpty()) {
+                    // 更新nbt
+                    mainHandTicket.updateCustomData(tag -> tag.putValue(args[1], args[2]));
+                    player.sendMessage(Component.text("成功将 %s 的值更新为 %s".formatted(args[1], args[2]), NamedTextColor.GREEN));
+                } else {
+                    // 输出nbt的值
+                    String value = nbt.getValue(args[1], "");
+                    if (value != null && !value.isEmpty()) {
+                        player.sendMessage(Component.text("%s 的值为 %s".formatted(args[1], value), NamedTextColor.GREEN));
+                    } else {
+                        player.sendMessage(Component.text("此车票没有 %s".formatted(args[1]), NamedTextColor.RED));
+                    }
+                }
+
+            } else {
+                player.sendMessage(Component.text("手持的物品不是车票！", NamedTextColor.RED));
+            }
+
+        } else {
+            player.sendMessage(Component.text("指令格式有误", NamedTextColor.RED));
+        }
     }
 
     private void subCommandReload(CommandSender commandSender) {
@@ -59,23 +98,6 @@ public class BCTicketSystemCommand implements CommandExecutor {
         commandSender.sendMessage(Component.text("配置文件重载中...", NamedTextColor.GREEN));
         Bukkit.getScheduler().runTaskAsynchronously(plugin, sender -> plugin.loadConfig(commandSender));
     }
-
-//    private void subCommandGive(Player player, @NotNull String[] args) {
-//        if (!player.hasPermission("bcts.ticket.give")) {
-//            return;
-//        }
-//        if (args.length == 2) {
-//            // 验证主手物品是车票
-//            if (TicketStore.isTicketItem(player.getInventory().getItemInMainHand())) {
-//                // 移除物品，给予另一名玩家，修改owner
-//                Player other = Bukkit.getPlayer(args[1]);
-//            } else {
-//                player.sendMessage(Component.text("手持的物品不是车票！", NamedTextColor.RED));
-//            }
-//        } else {
-//            player.sendMessage(Component.text("指令格式有误", NamedTextColor.RED));
-//        }
-//    }
 
     private void subCommandMenuitem(Player player, @NotNull String[] args) {
         if (!player.hasPermission("bcts.ticket.menuitem")) {
