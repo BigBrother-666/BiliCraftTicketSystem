@@ -23,6 +23,22 @@
 | ticket                         | bcts.ticket.open     | 打开车票购买界面                                                                     |
 | ticket reload                  | bcts.ticket.reload   | 重载所有配置文件                                                                     |
 | ticket item <add/get> <自定义物品名> | bcts.ticket.menuitem | 将手中的物品保存到配置文件（menuitems.yml）/获取自定义物品，以便编辑菜单界面使用。使用时，在material后面填写item-自定义物品名 |
+| ticket nbt <key> <value>       | bcts.ticket.nbt      | 查看/设置车票的nbt，已经定义的nbt信息如下表所示                                                  |
+
+| nbt                   | 说明                                        |
+|-----------------------|-------------------------------------------|
+| ticketName            | 车票名，应为traincarts ticket.yml中存在的车票名        |
+| ticketDisplayName     | 显示在地图上的车票名，默认值为ticketName                 |
+| ticketCreationTime    | 车票购买时的时间戳                                 |
+| ticketNumberOfUses    | 车票已经使用的次数                                 |
+| ticketMaxNumberOfUses | 车票最大使用次数，应该小于config.yml中的uses.max，负数为无限使用 |
+| ticketOwner           | 车票购买者的uuid                                |
+| ticketOwnerName       | 车票购买者的名字                                  |
+| ticketMaxSpeed        | 使用此车票上车后，列车的最大速度                          |
+| ticketOriginPrice     | 此车票单次票的价格                                 |
+| ticketItemName        | 车票物品名                                     |
+| ticketTags            | 车票的tags，使用英文逗号分隔的tag                      |
+| startPlatformTag      | 可使用站台的tag                                 |
 
 ## 6. 控制牌新增/更改
 ### 5.1 announce
