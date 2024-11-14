@@ -124,7 +124,8 @@ public class TrainListeners implements Listener {
                     trainTicketInfo.put(trainProperties.getTrainName(), mainHand);
                     trainProperties.getHolder().onPropertiesChanged();
 
-                    if (nbt.getValue(BCTicket.KEY_TICKET_MAX_NUMBER_OF_USES, 0) <= nbt.getValue(BCTicket.KEY_TICKET_NUMBER_OF_USES, 0) + 1) {
+                    // 检查是否是最后一次使用车票（动态设置车票最大使用次数需要）
+                    if (nbt.getValue(BCTicket.KEY_TICKET_MAX_NUMBER_OF_USES, 0) > 0 && nbt.getValue(BCTicket.KEY_TICKET_MAX_NUMBER_OF_USES, 0) <= nbt.getValue(BCTicket.KEY_TICKET_NUMBER_OF_USES, 0) + 1) {
                         mainHand.updateCustomData(tag -> tag.putValue(BCTicket.KEY_TICKET_NUMBER_OF_USES, MainConfig.maxUses - 1));
                         HumanHand.setItemInMainHand(player, mainHand.toBukkit());
                     }
@@ -170,6 +171,11 @@ public class TrainListeners implements Listener {
                     player.sendMessage(lore);
                 }
                 trainTicket.setItemMeta(itemMeta);
+
+                // 单程票价值 < 0 不显示快速购票
+                if (ticketNbt.getValue(BCTicket.KEY_TICKET_ORIGIN_PRICE, 0.0) < 0) {
+                    return;
+                }
 
                 player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("quick-buy", "").formatted(ticketNbt.getValue(BCTicket.KEY_TICKET_ORIGIN_PRICE, 0.0)))
                         .decoration(TextDecoration.ITALIC, false)
