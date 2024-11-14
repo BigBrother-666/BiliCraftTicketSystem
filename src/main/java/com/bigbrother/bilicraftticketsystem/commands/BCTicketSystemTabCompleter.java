@@ -33,6 +33,7 @@ public class BCTicketSystemTabCompleter implements TabCompleter {
                 } else if (args[0].equals("nbt") && commandSender.hasPermission("bcts.ticket.nbt")) {
                     return List.of(
                             BCTicket.KEY_TICKET_NAME,
+                            BCTicket.KEY_TICKET_DISPLAY_NAME,
                             BCTicket.KEY_TICKET_CREATION_TIME,
                             BCTicket.KEY_TICKET_NUMBER_OF_USES,
                             BCTicket.KEY_TICKET_MAX_NUMBER_OF_USES,

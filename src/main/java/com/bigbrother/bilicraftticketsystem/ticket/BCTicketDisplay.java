@@ -46,10 +46,11 @@ public class BCTicketDisplay extends MapDisplay {
 
         ItemStack ticketItem = this.getMapItem();
         CommonTagCompound customData = this.getCommonMapItem().getCustomData();
+        String displayName = customData.getValue(BCTicket.KEY_TICKET_DISPLAY_NAME, MainConfig.expressTicketName);
         if (ticketItem == null) {
             this.getLayer(1).draw(MapFont.MINECRAFT, 10, 40, MapColorPalette.COLOR_RED, Localization.TICKET_MAP_INVALID.get());
         } else {
-            this.getLayer(1).draw(MapFont.MINECRAFT, 10, 40, MapColorPalette.COLOR_BLACK, MainConfig.expressTicketName);
+            this.getLayer(1).draw(MapFont.MINECRAFT, 10, 40, MapColorPalette.COLOR_BLACK, displayName);
             if (TicketStore.isTicketExpired(ticketItem)) {
                 this.getLayer(1).draw(MapFont.MINECRAFT, 10, 57, MapColorPalette.COLOR_RED, Localization.TICKET_MAP_EXPIRED.get());
             } else {

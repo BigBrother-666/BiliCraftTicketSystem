@@ -24,6 +24,7 @@ import java.util.List;
 public class BCTicket {
     // Keys used in NBT
     public static final String KEY_TICKET_NAME = "ticketName";
+    public static final String KEY_TICKET_DISPLAY_NAME = "ticketDisplayName";
     public static final String KEY_TICKET_CREATION_TIME = "ticketCreationTime";
     public static final String KEY_TICKET_NUMBER_OF_USES = "ticketNumberOfUses";
     public static final String KEY_TICKET_MAX_NUMBER_OF_USES = "ticketMaxNumberOfUses";

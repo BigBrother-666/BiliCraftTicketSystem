@@ -17,6 +17,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Arrays;
+
 public class BCTicketSystemCommand implements CommandExecutor {
     private final BiliCraftTicketSystem plugin;
 
@@ -68,9 +70,10 @@ public class BCTicketSystemCommand implements CommandExecutor {
                 CommonItemStack mainHandTicket = CommonItemStack.of(HumanHand.getItemInMainHand(player));
                 CommonTagCompound nbt = mainHandTicket.getCustomData();
                 if (args.length > 2 && !args[2].trim().isEmpty()) {
-                    // 更新nbt
-                    mainHandTicket.updateCustomData(tag -> tag.putValue(args[1], args[2]));
-                    player.sendMessage(Component.text("成功将 %s 的值更新为 %s".formatted(args[1], args[2]), NamedTextColor.GREEN));
+                    String updateValue = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
+                    // 用空格拼接参数，更新nbt
+                    mainHandTicket.updateCustomData(tag -> tag.putValue(args[1], updateValue));
+                    player.sendMessage(Component.text("成功将 %s 的值更新为 %s".formatted(args[1], updateValue), NamedTextColor.GREEN));
                 } else {
                     // 输出nbt的值
                     String value = nbt.getValue(args[1], "");
