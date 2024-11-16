@@ -118,11 +118,16 @@ public class PlayerListeners implements Listener {
             case "uses":
                 // 设置使用次数
                 if (event.isLeftClick()) {
-                    double targetUses = option.getUses() + 5;
-                    option.setUses((int) Math.min(MainConfig.maxUses, targetUses));
+                    if (event.isShiftClick()) {
+                        int targetUses = Math.min(MainConfig.maxUses, option.getUses() + 5);
+                        option.setUses(targetUses);
+                    } else {
+                        int targetUses = Math.min(MainConfig.maxUses, option.getUses() + 1);
+                        option.setUses(targetUses);
+                    }
                 } else if (event.isRightClick()) {
-                    double targetUses = option.getUses() - 1;
-                    option.setUses((int) Math.max(1, targetUses));
+                    int targetUses = Math.max(1, option.getUses() - 1);
+                    option.setUses(targetUses);
                 }
                 // 动态设置lore
                 ItemStack usesItem = event.getCurrentItem();
@@ -132,7 +137,8 @@ public class PlayerListeners implements Listener {
                 ItemMeta usesItemMeta = usesItem.getItemMeta();
                 List<Component> usesLore = new ArrayList<>();
                 usesLore.add(Component.text("当前选择的使用次数：%d次".formatted(option.getUses()), NamedTextColor.GOLD));
-                usesLore.add(Component.text("左键+5次，右键-1次", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+                usesLore.add(Component.text("左键+1次，右键-1次", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+                usesLore.add(Component.text("shift左键+5次", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
                 usesItemMeta.lore(usesLore);
                 usesItem.setItemMeta(usesItemMeta);
                 updateTickets(event);
@@ -254,7 +260,8 @@ public class PlayerListeners implements Listener {
                 itemMeta = uses.getItemMeta();
                 List<Component> usesLore = new ArrayList<>();
                 usesLore.add(Component.text("当前选择的使用次数：%d次".formatted(option.getUses()), NamedTextColor.GOLD));
-                usesLore.add(Component.text("左键+5次，右键-1次", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+                usesLore.add(Component.text("左键+1次，右键-1次", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+                usesLore.add(Component.text("shift左键+5次", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
                 itemMeta.lore(usesLore);
                 uses.setItemMeta(itemMeta);
             }
