@@ -7,6 +7,7 @@ import com.bigbrother.bilicraftticketsystem.listeners.PlayerListeners;
 import com.bigbrother.bilicraftticketsystem.listeners.TrainListeners;
 import com.bigbrother.bilicraftticketsystem.signactions.CustomSignActionAnnounce;
 import com.bigbrother.bilicraftticketsystem.signactions.CustomSignActionSpawn;
+import lombok.extern.slf4j.Slf4j;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.milkbowl.vault.economy.Economy;
@@ -17,10 +18,12 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
+import java.util.List;
 import java.util.logging.Level;
 
 import static com.bigbrother.bilicraftticketsystem.config.MainConfig.loadMainConfig;
 
+@Slf4j
 public final class BiliCraftTicketSystem extends JavaPlugin {
     public static BiliCraftTicketSystem plugin;
     public static Economy econ = null;
@@ -29,6 +32,8 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        printLogo();
+
         plugin = this;
         // Plugin startup logic
         // 生成配置文件
@@ -53,7 +58,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         }
 
         // 加载配置文件
-        Bukkit.getScheduler().runTaskLaterAsynchronously(this, sender -> loadConfig(Bukkit.getConsoleSender()), 20);
+        Bukkit.getScheduler().runTaskAsynchronously(this, sender -> loadConfig(Bukkit.getConsoleSender()));
 
         // 注册控制牌
         SignAction.register(signActionAnnounce, true);
@@ -91,6 +96,22 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         }
         econ = rsp.getProvider();
         return true;
+    }
+
+    private void printLogo() {
+        List<Component> logo = List.of(
+                Component.text("           ___    ___          _____    _            _             _      ___    _  _          _                   " + "\n", NamedTextColor.GOLD),
+                Component.text("    o O O | _ )  / __|        |_   _|  (_)    __    | |__   ___   | |_   / __|  | || |  ___   | |_    ___   _ __   " + "\n", NamedTextColor.GOLD),
+                Component.text("   o      | _ \\ | (__           | |    | |   / _|   | / /  / -_)  |  _|  \\__ \\   \\_, | (_-<   |  _|  / -_) | '  \\  " + "\n", NamedTextColor.GOLD),
+                Component.text("  TS__[O] |___/  \\___|         _|_|_  _|_|_  \\__|_  |_\\_\\  \\___|  _\\__|  |___/  _|__/  /__/_  _\\__|  \\___| |_|_|_| " + "\n", NamedTextColor.GOLD),
+                Component.text(" {======||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"|| \"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"| " + "\n", NamedTextColor.GOLD),
+                Component.text("./o--000'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-' " + "\n", NamedTextColor.GOLD)
+        );
+        Component output = Component.text("\n");
+        for (Component component : logo) {
+            output = output.append(component);
+        }
+        Bukkit.getConsoleSender().sendMessage(output);
     }
 
     @Override
