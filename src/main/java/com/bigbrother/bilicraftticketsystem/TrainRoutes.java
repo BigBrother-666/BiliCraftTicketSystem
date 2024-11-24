@@ -79,7 +79,9 @@ public class TrainRoutes {
 
         // 获取所有路径
         public void findAllPaths(String start, Set<String> end, List<String> path, Set<String> visited, List<PathInfo> pathInfoList) {
-            visited.add(start);
+            if (!path.isEmpty()) {
+                visited.add(start);
+            }
             path.add(start);
             if (end.contains(start) && path.size() > 1) {
                 List<String> outPath = new ArrayList<>();
