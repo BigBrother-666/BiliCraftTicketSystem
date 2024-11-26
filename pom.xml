@@ -52,7 +52,7 @@
                             <goal>copy-resources</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>F:\minecraft-servers\paper-1.20.4\plugins</outputDirectory>
+                            <outputDirectory>${env.MINECRAFT_SERVER_PLUGIN_DIR}</outputDirectory>
                             <resources>
                                 <resource>
                                     <directory>${project.build.directory}</directory>
