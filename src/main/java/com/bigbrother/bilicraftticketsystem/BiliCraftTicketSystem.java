@@ -41,7 +41,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         saveResource("menu_main.yml", /* replace */ false);
         saveResource("menu_location.yml", /* replace */ false);
         saveResource("menuitems.yml", /* replace */ false);
-        saveResource("routes.txt", /* replace */ false);
+        saveResource("routes.mmd", /* replace */ false);
 
         // 注册指令
         new BCTicketSystemCommand(this);
@@ -69,7 +69,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         try {
             loadMainConfig(this);
             Menu.loadMenuConfig(this);
-            TrainRoutes.readGraphFromFile(this.getDataFolder().getPath() + File.separator + "routes.txt");
+            TrainRoutes.readGraphFromFile(this.getDataFolder().getPath() + File.separator + "routes.mmd");
         } catch (Exception e) {
             if (sender instanceof ConsoleCommandSender) {
                 plugin.getLogger().log(Level.WARNING, "加载配置文件时发生错误：" + e.getMessage());
