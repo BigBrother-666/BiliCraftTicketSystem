@@ -66,7 +66,7 @@ public class PlayerListeners implements Listener {
         } else {
             playerOptionMap.get(player.getUniqueId()).setEndStation(Component.text(itemSlot.get(event.getSlot()), NamedTextColor.GOLD));
         }
-        event.getView().close();
+//        event.getView().close();
         player.openInventory(Menu.getMenu(player).mainMenu.inventory);
 //        if (currentItem != )
     }
