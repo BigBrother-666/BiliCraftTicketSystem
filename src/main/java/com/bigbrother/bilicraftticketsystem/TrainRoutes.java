@@ -169,7 +169,9 @@ public class TrainRoutes {
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split("\\|");
                 if (parts.length == 3) {
-                    String source = parts[0].replace("-->", "").trim();
+                    String source = parts[0].replace("-->", "")
+                            .replace("==>","")
+                            .replace("-.->","").trim();
                     double distance = Double.parseDouble(parts[1].trim());
                     String target = parts[2].replace(";", "").trim();
                     graph.addEdge(source, target, distance);
