@@ -40,7 +40,11 @@ public class TrainRoutes {
 
         @Override
         public int compareTo(@NotNull TrainRoutes.PathInfo other) {
-            return Double.compare(this.distance, other.distance);
+            if (Math.abs(this.distance - other.distance) < 1e-9) {
+                return Integer.compare(this.tags.size(), other.tags.size());
+            } else {
+                return Double.compare(this.distance, other.distance);
+            }
         }
         @Override
         public int hashCode() {
@@ -207,11 +211,11 @@ public class TrainRoutes {
             graph.findAllPaths(s, end, path, visited, pathInfoList);
         }
 
-        // 去重
-        pathInfoList = pathInfoList.stream().distinct().collect(Collectors.toList());
-
         // 按照价格排序
         Collections.sort(pathInfoList);
+
+        // 去重
+        pathInfoList = pathInfoList.stream().distinct().collect(Collectors.toList());
 
         return pathInfoList;
     }
