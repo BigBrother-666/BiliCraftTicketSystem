@@ -7,7 +7,6 @@ import lombok.AllArgsConstructor;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -67,7 +66,7 @@ public class Menu {
     private static CustomMenu createMenu(FileConfiguration menuConf) {
         ConfigurationNode items = menuConf.getNode("items");
         Component title = MiniMessage.miniMessage().deserialize(menuConf.get("title","")).decoration(TextDecoration.ITALIC, false);
-        Inventory inventory = Bukkit.createInventory(null, menuConf.get("size", 54), title);
+        Inventory inventory = new MenuInventoryHolder(menuConf.get("size", 54), title).getInventory();
         Map<Integer, String> tempReverse = new HashMap<>();
         Map<String, Integer> temp = new HashMap<>();
 

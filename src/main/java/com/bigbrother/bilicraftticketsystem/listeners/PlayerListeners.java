@@ -3,6 +3,7 @@ package com.bigbrother.bilicraftticketsystem.listeners;
 import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.config.Menu;
+import com.bigbrother.bilicraftticketsystem.config.MenuInventoryHolder;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicket;
 import com.bigbrother.bilicraftticketsystem.ticket.PlayerOption;
 import net.kyori.adventure.text.Component;
@@ -18,7 +19,6 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
-import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -35,10 +35,10 @@ public class PlayerListeners implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
-        if (event.getClickedInventory() == null || !event.getClickedInventory().getType().equals(InventoryType.CHEST)) {
+        if (event.getClickedInventory() == null || !(event.getClickedInventory().getHolder(false) instanceof MenuInventoryHolder)) {
             return;
         }
-        if (event.getWhoClicked() instanceof Player && event.getView().getType().equals(InventoryType.CHEST)) {
+        if (event.getWhoClicked() instanceof Player) {
             Component title = event.getView().title();
             Player player = ((Player) event.getWhoClicked()).getPlayer();
             if (player == null) {
@@ -211,7 +211,7 @@ public class PlayerListeners implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onInventoryOpen(InventoryOpenEvent event) {
-        if (event.getPlayer() instanceof Player player && event.getView().getType() == InventoryType.CHEST) {
+        if (event.getPlayer() instanceof Player player && event.getInventory().getHolder(false) instanceof MenuInventoryHolder) {
             Component title = event.getView().title();
             Map<String, Integer> itemSlot = Menu.itemLoc.get(title);
             if (title.equals(Menu.getMenu(player).mainMenu.title)) {
