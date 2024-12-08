@@ -83,8 +83,8 @@ public class BCTicket {
                 join = join.append(Component.text(path.get(i) + "→", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
             }
         }
-        lore.add(Component.text("共%.2fkm".formatted(pathInfo.getDistance()), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
-        lore.add(Component.text("==========================", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("共 %.2f km | 最大速度 %.2f km/h".formatted(pathInfo.getDistance(), option.getSpeed() * 20 * 3.6), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("===============================", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false));
         lore.add(Component.text("售价：%.2f银币       左键点击购买".formatted(this.totalPrice), NamedTextColor.DARK_PURPLE));
         itemMeta.lore(lore);
         itemMeta.displayName(Component.text(itemName, NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false).decoration(TextDecoration.BOLD, true));
