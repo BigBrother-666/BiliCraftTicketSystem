@@ -18,6 +18,10 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
+import java.util.UUID;
+
+import static com.bigbrother.bilicraftticketsystem.ticket.BCTicket.KEY_TICKET_OWNER_NAME;
+import static com.bigbrother.bilicraftticketsystem.ticket.BCTicket.KEY_TICKET_OWNER_UUID;
 
 public class BCTicketSystemCommand implements CommandExecutor {
     private final BiliCraftTicketSystem plugin;
@@ -69,18 +73,43 @@ public class BCTicketSystemCommand implements CommandExecutor {
             if (TicketStore.isTicketItem(player.getInventory().getItemInMainHand())) {
                 CommonItemStack mainHandTicket = CommonItemStack.of(HumanHand.getItemInMainHand(player));
                 CommonTagCompound nbt = mainHandTicket.getCustomData();
+                String cleandTagString = args[1].trim();
+
                 if (args.length > 2 && !args[2].trim().isEmpty()) {
+                    // 用空格拼接参数
                     String updateValue = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
-                    // 用空格拼接参数，更新nbt
-                    mainHandTicket.updateCustomData(tag -> tag.putValue(args[1], updateValue));
-                    player.sendMessage(Component.text("成功将 %s 的值更新为 %s".formatted(args[1], updateValue), NamedTextColor.GREEN));
+
+                    // 更新nbt
+                    if (cleandTagString.equals(KEY_TICKET_OWNER_NAME)) {
+                        Player newOwner = Bukkit.getPlayer(updateValue);
+                        if (newOwner == null) {
+                            player.sendMessage(Component.text("此玩家不存在", NamedTextColor.RED));
+                            return;
+                        } else {
+                            mainHandTicket.updateCustomData(tag -> tag.putValue(cleandTagString, updateValue));
+                            mainHandTicket.updateCustomData(tag -> tag.putValue(KEY_TICKET_OWNER_UUID, newOwner.getUniqueId()));
+                        }
+                    } else if (cleandTagString.equals(KEY_TICKET_OWNER_UUID)) {
+                        player.sendMessage(Component.text("请通过 %s 修改车票的持有者".formatted(KEY_TICKET_OWNER_NAME), NamedTextColor.RED));
+                        return;
+                    } else {
+                        mainHandTicket.updateCustomData(tag -> tag.putValue(cleandTagString, updateValue));
+                    }
+                    player.sendMessage(Component.text("成功将 %s 的值更新为 %s".formatted(cleandTagString, updateValue), NamedTextColor.GREEN));
                 } else {
                     // 输出nbt的值
-                    String value = nbt.getValue(args[1], "");
+                    String value = nbt.getValue(cleandTagString, "");
                     if (value != null && !value.isEmpty()) {
-                        player.sendMessage(Component.text("%s 的值为 %s".formatted(args[1], value), NamedTextColor.GREEN));
+                        player.sendMessage(Component.text("%s 的值为 %s".formatted(cleandTagString, value), NamedTextColor.GREEN));
                     } else {
-                        player.sendMessage(Component.text("此车票没有 %s".formatted(args[1]), NamedTextColor.RED));
+                        if (cleandTagString.equals(KEY_TICKET_OWNER_UUID)) {
+                            UUID uuid = nbt.getUUID(cleandTagString);
+                            if (uuid != null) {
+                                player.sendMessage(Component.text("%s 的值为 %s".formatted(cleandTagString, uuid.toString()), NamedTextColor.GREEN));
+                                return;
+                            }
+                        }
+                        player.sendMessage(Component.text("此车票没有 %s".formatted(cleandTagString), NamedTextColor.RED));
                     }
                 }
 
