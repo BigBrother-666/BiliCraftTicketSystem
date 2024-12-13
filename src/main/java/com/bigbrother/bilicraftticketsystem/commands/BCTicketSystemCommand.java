@@ -17,6 +17,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
+import java.awt.*;
 import java.util.Arrays;
 import java.util.UUID;
 
@@ -54,13 +55,19 @@ public class BCTicketSystemCommand implements CommandExecutor {
             // 打开购票界面
             player.openInventory(Menu.getMenu(player).mainMenu.inventory);
         } else {
-            if (args[0].equals("menuitem")) {
-                subCommandMenuitem(player, args);
-            } else if (args[0].equals("nbt")) {
-                subCommandNbt(player, args);
+            switch (args[0]) {
+                case "menuitem" -> subCommandMenuitem(player, args);
+                case "nbt" -> subCommandNbt(player, args);
+                case "font" -> subCommandFont(player);
             }
         }
         return true;
+    }
+
+    private void subCommandFont(Player player) {
+        GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+        String[] fontNames = ge.getAvailableFontFamilyNames();
+        player.sendMessage(Component.text(String.join(", ", fontNames), NamedTextColor.GREEN));
     }
 
     private void subCommandNbt(Player player, @NotNull String[] args) {

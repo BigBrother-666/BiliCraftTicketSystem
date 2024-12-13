@@ -28,6 +28,9 @@ public class BCTicketSystemTabCompleter implements TabCompleter {
                 if (commandSender.hasPermission("bcts.ticket.nbt")) {
                     completerList.add("nbt");
                 }
+                if (commandSender.hasPermission("bcts.ticket.font")) {
+                    completerList.add("font");
+                }
                 return completerList.stream().filter(s -> s.contains(args[0].trim())).collect(Collectors.toList());
             } else if (args.length == 2) {
                 if (args[0].equals("menuitem") && commandSender.hasPermission("bcts.ticket.menuitem")) {
