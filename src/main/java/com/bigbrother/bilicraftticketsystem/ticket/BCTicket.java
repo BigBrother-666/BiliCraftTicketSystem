@@ -134,6 +134,7 @@ public class BCTicket {
                     tag.putValue("plugin", "TrainCarts");
                     tag.putValue(KEY_TICKET_NAME, MainConfig.expressTicketName);
                     tag.putValue(KEY_TICKET_CREATION_TIME, System.currentTimeMillis());
+                    tag.putValue(KEY_TICKET_DISPLAY_NAME, "%s → %s".formatted(pathInfo.getStart().substring(0, pathInfo.getStart().lastIndexOf("站")), pathInfo.getEnd().substring(0, pathInfo.getEnd().lastIndexOf("站"))));
                     tag.putValue(KEY_TICKET_NUMBER_OF_USES, 0);
                     tag.putValue(KEY_TICKET_MAX_NUMBER_OF_USES, option.getUses());
                     tag.putUUID(KEY_TICKET_OWNER_UUID, owner.getUniqueId());
@@ -156,6 +157,7 @@ public class BCTicket {
                     tag.putValue("plugin", "TrainCarts");
                     tag.putValue(KEY_TICKET_NAME, MainConfig.expressTicketName);
                     tag.putValue(KEY_TICKET_CREATION_TIME, System.currentTimeMillis());
+                    tag.putValue(KEY_TICKET_DISPLAY_NAME, customData.getValue(KEY_TICKET_DISPLAY_NAME, MainConfig.expressTicketName));
                     tag.putValue(KEY_TICKET_NUMBER_OF_USES, 0);
                     tag.putValue(KEY_TICKET_MAX_NUMBER_OF_USES, 1);
                     tag.putUUID(KEY_TICKET_OWNER_UUID, owner.getUniqueId());

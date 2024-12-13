@@ -23,3 +23,6 @@ permissions:
   bcts.ticket.nbt:
     description: "查看和设置nbt的权限"
     default: op
+  bcts.ticket.font:
+    description: "查看系统支持字体的权限"
+    default: op
