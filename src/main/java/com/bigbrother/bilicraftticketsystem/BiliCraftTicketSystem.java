@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.logging.Level;
 
 import static com.bigbrother.bilicraftticketsystem.config.MainConfig.loadMainConfig;
+import static com.bigbrother.bilicraftticketsystem.ticket.BCTicketDisplay.loadFont;
 
 @Slf4j
 public final class BiliCraftTicketSystem extends JavaPlugin {
@@ -69,6 +70,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         try {
             loadMainConfig(this);
             Menu.loadMenuConfig(this);
+            loadFont();
             TrainRoutes.readGraphFromFile(this.getDataFolder().getPath() + File.separator + "routes.mmd");
         } catch (Exception e) {
             if (sender instanceof ConsoleCommandSender) {

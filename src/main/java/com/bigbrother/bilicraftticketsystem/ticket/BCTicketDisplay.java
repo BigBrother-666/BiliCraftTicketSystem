@@ -10,13 +10,59 @@ import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.tickets.Ticket;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
+import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import org.bukkit.inventory.ItemStack;
 
 import java.awt.*;
+import java.io.File;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 public class BCTicketDisplay extends MapDisplay {
+    private static MapFont<Character> mapFont;
+
+    public static void loadFont() {
+        Logger logger = BiliCraftTicketSystem.plugin.getLogger();
+        if (MainConfig.ticketFont != null && !MainConfig.ticketFont.isEmpty()) {
+            mapFont = MapFont.fromJavaFont(MainConfig.ticketFont, MainConfig.ticketFontBold ? Font.BOLD : Font.PLAIN, 9);
+        } else {
+            File directory = BiliCraftTicketSystem.plugin.getDataFolder();
+            if (directory.exists() && directory.isDirectory()) {
+                // 获取文件夹中的所有 .ttf 文件
+                File[] fontFiles = directory.listFiles((dir, name) -> name.toLowerCase().endsWith(".ttf") || name.toLowerCase().endsWith(".ttc"));
+
+                if (fontFiles != null && fontFiles.length > 0) {
+                    try {
+                        // 加载字体
+                        Font customFont = Font.createFont(Font.TRUETYPE_FONT, fontFiles[0]);
+                        customFont = customFont.deriveFont(9f); // 设置字体大小
+                        customFont.deriveFont(MainConfig.ticketFontBold ? Font.BOLD : Font.PLAIN);
+
+                        // 注册字体到 GraphicsEnvironment
+                        GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+                        ge.registerFont(customFont);
+
+                        mapFont = MapFont.fromJavaFont(customFont);
+                        logger.log(Level.INFO, "成功加载字体: " + customFont.getFontName());
+                    } catch (IOException | FontFormatException e) {
+                        logger.log(Level.WARNING, "加载字体失败: " + e.getMessage());
+                        logger.log(Level.WARNING, "使用默认字体");
+                        mapFont = MapFont.MINECRAFT;
+                    }
+                } else {
+                    logger.log(Level.WARNING, "使用默认字体");
+                    mapFont = MapFont.MINECRAFT;
+                }
+            } else {
+                logger.log(Level.WARNING, "使用默认字体");
+                mapFont = MapFont.MINECRAFT;
+            }
+        }
+    }
+
     @Override
     public void onAttached() {
         this.setSessionMode(MapSessionMode.VIEWING);
@@ -51,7 +97,7 @@ public class BCTicketDisplay extends MapDisplay {
         if (ticketItem == null) {
             this.getLayer(1).draw(MapFont.MINECRAFT, 5, 40, MapColorPalette.COLOR_RED, Localization.TICKET_MAP_INVALID.get());
         } else {
-            this.getLayer(1).draw(MapFont.fromJavaFont(MainConfig.ticketFont, MainConfig.ticketFontBold ? Font.BOLD : Font.PLAIN, 9), 5, 35, MapColorPalette.COLOR_BLACK, displayName);
+            this.getLayer(1).draw(mapFont, 5, 35, MapColorPalette.COLOR_BLACK, displayName);
             if (TicketStore.isTicketExpired(ticketItem)) {
                 this.getLayer(1).draw(MapFont.MINECRAFT, 5, 57, MapColorPalette.COLOR_RED, Localization.TICKET_MAP_EXPIRED.get());
             } else {
