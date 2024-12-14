@@ -30,7 +30,7 @@ public class MainConfig {
 
         expressTicketName = mainConfig.get("express-ticket-name", "express");
         commonTrainTag = mainConfig.get("common-train-tag", "common");
-        ticketFont = mainConfig.get("ticket-font", "SansSerif");
+        ticketFont = mainConfig.get("ticket-font", "");
         ticketFontBold = mainConfig.get("ticket-font-bold", true);
         pricePerKm = mainConfig.get("price-per-km", 0.3);
 
