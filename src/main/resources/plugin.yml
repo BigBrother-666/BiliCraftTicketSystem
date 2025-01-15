@@ -4,6 +4,8 @@ author: BigBrother
 main: com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem
 api-version: '1.20'
 depend: [ Train_Carts, BKCommonLib, Vault ]
+softdepend:
+  - CoreProtect
 
 commands:
   ticket:
@@ -26,3 +28,12 @@ permissions:
   bcts.ticket.font:
     description: "查看系统支持字体的权限"
     default: op
+  bcts.ticket.statistics:
+    description: "查看统计数据权限"
+    default: op
+  bcts.ticket.co:
+    description: "co数据导入权限"
+    default: op
+
+libraries:
+  - com.zaxxer:HikariCP:5.0.1

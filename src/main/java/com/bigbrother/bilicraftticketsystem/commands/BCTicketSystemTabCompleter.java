@@ -1,5 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.commands;
 
+import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicket;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -10,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -34,6 +36,9 @@ public class BCTicketSystemTabCompleter implements TabCompleter {
                 if (commandSender.hasPermission("bcts.ticket.statistics")) {
                     completerList.add("statistics");
                 }
+                if (commandSender.hasPermission("bcts.ticket.co")) {
+                    completerList.add("co");
+                }
                 return completerList.stream().filter(s -> s.contains(args[0].trim())).collect(Collectors.toList());
             } else if (args.length == 2) {
                 if (args[0].equals("menuitem") && commandSender.hasPermission("bcts.ticket.menuitem")) {
@@ -57,7 +62,20 @@ public class BCTicketSystemTabCompleter implements TabCompleter {
                             .collect(Collectors.toList());
                 } else if (args[0].equals("statistics") && commandSender.hasPermission("bcts.ticket.statistics")) {
                     return List.of("ticket", "bcspawn");
+                } else if (args[0].equals("co") && commandSender.hasPermission("bcts.ticket.co")) {
+                    return List.of("add", "undo");
                 }
+            } else if (args.length == 3 && args[0].equals("co") && args[1].equals("add")) {
+                List<String> completerList = new ArrayList<>();
+                for (Map.Entry<String, List<String>> entry : TrainRoutes.getStationTagMap().entrySet()) {
+                    for (String s : entry.getValue()) {
+                        String[] split = s.split("-");
+                        if (split.length == 3) {
+                            completerList.add(entry.getKey() + "-" + split[2]);
+                        }
+                    }
+                }
+                return completerList.stream().filter(s -> s.startsWith(args[2])).collect(Collectors.toList());
             }
         }
         return List.of();

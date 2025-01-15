@@ -6,19 +6,27 @@ import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.config.Menu;
+import net.coreprotect.CoreProtect;
+import net.coreprotect.CoreProtectAPI;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.List;
+import java.util.TimeZone;
 import java.util.UUID;
 
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.trainDatabaseManager;
@@ -61,9 +69,71 @@ public class BCTicketSystemCommand implements CommandExecutor {
                 case "nbt" -> subCommandNbt(player, args);
                 case "font" -> subCommandFont(player);
                 case "statistics" -> subCommandStatistics(player, args);
+                case "co" -> subCommandCo(player, args);
             }
         }
         return true;
+    }
+
+    private CoreProtectAPI getCoreProtectAPI() {
+        Plugin pl = plugin.getServer().getPluginManager().getPlugin("CoreProtect");
+        if (!(pl instanceof CoreProtect)) {
+            return null;
+        }
+        CoreProtectAPI CoreProtect = ((CoreProtect) pl).getAPI();
+        if (!CoreProtect.isEnabled()) {
+            return null;
+        }
+        return CoreProtect;
+    }
+
+    private void subCommandCo(Player player, @NotNull String[] args) {
+        if (!player.hasPermission("bcts.ticket.co")) {
+            player.sendMessage(Component.text("你没有权限使用这条命令喵~", NamedTextColor.RED));
+            return;
+        }
+
+        if (args.length >= 3 && args[1].trim().equals("add")) {
+            String[] split = args[2].split("-");
+            if (split.length != 2) {
+                player.sendMessage(Component.text("站台tag格式错误", NamedTextColor.RED));
+                return;
+            }
+
+            CoreProtectAPI coreProtectAPI = getCoreProtectAPI();
+            if (coreProtectAPI == null) {
+                player.sendMessage(Component.text("未检测到CoreProtect插件！", NamedTextColor.RED));
+                return;
+            }
+
+            Block targetBlock = player.getTargetBlockExact(5);
+            if (targetBlock != null && (targetBlock.getType() == Material.BAMBOO_BUTTON ||
+                    targetBlock.getType() == Material.BIRCH_BUTTON ||
+                    targetBlock.getType() == Material.ACACIA_BUTTON ||
+                    targetBlock.getType() == Material.CHERRY_BUTTON ||
+                    targetBlock.getType() == Material.JUNGLE_BUTTON ||
+                    targetBlock.getType() == Material.CRIMSON_BUTTON ||
+                    targetBlock.getType() == Material.DARK_OAK_BUTTON ||
+                    targetBlock.getType() == Material.SPRUCE_BUTTON ||
+                    targetBlock.getType() == Material.STONE_BUTTON ||
+                    targetBlock.getType() == Material.POLISHED_BLACKSTONE_BUTTON ||
+                    targetBlock.getType() == Material.WARPED_BUTTON ||
+                    targetBlock.getType() == Material.OAK_BUTTON ||
+                    targetBlock.getType() == Material.MANGROVE_BUTTON ||
+                    targetBlock.getType() == Material.STONE_PRESSURE_PLATE)) {
+                List<String[]> resultList = coreProtectAPI.blockLookup(targetBlock, (int) (System.currentTimeMillis() / 1000L));
+                for (String[] s : resultList) {
+                    CoreProtectAPI.ParseResult parsed = coreProtectAPI.parseResult(s);
+                    if (parsed.getActionId() == 2) {
+                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                        sdf.setTimeZone(TimeZone.getDefault());
+                        trainDatabaseManager.addBcspawnInfo(args[2].trim(), sdf.format(new Timestamp(parsed.getTimestamp())));
+                    }
+                }
+            } else {
+                player.sendMessage(Component.text("目标方块不是按钮或石质压力板！", NamedTextColor.RED));
+            }
+        }
     }
 
     private void subCommandStatistics(Player player, @NotNull String[] args) {
@@ -95,6 +165,11 @@ public class BCTicketSystemCommand implements CommandExecutor {
     }
 
     private void subCommandFont(Player player) {
+        if (!player.hasPermission("bcts.ticket.font")) {
+            player.sendMessage(Component.text("你没有权限使用这条命令喵~", NamedTextColor.RED));
+            return;
+        }
+
         GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
         String[] fontNames = ge.getAvailableFontFamilyNames();
         player.sendMessage(Component.text(String.join(", ", fontNames), NamedTextColor.GREEN));

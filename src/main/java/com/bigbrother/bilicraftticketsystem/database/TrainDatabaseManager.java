@@ -107,8 +107,9 @@ public class TrainDatabaseManager {
      * 添加一条数据到列车生成记录表（bcspawn）
      *
      * @param startPlatformTag 站台tag
+     * @param dateTime 时间 yyyy-MM-dd HH:mm:ss
      */
-    public void addBcspawnInfo(String startPlatformTag) {
+    public void addBcspawnInfo(String startPlatformTag, String dateTime) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             String[] split = startPlatformTag.split("-");
             if (split.length < 2) {
@@ -136,7 +137,7 @@ public class TrainDatabaseManager {
             String sql = "INSERT INTO %s (`spawn_time`, `spawn_station`, `spawn_direction`, `spawn_railway`) VALUES (?, ?, ?, ?)".formatted(bcspawnTableName);
             try (Connection connection = ds.getConnection()) {
                 PreparedStatement preparedStatement = connection.prepareStatement(sql);
-                preparedStatement.setString(1, LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                preparedStatement.setString(1, dateTime != null ? dateTime : LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
                 preparedStatement.setString(2, station);
                 preparedStatement.setString(3, direction);
                 preparedStatement.setString(4, railway);
@@ -145,6 +146,15 @@ public class TrainDatabaseManager {
                 plugin.getLogger().log(Level.WARNING, e.toString());
             }
         });
+    }
+
+    /**
+     * 添加一条数据到列车生成记录表（bcspawn）
+     *
+     * @param startPlatformTag 站台tag
+     */
+    public void addBcspawnInfo(String startPlatformTag) {
+        addBcspawnInfo(startPlatformTag, null);
     }
 
     /**
