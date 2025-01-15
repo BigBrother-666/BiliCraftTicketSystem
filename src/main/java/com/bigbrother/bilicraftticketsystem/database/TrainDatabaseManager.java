@@ -282,8 +282,8 @@ public class TrainDatabaseManager {
 
             while (rs.next()) {
                 String date = rs.getString("day");
-                String revenue = "%.2f".formatted(rs.getDouble("daily_spawn"));
-                TextComponent temp = str2Component("\n%-15s &7|&6 %-15s".formatted(date, revenue));
+                String spawnCnt = rs.getString("daily_spawn");
+                TextComponent temp = str2Component("\n%-15s &7|&6 %-15s".formatted(date, spawnCnt));
                 temp = temp.hoverEvent(HoverEvent.showText(getSpawnRecordsByDate(date)));
                 result = result.append(temp);
             }
