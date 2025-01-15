@@ -1,5 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.listeners;
 
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.config.Menu;
@@ -24,8 +25,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.*;
 
-import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.econ;
-import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
+import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.*;
 import static com.bigbrother.bilicraftticketsystem.config.MainConfig.message;
 
 public class PlayerListeners implements Listener {
@@ -196,6 +196,8 @@ public class PlayerListeners implements Listener {
                         Bukkit.getConsoleSender().sendMessage(MiniMessage.miniMessage().deserialize(
                                 "<gold>[帕拉伦国有铁路车票系统] <green>玩家 %s 成功花费 %.2f 购买了 %s"
                                         .formatted(player.getName(), r.amount, bcTicket.getItemName())));
+                        // 记录到数据库
+                        trainDatabaseManager.addTicketInfo(player.getName(), player.getUniqueId().toString(), r.amount, CommonItemStack.of(event.getCurrentItem()).getCustomData());
                     } else {
                         player.sendMessage(MiniMessage.miniMessage().deserialize(
                                         message.get("buy-failure", "车票购买失败：%s")

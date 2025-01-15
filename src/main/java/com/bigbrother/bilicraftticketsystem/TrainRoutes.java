@@ -1,6 +1,7 @@
 package com.bigbrother.bilicraftticketsystem;
 
 import lombok.Data;
+import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.BufferedReader;
@@ -15,6 +16,8 @@ import static com.bigbrother.bilicraftticketsystem.config.MainConfig.pricePerKm;
 
 public class TrainRoutes {
     private static Graph graph;
+    @Getter
+    private static Map<String, List<String>> stationTagMap;  // tag : [车站-铁路名-方向, 车站-铁路名-方向, ...]
 
     @Data
     public static class PathInfo implements Comparable<PathInfo> {
@@ -46,6 +49,7 @@ public class TrainRoutes {
                 return Double.compare(this.distance, other.distance);
             }
         }
+
         @Override
         public int hashCode() {
             return Objects.hash(path);
@@ -164,23 +168,49 @@ public class TrainRoutes {
     // 从文件中读取图
     public static void readGraphFromFile(String filename) {
         graph = new Graph();
+        stationTagMap = new HashMap<>();
         try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split("\\|");
                 if (parts.length == 3) {
                     String source = parts[0].replace("-->", "")
-                            .replace("==>","")
-                            .replace("-.->","").trim();
+                            .replace("==>", "")
+                            .replace("-.->", "").trim();
                     double distance = Double.parseDouble(parts[1].trim());
                     String target = parts[2].replace(";", "").trim();
                     graph.addEdge(source, target, distance);
+                    // 解析车站tsg要使用的数据
+                    if (Arrays.stream(source.split("-")).noneMatch(String::isEmpty)) {
+                        int lastIndex = source.lastIndexOf("-");
+                        String info = source.substring(0, lastIndex);
+                        String tag = source.substring(lastIndex + 1);
+                        if (stationTagMap.containsKey(tag)) {
+                            stationTagMap.get(tag).add(info);
+                        } else {
+                            List<String> temp = new ArrayList<>();
+                            temp.add(info);
+                            stationTagMap.put(tag, temp);
+                        }
+                    }
+                    if (Arrays.stream(target.split("-")).noneMatch(String::isEmpty)) {
+                        int lastIndex = target.lastIndexOf("-");
+                        String info = target.substring(0, lastIndex);
+                        String tag = target.substring(lastIndex + 1);
+                        if (stationTagMap.containsKey(tag)) {
+                            stationTagMap.get(tag).add(info);
+                        } else {
+                            List<String> temp = new ArrayList<>();
+                            temp.add(info);
+                            stationTagMap.put(tag, temp);
+                        }
+                    }
                 }
             }
         } catch (IOException e) {
-            plugin.getLogger().log(Level.WARNING,"路径文件读取错误: " + e.getMessage());
+            plugin.getLogger().log(Level.WARNING, "路径文件读取错误: " + e.getMessage());
         }
-        plugin.getLogger().log(Level.INFO,"路径解析成功！");
+        plugin.getLogger().log(Level.INFO, "路径解析成功！");
     }
 
     public static List<PathInfo> getPathInfoList(String startStation, String endStation) {

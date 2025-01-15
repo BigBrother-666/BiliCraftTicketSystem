@@ -7,6 +7,8 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.signactions.spawner.SpawnSign;
 
+import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.trainDatabaseManager;
+
 public class CustomSignActionSpawn extends SignActionSpawn {
     @Override
     public void execute(SignActionEvent info) {
@@ -21,12 +23,14 @@ public class CustomSignActionSpawn extends SignActionSpawn {
         SpawnSign sign = info.getTrainCarts().getSpawnSignManager().create(info);
         if (sign.isActive()) {
             sign.spawn(info);
-            MinecartGroup group = info.getGroup();
             sign.resetSpawnTime();
+            MinecartGroup group = info.getGroup();
             if (group != null) {
                 // 设置用于判断车票使用站台的tag
                 group.getProperties().addTags(line3);
                 group.onPropertiesChanged();
+                // 发车信息记录到数据库
+                trainDatabaseManager.addBcspawnInfo(line3);
             }
         }
         if (info.isAction(SignActionType.REDSTONE_ON)) {

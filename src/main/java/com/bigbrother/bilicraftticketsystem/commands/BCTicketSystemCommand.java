@@ -21,6 +21,7 @@ import java.awt.*;
 import java.util.Arrays;
 import java.util.UUID;
 
+import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.trainDatabaseManager;
 import static com.bigbrother.bilicraftticketsystem.ticket.BCTicket.KEY_TICKET_OWNER_NAME;
 import static com.bigbrother.bilicraftticketsystem.ticket.BCTicket.KEY_TICKET_OWNER_UUID;
 
@@ -59,9 +60,38 @@ public class BCTicketSystemCommand implements CommandExecutor {
                 case "menuitem" -> subCommandMenuitem(player, args);
                 case "nbt" -> subCommandNbt(player, args);
                 case "font" -> subCommandFont(player);
+                case "statistics" -> subCommandStatistics(player, args);
             }
         }
         return true;
+    }
+
+    private void subCommandStatistics(Player player, @NotNull String[] args) {
+        if (!player.hasPermission("bcts.ticket.statistics")) {
+            player.sendMessage(Component.text("你没有权限使用这条命令喵~", NamedTextColor.RED));
+            return;
+        }
+
+        player.sendMessage(Component.text("查询中...", NamedTextColor.AQUA));
+        if (args.length < 3) {
+            return;
+        }
+        int range;
+        try {
+            range = Integer.parseInt(args[2]);
+        } catch (NumberFormatException e) {
+            player.sendMessage(Component.text("指令格式有误，需要指定天数", NamedTextColor.RED));
+            return;
+        }
+        if (args[1].equals("ticket")) {
+            player.sendMessage(trainDatabaseManager.getDailyRevenue(range));
+        } else if (args[1].equals("bcspawn")) {
+            player.sendMessage(trainDatabaseManager.getDailySpawn(range));
+        } else {
+            player.sendMessage(Component.text("指令格式有误", NamedTextColor.RED));
+            return;
+        }
+        player.sendMessage(Component.text("查询完成", NamedTextColor.AQUA));
     }
 
     private void subCommandFont(Player player) {

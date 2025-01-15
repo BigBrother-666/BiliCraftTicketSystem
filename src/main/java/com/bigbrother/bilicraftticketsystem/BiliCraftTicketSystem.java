@@ -3,6 +3,7 @@ package com.bigbrother.bilicraftticketsystem;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bigbrother.bilicraftticketsystem.commands.BCTicketSystemCommand;
 import com.bigbrother.bilicraftticketsystem.config.Menu;
+import com.bigbrother.bilicraftticketsystem.database.TrainDatabaseManager;
 import com.bigbrother.bilicraftticketsystem.listeners.PlayerListeners;
 import com.bigbrother.bilicraftticketsystem.listeners.TrainListeners;
 import com.bigbrother.bilicraftticketsystem.signactions.CustomSignActionAnnounce;
@@ -28,6 +29,7 @@ import static com.bigbrother.bilicraftticketsystem.ticket.BCTicketDisplay.loadFo
 public final class BiliCraftTicketSystem extends JavaPlugin {
     public static BiliCraftTicketSystem plugin;
     public static Economy econ = null;
+    public static TrainDatabaseManager trainDatabaseManager;
     public final CustomSignActionAnnounce signActionAnnounce = new CustomSignActionAnnounce();
     public final CustomSignActionSpawn signActionSpawn = new CustomSignActionSpawn();
 
@@ -43,6 +45,9 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         saveResource("menu_location.yml", /* replace */ false);
         saveResource("menuitems.yml", /* replace */ false);
         saveResource("routes.mmd", /* replace */ false);
+
+        // 加载数据库
+        trainDatabaseManager = new TrainDatabaseManager(plugin);
 
         // 注册指令
         new BCTicketSystemCommand(this);
@@ -72,6 +77,10 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
             Menu.loadMenuConfig(this);
             loadFont();
             TrainRoutes.readGraphFromFile(this.getDataFolder().getPath() + File.separator + "routes.mmd");
+            if (trainDatabaseManager != null) {
+                trainDatabaseManager.getDs().close();
+            }
+            trainDatabaseManager = new TrainDatabaseManager(plugin);
         } catch (Exception e) {
             if (sender instanceof ConsoleCommandSender) {
                 plugin.getLogger().log(Level.WARNING, "加载配置文件时发生错误：" + e.getMessage());
@@ -102,18 +111,16 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
 
     private void printLogo() {
         List<Component> logo = List.of(
-                Component.text("           ___    ___          _____    _            _             _      ___    _  _          _                   " + "\n", NamedTextColor.GOLD),
-                Component.text("    o O O | _ )  / __|        |_   _|  (_)    __    | |__   ___   | |_   / __|  | || |  ___   | |_    ___   _ __   " + "\n", NamedTextColor.GOLD),
-                Component.text("   o      | _ \\ | (__           | |    | |   / _|   | / /  / -_)  |  _|  \\__ \\   \\_, | (_-<   |  _|  / -_) | '  \\  " + "\n", NamedTextColor.GOLD),
-                Component.text("  TS__[O] |___/  \\___|         _|_|_  _|_|_  \\__|_  |_\\_\\  \\___|  _\\__|  |___/  _|__/  /__/_  _\\__|  \\___| |_|_|_| " + "\n", NamedTextColor.GOLD),
-                Component.text(" {======||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"|| \"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"| " + "\n", NamedTextColor.GOLD),
-                Component.text("./o--000'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-' " + "\n", NamedTextColor.GOLD)
+                Component.text("           ___    ___          _____    _            _             _      ___    _  _          _                   ", NamedTextColor.GOLD),
+                Component.text("    o O O | _ )  / __|        |_   _|  (_)    __    | |__   ___   | |_   / __|  | || |  ___   | |_    ___   _ __   ", NamedTextColor.GOLD),
+                Component.text("   o      | _ \\ | (__           | |    | |   / _|   | / /  / -_)  |  _|  \\__ \\   \\_, | (_-<   |  _|  / -_) | '  \\  ", NamedTextColor.GOLD),
+                Component.text("  TS__[O] |___/  \\___|         _|_|_  _|_|_  \\__|_  |_\\_\\  \\___|  _\\__|  |___/  _|__/  /__/_  _\\__|  \\___| |_|_|_| ", NamedTextColor.GOLD),
+                Component.text(" {======||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"|| \"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"| ", NamedTextColor.GOLD),
+                Component.text("./o--000'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-' ", NamedTextColor.GOLD)
         );
-        Component output = Component.text("\n");
         for (Component component : logo) {
-            output = output.append(component);
+            Bukkit.getConsoleSender().sendMessage(component);
         }
-        Bukkit.getConsoleSender().sendMessage(output);
     }
 
     @Override
