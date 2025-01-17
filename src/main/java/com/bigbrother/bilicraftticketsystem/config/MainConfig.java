@@ -20,6 +20,7 @@ public class MainConfig {
     public static Boolean ticketFontBold;
     public static double pricePerKm;
     public static ConfigurationNode message;
+    public static ConfigurationNode railwayRoutes;
     public static int maxUses;
     public static List<String> discount;
     public static String skip;
@@ -38,6 +39,8 @@ public class MainConfig {
         maxSpeed = speed.get("max", 5.0);
         minSpeed = speed.get("min", 2.0);
         speedStep = speed.get("step", 0.2);
+
+        railwayRoutes = mainConfig.getNode("railway-routes");
 
         message = mainConfig.getNode("message");
 

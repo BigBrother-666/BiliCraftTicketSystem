@@ -28,6 +28,51 @@ skip: "announce 0 2"
 ticket-font: 微软雅黑
 ticket-font-bold: true
 
+railway-routes:
+  rrcw:
+    # boss栏额外信息（显示在路线上方）
+    title: '&6当前所在线路：环线铁路-外环(顺时针)方向 &7| &6购票请使用 /ticket 指令'
+    # 线路信息，使用->连接
+    route: 永望堡->巨龙峡湾->东海望->世界树原野->秋华町->贸易海岸->西洲湾->翡翠岛->黄昏岛->匕首半岛->银月岛->冬幕公园->新赫洛堡->长岛->大绿龙岛->龙爪半岛->鹅城->诺亚->风雪峡湾
+    # 五个参数：BOSS条颜色 已经过的车站颜色 未经过的车站颜色 已经过的车站显示个数 未经过的车站显示个数
+    args: 'RED 7 c 4 6'
+  rrccw:
+    title: '&6当前所在线路：环线铁路-内环(逆时针)方向 &7| &6购票请使用 /ticket 指令'
+    route:
+    args: 'RED 7 c 4 6'
+  fdu:
+    title: '&6当前所在线路：芙德铁路-鹅城方向 &7| &6购票请使用 /ticket 指令'
+    route: 世界树原野->恶土->德芙->丰饶台地->丰饶台地西->春风平原->赤脊湾->结束乐队开发区->暖风河谷->鹅城
+    args: 'RED 7 a 4 6'
+  fdd:
+    title: '&6当前所在线路：芙德铁路-世界树原野方向 &7| &6购票请使用 /ticket 指令'
+    route:
+    args: 'RED 7 a 4 6'
+  fdzu:
+    title: '&6当前所在线路：芙德铁路支线-大绿龙岛方向 &7| &6购票请使用 /ticket 指令'
+    route:
+    args: 'RED 7 a 4 6'
+  fdzd:
+    title: '&6当前所在线路：芙德铁路支线-世界树原野方向 &7| &6购票请使用 /ticket 指令'
+    route:
+    args: 'RED 7 a 4 6'
+  plu:
+    title: '&6当前所在线路：普朗铁路-黄昏岛方向 &7| &6购票请使用 /ticket 指令'
+    route: 新特拉姆->丰饶台地北->丰饶台地->帝王谷->黄昏岛
+    args: 'RED 7 e 4 6'
+  pld:
+    title: '&6当前所在线路：普朗铁路-永望堡方向 &7| &6购票请使用 /ticket 指令'
+    route:
+    args: 'RED 7 e 4 6'
+  hmu:
+    title: '&6当前所在线路：赫蒙铁路-新赫洛堡方向 &7| &6购票请使用 /ticket 指令'
+    route:
+    args: 'RED 7 b 4 6'
+  hmd:
+    title: '&6当前所在线路：赫蒙铁路-霜湖谷方向 &7| &6购票请使用 /ticket 指令'
+    route:
+    args: 'RED 7 b 4 6'
+
 # 提示信息
 message:
   buy-success: <gold>[帕拉伦国有铁路车票系统] <green>您成功花费 <bold>%.2f银币</bold> 购买了 <bold>%s</bold>

@@ -34,6 +34,9 @@ permissions:
   bcts.ticket.co:
     description: "co数据导入权限"
     default: op
+  bcts.buildsign.bcspawn:
+    description: "放置bcspawn控制牌权限"
+    default: op
 
 libraries:
   - com.zaxxer:HikariCP:5.0.1

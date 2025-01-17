@@ -2,10 +2,12 @@ package com.bigbrother.bilicraftticketsystem.signactions;
 
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
+import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.signactions.spawner.SpawnSign;
+import net.kyori.adventure.text.Component;
 
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.trainDatabaseManager;
 
@@ -36,6 +38,16 @@ public class CustomSignActionSpawn extends SignActionSpawn {
         if (info.isAction(SignActionType.REDSTONE_ON)) {
             info.setLine(3, line3);
         }
+    }
+
+    @Override
+    public boolean build(SignChangeActionEvent signChangeActionEvent) {
+        // 检查权限和格式
+        if (!signChangeActionEvent.getPlayer().hasPermission("bcts.buildsign.bcspawn")) {
+            return false;
+        }
+        signChangeActionEvent.getPlayer().sendMessage(Component.text("建立控制牌成功，该控制牌可以在生成矿车时自动添加一个tag"));
+        return true;
     }
 
     @Override

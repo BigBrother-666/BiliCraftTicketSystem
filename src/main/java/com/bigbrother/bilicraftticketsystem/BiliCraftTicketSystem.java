@@ -8,6 +8,8 @@ import com.bigbrother.bilicraftticketsystem.listeners.PlayerListeners;
 import com.bigbrother.bilicraftticketsystem.listeners.TrainListeners;
 import com.bigbrother.bilicraftticketsystem.signactions.CustomSignActionAnnounce;
 import com.bigbrother.bilicraftticketsystem.signactions.CustomSignActionSpawn;
+import com.bigbrother.bilicraftticketsystem.signactions.CustomSignActionStation;
+import com.bigbrother.bilicraftticketsystem.signactions.SignActionShowroute;
 import lombok.extern.slf4j.Slf4j;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -32,6 +34,8 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     public static TrainDatabaseManager trainDatabaseManager;
     public final CustomSignActionAnnounce signActionAnnounce = new CustomSignActionAnnounce();
     public final CustomSignActionSpawn signActionSpawn = new CustomSignActionSpawn();
+    public final CustomSignActionStation signActionStation = new CustomSignActionStation();
+    public final SignActionShowroute signActionShowroute = new SignActionShowroute();
 
     @Override
     public void onEnable() {
@@ -55,6 +59,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         // 注册监听器
         Bukkit.getPluginManager().registerEvents(new PlayerListeners(), this);
         Bukkit.getPluginManager().registerEvents(new TrainListeners(), this);
+        Bukkit.getPluginManager().registerEvents(new SignActionShowroute(), this);
 
         // 加载经济系统
         if (!setupEconomy() ) {
@@ -69,6 +74,8 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         // 注册控制牌
         SignAction.register(signActionAnnounce, true);
         SignAction.register(signActionSpawn);
+        SignAction.register(signActionStation, true);
+        SignAction.register(signActionShowroute);
     }
 
     public void loadConfig(CommandSender sender) {
@@ -128,5 +135,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         // Plugin shutdown logic
         SignAction.unregister(signActionAnnounce);
         SignAction.unregister(signActionSpawn);
+        SignAction.unregister(signActionStation);
+        SignAction.unregister(signActionShowroute);
     }
 }
