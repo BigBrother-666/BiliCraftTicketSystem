@@ -49,9 +49,15 @@
 ### 5.2 bcspawn
 在spawn控制牌的基础上修改，第四行改为列车生成后赋予的tag。
 ### 5.3 showroute
-在boss栏显示路线信息
+在boss栏显示路线信息，该控制牌需要放在出站报站的位置。
 - 第一行：[+train]
 - 第二行：showroute
 - 第三行：\<路线id> \<本站名>
-- 第四行：\<color> \<color>
+- 第四行：\<args*5>
+
+第四行五个参数分别为：BOSS条颜色 已经过的车站格式 未经过的车站格式 已经过的车站最大显示个数 未经过的车站最大显示个数
+- BOSS条颜色：PINK BLUE RED GREEN YELLOW PURPLE WHITE
+- 格式：mc格式化代码（&后的字符）
+
+控制牌的参数优先级大于配置文件
 
