@@ -10,6 +10,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.signactions.component.RouteBossbar;
+import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
@@ -91,7 +92,13 @@ public class SignActionShowroute extends SignAction implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL)
     public void onMemberRemove(MemberRemoveEvent event) {
-        bossbarMapping.remove(event.getMember());
+        MinecartMember<?> member = event.getMember();
+        BossBar bossBar = bossbarMapping.get(member).getBossBar();
+        for (Player player : member.getEntity().getPlayerPassengers()) {
+            bossBar.removeViewer(player);
+        }
+
+        bossbarMapping.remove(member);
     }
 
     @EventHandler(priority = EventPriority.NORMAL)

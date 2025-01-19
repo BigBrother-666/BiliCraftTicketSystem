@@ -35,6 +35,7 @@ import java.util.*;
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.econ;
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.trainDatabaseManager;
 import static com.bigbrother.bilicraftticketsystem.config.MainConfig.message;
+import static com.bigbrother.bilicraftticketsystem.ticket.BCTicket.getDiscountPrice;
 
 public class TrainListeners implements Listener {
     private static final Map<String, CommonItemStack> trainTicketInfo = new HashMap<>();
@@ -188,10 +189,11 @@ public class TrainListeners implements Listener {
                     return;
                 }
 
-                player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("quick-buy", "").formatted(ticketNbt.getValue(BCTicket.KEY_TICKET_ORIGIN_PRICE, 0.0)))
+                double discountPrice = getDiscountPrice(player, 1, ticketNbt.getValue(BCTicket.KEY_TICKET_ORIGIN_PRICE, -1.0));
+                player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("quick-buy", "").formatted(discountPrice))
                         .decoration(TextDecoration.ITALIC, false)
                         .clickEvent(ClickEvent.callback(audience -> {
-                            EconomyResponse r = econ.withdrawPlayer(player, ticketNbt.getValue(BCTicket.KEY_TICKET_ORIGIN_PRICE, 0.0));
+                            EconomyResponse r = econ.withdrawPlayer(player, discountPrice);
 
                             if (r.transactionSuccess()) {
                                 player.sendMessage(MiniMessage.miniMessage().deserialize(

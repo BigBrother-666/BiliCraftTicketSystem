@@ -22,6 +22,13 @@ uses:
     - 11-25-0.7
     - 26-50-0.6
 
+# 权限组的折扣，和上方的折扣叠加
+perm-discount:
+  displayname.全局管理员:
+    - 1-50-0.0
+  bc.prefix.railways:
+    - 1-50-0.5
+
 # 跨站车发车后跳过的控制牌，按照skip控制牌格式（filter ignore skip）
 skip: "announce 0 2"
 

@@ -21,6 +21,7 @@ public class MainConfig {
     public static double pricePerKm;
     public static ConfigurationNode message;
     public static ConfigurationNode railwayRoutes;
+    public static ConfigurationNode permDiscount;
     public static int maxUses;
     public static List<String> discount;
     public static String skip;
@@ -41,6 +42,8 @@ public class MainConfig {
         speedStep = speed.get("step", 0.2);
 
         railwayRoutes = mainConfig.getNode("railway-routes");
+
+        permDiscount = mainConfig.getNode("perm-discount");
 
         message = mainConfig.getNode("message");
 

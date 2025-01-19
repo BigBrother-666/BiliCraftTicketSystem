@@ -163,7 +163,7 @@ public class PlayerListeners implements Listener {
                     } else {
                         // 显示车票
                         for (int i = 0; i < ticketSlots.size() && pathInfoList.size() > i; i++) {
-                            BCTicket ticket = BCTicket.createTicket(option, pathInfoList.get(i));
+                            BCTicket ticket = BCTicket.createTicket(option, pathInfoList.get(i), player);
                             event.getView().setItem(ticketSlots.get(i), ticket.getItem(player));
                             option.getTickets().put(ticketSlots.get(i), ticket);
                         }

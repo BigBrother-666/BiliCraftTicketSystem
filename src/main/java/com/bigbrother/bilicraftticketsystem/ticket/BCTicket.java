@@ -15,8 +15,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 
 @AllArgsConstructor
@@ -41,7 +40,7 @@ public class BCTicket {
     private String itemName;
     private double totalPrice;
 
-    public static BCTicket createTicket(PlayerOption option, TrainRoutes.PathInfo info) {
+    public static BCTicket createTicket(PlayerOption option, TrainRoutes.PathInfo info, Player player) {
         String name = option.getUses() == 1 ? "%s->%s 单次票".formatted(info.getStart(), info.getEnd()) : "%s->%s %s次票".formatted(info.getStart(), info.getEnd(), option.getUses());
         double totalPrice = info.getPrice() * option.getUses();
         for (String s : MainConfig.discount) {
@@ -52,6 +51,7 @@ public class BCTicket {
             }
         }
 
+        totalPrice = getDiscountPrice(player, option.getUses(), totalPrice);
         return new BCTicket(option, info, name, totalPrice);
     }
 
@@ -174,5 +174,23 @@ public class BCTicket {
         }
         commonItemStack.setCustomName(origin.getDisplayName());
         return commonItemStack;
+    }
+
+    public static double getDiscountPrice(Player player, int maxUses, double price) {
+        Set<String> perms = MainConfig.permDiscount.getKeys();
+        double totalPrice = maxUses * price;
+        for (String perm : perms) {
+            List<String> discount = MainConfig.permDiscount.getList(perm, String.class, null);
+            if (!player.hasPermission(perm.replace("-", ".")) || discount == null || discount.isEmpty()) {
+                continue;
+            }
+            for (String s : discount) {
+                String[] split = s.split("-");
+                if (maxUses >= Integer.parseInt(split[0]) && maxUses <= Integer.parseInt(split[1])) {
+                    return price * maxUses * Double.parseDouble(split[2]);
+                }
+            }
+        }
+        return totalPrice;
     }
 }
