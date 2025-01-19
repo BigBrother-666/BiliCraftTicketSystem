@@ -1,6 +1,5 @@
 package com.bigbrother.bilicraftticketsystem.signactions;
 
-import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.MemberRemoveEvent;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -12,6 +11,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.signactions.component.RouteBossbar;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -50,7 +50,8 @@ public class SignActionShowroute extends SignAction implements Listener {
 
         RouteBossbar bossbar = bossbarMapping.getOrDefault(member, new RouteBossbar(splitRouteInfo[0], new RouteBossbar.Args(argsInfoSplit)));
         bossbar.update(argsInfoSplit, splitRouteInfo[1], splitRouteInfo[0]);
-        if (bossbar.getBossBar() == null) {
+        // 控制牌忽略直达车
+        if (bossbar.getBossBar() == null || bossbar.getRouteId() == null) {
             return;
         }
 
@@ -79,7 +80,7 @@ public class SignActionShowroute extends SignAction implements Listener {
         if (!signChangeActionEvent.getPlayer().hasPermission("bcts.buildsign.showroute")) {
             return false;
         }
-        signChangeActionEvent.getPlayer().sendMessage(Component.text("建立控制牌成功，该控制牌可以在boss栏显示线路信息"));
+        signChangeActionEvent.getPlayer().sendMessage(Component.text("建立控制牌成功，该控制牌可以在boss栏显示线路信息", NamedTextColor.GREEN));
         return true;
     }
 
@@ -90,7 +91,7 @@ public class SignActionShowroute extends SignAction implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL)
     public void onMemberRemove(MemberRemoveEvent event) {
-
+        bossbarMapping.remove(event.getMember());
     }
 
     @EventHandler(priority = EventPriority.NORMAL)

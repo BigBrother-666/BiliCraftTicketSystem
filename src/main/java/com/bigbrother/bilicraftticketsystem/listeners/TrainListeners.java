@@ -12,13 +12,14 @@ import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
 import com.bergerkiller.bukkit.tc.tickets.Ticket;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
+import com.bigbrother.bilicraftticketsystem.signactions.SignActionShowroute;
+import com.bigbrother.bilicraftticketsystem.signactions.component.RouteBossbar;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicket;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
@@ -130,6 +131,15 @@ public class TrainListeners implements Listener {
                         mainHand.updateCustomData(tag -> tag.putValue(BCTicket.KEY_TICKET_NUMBER_OF_USES, MainConfig.maxUses - 1));
                         HumanHand.setItemInMainHand(player, mainHand.toBukkit());
                     }
+
+                    for (MinecartMember<?> minecartMember : event.getMember().getGroup()) {
+                        RouteBossbar bossbar = SignActionShowroute.bossbarMapping.getOrDefault(minecartMember, null);
+                        String ticketName = nbt.getValue(BCTicket.KEY_TICKET_DISPLAY_NAME, String.class, null);
+                        if (bossbar == null && ticketName != null) {
+                            bossbar = new RouteBossbar(ticketName);
+                            SignActionShowroute.bossbarMapping.put(event.getMember(), bossbar);
+                        }
+                    }
                     return;
                 }
             }
@@ -155,7 +165,7 @@ public class TrainListeners implements Listener {
                 ItemMeta itemMeta = trainTicket.getItemMeta();
 
                 // 更新车票名
-                String ticketName = PlainTextComponentSerializer.plainText().serialize(itemMeta.displayName()).split(" ")[0] + " 单次票";
+                String ticketName = ticketNbt.getValue(BCTicket.KEY_TICKET_DISPLAY_NAME, String.class, "Unknown → Unknown") + " 单次票";
                 itemMeta.displayName(Component.text(ticketName, NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false).decoration(TextDecoration.BOLD, true));
 
                 // 更新车票使用次数

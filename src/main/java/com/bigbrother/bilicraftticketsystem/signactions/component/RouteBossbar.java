@@ -2,6 +2,7 @@ package com.bigbrother.bilicraftticketsystem.signactions.component;
 
 import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
+import com.bigbrother.bilicraftticketsystem.signactions.SignActionShowroute;
 import lombok.Data;
 import lombok.Getter;
 import net.kyori.adventure.bossbar.BossBar;
@@ -15,6 +16,7 @@ import java.util.List;
 public class RouteBossbar {
     @Getter
     private final BossBar bossBar;
+    @Getter
     private String routeId;
     private ArrayList<String> routeList;
     private int nextStationIdx;
@@ -34,6 +36,15 @@ public class RouteBossbar {
                 0,
                 args.getBossbarColor(),
                 BossBar.Overlay.PROGRESS);
+    }
+
+    public RouteBossbar(String ticketDisplayName) {
+        String[] split = ticketDisplayName.split(" → ");
+        if (split.length != 2) {
+            bossBar = null;
+            return;
+        }
+        this.bossBar = BossBar.bossBar(Utils.str2Component("&6%s &a====== 直达 ======>> &6%s".formatted(split[0], split[1])), 1.0F, BossBar.Color.PINK, BossBar.Overlay.PROGRESS);
     }
 
     public void updateStation() {
