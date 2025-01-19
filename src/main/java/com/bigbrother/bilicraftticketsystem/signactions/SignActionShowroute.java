@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class SignActionShowroute extends SignAction implements Listener {
-    private static final Map<MinecartMember<?>, RouteBossbar> bossbarMapping = new HashMap<>();
+    public static final Map<MinecartMember<?>, RouteBossbar> bossbarMapping = new HashMap<>();
 
     @Override
     public boolean match(SignActionEvent signActionEvent) {
@@ -42,7 +42,6 @@ public class SignActionShowroute extends SignAction implements Listener {
         if (args == null || args.isEmpty()) {
             args = MainConfig.railwayRoutes.get("%s.args".formatted(splitRouteInfo[0].trim()), String.class, "RED 7 a 2 3");
         }
-
 
         String[] argsInfoSplit = args.trim().split(" ");
         if (argsInfoSplit.length != 5) {
@@ -91,13 +90,7 @@ public class SignActionShowroute extends SignAction implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL)
     public void onMemberRemove(MemberRemoveEvent event) {
-//        System.out.println("GroupRemoveEvent");
-//        RouteBossbar bossBar = bossbarMapping.get(event.getMember());
-//        if (bossBar == null || bossBar.getBossBar() == null) {
-//            return;
-//        }
-//        // 删除映射
-//        bossbarMapping.remove(event.getMember());
+
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
@@ -110,13 +103,11 @@ public class SignActionShowroute extends SignAction implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL)
     public void onMemberSeatExit(MemberSeatExitEvent event) {
-        System.out.println("MemberSeatExitEvent");
         RouteBossbar bossBar = bossbarMapping.get(event.getMember());
         if (bossBar == null || bossBar.getBossBar() == null) {
             return;
         }
         // 隐藏bossbar
         bossBar.getBossBar().removeViewer(event.getEntity());
-        System.out.println("MemberSeatExitEvent remove");
     }
 }

@@ -36,6 +36,19 @@ public class RouteBossbar {
                 BossBar.Overlay.PROGRESS);
     }
 
+    public void updateStation() {
+        String title = MainConfig.railwayRoutes.get("%s.curr-station-title".formatted(routeId.trim()), String.class, null);
+        if (title == null) {
+            return;
+        }
+        bossBar.name(Utils.str2Component(title.replace("{station}", routeList.get(nextStationIdx))));
+        if (isRing()) {
+            bossBar.progress((float) 1.0);
+        } else {
+            bossBar.progress((float) (nextStationIdx) / routeList.size());
+        }
+    }
+
     public void update(String[] args, String currStation, String routeId) {
         if (!routeId.equals(this.routeId)) {
             String route = MainConfig.railwayRoutes.get("%s.route".formatted(routeId.trim()), String.class, null);
@@ -48,7 +61,11 @@ public class RouteBossbar {
         nextStationIdx = routeList.indexOf(currStation) + 1;
         this.args = new Args(args);
         bossBar.name(Utils.str2Component(getNextTitle()));
-        bossBar.progress((float) (nextStationIdx - 1) / routeList.size());
+        if (isRing()) {
+            bossBar.progress((float) 1.0);
+        } else {
+            bossBar.progress((float) (nextStationIdx) / routeList.size());
+        }
     }
 
     private String getNextTitle() {
@@ -56,36 +73,12 @@ public class RouteBossbar {
         int displayNum = args.notPassedNum + args.passedNum;
         int size = routeList.size();
 
-        if (isRing() && size - 1 <= displayNum) {
-            List<String> temp = new ArrayList<>(routeList);
-            temp.remove(temp.get(size - 1));
-            for (int i = 0; i < size; i++) {
-                if (i < nextStationIdx) {
-                    if (i == 0) {
-                        title.append(args.passedColor).append(temp.get(i));
-                    } else {
-                        title.append("%s → ".formatted(args.passedColor)).append(temp.get(i));
-                    }
-                } else {
-                    title.append("%s → ".formatted(args.notPassedColor)).append(temp.get(i));
-                }
-            }
-        } else if (!isRing() && size <= displayNum) {
-            for (int i = 0; i < size; i++) {
-                if (i < nextStationIdx) {
-                    if (i == 0) {
-                        title.append(args.passedColor).append(routeList.get(i));
-                    } else {
-                        title.append("%s → ".formatted(args.passedColor)).append(routeList.get(i));
-                    }
-                } else {
-                    title.append("%s → ".formatted(args.notPassedColor)).append(routeList.get(i));
-                }
-            }
+        if (!isRing() && size <= displayNum) {
+            buildTitle(0, size, title, routeList);
         } else {
             if (isRing()) {
                 // 环线
-                title.append("%s... → ".formatted(args.passedColor));
+                title.append("%s...".formatted(args.passedColor));
                 List<String> temp = new ArrayList<>(routeList);
                 temp.remove(size - 1);
                 size = temp.size();
@@ -99,15 +92,19 @@ public class RouteBossbar {
                         title.append("%s → ".formatted(args.passedColor)).append(temp.get(size + start));
                         ++start;
                     }
+                    title.append("%s →".formatted(args.passedColor));
                     buildTitle(0, end, title, temp);
                 } else if (end > size) {
                     // end越界
-                    while (end > size) {
-                        title.append("%s → ".formatted(args.passedColor)).append(temp.get(end - size));
-                        --end;
-                    }
+                    title.append("%s → ".formatted(args.passedColor));
                     buildTitle(start, size, title, temp);
+                    int tempCnt = 0;
+                    while (tempCnt < end - size) {
+                        title.append("%s → ".formatted(args.notPassedColor)).append(temp.get(tempCnt));
+                        ++tempCnt;
+                    }
                 } else {
+                    title.append("%s → ".formatted(args.passedColor));
                     buildTitle(start, end, title, temp);
                 }
                 title.append("%s → ...".formatted(args.notPassedColor));
@@ -116,19 +113,21 @@ public class RouteBossbar {
                 start = Math.max(nextStationIdx - args.passedNum, 0);
                 end = Math.min(nextStationIdx + args.notPassedNum, size);
 
-                if (end - start < displayNum) {
+                if (end - start <= displayNum) {
                     if (start == 0) {
                         end = start + displayNum;
                         buildTitle(start, end, title, routeList);
                         title.append("%s → ...".formatted(args.notPassedColor));
                     } else {
+                        start = end - displayNum;
                         title.append("%s... → ".formatted(args.passedColor));
                         buildTitle(start, end, title, routeList);
-                        start = end - displayNum;
                     }
+                } else {
+                    title.append("%s... → ".formatted(args.passedColor));
+                    buildTitle(start, end, title, routeList);
+                    title.append("%s → ...".formatted(args.notPassedColor));
                 }
-
-                buildTitle(start, end, title, routeList);
             }
         }
         return title.toString();
@@ -152,13 +151,21 @@ public class RouteBossbar {
         return routeList.get(0).equals(routeList.get(routeList.size() - 1));
     }
 
+    private static String convert(String input) {
+        StringBuilder result = new StringBuilder();
+        for (char c : input.toCharArray()) {
+            result.append('&').append(c);
+        }
+        return result.toString();
+    }
+
     @Data
     public static class Args {
         public Args(String[] args) {
             if (args.length == 5) {
                 this.bossbarColor = BossBar.Color.valueOf(args[0].trim().toUpperCase());
-                this.passedColor = "&" + args[1];
-                this.notPassedColor = "&" + args[2];
+                this.passedColor = convert(args[1]);
+                this.notPassedColor = convert(args[2]);
                 this.passedNum = Integer.parseInt(args[3]);
                 this.notPassedNum = Integer.parseInt(args[4]);
             }
