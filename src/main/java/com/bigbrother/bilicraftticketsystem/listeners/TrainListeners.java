@@ -83,6 +83,7 @@ public class TrainListeners implements Listener {
             }
 
             if (!TicketStore.isTicketOwner(player, mainHand)) {
+                player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("owner-conflict", "不能使用其他玩家的车票")));
                 return;
             }
 
@@ -141,6 +142,8 @@ public class TrainListeners implements Listener {
                             SignActionShowroute.bossbarMapping.put(minecartMember, bossbar);
                         }
                     }
+
+                    player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("used", "成功使用一张（次）%s 车票").formatted(nbt.getValue(BCTicket.KEY_TICKET_DISPLAY_NAME))));
                     return;
                 }
             }
