@@ -46,15 +46,15 @@ public class TrainListeners implements Listener {
         if (event.wasSeatChange()) {
             return; // Already handled by MemberSeatChangeEvent
         }
-        MinecartMember<?> new_member = event.getMember();
+        MinecartMember<?> newMember = event.getMember();
         Entity passenger = event.getEntity();
-        if (event.isPlayerInitiated() && passenger instanceof Player && new_member != null) {
+        if (event.isPlayerInitiated() && passenger instanceof Player && newMember != null) {
             Player player = ((Player) passenger).getPlayer();
             if (player == null) {
                 return;
             }
-            CartProperties prop = new_member.getProperties();
-            if (!prop.getPlayersEnter() || new_member.isUnloaded()) {
+            CartProperties prop = newMember.getProperties();
+            if (!prop.getPlayersEnter() || newMember.isUnloaded()) {
                 return;
             }
             if (prop.getCanOnlyOwnersEnter() && !prop.hasOwnership(player)) {
@@ -64,7 +64,7 @@ public class TrainListeners implements Listener {
             // 主手持车票？
             CommonItemStack mainHand = CommonItemStack.of(HumanHand.getItemInMainHand(player));
             Ticket ticket = TicketStore.getTicketFromItem(mainHand);
-            TrainProperties trainProperties = new_member.getGroup().getProperties();
+            TrainProperties trainProperties = newMember.getGroup().getProperties();
             Collection<String> trainTags = trainProperties.getTags();
             if (!trainProperties.getTickets().contains(MainConfig.expressTicketName)) {
                 return;
@@ -136,9 +136,9 @@ public class TrainListeners implements Listener {
                     for (MinecartMember<?> minecartMember : event.getMember().getGroup()) {
                         RouteBossbar bossbar = SignActionShowroute.bossbarMapping.getOrDefault(minecartMember, null);
                         String ticketName = nbt.getValue(BCTicket.KEY_TICKET_DISPLAY_NAME, String.class, null);
-                        if (bossbar == null && ticketName != null) {
+                        if ((bossbar == null || bossbar.getRouteId() != null) && ticketName != null) {
                             bossbar = new RouteBossbar(ticketName);
-                            SignActionShowroute.bossbarMapping.put(event.getMember(), bossbar);
+                            SignActionShowroute.bossbarMapping.put(minecartMember, bossbar);
                         }
                     }
                     return;

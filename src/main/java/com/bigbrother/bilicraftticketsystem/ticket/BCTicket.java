@@ -108,7 +108,7 @@ public class BCTicket {
         }
     }
 
-    public void updateProperties(PlayerOption option) {
+    public void updateProperties(Player player, PlayerOption option) {
         this.option = option;
 
         // 重新计算票价
@@ -120,7 +120,7 @@ public class BCTicket {
                 break;
             }
         }
-        this.totalPrice = totalPrice;
+        this.totalPrice = getDiscountPrice(player, option.getUses(), totalPrice);
 
         // 更新车票名
         this.itemName = option.getUses() == 1 ?

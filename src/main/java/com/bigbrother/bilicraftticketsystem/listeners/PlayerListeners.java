@@ -281,7 +281,7 @@ public class PlayerListeners implements Listener {
             return;
         }
         for (Map.Entry<Integer, BCTicket> entry : tickets.entrySet()) {
-            entry.getValue().updateProperties(playerOption);
+            entry.getValue().updateProperties(player, playerOption);
             event.getView().setItem(entry.getKey(), entry.getValue().getItem(player));
         }
     }

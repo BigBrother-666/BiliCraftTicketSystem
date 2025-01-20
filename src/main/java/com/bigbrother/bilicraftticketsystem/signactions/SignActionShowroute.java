@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.MemberRemoveEvent;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
+import com.bergerkiller.bukkit.tc.events.seat.MemberBeforeSeatExitEvent;
 import com.bergerkiller.bukkit.tc.events.seat.MemberSeatEnterEvent;
 import com.bergerkiller.bukkit.tc.events.seat.MemberSeatExitEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
@@ -13,6 +14,7 @@ import com.bigbrother.bilicraftticketsystem.signactions.component.RouteBossbar;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -50,11 +52,12 @@ public class SignActionShowroute extends SignAction implements Listener {
         }
 
         RouteBossbar bossbar = bossbarMapping.getOrDefault(member, new RouteBossbar(splitRouteInfo[0], new RouteBossbar.Args(argsInfoSplit)));
-        bossbar.update(argsInfoSplit, splitRouteInfo[1], splitRouteInfo[0]);
         // 控制牌忽略直达车
         if (bossbar.getBossBar() == null || bossbar.getRouteId() == null) {
             return;
         }
+
+        bossbar.update(argsInfoSplit, splitRouteInfo[1], splitRouteInfo[0]);
 
         // 发送bossbar
         bossbarMapping.putIfAbsent(member, bossbar);
@@ -93,9 +96,12 @@ public class SignActionShowroute extends SignAction implements Listener {
     @EventHandler(priority = EventPriority.NORMAL)
     public void onMemberRemove(MemberRemoveEvent event) {
         MinecartMember<?> member = event.getMember();
-        BossBar bossBar = bossbarMapping.get(member).getBossBar();
-        for (Player player : member.getEntity().getPlayerPassengers()) {
-            bossBar.removeViewer(player);
+        RouteBossbar bossBar = bossbarMapping.get(member);
+        if (bossBar == null) {
+            return;
+        }
+        for (Entity player : member.getEntity().getPlayerPassengers()) {
+            bossBar.getBossBar().removeViewer(player);
         }
 
         bossbarMapping.remove(member);
@@ -110,7 +116,7 @@ public class SignActionShowroute extends SignAction implements Listener {
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
-    public void onMemberSeatExit(MemberSeatExitEvent event) {
+    public void onMemberSeatExit(MemberBeforeSeatExitEvent event) {
         RouteBossbar bossBar = bossbarMapping.get(event.getMember());
         if (bossBar == null || bossBar.getBossBar() == null) {
             return;

@@ -2,7 +2,6 @@ package com.bigbrother.bilicraftticketsystem.signactions.component;
 
 import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
-import com.bigbrother.bilicraftticketsystem.signactions.SignActionShowroute;
 import lombok.Data;
 import lombok.Getter;
 import net.kyori.adventure.bossbar.BossBar;
@@ -21,15 +20,17 @@ public class RouteBossbar {
     private ArrayList<String> routeList;
     private int nextStationIdx;
     private Args args;
+    private String expressEnd;
 
     public RouteBossbar(String routeId, Args args) {
         String route = MainConfig.railwayRoutes.get("%s.route".formatted(routeId.trim()), String.class, null);
         if (route == null) {
-            routeList = null;
-            bossBar = null;
+            this.routeList = null;
+            this.bossBar = null;
             return;
         }
         this.routeId = routeId;
+        this.nextStationIdx = 0;
 
         this.routeList = new ArrayList<>(Arrays.asList(route.split("->")));
         this.bossBar = BossBar.bossBar(Component.text(""),
@@ -41,9 +42,11 @@ public class RouteBossbar {
     public RouteBossbar(String ticketDisplayName) {
         String[] split = ticketDisplayName.split(" → ");
         if (split.length != 2) {
-            bossBar = null;
+            this.bossBar = null;
+            this.routeId = null;
             return;
         }
+        this.expressEnd = split[1];
         this.bossBar = BossBar.bossBar(Utils.str2Component("&6%s &a====== 直达 ======>> &6%s".formatted(split[0], split[1])), 1.0F, BossBar.Color.PINK, BossBar.Overlay.PROGRESS);
     }
 
@@ -53,10 +56,11 @@ public class RouteBossbar {
             return;
         }
         bossBar.name(Utils.str2Component(title.replace("{station}", routeList.get(nextStationIdx))));
+        this.bossBar.color(this.args.bossbarColor);
         if (isRing()) {
             bossBar.progress((float) 1.0);
         } else {
-            bossBar.progress((float) (nextStationIdx) / routeList.size());
+            bossBar.progress((float) (nextStationIdx + 1) / routeList.size());
         }
     }
 
@@ -69,13 +73,23 @@ public class RouteBossbar {
             }
             this.routeId = routeId;
         }
-        nextStationIdx = routeList.indexOf(currStation) + 1;
+        nextStationIdx = routeList.indexOf(currStation);
         this.args = new Args(args);
+    }
+
+    public void update() {
+        nextStationIdx += 1;
         bossBar.name(Utils.str2Component(getNextTitle()));
         if (isRing()) {
             bossBar.progress((float) 1.0);
         } else {
             bossBar.progress((float) (nextStationIdx) / routeList.size());
+        }
+    }
+
+    public void updateExpress() {
+        if (expressEnd != null) {
+            bossBar.name(Utils.str2Component("&6>>>> 列车已到达终点站： &c%s站 &6，下车时，请您注意站台与列车之间的空隙 <<<<".formatted(expressEnd)));
         }
     }
 
