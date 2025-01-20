@@ -107,20 +107,8 @@ public class BCTicketSystemCommand implements CommandExecutor {
             }
 
             Block targetBlock = player.getTargetBlockExact(5);
-            if (targetBlock != null && (targetBlock.getType() == Material.BAMBOO_BUTTON ||
-                    targetBlock.getType() == Material.BIRCH_BUTTON ||
-                    targetBlock.getType() == Material.ACACIA_BUTTON ||
-                    targetBlock.getType() == Material.CHERRY_BUTTON ||
-                    targetBlock.getType() == Material.JUNGLE_BUTTON ||
-                    targetBlock.getType() == Material.CRIMSON_BUTTON ||
-                    targetBlock.getType() == Material.DARK_OAK_BUTTON ||
-                    targetBlock.getType() == Material.SPRUCE_BUTTON ||
-                    targetBlock.getType() == Material.STONE_BUTTON ||
-                    targetBlock.getType() == Material.POLISHED_BLACKSTONE_BUTTON ||
-                    targetBlock.getType() == Material.WARPED_BUTTON ||
-                    targetBlock.getType() == Material.OAK_BUTTON ||
-                    targetBlock.getType() == Material.MANGROVE_BUTTON ||
-                    targetBlock.getType() == Material.STONE_PRESSURE_PLATE)) {
+            if (targetBlock != null && (targetBlock.getType().toString().toUpperCase().endsWith("BUTTON") || targetBlock.getType().toString().toUpperCase().endsWith("FENCE_GATE"))) {
+                int cnt = 0;
                 List<String[]> resultList = coreProtectAPI.blockLookup(targetBlock, (int) (System.currentTimeMillis() / 1000L));
                 for (String[] s : resultList) {
                     CoreProtectAPI.ParseResult parsed = coreProtectAPI.parseResult(s);
@@ -128,8 +116,10 @@ public class BCTicketSystemCommand implements CommandExecutor {
                         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                         sdf.setTimeZone(TimeZone.getDefault());
                         trainDatabaseManager.addBcspawnInfo(args[2].trim(), sdf.format(new Timestamp(parsed.getTimestamp())));
+                        cnt += 1;
                     }
                 }
+                player.sendMessage(Component.text("成功添加 %d 条数据".formatted(cnt), NamedTextColor.GREEN));
             } else {
                 player.sendMessage(Component.text("目标方块不是按钮或石质压力板！", NamedTextColor.RED));
             }
@@ -196,15 +186,19 @@ public class BCTicketSystemCommand implements CommandExecutor {
                     if (cleandTagString.equals(KEY_TICKET_OWNER_NAME)) {
                         Player newOwner = Bukkit.getPlayer(updateValue);
                         if (newOwner == null) {
-                            player.sendMessage(Component.text("此玩家不存在", NamedTextColor.RED));
+                            player.sendMessage(Component.text("此玩家不存在（不在线）", NamedTextColor.RED));
                             return;
                         } else {
                             mainHandTicket.updateCustomData(tag -> tag.putValue(cleandTagString, updateValue));
                             mainHandTicket.updateCustomData(tag -> tag.putValue(KEY_TICKET_OWNER_UUID, newOwner.getUniqueId()));
                         }
                     } else if (cleandTagString.equals(KEY_TICKET_OWNER_UUID)) {
-                        player.sendMessage(Component.text("请通过 %s 修改车票的持有者".formatted(KEY_TICKET_OWNER_NAME), NamedTextColor.RED));
-                        return;
+                        if (args.length > 3 && args[2].trim().length() == 36) {
+                            mainHandTicket.updateCustomData(tag -> tag.putValue(KEY_TICKET_OWNER_NAME, args[3]));
+                            mainHandTicket.updateCustomData(tag -> tag.putValue(cleandTagString, UUID.fromString(args[2])));
+                        } else {
+                            player.sendMessage(Component.text("没有指定玩家名或uuid不符合格式", NamedTextColor.RED));
+                        }
                     } else {
                         mainHandTicket.updateCustomData(tag -> tag.putValue(cleandTagString, updateValue));
                     }
