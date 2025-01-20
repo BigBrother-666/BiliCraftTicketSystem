@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.signactions.spawner.SpawnSign;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.trainDatabaseManager;
 
@@ -46,7 +47,7 @@ public class CustomSignActionSpawn extends SignActionSpawn {
         if (!signChangeActionEvent.getPlayer().hasPermission("bcts.buildsign.bcspawn")) {
             return false;
         }
-        signChangeActionEvent.getPlayer().sendMessage(Component.text("建立控制牌成功，该控制牌可以在生成矿车时自动添加一个tag"));
+        signChangeActionEvent.getPlayer().sendMessage(Component.text("建立控制牌成功，该控制牌可以在生成矿车时自动添加一个tag", NamedTextColor.GREEN));
         return true;
     }
 
