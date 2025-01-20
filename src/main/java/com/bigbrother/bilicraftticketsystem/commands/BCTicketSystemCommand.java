@@ -144,6 +144,7 @@ public class BCTicketSystemCommand implements CommandExecutor {
 
         player.sendMessage(Component.text("查询中...", NamedTextColor.AQUA));
         if (args.length < 3) {
+            player.sendMessage(Component.text("指令格式有误，需要指定天数", NamedTextColor.RED));
             return;
         }
         int range;
