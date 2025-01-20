@@ -51,16 +51,18 @@ public class RouteBossbar {
     }
 
     public void updateStation() {
-        String title = MainConfig.railwayRoutes.get("%s.curr-station-title".formatted(routeId.trim()), String.class, null);
-        if (title == null) {
-            return;
-        }
-        bossBar.name(Utils.str2Component(title.replace("{station}", routeList.get(nextStationIdx))));
         this.bossBar.color(this.args.bossbarColor);
         if (isRing()) {
             bossBar.progress((float) 1.0);
         } else {
             bossBar.progress((float) (nextStationIdx + 1) / routeList.size());
+        }
+
+        String title = MainConfig.railwayRoutes.get("%s.curr-station-title".formatted(routeId.trim()), String.class, null);
+        if (title == null) {
+            bossBar.name(Utils.str2Component(getNextTitle()));
+        } else {
+            bossBar.name(Utils.str2Component(title.replace("{station}", routeList.get(nextStationIdx))));
         }
     }
 
