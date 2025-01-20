@@ -24,13 +24,13 @@ uses:
 
 # 权限组的折扣，和上方的折扣叠加
 perm-discount:
-  displayname.全局管理员:
+  displayname-全局管理员:
     - 1-50-0.0
-  bc.prefix.railways:
+  bc-prefix-railways:
     - 1-50-0.5
 
 # 跨站车发车后跳过的控制牌，按照skip控制牌格式（filter ignore skip）
-skip: "announce 0 2"
+skip: "announce 0 10"
 
 ticket-font: 微软雅黑
 ticket-font-bold: true
@@ -38,7 +38,7 @@ ticket-font-bold: true
 railway-routes:
   rrcw:
     # 到站时显示
-    curr-station-title: '&6>>>> 列车已到达 &c{station}站 &6，下车时，请您注意站台与列车之间的空隙 <<<<'
+    curr-station-title: '&6>>>> 列车已到达 &c{station}站 &6，下车时，请您注意站台与列车之间的空隙。购票请使用/ticket指令。<<<<'
     # 线路信息，使用->连接
     route: 永望堡->巨龙峡湾->东海望->世界树原野->秋华町->贸易海岸->西洲湾->翡翠岛->黄昏岛->匕首半岛->银月岛->冬幕公园->新赫洛堡->长岛->大绿龙岛->龙爪半岛->鹅城->诺亚->风雪峡湾
     # 五个参数：BOSS条颜色 已经过的车站格式 未经过的车站格式 已经过的车站显示个数 未经过的车站显示个数
@@ -46,40 +46,40 @@ railway-routes:
     # 格式：mc格式化代码（&后的字符）
     args: 'RED 7o c 4 6'
   rrccw:
-    curr-station-title: '&0>>>> &6列车已到达 &c{station}站 &6，下车时，请您注意站台与列车之间的空隙 &0<<<<'
-    route:
+    curr-station-title: '&6>>>> 列车已到达 &c{station}站 &6，下车时，请您注意站台与列车之间的空隙。购票请使用/ticket指令。<<<<'
+    route: 风雪峡湾->诺亚->鹅城->龙爪半岛->大绿龙岛->长岛->新赫洛堡->冬幕公园->银月岛->匕首半岛->黄昏岛->翡翠岛->西洲湾->贸易海岸->秋华町->世界树原野->东海望->巨龙峡湾->永望堡
     args: 'RED 7o c 4 6'
   fdu:
-    curr-station-title: '&0>>>> &6列车已到达 &c{station}站 &6，下车时，请您注意站台与列车之间的空隙 &0<<<<'
+    curr-station-title: '&6>>>> 列车已到达 &c{station}站 &6，下车时，请您注意站台与列车之间的空隙。购票请使用/ticket指令。<<<<'
     route: 世界树原野->恶土->德芙->丰饶台地->丰饶台地西->春风平原->赤脊湾->结束乐队开发区->暖风河谷->鹅城
     args: 'RED 7o a 4 6'
   fdd:
-    curr-station-title: '&0>>>> &6列车已到达 &c{station}站 &6，下车时，请您注意站台与列车之间的空隙 &0<<<<'
-    route:
+    curr-station-title: '&6>>>> 列车已到达 &c{station}站 &6，下车时，请您注意站台与列车之间的空隙。购票请使用/ticket指令。<<<<'
+    route: 鹅城->暖风河谷->结束乐队开发区->赤脊湾->春风平原->丰饶台地西->丰饶台地->德芙->恶土->世界树原野
     args: 'RED 7o a 4 6'
   fdzu:
-    curr-station-title: '&0>>>> &6列车已到达 &c{station}站 &6，下车时，请您注意站台与列车之间的空隙 &0<<<<'
-    route:
+    curr-station-title: '&6>>>> 列车已到达 &c{station}站 &6，下车时，请您注意站台与列车之间的空隙。购票请使用/ticket指令。<<<<'
+    route: 世界树原野->恶土->德芙->丰饶台地->丰饶台地西->春风平原->赤脊湾->龙颚岛->大绿龙岛
     args: 'RED 7o a 4 6'
   fdzd:
-    curr-station-title: '&0>>>> &6列车已到达 &c{station}站 &6，下车时，请您注意站台与列车之间的空隙 &0<<<<'
-    route:
+    curr-station-title: '&6>>>> 列车已到达 &c{station}站 &6，下车时，请您注意站台与列车之间的空隙。购票请使用/ticket指令。<<<<'
+    route: 大绿龙岛->龙颚岛->赤脊湾->春风平原->丰饶台地西->丰饶台地->德芙->恶土->世界树原野
     args: 'RED 7o a 4 6'
   plu:
-    curr-station-title: '&0>>>> &6列车已到达 &c{station}站 &6，下车时，请您注意站台与列车之间的空隙 &0<<<<'
+    curr-station-title: '&6>>>> 列车已到达 &c{station}站 &6，下车时，请您注意站台与列车之间的空隙。购票请使用/ticket指令。<<<<'
     route: 新特拉姆->丰饶台地北->丰饶台地->帝王谷->黄昏岛
     args: 'RED 7o e 4 6'
   pld:
-    curr-station-title: '&0>>>> &6列车已到达 &c{station}站 &6，下车时，请您注意站台与列车之间的空隙 &0<<<<'
-    route:
+    curr-station-title: '&6>>>> 列车已到达 &c{station}站 &6，下车时，请您注意站台与列车之间的空隙。购票请使用/ticket指令。<<<<'
+    route: 黄昏岛->帝王谷->丰饶台地->丰饶台地北->新特拉姆
     args: 'RED 7o e 4 6'
   hmu:
-    curr-station-title: '&0>>>> &6列车已到达 &c{station}站 &6，下车时，请您注意站台与列车之间的空隙 &0<<<<'
-    route:
+    curr-station-title: '&6>>>> 列车已到达 &c{station}站 &6，下车时，请您注意站台与列车之间的空隙。购票请使用/ticket指令。<<<<'
+    route: 金色平原->春风平原->泽地->新赫洛堡
     args: 'RED 7o b 4 6'
   hmd:
-    curr-station-title: '&0>>>> &6列车已到达 &c{station}站 &6，下车时，请您注意站台与列车之间的空隙 &0<<<<'
-    route:
+    curr-station-title: '&6>>>> 列车已到达 &c{station}站 &6，下车时，请您注意站台与列车之间的空隙。购票请使用/ticket指令。<<<<'
+    route: 新赫洛堡->泽地->春风平原->金色平原
     args: 'RED 7o b 4 6'
 
 # 提示信息
@@ -88,6 +88,8 @@ message:
   buy-failure: <gold>[帕拉伦国有铁路车票系统] <red>车票购买失败：%s
   forbidden-get-on: <gold>[帕拉伦国有铁路车票系统] <red>主手车票不正确或列车已经驶离起始站，禁止上车
   wrong-platform: <gold>[帕拉伦国有铁路车票系统] <red>此车票不能在本站台使用，请核对车票的可使用站台和本站台上的信息是否一致
+  owner-conflict: <gold>[帕拉伦国有铁路车票系统] <red>不能使用其他玩家的车票
+  used: <gold>[帕拉伦国有铁路车票系统] <green>成功使用一张（次）%s 车票
   check-failed: <gold>[帕拉伦国有铁路车票系统] <red>检票失败！主手没有这趟列车的车票。本次列车的车票信息：
   quick-buy: <gold>[帕拉伦国有铁路车票系统] <green><underlined>点击花费 <bold>%.2f银币</bold> 快速购买一张此列车的单程票
   wiki: <gold>[帕拉伦国有铁路车票系统] <green><underlined><click:open_url:https://www.yuque.com/sasanarx/bilicraft/iunb5gkspevng8gf#>点击打开帕拉伦国有铁路wiki页面
