@@ -62,7 +62,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new SignActionShowroute(), this);
 
         // 加载经济系统
-        if (!setupEconomy() ) {
+        if (!setupEconomy()) {
             getLogger().severe("Vault初始化失败！");
             getServer().getPluginManager().disablePlugin(this);
             return;
@@ -118,16 +118,19 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
 
     private void printLogo() {
         List<Component> logo = List.of(
-                Component.text("           ___    ___          _____    _            _             _      ___    _  _          _                   ", NamedTextColor.GOLD),
-                Component.text("    o O O | _ )  / __|        |_   _|  (_)    __    | |__   ___   | |_   / __|  | || |  ___   | |_    ___   _ __   ", NamedTextColor.GOLD),
-                Component.text("   o      | _ \\ | (__           | |    | |   / _|   | / /  / -_)  |  _|  \\__ \\   \\_, | (_-<   |  _|  / -_) | '  \\  ", NamedTextColor.GOLD),
-                Component.text("  TS__[O] |___/  \\___|         _|_|_  _|_|_  \\__|_  |_\\_\\  \\___|  _\\__|  |___/  _|__/  /__/_  _\\__|  \\___| |_|_|_| ", NamedTextColor.GOLD),
-                Component.text(" {======||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"|| \"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"| ", NamedTextColor.GOLD),
-                Component.text("./o--000'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-' ", NamedTextColor.GOLD)
+                Component.text("           ___    ___          _____    _            _             _      ___    _  _          _                   \n", NamedTextColor.GOLD),
+                Component.text("    o O O | _ )  / __|        |_   _|  (_)    __    | |__   ___   | |_   / __|  | || |  ___   | |_    ___   _ __   \n", NamedTextColor.GOLD),
+                Component.text("   o      | _ \\ | (__           | |    | |   / _|   | / /  / -_)  |  _|  \\__ \\   \\_, | (_-<   |  _|  / -_) | '  \\  \n", NamedTextColor.GOLD),
+                Component.text("  TS__[O] |___/  \\___|         _|_|_  _|_|_  \\__|_  |_\\_\\  \\___|  _\\__|  |___/  _|__/  /__/_  _\\__|  \\___| |_|_|_| \n", NamedTextColor.GOLD),
+                Component.text(" {======||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"|| \"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"| \n", NamedTextColor.GOLD),
+                Component.text("./o--000'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-' \n", NamedTextColor.GOLD)
         );
+        Component output = Component.text("\n");
         for (Component component : logo) {
-            Bukkit.getConsoleSender().sendMessage(component);
+            output = output.append(component);
         }
+        output = output.color(NamedTextColor.GOLD);
+        Bukkit.getConsoleSender().sendMessage(output);
     }
 
     @Override
