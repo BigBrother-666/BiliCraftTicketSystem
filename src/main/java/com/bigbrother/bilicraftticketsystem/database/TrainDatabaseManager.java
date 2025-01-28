@@ -17,6 +17,8 @@ import java.io.File;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 
 public class TrainDatabaseManager {
@@ -103,13 +105,7 @@ public class TrainDatabaseManager {
         });
     }
 
-    /**
-     * 添加一条数据到列车生成记录表（bcspawn）
-     *
-     * @param startPlatformTag 站台tag
-     * @param dateTime 时间 yyyy-MM-dd HH:mm:ss
-     */
-    public void addBcspawnInfo(String startPlatformTag, String dateTime) {
+    public void addBcspawnInfo(String startPlatformTag, List<String> dateTime) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             String[] split = startPlatformTag.split("-");
             if (split.length < 2) {
@@ -134,16 +130,18 @@ public class TrainDatabaseManager {
                 return;
             }
 
-            String sql = "INSERT INTO %s (`spawn_time`, `spawn_station`, `spawn_direction`, `spawn_railway`) VALUES (?, ?, ?, ?)".formatted(bcspawnTableName);
-            try (Connection connection = ds.getConnection()) {
-                PreparedStatement preparedStatement = connection.prepareStatement(sql);
-                preparedStatement.setString(1, dateTime != null ? dateTime : LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-                preparedStatement.setString(2, station);
-                preparedStatement.setString(3, direction);
-                preparedStatement.setString(4, railway);
-                preparedStatement.executeUpdate();
-            } catch (SQLException e) {
-                plugin.getLogger().log(Level.WARNING, e.toString());
+            for (String d : dateTime) {
+                String sql = "INSERT INTO %s (`spawn_time`, `spawn_station`, `spawn_direction`, `spawn_railway`) VALUES (?, ?, ?, ?)".formatted(bcspawnTableName);
+                try (Connection connection = ds.getConnection()) {
+                    PreparedStatement preparedStatement = connection.prepareStatement(sql);
+                    preparedStatement.setString(1, d != null ? d : LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                    preparedStatement.setString(2, station);
+                    preparedStatement.setString(3, direction);
+                    preparedStatement.setString(4, railway);
+                    preparedStatement.executeUpdate();
+                } catch (SQLException e) {
+                    plugin.getLogger().log(Level.WARNING, e.toString());
+                }
             }
         });
     }
@@ -152,9 +150,21 @@ public class TrainDatabaseManager {
      * 添加一条数据到列车生成记录表（bcspawn）
      *
      * @param startPlatformTag 站台tag
+     * @param dateTime 时间 yyyy-MM-dd HH:mm:ss
+     */
+    public void addBcspawnInfo(String startPlatformTag, String dateTime) {
+        addBcspawnInfo(startPlatformTag, List.of(dateTime));
+    }
+
+    /**
+     * 添加一条数据到列车生成记录表（bcspawn）
+     *
+     * @param startPlatformTag 站台tag
      */
     public void addBcspawnInfo(String startPlatformTag) {
-        addBcspawnInfo(startPlatformTag, null);
+        List<String> noDate = new ArrayList<>();
+        noDate.add(null);
+        addBcspawnInfo(startPlatformTag, noDate);
     }
 
     /**

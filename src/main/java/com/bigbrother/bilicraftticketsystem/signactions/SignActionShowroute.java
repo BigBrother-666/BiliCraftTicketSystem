@@ -58,6 +58,7 @@ public class SignActionShowroute extends SignAction implements Listener {
         }
 
         bossbar.update(argsInfoSplit, splitRouteInfo[1], splitRouteInfo[0]);
+        bossbar.updateStation();
 
         // 发送bossbar
         bossbarMapping.putIfAbsent(member, bossbar);
