@@ -36,11 +36,15 @@ ticket-font: 微软雅黑
 ticket-font-bold: true
 
 railway-routes:
+  # 路线id
   rrcw:
+
     # 到站时显示
     curr-station-title: '&6>>>> 列车已到达 &c{station}站 &6，下车时，请您注意站台与列车之间的空隙。购票请使用/ticket指令。<<<<'
+
     # 线路信息，使用->连接
     route: 永望堡->巨龙峡湾->东海望->世界树原野->秋华町->贸易海岸->西洲湾->翡翠岛->黄昏岛->匕首半岛->银月岛->冬幕公园->新赫洛堡->长岛->大绿龙岛->龙爪半岛->鹅城->诺亚->风雪峡湾
+
     # 五个参数：BOSS条颜色 已经过的车站格式 未经过的车站格式 已经过的车站显示个数 未经过的车站显示个数
     # BOSS条颜色：PINK BLUE RED GREEN YELLOW PURPLE WHITE
     # 格式：mc格式化代码（&后的字符）
