@@ -24,10 +24,8 @@ import org.jetbrains.annotations.NotNull;
 import java.awt.*;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
+import java.util.*;
 import java.util.List;
-import java.util.TimeZone;
-import java.util.UUID;
 
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.trainDatabaseManager;
 import static com.bigbrother.bilicraftticketsystem.ticket.BCTicket.KEY_TICKET_OWNER_NAME;
@@ -110,15 +108,17 @@ public class BCTicketSystemCommand implements CommandExecutor {
             if (targetBlock != null && (targetBlock.getType().toString().toUpperCase().endsWith("BUTTON") || targetBlock.getType().toString().toUpperCase().endsWith("FENCE_GATE"))) {
                 int cnt = 0;
                 List<String[]> resultList = coreProtectAPI.blockLookup(targetBlock, (int) (System.currentTimeMillis() / 1000L));
+                List<String> dateTime = new ArrayList<>();
                 for (String[] s : resultList) {
                     CoreProtectAPI.ParseResult parsed = coreProtectAPI.parseResult(s);
                     if (parsed.getActionId() == 2) {
                         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                         sdf.setTimeZone(TimeZone.getDefault());
-                        trainDatabaseManager.addBcspawnInfo(args[2].trim(), sdf.format(new Timestamp(parsed.getTimestamp())));
                         cnt += 1;
+                        dateTime.add(sdf.format(new Timestamp(parsed.getTimestamp())));
                     }
                 }
+                trainDatabaseManager.addBcspawnInfo(args[2].trim(), dateTime);
                 player.sendMessage(Component.text("成功添加 %d 条数据".formatted(cnt), NamedTextColor.GREEN));
             } else {
                 player.sendMessage(Component.text("目标方块不是按钮或石质压力板！", NamedTextColor.RED));
