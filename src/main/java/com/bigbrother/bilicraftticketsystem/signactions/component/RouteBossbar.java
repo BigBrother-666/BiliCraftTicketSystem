@@ -74,6 +74,7 @@ public class RouteBossbar {
                 return;
             }
             this.routeId = routeId;
+            this.routeList = new ArrayList<>(Arrays.asList(route.split("->")));
         }
         nextStationIdx = routeList.indexOf(currStation);
         this.args = new Args(args);
@@ -149,6 +150,9 @@ public class RouteBossbar {
                         start = end - displayNum;
                         title.append("%s... → ".formatted(args.passedColor));
                         buildTitle(start, end, title, routeList);
+                        if (end != size) {
+                            title.append("%s → ...".formatted(args.notPassedColor));
+                        }
                     }
                 } else {
                     title.append("%s... → ".formatted(args.passedColor));
