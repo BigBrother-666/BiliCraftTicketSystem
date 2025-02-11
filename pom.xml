@@ -96,6 +96,10 @@
             <id>playpro-repo</id>
             <url>https://maven.playpro.com</url>
         </repository>
+        <repository>
+            <id>xenondevs</id>
+            <url>https://repo.xenondevs.xyz/releases</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -134,6 +138,12 @@
             <artifactId>coreprotect</artifactId>
             <version>22.2</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>xyz.xenondevs.invui</groupId>
+            <artifactId>invui</artifactId>
+            <version>1.44</version>
+            <type>pom</type>
         </dependency>
     </dependencies>
 </project>
