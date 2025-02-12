@@ -178,7 +178,6 @@ public class BCTicket {
 
     public static double getDiscountPrice(Player player, int maxUses, double price) {
         Set<String> perms = MainConfig.permDiscount.getKeys();
-        double totalPrice = maxUses * price;
         for (String perm : perms) {
             List<String> discount = MainConfig.permDiscount.getList(perm, String.class, null);
             if (!player.hasPermission(perm.replace("-", ".")) || discount == null || discount.isEmpty()) {
@@ -191,6 +190,6 @@ public class BCTicket {
                 }
             }
         }
-        return totalPrice;
+        return price;
     }
 }
