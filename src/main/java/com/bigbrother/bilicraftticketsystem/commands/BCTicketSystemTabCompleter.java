@@ -1,6 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.commands;
 
 import com.bigbrother.bilicraftticketsystem.TrainRoutes;
+import com.bigbrother.bilicraftticketsystem.config.ItemsConfig;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicket;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -65,17 +66,21 @@ public class BCTicketSystemTabCompleter implements TabCompleter {
                 } else if (args[0].equals("co") && commandSender.hasPermission("bcts.ticket.co")) {
                     return List.of("add", "undo");
                 }
-            } else if (args.length == 3 && args[0].equals("co") && args[1].equals("add")) {
-                List<String> completerList = new ArrayList<>();
-                for (Map.Entry<String, List<String>> entry : TrainRoutes.getStationTagMap().entrySet()) {
-                    for (String s : entry.getValue()) {
-                        String[] split = s.split("-");
-                        if (split.length == 3) {
-                            completerList.add(entry.getKey() + "-" + split[2]);
+            } else if (args.length == 3) {
+                if (args[0].equals("co") && args[1].equals("add") && commandSender.hasPermission("bcts.ticket.co")) {
+                    List<String> completerList = new ArrayList<>();
+                    for (Map.Entry<String, List<String>> entry : TrainRoutes.getStationTagMap().entrySet()) {
+                        for (String s : entry.getValue()) {
+                            String[] split = s.split("-");
+                            if (split.length == 3) {
+                                completerList.add(entry.getKey() + "-" + split[2]);
+                            }
                         }
                     }
+                    return completerList.stream().filter(s -> s.startsWith(args[2])).collect(Collectors.toList());
+                } else if (args[0].equals("menuitem") && commandSender.hasPermission("bcts.ticket.menuitem")){
+                    return ItemsConfig.itemsConfig.getKeys().stream().toList();
                 }
-                return completerList.stream().filter(s -> s.startsWith(args[2])).collect(Collectors.toList());
             }
         }
         return List.of();
