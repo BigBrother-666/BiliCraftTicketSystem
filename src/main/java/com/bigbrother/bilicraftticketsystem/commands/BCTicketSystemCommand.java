@@ -5,7 +5,8 @@ import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
-import com.bigbrother.bilicraftticketsystem.config.Menu;
+import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.menu.MenuMain;
 import net.coreprotect.CoreProtect;
 import net.coreprotect.CoreProtectAPI;
 import net.kyori.adventure.text.Component;
@@ -60,7 +61,7 @@ public class BCTicketSystemCommand implements CommandExecutor {
                 return false;
             }
             // 打开购票界面
-            player.openInventory(Menu.getMenu(player).mainMenu.inventory);
+            MenuMain.getMenu(player).open();
         } else {
             switch (args[0]) {
                 case "menuitem" -> subCommandMenuitem(player, args);
@@ -244,10 +245,10 @@ public class BCTicketSystemCommand implements CommandExecutor {
             return;
         }
         if (args.length > 2 && args[1].equals("add")) {
-            Menu.saveItemToFile(args[2], player.getInventory().getItemInMainHand());
+            Utils.saveItemToFile(args[2], player.getInventory().getItemInMainHand());
             player.sendMessage(Component.text("成功保存物品" + args[2], NamedTextColor.GREEN));
         } else if (args.length > 2 && args[1].equals("get")) {
-            ItemStack itemStack = Menu.loadItemFromFile(args[2]);
+            ItemStack itemStack = Utils.loadItemFromFile(args[2]);
             if (itemStack.getType() == Material.AIR) {
                 player.sendMessage(Component.text("物品不存在", NamedTextColor.RED));
                 return;

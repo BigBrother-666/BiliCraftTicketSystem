@@ -2,14 +2,18 @@ package com.bigbrother.bilicraftticketsystem;
 
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bigbrother.bilicraftticketsystem.commands.BCTicketSystemCommand;
-import com.bigbrother.bilicraftticketsystem.config.Menu;
+import com.bigbrother.bilicraftticketsystem.config.EnumConfig;
+import com.bigbrother.bilicraftticketsystem.config.ItemsConfig;
+import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.database.TrainDatabaseManager;
-import com.bigbrother.bilicraftticketsystem.listeners.PlayerListeners;
 import com.bigbrother.bilicraftticketsystem.listeners.TrainListeners;
+import com.bigbrother.bilicraftticketsystem.menu.MenuLocation;
+import com.bigbrother.bilicraftticketsystem.menu.MenuMain;
 import com.bigbrother.bilicraftticketsystem.signactions.CustomSignActionAnnounce;
 import com.bigbrother.bilicraftticketsystem.signactions.CustomSignActionSpawn;
 import com.bigbrother.bilicraftticketsystem.signactions.CustomSignActionStation;
 import com.bigbrother.bilicraftticketsystem.signactions.SignActionShowroute;
+import com.bigbrother.bilicraftticketsystem.ticket.BCTicketDisplay;
 import lombok.extern.slf4j.Slf4j;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -23,9 +27,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.io.File;
 import java.util.List;
 import java.util.logging.Level;
-
-import static com.bigbrother.bilicraftticketsystem.config.MainConfig.loadMainConfig;
-import static com.bigbrother.bilicraftticketsystem.ticket.BCTicketDisplay.loadFont;
 
 @Slf4j
 public final class BiliCraftTicketSystem extends JavaPlugin {
@@ -44,11 +45,11 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         plugin = this;
         // Plugin startup logic
         // 生成配置文件
-        saveResource("config.yml", /* replace */ false);
-        saveResource("menu_main.yml", /* replace */ false);
-        saveResource("menu_location.yml", /* replace */ false);
-        saveResource("menuitems.yml", /* replace */ false);
-        saveResource("routes.mmd", /* replace */ false);
+        saveResource(EnumConfig.MAIN_CONFIG.getFileName(), /* replace */ false);
+        saveResource(EnumConfig.MENU_MAIN.getFileName(), /* replace */ false);
+        saveResource(EnumConfig.MENU_LOCATION.getFileName(), /* replace */ false);
+        saveResource(EnumConfig.MENU_ITEMS.getFileName(), /* replace */ false);
+        saveResource(EnumConfig.ROUTE_MMD.getFileName(), /* replace */ false);
 
         // 加载数据库
         trainDatabaseManager = new TrainDatabaseManager(plugin);
@@ -57,7 +58,6 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         new BCTicketSystemCommand(this);
 
         // 注册监听器
-        Bukkit.getPluginManager().registerEvents(new PlayerListeners(), this);
         Bukkit.getPluginManager().registerEvents(new TrainListeners(), this);
         Bukkit.getPluginManager().registerEvents(new SignActionShowroute(), this);
 
@@ -78,16 +78,23 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         SignAction.register(signActionShowroute);
     }
 
+    /**
+     * 加载所有配置
+     * 加载插件和reload时调用
+     * @param sender sender
+     */
     public void loadConfig(CommandSender sender) {
         try {
-            loadMainConfig(this);
-            Menu.loadMenuConfig(this);
-            loadFont();
+            MainConfig.loadMainConfig(this);
+            ItemsConfig.loadItemsConfig(this);
+            BCTicketDisplay.loadFont();
             TrainRoutes.readGraphFromFile(this.getDataFolder().getPath() + File.separator + "routes.mmd");
             if (trainDatabaseManager != null) {
                 trainDatabaseManager.getDs().close();
             }
             trainDatabaseManager = new TrainDatabaseManager(plugin);
+            MenuMain.clearAll();
+            MenuLocation.clearAll();
         } catch (Exception e) {
             if (sender instanceof ConsoleCommandSender) {
                 plugin.getLogger().log(Level.WARNING, "加载配置文件时发生错误：" + e.getMessage());
@@ -104,6 +111,10 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         }
     }
 
+    /**
+     * 加载经济插件
+     * @return 是否成功
+     */
     private boolean setupEconomy() {
         if (getServer().getPluginManager().getPlugin("Vault") == null) {
             return false;

@@ -27,7 +27,7 @@ public class MainConfig {
     public static String skip;
 
     public static void loadMainConfig(BiliCraftTicketSystem plugin) {
-        FileConfiguration mainConfig = new FileConfiguration(plugin, "config.yml");
+        FileConfiguration mainConfig = new FileConfiguration(plugin, EnumConfig.MAIN_CONFIG.getFileName());
         mainConfig.load();
 
         expressTicketName = mainConfig.get("express-ticket-name", "express");

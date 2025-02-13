@@ -6,7 +6,7 @@ import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
-import lombok.AllArgsConstructor;
+import com.bigbrother.bilicraftticketsystem.menu.PlayerOption;
 import lombok.Getter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -18,7 +18,6 @@ import org.bukkit.inventory.meta.ItemMeta;
 import java.util.*;
 
 
-@AllArgsConstructor
 @Getter
 public class BCTicket {
     // Keys used in NBT
@@ -35,29 +34,59 @@ public class BCTicket {
     public static final String KEY_TICKET_TAGS = "ticketTags";
     public static final String KEY_TICKET_START_PLATFORM_TAG = "startPlatformTag";
 
-    private PlayerOption option;
-    private TrainRoutes.PathInfo pathInfo;
+    private final PlayerOption option;
+    private final TrainRoutes.PathInfo pathInfo;
     private String itemName;
     private double totalPrice;
+    private ItemStack ticket;
+    private final Player owner;
 
-    public static BCTicket createTicket(PlayerOption option, TrainRoutes.PathInfo info, Player player) {
-        String name = option.getUses() == 1 ? "%s->%s 单次票".formatted(info.getStart(), info.getEnd()) : "%s->%s %s次票".formatted(info.getStart(), info.getEnd(), option.getUses());
-        double totalPrice = info.getPrice() * option.getUses();
+    public BCTicket(PlayerOption option, TrainRoutes.PathInfo pathInfo, Player owner) {
+        this.option = option;
+        this.pathInfo = pathInfo;
+        this.owner = owner;
+        this.ticket = createItem(owner);
+        updateTicketInfo();
+    }
+
+    public void give() {
+        this.ticket = createItem(owner);
+        updateTicketInfo();
+        ItemMeta itemMeta = ticket.getItemMeta();
+        List<Component> lore = itemMeta.lore();
+        if (lore != null && lore.size() > 2) {
+            lore.remove(lore.size() - 1);
+            lore.remove(lore.size() - 1);
+        }
+        itemMeta.lore(lore);
+        ticket.setItemMeta(itemMeta);
+        if (!owner.getInventory().addItem(ticket).isEmpty()) {
+            // 背包满 车票丢到地上
+            owner.getWorld().dropItemNaturally(owner.getLocation(), ticket);
+        }
+    }
+
+    /**
+     * 更新车票的lore和name，重新计算价格
+     * 不更新nbt
+     */
+    public void updateTicketInfo() {
+        // 更新价格
+        totalPrice = pathInfo.getPrice() * option.getUses();
         for (String s : MainConfig.discount) {
             String[] split = s.split("-");
             if (option.getUses() >= Integer.parseInt(split[0]) && option.getUses() <= Integer.parseInt(split[1])) {
-                totalPrice = info.getPrice() * option.getUses() * Double.parseDouble(split[2]);
+                totalPrice = pathInfo.getPrice() * option.getUses() * Double.parseDouble(split[2]);
                 break;
             }
         }
+        totalPrice = getDiscountPrice(owner, option.getUses(), totalPrice);
 
-        totalPrice = getDiscountPrice(player, option.getUses(), totalPrice);
-        return new BCTicket(option, info, name, totalPrice);
-    }
+        // 更新物品名
+        itemName = option.getUses() == 1 ? "%s->%s 单次票".formatted(pathInfo.getStart(), pathInfo.getEnd()) : "%s->%s %s次票".formatted(pathInfo.getStart(), pathInfo.getEnd(), option.getUses());
 
-    public ItemStack getItem(Player player) {
-        ItemStack item = createItem(player);
-        ItemMeta itemMeta = item.getItemMeta();
+        // 更新lore
+        ItemMeta itemMeta = ticket.getItemMeta();
         List<Component> lore = new ArrayList<>();
         lore.add(Component.text("起始站 ---> 终到站：", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false));
         lore.add(Component.text("%s ---直达---> %s".formatted(pathInfo.getStart(), pathInfo.getEnd()), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
@@ -88,44 +117,7 @@ public class BCTicket {
         lore.add(Component.text("售价：%.2f银币       左键点击购买".formatted(this.totalPrice), NamedTextColor.DARK_PURPLE));
         itemMeta.lore(lore);
         itemMeta.displayName(Component.text(itemName, NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false).decoration(TextDecoration.BOLD, true));
-        item.setItemMeta(itemMeta);
-        return item;
-    }
-
-    public void giveTo(Player player) {
-        ItemStack item = getItem(player);
-        ItemMeta itemMeta = item.getItemMeta();
-        List<Component> lore = itemMeta.lore();
-        if (lore != null && lore.size() > 2) {
-            lore.remove(lore.size() - 1);
-            lore.remove(lore.size() - 1);
-        }
-        itemMeta.lore(lore);
-        item.setItemMeta(itemMeta);
-        if (!player.getInventory().addItem(item).isEmpty()) {
-            // 背包满 车票丢到地上
-            player.getWorld().dropItemNaturally(player.getLocation(), item);
-        }
-    }
-
-    public void updateProperties(Player player, PlayerOption option) {
-        this.option = option;
-
-        // 重新计算票价
-        double totalPrice = this.pathInfo.getPrice() * option.getUses();
-        for (String s : MainConfig.discount) {
-            String[] split = s.split("-");
-            if (option.getUses() >= Integer.parseInt(split[0]) && option.getUses() <= Integer.parseInt(split[1])) {
-                totalPrice = this.pathInfo.getPrice() * option.getUses() * Double.parseDouble(split[2]);
-                break;
-            }
-        }
-        this.totalPrice = getDiscountPrice(player, option.getUses(), totalPrice);
-
-        // 更新车票名
-        this.itemName = option.getUses() == 1 ?
-                "%s->%s 单次票".formatted(this.pathInfo.getStart(), this.pathInfo.getEnd()) :
-                "%s->%s %s次票".formatted(this.pathInfo.getStart(), this.pathInfo.getEnd(), option.getUses());
+        ticket.setItemMeta(itemMeta);
     }
 
     private ItemStack createItem(Player owner) {
@@ -186,7 +178,7 @@ public class BCTicket {
             for (String s : discount) {
                 String[] split = s.split("-");
                 if (maxUses >= Integer.parseInt(split[0]) && maxUses <= Integer.parseInt(split[1])) {
-                    return price * maxUses * Double.parseDouble(split[2]);
+                    return price * Double.parseDouble(split[2]);
                 }
             }
         }
