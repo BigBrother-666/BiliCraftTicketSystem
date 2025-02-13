@@ -29,7 +29,7 @@ public class UsesItem extends AbstractItem {
         List<Component> lore = new ArrayList<>();
         lore.add(Component.text("当前选择的使用次数：%d次".formatted(uses), NamedTextColor.GOLD));
         lore.add(Component.text("左键+1次，右键-1次", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
-        lore.add(Component.text("shift左键+10次", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("shift左键+5次", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
         itemMeta.lore(lore);
         itemStack.setItemMeta(itemMeta);
         return new ItemBuilder(itemStack);
