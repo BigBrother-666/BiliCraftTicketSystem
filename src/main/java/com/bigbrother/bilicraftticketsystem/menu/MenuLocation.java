@@ -32,6 +32,7 @@ import static com.bigbrother.bilicraftticketsystem.Utils.loadItemFromFile;
 
 
 public class MenuLocation implements Menu {
+    @Getter
     private static final Map<UUID, MenuLocation> locationMenuMapping = new HashMap<>();
 
     private final Window window;

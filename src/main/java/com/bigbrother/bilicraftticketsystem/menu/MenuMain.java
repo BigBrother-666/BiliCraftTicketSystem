@@ -23,6 +23,7 @@ import java.util.*;
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
 
 public class MenuMain implements Menu {
+    @Getter
     private static final Map<UUID, MenuMain> mainMenuMapping = new HashMap<>();
     private final Window window;
     ScrollGui<@NotNull Item> gui;

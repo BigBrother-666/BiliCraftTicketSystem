@@ -6,6 +6,7 @@ import com.bigbrother.bilicraftticketsystem.config.EnumConfig;
 import com.bigbrother.bilicraftticketsystem.config.ItemsConfig;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.database.TrainDatabaseManager;
+import com.bigbrother.bilicraftticketsystem.listeners.PlayListeners;
 import com.bigbrother.bilicraftticketsystem.listeners.TrainListeners;
 import com.bigbrother.bilicraftticketsystem.menu.MenuLocation;
 import com.bigbrother.bilicraftticketsystem.menu.MenuMain;
@@ -59,6 +60,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
 
         // 注册监听器
         Bukkit.getPluginManager().registerEvents(new TrainListeners(), this);
+        Bukkit.getPluginManager().registerEvents(new PlayListeners(), this);
         Bukkit.getPluginManager().registerEvents(new SignActionShowroute(), this);
 
         // 加载经济系统
