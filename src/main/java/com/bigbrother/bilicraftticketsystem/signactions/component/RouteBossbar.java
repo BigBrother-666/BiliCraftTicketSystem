@@ -55,7 +55,7 @@ public class RouteBossbar {
         if (isRing()) {
             bossBar.progress((float) 1.0);
         } else {
-            bossBar.progress((float) (nextStationIdx + 1) / routeList.size());
+            bossBar.progress(Math.min((float) (nextStationIdx + 1) / routeList.size(), 1.0f));
         }
 
         String title = MainConfig.railwayRoutes.get("%s.curr-station-title".formatted(routeId.trim()), String.class, null);
@@ -86,7 +86,7 @@ public class RouteBossbar {
         if (isRing()) {
             bossBar.progress((float) 1.0);
         } else {
-            bossBar.progress((float) (nextStationIdx) / routeList.size());
+            bossBar.progress(Math.min((float) (nextStationIdx) / routeList.size(), 1.0f));
         }
     }
 
