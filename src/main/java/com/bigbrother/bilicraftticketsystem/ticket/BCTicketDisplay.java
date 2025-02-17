@@ -9,12 +9,17 @@ import com.bergerkiller.bukkit.common.map.MapTexture;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Localization;
+import com.bergerkiller.bukkit.tc.TCConfig;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.tickets.Ticket;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
+import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import java.awt.*;
 import java.io.File;
@@ -82,13 +87,8 @@ public class BCTicketDisplay extends MapDisplay {
     }
 
     public void renderBackground() {
-        Ticket ticket = TicketStore.getTicketFromItem(this.getMapItem());
-        MapTexture bg;
-        if (ticket == null) {
-            bg = Ticket.getDefaultBackgroundImage();
-        } else {
-            bg = ticket.loadBackgroundImage();
-        }
+        CommonTagCompound ticketNbt = this.getCommonMapItem().getCustomData();
+        MapTexture bg = loadBackgroundImage(ticketNbt.getValue(BCTicket.KEY_TICKET_BACKGROUND_IMAGE_PATH, ""));
         this.getLayer().draw(bg, 0, 0);
     }
 
@@ -152,6 +152,58 @@ public class BCTicketDisplay extends MapDisplay {
                 this.getLayer(1).draw(MapFont.MINECRAFT, 5, 74, MapColorPalette.COLOR_RED, ownerName);
             }
         }
+    }
+
+    public MapTexture loadBackgroundImage(String backgroundImagePath) {
+        if (!backgroundImagePath.isEmpty()) {
+            int index = backgroundImagePath.indexOf(58);
+            MapTexture bg;
+            if (index != -1) {
+                String pluginName = backgroundImagePath.substring(0, index);
+                Plugin plugin = Bukkit.getPluginManager().getPlugin(pluginName);
+                if (plugin instanceof JavaPlugin) {
+                    try {
+                        bg = MapTexture.loadPluginResource((JavaPlugin) plugin, backgroundImagePath.substring(index + 1));
+                        if (bg.getWidth() >= 128 && bg.getHeight() >= 128) {
+                            return bg;
+                        }
+                    } catch (RuntimeException ignored) {
+                    }
+
+                    return Ticket.getDefaultBackgroundImage();
+                }
+            }
+
+            File imagesDir = TrainCarts.plugin.getDataFile("images");
+            File imageFile = new File(backgroundImagePath);
+            if (!imageFile.isAbsolute()) {
+                imageFile = new File(imagesDir, backgroundImagePath);
+            }
+
+            if (!TCConfig.allowExternalTicketImagePaths) {
+                boolean validLocation;
+                try {
+                    File a = imageFile.getAbsoluteFile().getCanonicalFile();
+                    File b = imagesDir.getAbsoluteFile().getCanonicalFile();
+                    validLocation = a.toPath().startsWith(b.toPath());
+                } catch (IOException var9) {
+                    validLocation = false;
+                }
+
+                if (!validLocation) {
+                    return Ticket.getDefaultBackgroundImage();
+                }
+            }
+
+            try {
+                bg = MapTexture.fromImageFile(imageFile.getAbsolutePath());
+                if (bg.getWidth() >= 128 && bg.getHeight() >= 128) {
+                    return bg;
+                }
+            } catch (RuntimeException ignored) {
+            }
+        }
+        return Ticket.getDefaultBackgroundImage();
     }
 }
 

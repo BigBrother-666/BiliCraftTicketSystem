@@ -37,6 +37,7 @@ public class BCTicket {
     public static final String KEY_TICKET_START_STATION = "startStation";
     public static final String KEY_TICKET_END_STATION = "endStation";
     public static final String KEY_TICKET_DISTANCE = "distance";
+    public static final String KEY_TICKET_BACKGROUND_IMAGE_PATH = "backgroundImagePath";
 
     private final PlayerOption option;
     private final TrainRoutes.PathInfo pathInfo;
