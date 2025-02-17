@@ -67,6 +67,10 @@
 | ticketItemName        | 车票物品名                                     |
 | ticketTags            | 车票的tags，使用英文逗号分隔的tag                      |
 | startPlatformTag      | 可使用站台的tag                                 |
+| startStation          | 起始站中文名                                    |
+| endStation            | 终到站中文名                                    |
+| distance              | 两站间距                                      |
+| backgroundImagePath   | 车票背景图片文件名                                 |
 
 ## 8. 控制牌新增/更改
 
