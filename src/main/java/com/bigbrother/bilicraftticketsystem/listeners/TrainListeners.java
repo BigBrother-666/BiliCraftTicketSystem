@@ -77,9 +77,9 @@ public class TrainListeners implements Listener {
             }
 
             List<String> ticketTags = null;
-            CommonTagCompound nbt = mainHand.getCustomData();
+            CommonTagCompound originNbt = mainHand.getCustomData();
             if (ticket != null) {
-                ticketTags = List.of(nbt.getValue(BCTicket.KEY_TICKET_TAGS, "").split(","));
+                ticketTags = List.of(originNbt.getValue(BCTicket.KEY_TICKET_TAGS, "").split(","));
             }
 
             if (!TicketStore.isTicketOwner(player, mainHand)) {
@@ -90,7 +90,7 @@ public class TrainListeners implements Listener {
             if (ticketTags != null && !ticketTags.get(0).isEmpty()) {
                 // 检查是否是正确的站台
                 // 寻找用来判断的tag
-                String ticketStartStationTag = nbt.getValue(BCTicket.KEY_TICKET_START_PLATFORM_TAG, "");
+                String ticketStartStationTag = originNbt.getValue(BCTicket.KEY_TICKET_START_PLATFORM_TAG, "");
                 if (!ticketStartStationTag.isEmpty()) {
                     for (String trainTag : trainTags) {
                         String[] split = trainTag.split("-");
@@ -118,8 +118,8 @@ public class TrainListeners implements Listener {
                     // 设置其他属性
                     trainProperties.apply(ticket.getProperties());
                     // 设置速度和tag
-                    if (nbt.getValue(BCTicket.KEY_TICKET_MAX_SPEED, 4.0) > trainProperties.getSpeedLimit()) {
-                        trainProperties.setSpeedLimit(nbt.getValue(BCTicket.KEY_TICKET_MAX_SPEED, 4.0));
+                    if (originNbt.getValue(BCTicket.KEY_TICKET_MAX_SPEED, 4.0) > trainProperties.getSpeedLimit()) {
+                        trainProperties.setSpeedLimit(originNbt.getValue(BCTicket.KEY_TICKET_MAX_SPEED, 4.0));
                     }
                     trainProperties.clearTags();
                     for (String ticketTag : ticketTags) {
@@ -129,21 +129,21 @@ public class TrainListeners implements Listener {
                     trainProperties.getHolder().onPropertiesChanged();
 
                     // 检查是否是最后一次使用车票（动态设置车票最大使用次数需要）
-                    if (nbt.getValue(BCTicket.KEY_TICKET_MAX_NUMBER_OF_USES, 0) > 0 && nbt.getValue(BCTicket.KEY_TICKET_MAX_NUMBER_OF_USES, 0) <= nbt.getValue(BCTicket.KEY_TICKET_NUMBER_OF_USES, 0) + 1) {
+                    if (originNbt.getValue(BCTicket.KEY_TICKET_MAX_NUMBER_OF_USES, 0) > 0 && originNbt.getValue(BCTicket.KEY_TICKET_MAX_NUMBER_OF_USES, 0) <= originNbt.getValue(BCTicket.KEY_TICKET_NUMBER_OF_USES, 0) + 1) {
                         mainHand.updateCustomData(tag -> tag.putValue(BCTicket.KEY_TICKET_NUMBER_OF_USES, MainConfig.maxUses - 1));
                         HumanHand.setItemInMainHand(player, mainHand.toBukkit());
                     }
 
                     for (MinecartMember<?> minecartMember : event.getMember().getGroup()) {
                         RouteBossbar bossbar = SignActionShowroute.bossbarMapping.getOrDefault(minecartMember, null);
-                        String ticketName = nbt.getValue(BCTicket.KEY_TICKET_DISPLAY_NAME, String.class, null);
+                        String ticketName = originNbt.getValue(BCTicket.KEY_TICKET_DISPLAY_NAME, String.class, null);
                         if ((bossbar == null || bossbar.getRouteId() != null) && ticketName != null) {
                             bossbar = new RouteBossbar(ticketName);
                             SignActionShowroute.bossbarMapping.put(minecartMember, bossbar);
                         }
                     }
 
-                    player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("used", "成功使用一张（次）%s 车票").formatted(nbt.getValue(BCTicket.KEY_TICKET_DISPLAY_NAME))));
+                    player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("used", "成功使用一张（次）%s 车票").formatted(originNbt.getValue(BCTicket.KEY_TICKET_DISPLAY_NAME))));
                     return;
                 }
             }
@@ -187,8 +187,8 @@ public class TrainListeners implements Listener {
                 }
                 trainTicket.setItemMeta(itemMeta);
 
-                // 单程票价值 < 0 不显示快速购票
-                if (ticketNbt.getValue(BCTicket.KEY_TICKET_ORIGIN_PRICE, 0.0) < 0) {
+                // 单程票价值 < 0 或 没有version 不显示快速购票
+                if (ticketNbt.getValue(BCTicket.KEY_TICKET_ORIGIN_PRICE, -1) < 0 || !originNbt.containsKey(BCTicket.KEY_TICKET_VERSION)) {
                     return;
                 }
 

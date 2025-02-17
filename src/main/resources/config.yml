@@ -4,6 +4,10 @@ price-per-km: 0.3
 # 跨站车车票名（不需要设置tag，speedLimit）
 express-ticket-name: express
 
+# 车票的版本，整数，用于和车票nbt中的版本比较，如果不同，则车票自动更新
+# 每次新增车站需要改动
+express-ticket-version: 1
+
 # 普通车的tag
 common-train-tag: common
 

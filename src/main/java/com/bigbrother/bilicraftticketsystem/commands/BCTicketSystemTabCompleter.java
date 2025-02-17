@@ -57,7 +57,11 @@ public class BCTicketSystemTabCompleter implements TabCompleter {
                                     BCTicket.KEY_TICKET_ORIGIN_PRICE,
                                     BCTicket.KEY_TICKET_ITEM_NAME,
                                     BCTicket.KEY_TICKET_TAGS,
-                                    BCTicket.KEY_TICKET_START_PLATFORM_TAG
+                                    BCTicket.KEY_TICKET_START_PLATFORM_TAG,
+                                    BCTicket.KEY_TICKET_VERSION,
+                                    BCTicket.KEY_TICKET_START_STATION,
+                                    BCTicket.KEY_TICKET_END_STATION,
+                                    BCTicket.KEY_TICKET_DISTANCE
                             )
                             .filter(s -> s.contains(args[1].trim()))
                             .collect(Collectors.toList());

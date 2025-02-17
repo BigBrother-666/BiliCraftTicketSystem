@@ -1,5 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.ticket;
 
+import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.common.map.MapColorPalette;
 import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.map.MapFont;
@@ -11,12 +12,14 @@ import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.tickets.Ticket;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
+import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import org.bukkit.inventory.ItemStack;
 
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -70,6 +73,7 @@ public class BCTicketDisplay extends MapDisplay {
 
         renderBackground();
         renderTicket();
+        updateTicketTag();
     }
 
     @Override
@@ -86,6 +90,36 @@ public class BCTicketDisplay extends MapDisplay {
             bg = ticket.loadBackgroundImage();
         }
         this.getLayer().draw(bg, 0, 0);
+    }
+
+    private void updateTicketTag() {
+        CommonItemStack ticket = this.getCommonMapItem();
+        CommonTagCompound ticketNbt = ticket.getCustomData();
+        if (!ticketNbt.containsKey(BCTicket.KEY_TICKET_VERSION)) {
+            return;
+        }
+        int version = ticketNbt.getValue(BCTicket.KEY_TICKET_VERSION, Integer.class, null);
+        // 版本一样，不需要更新
+        if (version == MainConfig.expressTicketVersion) {
+            return;
+        }
+        List<String> tags = List.of(ticketNbt.getValue(BCTicket.KEY_TICKET_TAGS, "").split(","));
+        double distance = ticketNbt.getValue(BCTicket.KEY_TICKET_DISTANCE, 0.0);
+        String startStation = ticketNbt.getValue(BCTicket.KEY_TICKET_START_STATION, String.class, null);
+        String endStation = ticketNbt.getValue(BCTicket.KEY_TICKET_END_STATION, String.class, null);
+        List<TrainRoutes.PathInfo> pathInfoList = TrainRoutes.getPathInfoList(startStation, endStation);
+        if (!pathInfoList.isEmpty()) {
+            for (TrainRoutes.PathInfo pathInfo : pathInfoList) {
+                // 距离相同且新车票包含所有旧车票的tag 则认为是同一路线的车票
+                if (pathInfo.getTags().size() != tags.size() && Math.abs(pathInfo.getDistance() - distance) < 1e-3 && pathInfo.getTags().containsAll(tags)) {
+                    // 更新nbt和lore
+                    ticket.updateCustomData(tag -> tag.putValue(BCTicket.KEY_TICKET_TAGS, String.join(",", pathInfo.getTags())));
+                    ticket.toBukkit().lore(BCTicket.getBaseTicketInfoLore(pathInfo));
+                    break;
+                }
+            }
+        }
+        ticket.updateCustomData(tag -> tag.putValue(BCTicket.KEY_TICKET_VERSION, MainConfig.expressTicketVersion));
     }
 
     private void renderTicket() {
