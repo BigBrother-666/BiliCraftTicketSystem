@@ -39,9 +39,21 @@ import static com.bigbrother.bilicraftticketsystem.ticket.BCTicket.getDiscountPr
 
 public class TrainListeners implements Listener {
     private static final Map<String, CommonItemStack> trainTicketInfo = new HashMap<>();
+    private static final Map<String, Set<UUID>> trainPlayerInfo = new HashMap<>();
     private static final Map<String, Set<UUID>> trainHintRecord = new HashMap<>();
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void onMemberSeatEnterParalonRailway(MemberBeforeSeatEnterEvent event) {
+        if (event.wasSeatChange()) {
+            return; // Already handled by MemberSeatChangeEvent
+        }
+        // 如果是国铁，取消原版TC监听
+        if (event.getMember().getGroup().getProperties().getTickets().contains(MainConfig.expressTicketName)) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onMemberSeatEnter(MemberBeforeSeatEnterEvent event) {
         if (event.wasSeatChange()) {
             return; // Already handled by MemberSeatChangeEvent
@@ -60,19 +72,37 @@ public class TrainListeners implements Listener {
             if (prop.getCanOnlyOwnersEnter() && !prop.hasOwnership(player)) {
                 return;
             }
+
+            TrainProperties trainProperties = newMember.getGroup().getProperties();
+
+            // 是否是国铁列车
+            if (!trainProperties.getTickets().contains(MainConfig.expressTicketName)) {
+                return;
+            }
+
             // 使用车票前的处理
             // 主手持车票？
             CommonItemStack mainHand = CommonItemStack.of(HumanHand.getItemInMainHand(player));
             Ticket ticket = TicketStore.getTicketFromItem(mainHand);
-            TrainProperties trainProperties = newMember.getGroup().getProperties();
             Collection<String> trainTags = trainProperties.getTags();
-            if (!trainProperties.getTickets().contains(MainConfig.expressTicketName)) {
-                return;
-            }
+
             if (ticket == null && trainTags.contains(MainConfig.commonTrainTag)) {
                 // 设置为无票车
                 trainProperties.clearTickets();
                 trainProperties.getHolder().onPropertiesChanged();
+                event.setCancelled(false);
+                return;
+            }
+
+            if (ticket != null && !ticket.getName().equals(MainConfig.expressTicketName)) {
+                player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("not-support-ticket", "不支持该车票")));
+                event.setCancelled(true);
+                return;
+            }
+
+            // 该玩家已经使用过车票，可直接上车
+            if (trainPlayerInfo.containsKey(trainProperties.getTrainName()) && trainPlayerInfo.get(trainProperties.getTrainName()).contains(player.getUniqueId())) {
+                event.setCancelled(false);
                 return;
             }
 
@@ -84,6 +114,7 @@ public class TrainListeners implements Listener {
 
             if (!TicketStore.isTicketOwner(player, mainHand)) {
                 player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("owner-conflict", "不能使用其他玩家的车票")));
+                event.setCancelled(true);
                 return;
             }
 
@@ -134,6 +165,7 @@ public class TrainListeners implements Listener {
                         HumanHand.setItemInMainHand(player, mainHand.toBukkit());
                     }
 
+                    // 所有车厢显示bossbar
                     for (MinecartMember<?> minecartMember : event.getMember().getGroup()) {
                         RouteBossbar bossbar = SignActionShowroute.bossbarMapping.getOrDefault(minecartMember, null);
                         String ticketName = originNbt.getValue(BCTicket.KEY_TICKET_DISPLAY_NAME, String.class, null);
@@ -143,7 +175,20 @@ public class TrainListeners implements Listener {
                         }
                     }
 
+                    // 记录已经使用车票上车，再次上车不需要车票
+                    if (trainPlayerInfo.containsKey(trainProperties.getTrainName())) {
+                        trainPlayerInfo.get(trainProperties.getTrainName()).add(player.getUniqueId());
+                    } else {
+                        HashSet<UUID> set = new HashSet<>();
+                        set.add(player.getUniqueId());
+                        trainPlayerInfo.put(trainProperties.getTrainName(), set);
+                    }
+
                     player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("used", "成功使用一张（次）%s 车票").formatted(originNbt.getValue(BCTicket.KEY_TICKET_DISPLAY_NAME))));
+                    event.setCancelled(false);
+
+                    // 原版TC逻辑
+                    TicketStore.handleTickets(player, trainProperties);
                     return;
                 }
             }
@@ -163,7 +208,15 @@ public class TrainListeners implements Listener {
                     trainHintRecord.get(trainProperties.getTrainName()).add(player.getUniqueId());
                 }
 
-                CommonItemStack cloned = BCTicket.deepCopy(player, trainTicketInfo.get(trainProperties.getTrainName()));
+                CommonItemStack originTicket = trainTicketInfo.get(trainProperties.getTrainName());
+
+                // 没有使用过车票且中途试图上车的，不发送快速购票信息
+                if (!trainTags.containsAll(List.of(originTicket.getCustomData().getValue(BCTicket.KEY_TICKET_TAGS, "").split(",")))) {
+                    player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("forbidden-get-on", "")).decoration(TextDecoration.ITALIC, false));
+                    return;
+                }
+
+                CommonItemStack cloned = BCTicket.deepCopy(player, originTicket);
                 ItemStack trainTicket = cloned.toBukkit();
                 CommonTagCompound ticketNbt = cloned.getCustomData();
                 ItemMeta itemMeta = trainTicket.getItemMeta();
@@ -228,5 +281,6 @@ public class TrainListeners implements Listener {
     public void onGroupRemove(GroupRemoveEvent event) {
         trainTicketInfo.remove(event.getGroup().getProperties().getTrainName());
         trainHintRecord.remove(event.getGroup().getProperties().getTrainName());
+        trainPlayerInfo.remove(event.getGroup().getProperties().getTrainName());
     }
 }
