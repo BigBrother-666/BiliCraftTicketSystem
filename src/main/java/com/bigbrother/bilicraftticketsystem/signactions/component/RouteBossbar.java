@@ -51,6 +51,10 @@ public class RouteBossbar {
     }
 
     public void updateStation() {
+        if (nextStationIdx >= routeList.size()) {
+            return;
+        }
+
         this.bossBar.color(this.args.bossbarColor);
         if (isRing()) {
             bossBar.progress((float) 1.0);
