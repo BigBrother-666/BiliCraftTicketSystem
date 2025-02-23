@@ -57,17 +57,16 @@ public class BCTicket {
     public void give() {
         this.ticket = createItem(owner);
         updateTicketInfo();
-        ItemMeta itemMeta = ticket.getItemMeta();
-        List<Component> lore = itemMeta.lore();
+        List<Component> lore = ticket.lore();
         if (lore != null && lore.size() > 2) {
             lore.remove(lore.size() - 1);
             lore.remove(lore.size() - 1);
         }
-        itemMeta.lore(lore);
-        ticket.setItemMeta(itemMeta);
-        if (!owner.getInventory().addItem(ticket).isEmpty()) {
+        ItemStack newTicket = ticket.clone();
+        newTicket.lore(lore);
+        if (!owner.getInventory().addItem(newTicket).isEmpty()) {
             // 背包满 车票丢到地上
-            owner.getWorld().dropItemNaturally(owner.getLocation(), ticket);
+            owner.getWorld().dropItemNaturally(owner.getLocation(), newTicket);
         }
     }
 
