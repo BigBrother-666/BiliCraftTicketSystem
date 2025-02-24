@@ -84,6 +84,12 @@ public class MenuMain implements Menu {
                     case "warn":
                         guiBuilder.addIngredient(split[0].charAt(0), new WarnItem());
                         break;
+                    case "scrollup":
+                        guiBuilder.addIngredient(split[0].charAt(0), new ScrollUpItem());
+                        break;
+                    case "scrolldown":
+                        guiBuilder.addIngredient(split[0].charAt(0), new ScrollDownItem());
+                        break;
                     default:
                         guiBuilder.addIngredient(split[0].charAt(0), new SimpleItem(new ItemBuilder(Material.valueOf(split[1]))));
                 }
