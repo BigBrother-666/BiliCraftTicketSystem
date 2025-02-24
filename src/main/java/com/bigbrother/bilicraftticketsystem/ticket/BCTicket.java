@@ -91,8 +91,7 @@ public class BCTicket {
 
         // 更新lore
         ItemMeta itemMeta = ticket.getItemMeta();
-        List<Component> lore = getBaseTicketInfoLore(pathInfo);
-        lore.add(Component.text("共 %.2f km | 最大速度 %.2f km/h".formatted(pathInfo.getDistance(), option.getSpeed() * 20 * 3.6), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        List<Component> lore = getBaseTicketInfoLore(pathInfo, option.getSpeed());
         lore.add(Component.text("===============================", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false));
         lore.add(Component.text("售价：%.2f银币       左键点击购买".formatted(this.totalPrice), NamedTextColor.DARK_PURPLE));
         itemMeta.lore(lore);
@@ -173,7 +172,7 @@ public class BCTicket {
         return price;
     }
 
-    public static List<Component> getBaseTicketInfoLore(TrainRoutes.PathInfo pathInfo) {
+    public static List<Component> getBaseTicketInfoLore(TrainRoutes.PathInfo pathInfo, double speed) {
         List<Component> lore = new ArrayList<>();
         lore.add(Component.text("起始站 ---> 终到站：", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false));
         lore.add(Component.text("%s ---直达---> %s".formatted(pathInfo.getStart(), pathInfo.getEnd()), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
@@ -199,6 +198,7 @@ public class BCTicket {
                 join = join.append(Component.text(path.get(i) + "→", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
             }
         }
+        lore.add(Component.text("共 %.2f km | 最大速度 %.2f km/h".formatted(pathInfo.getDistance(), speed * 20 * 3.6), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
         return lore;
     }
 }
