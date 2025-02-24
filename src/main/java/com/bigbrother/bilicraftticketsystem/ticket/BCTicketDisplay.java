@@ -105,16 +105,26 @@ public class BCTicketDisplay extends MapDisplay {
         }
         List<String> tags = List.of(ticketNbt.getValue(BCTicket.KEY_TICKET_TAGS, "").split(","));
         double distance = ticketNbt.getValue(BCTicket.KEY_TICKET_DISTANCE, 0.0);
-        String startStation = ticketNbt.getValue(BCTicket.KEY_TICKET_START_STATION, String.class, null);
-        String endStation = ticketNbt.getValue(BCTicket.KEY_TICKET_END_STATION, String.class, null);
+        String startStation = ticketNbt.getValue(BCTicket.KEY_TICKET_START_STATION, String.class, "");
+        String endStation = ticketNbt.getValue(BCTicket.KEY_TICKET_END_STATION, String.class, "");
+        String startPlatformTag = ticketNbt.getValue(BCTicket.KEY_TICKET_START_PLATFORM_TAG, String.class, "");
         List<TrainRoutes.PathInfo> pathInfoList = TrainRoutes.getPathInfoList(startStation, endStation);
         if (!pathInfoList.isEmpty()) {
             for (TrainRoutes.PathInfo pathInfo : pathInfoList) {
                 // 距离相同且新车票包含所有旧车票的tag 则认为是同一路线的车票
-                if (pathInfo.getTags().size() != tags.size() && Math.abs(pathInfo.getDistance() - distance) < 1e-3 && pathInfo.getTags().containsAll(tags)) {
-                    // 更新nbt和lore
-                    ticket.updateCustomData(tag -> tag.putValue(BCTicket.KEY_TICKET_TAGS, String.join(",", pathInfo.getTags())));
-                    ticket.toBukkit().lore(BCTicket.getBaseTicketInfoLore(pathInfo));
+                if (Math.abs(pathInfo.getDistance() - distance) < 1e-3 && pathInfo.getTags().containsAll(tags)) {
+                    if (!startStation.equals(endStation) && !startPlatformTag.equals(pathInfo.getStartPlatformTag())) {
+                        // 线路延长，xxx方向改变
+                        ticket.updateCustomData(tag -> tag.putValue(BCTicket.KEY_TICKET_START_PLATFORM_TAG, pathInfo.getStartPlatformTag()));
+                        ticket.toBukkit().lore(BCTicket.getBaseTicketInfoLore(pathInfo, ticketNbt.getValue(BCTicket.KEY_TICKET_MAX_SPEED, 4.0)));
+                        startPlatformTag = pathInfo.getStartPlatformTag();
+                    }
+
+                    if (pathInfo.getTags().size() != tags.size() && startPlatformTag.equals(pathInfo.getStartPlatformTag())) {
+                        // 新增车站
+                        ticket.updateCustomData(tag -> tag.putValue(BCTicket.KEY_TICKET_TAGS, String.join(",", pathInfo.getTags())));
+                        ticket.toBukkit().lore(BCTicket.getBaseTicketInfoLore(pathInfo, ticketNbt.getValue(BCTicket.KEY_TICKET_MAX_SPEED, 4.0)));
+                    }
                     break;
                 }
             }
