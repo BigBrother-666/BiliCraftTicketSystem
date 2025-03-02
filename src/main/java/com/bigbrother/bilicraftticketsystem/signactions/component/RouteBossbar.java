@@ -51,7 +51,7 @@ public class RouteBossbar {
     }
 
     public void updateStation() {
-        if (nextStationIdx >= routeList.size()) {
+        if (nextStationIdx < 0 || nextStationIdx >= routeList.size()) {
             return;
         }
 
