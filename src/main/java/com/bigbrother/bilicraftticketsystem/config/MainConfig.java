@@ -23,6 +23,7 @@ public class MainConfig {
     public static ConfigurationNode message;
     public static ConfigurationNode railwayRoutes;
     public static ConfigurationNode permDiscount;
+    public static ConfigurationNode railwayColor;
     public static int maxUses;
     public static List<String> discount;
     public static String skip;
@@ -46,6 +47,8 @@ public class MainConfig {
         railwayRoutes = mainConfig.getNode("railway-routes");
 
         permDiscount = mainConfig.getNode("perm-discount");
+
+        railwayColor = mainConfig.getNode("railway-color");
 
         message = mainConfig.getNode("message");
 

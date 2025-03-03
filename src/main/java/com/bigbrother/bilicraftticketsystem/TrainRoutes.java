@@ -19,20 +19,45 @@ public class TrainRoutes {
     @Getter
     private static Map<String, List<String>> stationTagMap;  // tag : [车站-铁路名-方向, 车站-铁路名-方向, ...]
 
+    // 生成lore的数据
+    @Getter
+    public static class StationAndRailway {
+        private final String stationName;
+        private final String railwayName;
+
+        public StationAndRailway(String stationName, String railwayName) {
+            this.stationName = stationName;
+            this.railwayName = railwayName;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+            if (obj == null || getClass() != obj.getClass()) return false;
+            StationAndRailway pair = (StationAndRailway) obj;
+            return Objects.equals(stationName, pair.stationName);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(stationName);
+        }
+    }
+
     @Data
     public static class PathInfo implements Comparable<PathInfo> {
-        public PathInfo(List<String> path, Set<String> tags, double distance, double price, String startPlatform, String startPlatformTag) {
+        public PathInfo(List<StationAndRailway> path, Set<String> tags, double distance, double price, String startPlatform, String startPlatformTag) {
             this.path = path;
             this.tags = tags;
             this.distance = distance;
             this.price = price;
-            this.start = path.get(0);
-            this.end = path.get(path.size() - 1);
+            this.start = path.get(0).getStationName();
+            this.end = path.get(path.size() - 1).getStationName();
             this.startPlatform = startPlatform;
             this.startPlatformTag = startPlatformTag;
         }
 
-        private List<String> path;
+        private List<StationAndRailway> path;
         private Set<String> tags;
         private double distance;
         private double price;
@@ -92,25 +117,33 @@ public class TrainRoutes {
             }
             path.add(start);
             if (end.contains(start) && path.size() > 1) {
-                List<String> outPath = new ArrayList<>();
+                List<StationAndRailway> outPath = new ArrayList<>();   // [车站名, 铁路名+方向]
                 Set<String> tags = new HashSet<>();
                 boolean repeat = false;
                 for (int i = 0; i < path.size(); i++) {
+                    String[] split = path.get(i).split("-");
+                    if (split.length < 4) {
+                        break;
+                    }
                     // 添加tag
                     if (i != path.size() - 1) {
-                        if (!tags.add(path.get(i).split("-")[3])) {
+                        if (!tags.add(split[3])) {
                             repeat = true;
+                            break;
                         }
                     }
                     // 车站名为空（只包含tag的节点 ---tag）
-                    if (path.get(i).split("-")[0].isEmpty()) {
+                    if (split[0].isEmpty()) {
                         continue;
                     }
                     // 添加path
-                    if (!outPath.contains(path.get(i).split("-")[0]) || i == path.size() - 1) {
-                        outPath.add(path.get(i).split("-")[0]);
-                    } else if (i != path.size() - 1 && !outPath.get(outPath.size() - 1).equals(path.get(i).split("-")[0])) {
+                    if (outPath.stream().noneMatch(arr -> arr.getStationName().equals(split[0])) || i == path.size() - 1) {
+                        outPath.add(new StationAndRailway(split[0], split[1] + split[2]));
+                    } else if (i != path.size() - 1 && !outPath.get(outPath.size() - 1).getStationName().equals(split[0])) {
+                        // 路径已存在当前车站名   当前节点不是最后一个节点，且路径最后一个节点的车站名和当前车站名不同
+                        // 跳过直达车在一个车站需要多个tag的情况
                         repeat = true;
+                        break;
                     }
                 }
                 double distance = calculateTotalDistance(path);

@@ -116,16 +116,19 @@ public class BCTicketDisplay extends MapDisplay {
                     if (!startStation.equals(endStation) && !startPlatformTag.equals(pathInfo.getStartPlatformTag())) {
                         // 线路延长，xxx方向改变
                         ticket.updateCustomData(tag -> tag.putValue(BCTicket.KEY_TICKET_START_PLATFORM_TAG, pathInfo.getStartPlatformTag()));
-                        ticket.toBukkit().lore(BCTicket.getBaseTicketInfoLore(pathInfo, ticketNbt.getValue(BCTicket.KEY_TICKET_MAX_SPEED, 4.0)));
                         startPlatformTag = pathInfo.getStartPlatformTag();
                     }
 
                     if (pathInfo.getTags().size() != tags.size() && startPlatformTag.equals(pathInfo.getStartPlatformTag())) {
                         // 新增车站
                         ticket.updateCustomData(tag -> tag.putValue(BCTicket.KEY_TICKET_TAGS, String.join(",", pathInfo.getTags())));
-                        ticket.toBukkit().lore(BCTicket.getBaseTicketInfoLore(pathInfo, ticketNbt.getValue(BCTicket.KEY_TICKET_MAX_SPEED, 4.0)));
                     }
-                    break;
+
+                    // 更新lore
+                    if (startPlatformTag.equals(pathInfo.getStartPlatformTag())) {
+                        ticket.toBukkit().lore(BCTicket.getBaseTicketInfoLore(pathInfo, ticketNbt.getValue(BCTicket.KEY_TICKET_MAX_SPEED, 4.0)));
+                        break;
+                    }
                 }
             }
         }

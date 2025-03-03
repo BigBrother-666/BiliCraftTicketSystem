@@ -39,6 +39,15 @@ skip: "announce 0 10"
 ticket-font: 微软雅黑
 ticket-font-bold: true
 
+# 铁路标志色
+railway-color:
+  环线铁路: "#ff0000"
+  芙德铁路: "#80db00"
+  普朗铁路: "#ff9823"
+  赫蒙铁路: "#0000dd"
+  蒙德铁路: "#55ffff"
+
+
 railway-routes:
   # 路线id
   rrcw:

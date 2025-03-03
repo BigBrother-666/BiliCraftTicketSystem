@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bigbrother.bilicraftticketsystem.TrainRoutes;
+import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.menu.PlayerOption;
 import lombok.Getter;
@@ -174,30 +175,69 @@ public class BCTicket {
 
     public static List<Component> getBaseTicketInfoLore(TrainRoutes.PathInfo pathInfo, double speed) {
         List<Component> lore = new ArrayList<>();
-        lore.add(Component.text("起始站 ---> 终到站：", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("起始站 ---> 终到站：", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false).decoration(TextDecoration.BOLD, true));
         lore.add(Component.text("%s ---直达---> %s".formatted(pathInfo.getStart(), pathInfo.getEnd()), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
-        lore.add(Component.text("可使用的站台：", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("可使用的站台：", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false).decoration(TextDecoration.BOLD, true));
         lore.add(Component.text(pathInfo.getStartPlatform(), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
-        lore.add(Component.text("路线详情（只停起始站和终到站）：", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false));
-        List<String> path = pathInfo.getPath();
+
+        // 路线详情lore
+        lore.add(Component.text("路线详情（只停起始站和终到站）：", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false).decoration(TextDecoration.BOLD, true));
+        List<TrainRoutes.StationAndRailway> path = pathInfo.getPath();
         Component join = Component.text("");
+        List<String> railways = new ArrayList<>();
         for (int i = 0; i < path.size(); i++) {
+            String stationName = path.get(i).getStationName();
+            String railwayName = path.get(i).getRailwayName();
+
+            if (!railways.isEmpty() && !railways.get(railways.size() - 1).equals(railwayName)) {
+                railways.add(railwayName);
+            } else if (railways.isEmpty()) {
+                railways.add(railwayName);
+            }
+
             if (i == path.size() - 1) {
-                join = join.append(Component.text(path.get(i), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+                // 终到站
+                join = join.append(Component.text(stationName, NamedTextColor.GOLD)
+                        .decoration(TextDecoration.ITALIC, false));
                 lore.add(join);
                 continue;
             }
             if (i % 7 != 0) {
-                join = join.append(Component.text(path.get(i) + "→", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+                // 经过站
+                join = join.append(Component.text(stationName, NamedTextColor.GRAY)
+                        .append(Component.text("→", Utils.getRailwayColor(railwayName)))
+                        .decoration(TextDecoration.ITALIC, true));
             } else if (i == 0) {
-                join = join.append(Component.text(path.get(i) + "→", NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+                // 起始站
+                join = join.append(Component.text(stationName, NamedTextColor.GOLD)
+                        .append(Component.text("→", Utils.getRailwayColor(railwayName)))
+                        .decoration(TextDecoration.ITALIC, false));
             } else {
                 lore.add(join);
                 // 开始新的一行
                 join = Component.text("");
-                join = join.append(Component.text(path.get(i) + "→", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+                join = join.append(Component.text(stationName, NamedTextColor.GRAY)
+                        .append(Component.text("→", Utils.getRailwayColor(railwayName)))
+                        .decoration(TextDecoration.ITALIC, true));
             }
         }
+
+        // 途经铁路lore
+        lore.add(Component.text("途经铁路：", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false).decoration(TextDecoration.BOLD, true));
+        Component stationsLore = Component.text("");
+        for (int i = 0; i < railways.size(); i++) {
+            if (i != 0 && i % 4 == 0) {
+                lore.add(stationsLore);
+                stationsLore = Component.text("");
+            }
+            if (i == railways.size() - 1) {
+                stationsLore = stationsLore.append(Component.text(railways.get(i), Utils.getRailwayColor(railways.get(i))));
+            } else {
+                stationsLore = stationsLore.append(Component.text(railways.get(i) + "→", Utils.getRailwayColor(railways.get(i))));
+            }
+        }
+        lore.add(stationsLore);
+
         lore.add(Component.text("共 %.2f km | 最大速度 %.2f km/h".formatted(pathInfo.getDistance(), speed * 20 * 3.6), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
         return lore;
     }
