@@ -120,6 +120,7 @@ public class BCTicket {
                     tag.putValue(KEY_TICKET_START_STATION, option.getStartStationString());
                     tag.putValue(KEY_TICKET_END_STATION, option.getEndStationString());
                     tag.putValue(KEY_TICKET_DISTANCE, pathInfo.getDistance());
+                    tag.putValue(KEY_TICKET_BACKGROUND_IMAGE_PATH, MainConfig.expressTicketBgimage);
                 })
                 .setCustomNameMessage(MainConfig.expressTicketName)
                 .toBukkit();
@@ -147,6 +148,7 @@ public class BCTicket {
                     tag.putValue(KEY_TICKET_START_STATION, customData.getValue(KEY_TICKET_START_STATION, ""));
                     tag.putValue(KEY_TICKET_END_STATION, customData.getValue(KEY_TICKET_END_STATION, ""));
                     tag.putValue(KEY_TICKET_DISTANCE, customData.getValue(KEY_TICKET_DISTANCE, 0.0));
+                    tag.putValue(KEY_TICKET_BACKGROUND_IMAGE_PATH, customData.getValue(KEY_TICKET_BACKGROUND_IMAGE_PATH, ""));
                 })
                 .setCustomNameMessage(MainConfig.expressTicketName);
         for (ChatText lore : origin.getLores()) {

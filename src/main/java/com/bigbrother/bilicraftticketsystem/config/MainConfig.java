@@ -15,6 +15,7 @@ public class MainConfig {
     public static double minSpeed;
     public static double speedStep;
     public static String expressTicketName;
+    public static String expressTicketBgimage;
     public static int expressTicketVersion;
     public static String commonTrainTag;
     public static String ticketFont;
@@ -33,6 +34,7 @@ public class MainConfig {
         mainConfig.load();
 
         expressTicketName = mainConfig.get("express-ticket-name", "express");
+        expressTicketBgimage = mainConfig.get("express-ticket-bgimage", "");
         expressTicketVersion = mainConfig.get("express-ticket-version", 1);
         commonTrainTag = mainConfig.get("common-train-tag", "common");
         ticketFont = mainConfig.get("ticket-font", "");
