@@ -47,6 +47,23 @@ public class TrainListeners implements Listener {
         if (event.wasSeatChange()) {
             return; // Already handled by MemberSeatChangeEvent
         }
+
+        MinecartMember<?> newMember = event.getMember();
+        Entity passenger = event.getEntity();
+        if (event.isPlayerInitiated() && passenger instanceof Player && newMember != null) {
+            Player player = ((Player) passenger).getPlayer();
+            if (player == null) {
+                return;
+            }
+            CartProperties prop = newMember.getProperties();
+            if (!prop.getPlayersEnter() || newMember.isUnloaded()) {
+                return;
+            }
+            if (prop.getCanOnlyOwnersEnter() && !prop.hasOwnership(player)) {
+                return;
+            }
+        }
+
         // 如果是国铁，取消原版TC监听
         if (event.getMember().getGroup().getProperties().getTickets().contains(MainConfig.expressTicketName)) {
             event.setCancelled(true);
