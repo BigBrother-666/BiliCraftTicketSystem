@@ -46,9 +46,11 @@
 | 主界面        | item-uses                 | 使用次数调整按钮  |
 | 主界面        | item-search               | 搜索车票按钮    |
 | 主界面        | item-warn                 | 注意事项按钮    |
+| 主界面        | item-prevpage             | 上一页按钮     |
+| 主界面        | item-nextpage             | 下一页按钮     |
 | 车站选择界面     | content                   | 显示车站的格子   |
-| 主界面/车站选择界面 | item-scrollup             | 滚动条向上滚动   |
-| 主界面/车站选择界面 | item-scrolldown           | 滚动条向下滚动   |
+| 车站选择界面 | item-scrollup             | 滚动条向上滚动   |
+| 车站选择界面 | item-scrolldown           | 滚动条向下滚动   |
 | 所有         | bukkit物品枚举名或item-其他自定义物品名 | 无功能，仅用于装饰 |
 
 
