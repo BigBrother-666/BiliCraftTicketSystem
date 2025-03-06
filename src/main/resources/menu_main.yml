@@ -6,7 +6,7 @@ structure:
   - "# b e # . . . . #"
   - "# c f # . . . . #"
   - "# d # # . . . . #"
-  - "# # # # # # # # #"
+  - "# # # # p # # n #"
 
 mapping:
   - "# ORANGE_STAINED_GLASS_PANE"
@@ -17,3 +17,5 @@ mapping:
   - "d item-uses"
   - "e item-search"
   - "f item-warn"
+  - "p item-prevpage"
+  - "n item-nextpage"
