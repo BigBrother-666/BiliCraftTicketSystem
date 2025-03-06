@@ -1,6 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.menu;
 
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
+import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.EnumConfig;
 import com.bigbrother.bilicraftticketsystem.menu.items.*;
 import lombok.Getter;
@@ -11,7 +12,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import xyz.xenondevs.inventoryaccess.component.AdventureComponentWrapper;
-import xyz.xenondevs.invui.gui.ScrollGui;
+import xyz.xenondevs.invui.gui.PagedGui;
 import xyz.xenondevs.invui.gui.structure.Markers;
 import xyz.xenondevs.invui.item.Item;
 import xyz.xenondevs.invui.item.builder.ItemBuilder;
@@ -26,7 +27,7 @@ public class MenuMain implements Menu {
     @Getter
     private static final Map<UUID, MenuMain> mainMenuMapping = new HashMap<>();
     private final Window window;
-    ScrollGui<@NotNull Item> gui;
+    PagedGui<@NotNull Item> gui;
 
     @Getter
     @Setter
@@ -49,7 +50,7 @@ public class MenuMain implements Menu {
         FileConfiguration mainConfig = new FileConfiguration(plugin, EnumConfig.MENU_MAIN.getFileName());
         mainConfig.load();
 
-        ScrollGui.@NotNull Builder<@NotNull Item> guiBuilder = ScrollGui.items()
+        PagedGui.@NotNull Builder<@NotNull Item> guiBuilder = PagedGui.items()
                 .setStructure(mainConfig.getList("structure", String.class, Collections.emptyList()).toArray(new String[0]));
 
         // 设置映射
@@ -84,14 +85,18 @@ public class MenuMain implements Menu {
                     case "warn":
                         guiBuilder.addIngredient(split[0].charAt(0), new WarnItem());
                         break;
-                    case "scrollup":
-                        guiBuilder.addIngredient(split[0].charAt(0), new ScrollUpItem());
+                    case "nextpage":
+                        guiBuilder.addIngredient(split[0].charAt(0), new NextpageItem());
                         break;
-                    case "scrolldown":
-                        guiBuilder.addIngredient(split[0].charAt(0), new ScrollDownItem());
+                    case "prevpage":
+                        guiBuilder.addIngredient(split[0].charAt(0), new PrevpageItem());
                         break;
                     default:
-                        guiBuilder.addIngredient(split[0].charAt(0), new SimpleItem(new ItemBuilder(Material.valueOf(split[1]))));
+                        try {
+                            guiBuilder.addIngredient(split[0].charAt(0), new SimpleItem(new ItemBuilder(Material.valueOf(itemName))));
+                        } catch (IllegalArgumentException e) {
+                            guiBuilder.addIngredient(split[0].charAt(0), new ItemBuilder(Utils.loadItemFromFile(itemName)));
+                        }
                 }
             }
         }
