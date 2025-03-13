@@ -2,7 +2,7 @@ title: <#FF8C00>帕拉伦国有铁路车票系统-主界面
 
 structure:
   - "# # # # # # # # #"
-  - "# a # # . . . . #"
+  - "# a # # . . . . g"
   - "# b e # . . . . #"
   - "# c f # . . . . #"
   - "# d # # . . . . #"
@@ -17,5 +17,6 @@ mapping:
   - "d item-uses"
   - "e item-search"
   - "f item-warn"
+  - "g item-filter"
   - "p item-prevpage"
   - "n item-nextpage"

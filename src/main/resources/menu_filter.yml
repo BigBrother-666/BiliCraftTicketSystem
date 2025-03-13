@@ -1,0 +1,17 @@
+title: <#FF8C00>帕拉伦国有铁路车票系统-筛选车票
+
+structure:
+  - ". . . . . . . . u"
+  - ". . . . . . . . #"
+  - ". . . . . . . . a"
+  - ". . . . . . . . b"
+  - ". . . . . . . . #"
+  - ". . . . . . . . d"
+
+mapping:
+  - ". content"
+  - "# ORANGE_STAINED_GLASS_PANE"
+  - "u item-scrollup"
+  - "d item-scrolldown"
+  - "a item-refresh"
+  - "b item-back"
