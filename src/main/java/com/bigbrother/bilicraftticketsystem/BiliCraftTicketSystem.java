@@ -13,7 +13,7 @@ import com.bigbrother.bilicraftticketsystem.menu.MenuFilter;
 import com.bigbrother.bilicraftticketsystem.menu.MenuLocation;
 import com.bigbrother.bilicraftticketsystem.menu.MenuMain;
 import com.bigbrother.bilicraftticketsystem.signactions.CustomSignActionAnnounce;
-import com.bigbrother.bilicraftticketsystem.signactions.CustomSignActionSpawn;
+import com.bigbrother.bilicraftticketsystem.signactions.SignActionBCSpawn;
 import com.bigbrother.bilicraftticketsystem.signactions.CustomSignActionStation;
 import com.bigbrother.bilicraftticketsystem.signactions.SignActionShowroute;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicketDisplay;
@@ -37,7 +37,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     public static Economy econ = null;
     public static TrainDatabaseManager trainDatabaseManager;
     public final CustomSignActionAnnounce signActionAnnounce = new CustomSignActionAnnounce();
-    public final CustomSignActionSpawn signActionSpawn = new CustomSignActionSpawn();
+    public final SignActionBCSpawn signActionSpawn = new SignActionBCSpawn();
     public final CustomSignActionStation signActionStation = new CustomSignActionStation();
     public final SignActionShowroute signActionShowroute = new SignActionShowroute();
 

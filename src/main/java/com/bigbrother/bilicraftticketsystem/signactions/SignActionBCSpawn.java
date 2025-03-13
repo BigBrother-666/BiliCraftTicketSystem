@@ -12,7 +12,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.trainDatabaseManager;
 
-public class CustomSignActionSpawn extends SignActionSpawn {
+public class SignActionBCSpawn extends SignActionSpawn {
     @Override
     public void execute(SignActionEvent info) {
         if (!info.isAction(SignActionType.REDSTONE_ON, SignActionType.REDSTONE_OFF)) {
