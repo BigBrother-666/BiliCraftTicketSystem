@@ -66,6 +66,9 @@ content:
   "暖风河谷站":
     name: <red>暖风河谷站
     material: item-flag-舒芙蕾
+  "秋林谷站":
+    name: <red>秋林谷站
+    material: item-flag-舒芙蕾
   "泽地站":
     name: <red>泽地站
     material: item-flag-舒芙蕾
@@ -113,6 +116,12 @@ content:
     material: item-flag-瓦尔德
 
   # -------------------- 蒙布朗 --------------------
+  "冰晶湖站":
+    name: <white>冰晶湖站
+    material: item-flag-蒙布朗
+  "冬泉谷站":
+    name: <white>冬泉谷站
+    material: item-flag-蒙布朗
   "风雪峡湾站":
     name: <white>风雪峡湾站
     material: item-flag-蒙布朗
@@ -121,6 +130,9 @@ content:
     material: item-flag-蒙布朗
   "诺亚站":
     name: <white>诺亚站
+    material: item-flag-蒙布朗
+  "霜湖谷站":
+    name: <white>霜湖谷站
     material: item-flag-蒙布朗
   "永望堡站":
     name: <white>永望堡站

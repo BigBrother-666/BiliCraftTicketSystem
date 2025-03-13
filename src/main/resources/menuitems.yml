@@ -306,7 +306,7 @@ filter:
   meta:
     ==: ItemMeta
     meta-type: SKULL
-    display-name: '{"text":"","extra":[{"text":"筛选途径车站","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":true}]}'
+    display-name: '{"text":"","extra":[{"text":"筛选途经车站","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":true}]}'
     lore:
     - '{"text":"","extra":[{"text":"当车票数量过多时，可以使用该功能筛选经过特定车站的车票","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
     - '{"text":"","extra":[{"text":"进入筛选界面后，左键添加车站，右键移除车站","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
