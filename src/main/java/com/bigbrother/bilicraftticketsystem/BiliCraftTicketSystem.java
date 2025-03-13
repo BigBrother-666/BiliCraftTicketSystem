@@ -12,10 +12,7 @@ import com.bigbrother.bilicraftticketsystem.listeners.TrainListeners;
 import com.bigbrother.bilicraftticketsystem.menu.MenuFilter;
 import com.bigbrother.bilicraftticketsystem.menu.MenuLocation;
 import com.bigbrother.bilicraftticketsystem.menu.MenuMain;
-import com.bigbrother.bilicraftticketsystem.signactions.CustomSignActionAnnounce;
-import com.bigbrother.bilicraftticketsystem.signactions.SignActionBCSpawn;
-import com.bigbrother.bilicraftticketsystem.signactions.CustomSignActionStation;
-import com.bigbrother.bilicraftticketsystem.signactions.SignActionShowroute;
+import com.bigbrother.bilicraftticketsystem.signactions.*;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicketDisplay;
 import lombok.extern.slf4j.Slf4j;
 import net.kyori.adventure.text.Component;
@@ -36,10 +33,13 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     public static BiliCraftTicketSystem plugin;
     public static Economy econ = null;
     public static TrainDatabaseManager trainDatabaseManager;
+
+    // 控制牌
     public final CustomSignActionAnnounce signActionAnnounce = new CustomSignActionAnnounce();
     public final SignActionBCSpawn signActionSpawn = new SignActionBCSpawn();
     public final CustomSignActionStation signActionStation = new CustomSignActionStation();
     public final SignActionShowroute signActionShowroute = new SignActionShowroute();
+    public final CustomSignActionSpawn customSignActionSpawn = new CustomSignActionSpawn();
 
     @Override
     public void onEnable() {
@@ -81,6 +81,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         SignAction.register(signActionSpawn);
         SignAction.register(signActionStation, true);
         SignAction.register(signActionShowroute);
+        SignAction.register(customSignActionSpawn, true);
     }
 
     /**
@@ -158,5 +159,6 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         SignAction.unregister(signActionSpawn);
         SignAction.unregister(signActionStation);
         SignAction.unregister(signActionShowroute);
+        SignAction.unregister(customSignActionSpawn);
     }
 }
