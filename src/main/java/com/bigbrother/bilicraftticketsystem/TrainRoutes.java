@@ -25,6 +25,12 @@ public class TrainRoutes {
         private final String stationName;
         private final String railwayName;
 
+        public static Set<String> getAllStations(List<StationAndRailway> list) {
+            return list.stream()
+                    .map(StationAndRailway::getStationName)
+                    .collect(Collectors.toSet());
+        }
+
         public StationAndRailway(String stationName, String railwayName) {
             this.stationName = stationName;
             this.railwayName = railwayName;

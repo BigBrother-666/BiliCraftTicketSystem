@@ -5,9 +5,11 @@ import com.bigbrother.bilicraftticketsystem.commands.BCTicketSystemCommand;
 import com.bigbrother.bilicraftticketsystem.config.EnumConfig;
 import com.bigbrother.bilicraftticketsystem.config.ItemsConfig;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
+import com.bigbrother.bilicraftticketsystem.config.MenuConfig;
 import com.bigbrother.bilicraftticketsystem.database.TrainDatabaseManager;
 import com.bigbrother.bilicraftticketsystem.listeners.PlayerListeners;
 import com.bigbrother.bilicraftticketsystem.listeners.TrainListeners;
+import com.bigbrother.bilicraftticketsystem.menu.MenuFilter;
 import com.bigbrother.bilicraftticketsystem.menu.MenuLocation;
 import com.bigbrother.bilicraftticketsystem.menu.MenuMain;
 import com.bigbrother.bilicraftticketsystem.signactions.CustomSignActionAnnounce;
@@ -49,6 +51,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         saveResource(EnumConfig.MAIN_CONFIG.getFileName(), /* replace */ false);
         saveResource(EnumConfig.MENU_MAIN.getFileName(), /* replace */ false);
         saveResource(EnumConfig.MENU_LOCATION.getFileName(), /* replace */ false);
+        saveResource(EnumConfig.MENU_FILTER.getFileName(), /* replace */ false);
         saveResource(EnumConfig.MENU_ITEMS.getFileName(), /* replace */ false);
         saveResource(EnumConfig.ROUTE_MMD.getFileName(), /* replace */ false);
 
@@ -89,6 +92,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         try {
             MainConfig.loadMainConfig(this);
             ItemsConfig.loadItemsConfig(this);
+            MenuConfig.loadMenuConfig(this);
             BCTicketDisplay.loadFont();
             TrainRoutes.readGraphFromFile(this.getDataFolder().getPath() + File.separator + "routes.mmd");
             if (trainDatabaseManager != null) {
@@ -97,6 +101,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
             trainDatabaseManager = new TrainDatabaseManager(plugin);
             MenuMain.clearAll();
             MenuLocation.clearAll();
+            MenuFilter.clearAll();
         } catch (Exception e) {
             if (sender instanceof ConsoleCommandSender) {
                 plugin.getLogger().log(Level.WARNING, "加载配置文件时发生错误：" + e.getMessage());

@@ -1,12 +1,17 @@
 package com.bigbrother.bilicraftticketsystem.menu;
 
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
+import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.Utils;
-import com.bigbrother.bilicraftticketsystem.config.EnumConfig;
+import com.bigbrother.bilicraftticketsystem.config.MainConfig;
+import com.bigbrother.bilicraftticketsystem.config.MenuConfig;
 import com.bigbrother.bilicraftticketsystem.menu.items.*;
 import lombok.Getter;
 import lombok.Setter;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -28,17 +33,22 @@ public class MenuMain implements Menu {
     private static final Map<UUID, MenuMain> mainMenuMapping = new HashMap<>();
     private final Window window;
     PagedGui<@NotNull Item> gui;
+    private final Player player;
 
     @Getter
     @Setter
     private PlayerOption playerOption;
-    private List<Item> tickets;
+    @Getter
+    private List<Item> menuTicketList;
+    @Getter
+    private FilterItem filterItem;
 
     private MenuMain(Player player) {
         this(player, null, null);
     }
 
     private MenuMain(Player player, Component startStation, Component endStation) {
+        this.player = player;
         playerOption = new PlayerOption();
         if (startStation != null) {
             playerOption.setStartStation(startStation);
@@ -47,8 +57,7 @@ public class MenuMain implements Menu {
             playerOption.setEndStation(endStation);
         }
 
-        FileConfiguration mainConfig = new FileConfiguration(plugin, EnumConfig.MENU_MAIN.getFileName());
-        mainConfig.load();
+        FileConfiguration mainConfig = MenuConfig.getMainMenuConfig();
 
         PagedGui.@NotNull Builder<@NotNull Item> guiBuilder = PagedGui.items()
                 .setStructure(mainConfig.getList("structure", String.class, Collections.emptyList()).toArray(new String[0]));
@@ -91,6 +100,10 @@ public class MenuMain implements Menu {
                     case "prevpage":
                         guiBuilder.addIngredient(split[0].charAt(0), new PrevpageItem());
                         break;
+                    case "filter":
+                        filterItem = new FilterItem();
+                        guiBuilder.addIngredient(split[0].charAt(0), filterItem);
+                        break;
                     default:
                         try {
                             guiBuilder.addIngredient(split[0].charAt(0), new SimpleItem(new ItemBuilder(Material.valueOf(itemName))));
@@ -112,18 +125,52 @@ public class MenuMain implements Menu {
     }
 
     public void setTickets(List<Item> tickets) {
-        this.tickets = tickets;
+        if (tickets == null || tickets.isEmpty()) {
+            gui.setContent(List.of(new TicketItem("所选两站没有直达方案")));
+            return;
+        }
+        this.menuTicketList = tickets;
         gui.setContent(tickets);
+    }
+
+    public void filterTickets(Set<String> filter) {
+        if (filter == null || filter.isEmpty()) {
+            gui.setContent(menuTicketList);
+            return;
+        }
+
+        List<Item> filteredTickets = new ArrayList<>();
+
+        for (Item item : menuTicketList) {
+            if (item instanceof TicketItem ticketItem &&
+                    ticketItem.getTicket() != null &&
+                    TrainRoutes.StationAndRailway.getAllStations(ticketItem.getTicket().getPathInfo().getPath()).containsAll(filter)) {
+                filteredTickets.add(item);
+            }
+        }
+
+        if (filteredTickets.isEmpty()) {
+            // 无车票符合条件，显示屏障
+            Component errMsg = MiniMessage.miniMessage().deserialize(
+                    MainConfig.message.get("filter-empty","").formatted(
+                    playerOption.getStartStationString(),
+                    playerOption.getEndStationString(),
+                    String.join(",", filter))
+            ).decoration(TextDecoration.ITALIC,false).color(NamedTextColor.RED);
+            gui.setContent(List.of(new TicketItem(errMsg)));
+        } else {
+            gui.setContent(filteredTickets);
+        }
     }
 
     /**
      * 通知gui更新车票的lore
      */
     public void updateTicketInfo() {
-        if (tickets == null) {
+        if (menuTicketList == null) {
             return;
         }
-        for (Item ticket : tickets) {
+        for (Item ticket : menuTicketList) {
             if (ticket instanceof TicketItem ticketItem) {
                 ticketItem.updateLore();
                 ticketItem.notifyWindows();
@@ -135,8 +182,8 @@ public class MenuMain implements Menu {
     public void open() {
         if (window.isOpen()) {
             close();
-            return;
         }
+        filterTickets(MenuFilter.getMenu(player).getFilterStations());
         this.window.open();
     }
 
@@ -158,5 +205,10 @@ public class MenuMain implements Menu {
         } else {
             return new MenuMain(player);
         }
+    }
+
+    public void clearTickets() {
+        menuTicketList = new ArrayList<>();
+        gui.setContent(menuTicketList);
     }
 }

@@ -1,6 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.listeners;
 
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
+import com.bigbrother.bilicraftticketsystem.menu.MenuFilter;
 import com.bigbrother.bilicraftticketsystem.menu.MenuLocation;
 import com.bigbrother.bilicraftticketsystem.menu.MenuMain;
 import org.bukkit.event.EventHandler;
@@ -18,6 +19,7 @@ public class PlayerListeners implements Listener {
         UUID uuid = event.getPlayer().getUniqueId();
         MenuMain.getMainMenuMapping().remove(uuid);
         MenuLocation.getLocationMenuMapping().remove(uuid);
+        MenuFilter.getFilterMenuMapping().remove(uuid);
     }
 
     @EventHandler(ignoreCancelled = true)

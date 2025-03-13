@@ -2,9 +2,13 @@ package com.bigbrother.bilicraftticketsystem.menu.items;
 
 import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.menu.MenuFilter;
 import com.bigbrother.bilicraftticketsystem.menu.MenuMain;
 import com.bigbrother.bilicraftticketsystem.menu.PlayerOption;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicket;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
@@ -23,8 +27,18 @@ import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
 
 public class SearchItem extends AbstractItem {
     @Override
-    public ItemProvider getItemProvider() {
+    public ItemProvider getItemProvider(Player player) {
         ItemStack itemStack = Utils.loadItemFromFile("search");
+        MenuMain menu = MenuMain.getMenu(player);
+        PlayerOption option = menu.getPlayerOption();
+        if (!option.canSearch()) {
+            List<Component> lore = itemStack.lore();
+            if (lore == null) {
+                lore = new ArrayList<>();
+            }
+            lore.add(Component.text("搜索不可用，请先选择起始站和终到站", NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
+            itemStack.lore(lore);
+        }
         return new ItemBuilder(itemStack);
     }
 
@@ -45,7 +59,8 @@ public class SearchItem extends AbstractItem {
             List<Item> tickets = new ArrayList<>();
             List<TrainRoutes.PathInfo> pathInfoList = TrainRoutes.getPathInfoList(option.getStartStationString(), option.getEndStationString());
             if (pathInfoList.isEmpty()) {
-                tickets.add(new TicketItem(null));
+                menu.setTickets(tickets);
+                return;
             } else {
                 // 显示车票
                 for (TrainRoutes.PathInfo pathInfo : pathInfoList) {
@@ -53,8 +68,12 @@ public class SearchItem extends AbstractItem {
                     tickets.add(new TicketItem(ticket));
                 }
             }
-            menu.setTickets(tickets);
-            notifyWindows();
+            if (player.isConnected()) {
+                menu.setTickets(tickets);
+                MenuFilter.getMenu(player).setFilterLocItems(player);
+                menu.getFilterItem().notifyWindows();
+                notifyWindows();
+            }
         });
     }
 }
