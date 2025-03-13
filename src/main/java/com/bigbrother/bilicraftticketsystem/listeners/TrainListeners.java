@@ -187,7 +187,7 @@ public class TrainListeners implements Listener {
                         RouteBossbar bossbar = SignActionShowroute.bossbarMapping.getOrDefault(minecartMember, null);
                         String ticketName = nbt.getValue(BCTicket.KEY_TICKET_DISPLAY_NAME, String.class, null);
                         if ((bossbar == null || bossbar.getRouteId() != null) && ticketName != null) {
-                            bossbar = new RouteBossbar(ticketName);
+                            bossbar = new RouteBossbar(ticketName, ticketTags.size());
                             SignActionShowroute.bossbarMapping.put(minecartMember, bossbar);
                         }
                     }

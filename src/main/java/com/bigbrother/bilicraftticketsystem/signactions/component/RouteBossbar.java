@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.Getter;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 
 
 import java.util.ArrayList;
@@ -20,7 +21,10 @@ public class RouteBossbar {
     private ArrayList<String> routeList;
     private int nextStationIdx;
     private Args args;
+
+    // 直达车变量
     private String expressEnd;
+    int totalTagNum = 0;
 
     public RouteBossbar(String routeId, Args args) {
         String route = MainConfig.railwayRoutes.get("%s.route".formatted(routeId.trim()), String.class, null);
@@ -39,7 +43,9 @@ public class RouteBossbar {
                 BossBar.Overlay.PROGRESS);
     }
 
-    public RouteBossbar(String ticketDisplayName) {
+    // 直达车bossbar构造方法
+    public RouteBossbar(String ticketDisplayName, int totalTagNum) {
+        this.totalTagNum = totalTagNum + 2;
         String[] split = ticketDisplayName.split(" → ");
         if (split.length != 2) {
             this.bossBar = null;
@@ -47,7 +53,7 @@ public class RouteBossbar {
             return;
         }
         this.expressEnd = split[1];
-        this.bossBar = BossBar.bossBar(Utils.str2Component("&6%s &a====== 直达 ======>> &6%s".formatted(split[0], split[1])), 1.0F, BossBar.Color.PINK, BossBar.Overlay.PROGRESS);
+        this.bossBar = BossBar.bossBar(MiniMessage.miniMessage().deserialize(MainConfig.message.get("express-normal", "").formatted(split[0], split[1])), 0.0F, BossBar.Color.PINK, BossBar.Overlay.PROGRESS);
     }
 
     public void updateStation() {
@@ -94,9 +100,10 @@ public class RouteBossbar {
         }
     }
 
-    public void updateExpress() {
-        if (expressEnd != null) {
-            bossBar.name(Utils.str2Component("&6>>>> 列车已到达终点站： &c%s站 &6，下车时，请您注意站台与列车之间的空隙 <<<<".formatted(expressEnd)));
+    public void updateExpress(int leftTagCount) {
+        bossBar.progress(Math.max(0, 1 - (float) leftTagCount / totalTagNum));
+        if (leftTagCount == 0 && expressEnd != null) {
+            bossBar.name(MiniMessage.miniMessage().deserialize(MainConfig.message.get("express-end", "").formatted(expressEnd)));
         }
     }
 

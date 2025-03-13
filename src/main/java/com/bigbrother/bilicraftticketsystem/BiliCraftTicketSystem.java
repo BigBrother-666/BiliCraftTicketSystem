@@ -35,11 +35,12 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     public static TrainDatabaseManager trainDatabaseManager;
 
     // 控制牌
-    public final CustomSignActionAnnounce signActionAnnounce = new CustomSignActionAnnounce();
-    public final SignActionBCSpawn signActionSpawn = new SignActionBCSpawn();
-    public final CustomSignActionStation signActionStation = new CustomSignActionStation();
+    public final CustomSignActionAnnounce customSignActionAnnounce = new CustomSignActionAnnounce();
+    public final SignActionBCSpawn signActionBCSpawn = new SignActionBCSpawn();
+    public final CustomSignActionStation customSignActionStation = new CustomSignActionStation();
     public final SignActionShowroute signActionShowroute = new SignActionShowroute();
     public final CustomSignActionSpawn customSignActionSpawn = new CustomSignActionSpawn();
+    public final CustomSignActionProperties customSignActionProperties = new CustomSignActionProperties();
 
     @Override
     public void onEnable() {
@@ -77,11 +78,12 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         Bukkit.getScheduler().runTaskAsynchronously(this, sender -> loadConfig(Bukkit.getConsoleSender()));
 
         // 注册控制牌
-        SignAction.register(signActionAnnounce, true);
-        SignAction.register(signActionSpawn);
-        SignAction.register(signActionStation, true);
+        SignAction.register(customSignActionAnnounce, true);
+        SignAction.register(signActionBCSpawn);
+        SignAction.register(customSignActionStation, true);
         SignAction.register(signActionShowroute);
         SignAction.register(customSignActionSpawn, true);
+        SignAction.register(customSignActionProperties, true);
     }
 
     /**
@@ -155,10 +157,11 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     @Override
     public void onDisable() {
         // Plugin shutdown logic
-        SignAction.unregister(signActionAnnounce);
-        SignAction.unregister(signActionSpawn);
-        SignAction.unregister(signActionStation);
+        SignAction.unregister(customSignActionAnnounce);
+        SignAction.unregister(signActionBCSpawn);
+        SignAction.unregister(customSignActionStation);
         SignAction.unregister(signActionShowroute);
         SignAction.unregister(customSignActionSpawn);
+        SignAction.unregister(customSignActionProperties);
     }
 }

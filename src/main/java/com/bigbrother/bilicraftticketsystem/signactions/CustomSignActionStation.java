@@ -24,7 +24,7 @@ public class CustomSignActionStation extends SignActionStation {
                 } else if (bossbar != null) {
                     if (!minecartMember.getProperties().hasTags()) {
                         // 无tag 直达车到终点
-                        bossbar.updateExpress();
+                        bossbar.updateExpress(0);
                     }
                 }
             }
