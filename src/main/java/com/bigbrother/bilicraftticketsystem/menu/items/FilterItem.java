@@ -8,6 +8,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import xyz.xenondevs.inventoryaccess.component.AdventureComponentWrapper;
 import xyz.xenondevs.invui.item.Item;
@@ -15,23 +16,29 @@ import xyz.xenondevs.invui.item.ItemProvider;
 import xyz.xenondevs.invui.item.builder.ItemBuilder;
 import xyz.xenondevs.invui.item.impl.AbstractItem;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
 public class FilterItem extends AbstractItem {
     @Override
     public ItemProvider getItemProvider(Player player) {
-        ItemBuilder itemBuilder = new ItemBuilder(Utils.loadItemFromFile("filter"));
+        ItemStack itemStack = Utils.loadItemFromFile("filter");
         List<Item> tickets = MenuMain.getMenu(player).getMenuTicketList();
+        List<Component> lore = itemStack.lore();
+        if (lore == null) {
+            lore = new ArrayList<>();
+        }
         if (tickets == null || tickets.isEmpty()) {
             // 添加 “当前不可用”
-            itemBuilder.addLoreLines(new AdventureComponentWrapper(Component.text("筛选不可用，请先搜索车票", NamedTextColor.RED)));
+            lore.add(Component.text("筛选不可用，请先搜索车票", NamedTextColor.RED));
         } else {
             MenuFilter menuFilter = MenuFilter.getMenu(player);
-            itemBuilder.addLoreLines(new AdventureComponentWrapper(Component.text("已选择的途径车站：", NamedTextColor.GOLD)));
-            itemBuilder.addLoreLines(new AdventureComponentWrapper(getFormattedComponent(menuFilter)));
+            lore.add(Component.text("已选择的途经车站：", NamedTextColor.GOLD));
+            lore.add(getFormattedComponent(menuFilter));
         }
-        return itemBuilder;
+        itemStack.lore(lore);
+        return new ItemBuilder(itemStack);
     }
 
     public static @NotNull Component getFormattedComponent(MenuFilter menuFilter) {
