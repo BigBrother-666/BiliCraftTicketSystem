@@ -56,9 +56,6 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         saveResource(EnumConfig.MENU_ITEMS.getFileName(), /* replace */ false);
         saveResource(EnumConfig.ROUTE_MMD.getFileName(), /* replace */ false);
 
-        // 加载数据库
-        trainDatabaseManager = new TrainDatabaseManager(plugin);
-
         // 注册指令
         new BCTicketSystemCommand(this);
 
