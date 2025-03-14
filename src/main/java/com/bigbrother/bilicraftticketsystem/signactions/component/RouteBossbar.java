@@ -45,7 +45,7 @@ public class RouteBossbar {
 
     // 直达车bossbar构造方法
     public RouteBossbar(String ticketDisplayName, int totalTagNum) {
-        this.totalTagNum = totalTagNum + 2;
+        this.totalTagNum = totalTagNum + 1;
         String[] split = ticketDisplayName.split(" → ");
         if (split.length != 2) {
             this.bossBar = null;
