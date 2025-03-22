@@ -1,21 +1,24 @@
 # BiliCraft车票系统
 
 ## 1. 简介
+
 在TrainCarts车票系统的基础上开发的适用于BiliCraft国铁模式的车票系统。玩家可以持票/不持票上车，持票上车会根据车票的tag直达终点站，不持票上车则每站都会停车（站站乐）。
 
-
 ## 2. 站台判断
+
 在使用车票前会判断乘客是否在正确的站台。要使用此特性，需要在每个车站为列车赋予一个特殊的tag，格式为：`本站tag-方向`，`本站tag`和`方向`和`routes.mmd`中的相同。
 
-
 ## 3. 路径查找
+
 `routes.txt`使用Mermaid抽象车站之间的关系为有向图，每行的格式为`车站名-铁路名-方向-本站tag-->|距离|下一站的车站名-铁路名-方向-本站tag`，最终构成一个完整的有向图。
 
-
 ## 4. 指令
+
 | 指令/功能                                       | 权限                       | 说明                                                                                               |
 |---------------------------------------------|--------------------------|--------------------------------------------------------------------------------------------------|
 | ticket                                      | bcts.ticket.open         | 打开车票购买界面                                                                                         |
+| ticket uploadbg \<url>                      | bcts.ticket.uploadbg     | 上传背景图片权限                                                                                         |
+| ticket deletebg                             | bcts.ticket.deletebg     | 删除背景图片权限                                                                                         |
 | ticket reload                               | bcts.ticket.reload       | 重载所有配置文件                                                                                         |
 | ticket item \<add/get> <自定义物品名>             | bcts.ticket.menuitem     | 将手中的物品保存到配置文件（menuitems.yml）或获取自定义物品，以便编辑菜单界面使用。使用时，在mapping列表填写item-自定义物品名，所有功能按钮的物品名已经预定义，详见下表 |
 | ticket nbt \<key> \[value]                  | bcts.ticket.nbt          | 查看/设置车票的nbt，已经定义的nbt信息如下表所示                                                                      |
@@ -24,8 +27,8 @@
 | 建立bcspawn控制牌                                | bcts.buildsign.bcspawn   |                                                                                                  |
 | 建立showroute控制牌                              | bcts.buildsign.showroute |                                                                                                  |
 
-
 ## 5. 自定义菜单界面（menu_*.yml）
+
 使用[InvUI](https://github.com/NichtStudioCode/InvUI)开发，可以自定义界面功能按钮的位置、材质、lore等信息。除了原版材质，还能使用材质包物品（oraxen）、头颅等，使用方法详见下文指令部分。
 
 | 配置项                        | 说明                                                                 |
@@ -35,8 +38,8 @@
 | mapping                    | 界面结构的物品映射，格式：`字符 物品名`，物品名可使用bukkit物品枚举名或item-自定义物品名                |
 | content（menu_location.yml） | 车站物品列表，键可以随意定义（一般是车站名），name为车站名，material可使用bukkit物品枚举名或item-自定义物品名 |
 
-
 ## 6. 可使用/预定义的界面结构映射物品名
+
 | 界面            | 物品名                       | 功能        |
 |---------------|---------------------------|-----------|
 | 主界面           | content                   | 显示车票的格子   |
@@ -59,6 +62,7 @@
 此外，自定义物品`selected`被预定义为筛选界面车站选择后显示的物品。
 
 ## 7. 车票nbt定义
+
 | nbt                   | 说明                                        |
 |-----------------------|-------------------------------------------|
 | ticketName            | 车票名，应为traincarts ticket.yml中存在的车票名        |
@@ -81,18 +85,20 @@
 ## 8. 控制牌新增/更改
 
 ### 8.1 announce
+
 新增支持换行符`\n`。
 
-
 ### 8.2 bcspawn
+
 在spawn控制牌的基础上修改，第四行改为列车生成后赋予的tag（相当于spawn+addtag），一般第四行指定用于站台判断的tag，并且会将发车信息保存到数据库。
 
-
 ### 8.3 showroute
+
 在boss栏显示路线信息，并会根据经过的车站数量自动更新bossbar进度（环线进度一直是100%，指定的route的第一站和最后一站相同会被识别为环线），该控制牌需要放在进站报站和station控制牌之间。
 
 需要注意的是，双线铁路的两个方向都需要配置，任意两条路线的id不能相同。
 控制牌格式如下：
+
 - 第一行：[+train]  (也可以指定方向等，和其他控制牌第一行使用方法相同)
 - 第二行：showroute
 - 第三行：<路线id> <本站名>   (本站名要和配置文件中的车站名相同)
@@ -104,14 +110,14 @@
 
 控制牌的参数优先级大于配置文件。
 
-
 ### 8.4 station
+
 更改了列车进入和离开station时的逻辑，用来配合showroute控制牌。不使用showroute时，表现同原版TC。
 
-
 ### 8.5 spawn
+
 重写build方法，生成模型车不再检查attachment editor权限。
 
-
 ### 8.6 property-remtag
+
 列车进入remtag property控制牌时，根据剩余tag数量更新bossbar进度。
