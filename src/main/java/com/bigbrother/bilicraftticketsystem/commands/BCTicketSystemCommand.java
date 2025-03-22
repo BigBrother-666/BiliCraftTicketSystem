@@ -3,6 +3,7 @@ package com.bigbrother.bilicraftticketsystem.commands;
 import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.Utils;
@@ -11,6 +12,7 @@ import net.coreprotect.CoreProtect;
 import net.coreprotect.CoreProtectAPI;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -22,11 +24,18 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
+import javax.imageio.ImageIO;
 import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.trainDatabaseManager;
 import static com.bigbrother.bilicraftticketsystem.ticket.BCTicket.KEY_TICKET_OWNER_NAME;
@@ -34,6 +43,7 @@ import static com.bigbrother.bilicraftticketsystem.ticket.BCTicket.KEY_TICKET_OW
 
 public class BCTicketSystemCommand implements CommandExecutor {
     private final BiliCraftTicketSystem plugin;
+    private final HashMap<UUID, Long> uploadCooldowns = new HashMap<>();
 
     public BCTicketSystemCommand(final @NotNull BiliCraftTicketSystem plugin) {
         this.plugin = plugin;
@@ -64,6 +74,8 @@ public class BCTicketSystemCommand implements CommandExecutor {
             MenuMain.getMenu(player).open();
         } else {
             switch (args[0]) {
+                case "uploadbg" -> subCommandUploadbg(player, args);
+                case "deletebg" -> subCommandDeletebg(player);
                 case "menuitem" -> subCommandMenuitem(player, args);
                 case "nbt" -> subCommandNbt(player, args);
                 case "font" -> subCommandFont(player);
@@ -72,6 +84,170 @@ public class BCTicketSystemCommand implements CommandExecutor {
             }
         }
         return true;
+    }
+
+    private void subCommandDeletebg(Player player) {
+        if (!player.hasPermission("bcts.ticket.deletebg")) {
+            player.sendMessage(Component.text("你没有权限使用这条命令喵~", NamedTextColor.RED));
+            return;
+        }
+        File ticketbg = Utils.getTicketbg(player.getUniqueId().toString());
+        if (ticketbg == null || !ticketbg.delete()) {
+            player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <yellow>无法删除，车票背景图不存在"));
+        } else {
+            player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <green>车票背景图删除成功"));
+        }
+    }
+
+    private void subCommandUploadbg(Player player, String[] args) {
+        if (!player.hasPermission("bcts.ticket.uploadbg")) {
+            player.sendMessage(Component.text("你没有权限使用这条命令喵~", NamedTextColor.RED));
+            return;
+        }
+
+        // 指令冷却时间20s
+        long lastUsedTime = uploadCooldowns.getOrDefault(player.getUniqueId(), 0L);
+        long currentTime = System.currentTimeMillis();
+        long timeLeft = (lastUsedTime + 1000 * 20) - currentTime;
+        if (timeLeft > 0) {
+            double secondsLeft = timeLeft / 1000.0;
+            player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>上传过于频繁，请过 %.1f 秒后再使用此命令！".formatted(secondsLeft)));
+            return;
+        }
+        uploadCooldowns.put(player.getUniqueId(), currentTime);
+
+        if (args.length > 1) {
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                String imageUrl = args[1];
+                File folder = TrainCarts.plugin.getDataFile("images");
+                if (!folder.exists()) {
+                    if (!folder.mkdirs()) {
+                        player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>设置车票背景图失败：创建文件夹失败"));
+                        return;
+                    }
+                }
+
+                player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <aqua>上传图片中..."));
+                try {
+                    if (downloadAndSaveImage(imageUrl, folder + File.separator + player.getUniqueId(), player)) {
+                        player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <green>车票背景图设置成功！"));
+                    }
+                } catch (Exception e) {
+                    player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>设置车票背景图时发生错误：" + e.getMessage()));
+                }
+            });
+        } else {
+            player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>指令格式错误，正确格式：/ticket uploadbg <图片直链>"));
+        }
+    }
+
+    public boolean downloadAndSaveImage(String imageUrl, String savePath, Player player) {
+        try {
+            // 获取图片大小
+            long contentLength = getImageSize(imageUrl, player);
+            if (contentLength == -1) {
+                player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red> 无法获取图片大小！"));
+                return false;
+            }
+
+            // 检查图片大小（<= 70 KB）
+            if (contentLength > 70 * 1024) {
+                player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>图片大小不能超过 70 KB，当前大小：" + (contentLength / 1024) + " KB"));
+                return false;
+            }
+
+            // 接收文件
+            byte[] imageBytes = getImageBytes(imageUrl);
+
+            // 检查文件后缀
+            String lowerUrl = imageUrl.toLowerCase();
+            if (lowerUrl.endsWith(".jpg") || lowerUrl.endsWith(".jpeg")) {
+                savePath += ".jpg";
+            } else if (lowerUrl.endsWith(".png")) {
+                savePath += ".png";
+            } else {
+                player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>图片文件后缀不合法，必须为 jpg、jpeg 或 png！"));
+                return false;
+            }
+
+            // 检查文件头
+            if (!(isPng(imageBytes) || isJpeg(imageBytes))) {
+                player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>图片文件头验证失败！"));
+                return false;
+            }
+
+            // 检查尺寸
+            BufferedImage image = ImageIO.read(new ByteArrayInputStream(imageBytes));
+            if (image == null || image.getWidth() != 128 || image.getHeight() != 128) {
+                player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>图片尺寸不是 128x128！"));
+                return false;
+            }
+
+            // 删除旧文件
+            File ticketbg = Utils.getTicketbg(player.getUniqueId().toString());
+            if (ticketbg != null) {
+                if (ticketbg.delete()) {
+                    player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <aqua>覆盖旧背景图..."));
+                }
+            }
+
+            // 保存图片
+            Files.write(Paths.get(savePath), imageBytes);
+            return true;
+
+        } catch (IOException e) {
+            player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>下载或处理图片时发生错误: " + e.getMessage()));
+            return false;
+        }
+    }
+
+    public long getImageSize(String imageUrl, Player player) throws IOException {
+        URL url = new URL(imageUrl);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("HEAD");
+        conn.setConnectTimeout(5000);
+        conn.setReadTimeout(5000);
+
+        int responseCode = conn.getResponseCode();
+        if (responseCode != 200) {
+            player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>无法获取图片信息，状态码: " + responseCode));
+            return -1;
+        }
+
+        return conn.getContentLengthLong();
+    }
+
+    private byte[] getImageBytes(String imageUrl) throws IOException {
+        HttpURLConnection conn = (HttpURLConnection) new URL(imageUrl).openConnection();
+        conn.setRequestMethod("GET");
+        conn.setConnectTimeout(5000);
+        conn.setReadTimeout(5000);
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        try (InputStream inputStream = conn.getInputStream()) {
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+        }
+        return outputStream.toByteArray();
+    }
+
+    // 检查 PNG 文件头
+    private boolean isPng(byte[] imageBytes) {
+        byte[] pngHeader = {(byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A};
+        for (int i = 0; i < 8; i++) {
+            if (imageBytes[i] != pngHeader[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // 检查 JPEG 文件头
+    private boolean isJpeg(byte[] imageBytes) {
+        return imageBytes[0] == (byte) 0xFF && imageBytes[1] == (byte) 0xD8 && imageBytes[2] == (byte) 0xFF;
     }
 
     private CoreProtectAPI getCoreProtectAPI() {

@@ -1,5 +1,6 @@
 package com.bigbrother.bilicraftticketsystem;
 
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -11,8 +12,10 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
+import java.io.File;
 import java.util.Map;
 
+import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
 import static com.bigbrother.bilicraftticketsystem.config.ItemsConfig.itemsConfig;
 
 public class Utils {
@@ -66,5 +69,21 @@ public class Utils {
             return ItemStack.deserialize(itemData);
         }
         return new ItemStack(Material.AIR);
+    }
+
+
+    public static File getTicketbg(String fileName) {
+        File folder = TrainCarts.plugin.getDataFile("images");
+        if (folder.exists() && folder.isDirectory()) {
+            File[] files = folder.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    if (file.getName().startsWith(fileName)) {
+                        return file;
+                    }
+                }
+            }
+        }
+        return null;
     }
 }

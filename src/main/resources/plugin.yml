@@ -16,6 +16,12 @@ permissions:
   bcts.ticket.open:
     description: "使用车票系统权限"
     default: op
+  bcts.ticket.uploadbg:
+    description: "上传车票背景图权限"
+    default: op
+  bcts.ticket.deletebg:
+    description: "删除车票背景图权限"
+    default: op
   bcts.ticket.reload:
     description: "重载配置文件权限"
     default: op
@@ -36,6 +42,9 @@ permissions:
     default: op
   bcts.buildsign.bcspawn:
     description: "放置bcspawn控制牌权限"
+    default: op
+  bcts.buildsign.showroute:
+    description: "放置showroute控制牌权限"
     default: op
 
 libraries:

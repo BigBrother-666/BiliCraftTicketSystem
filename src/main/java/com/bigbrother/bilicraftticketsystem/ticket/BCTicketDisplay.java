@@ -15,6 +15,7 @@ import com.bergerkiller.bukkit.tc.tickets.Ticket;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.TrainRoutes;
+import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
@@ -88,7 +89,13 @@ public class BCTicketDisplay extends MapDisplay {
 
     public void renderBackground() {
         CommonTagCompound ticketNbt = this.getCommonMapItem().getCustomData();
-        MapTexture bg = loadBackgroundImage(ticketNbt.getValue(BCTicket.KEY_TICKET_BACKGROUND_IMAGE_PATH, ""));
+        MapTexture bg;
+        File ticketbg = Utils.getTicketbg(ticketNbt.getUUID(BCTicket.KEY_TICKET_OWNER_UUID).toString());
+        if (ticketbg != null) {
+            bg = loadBackgroundImage(ticketbg.getName());
+        } else {
+            bg = loadBackgroundImage(ticketNbt.getValue(BCTicket.KEY_TICKET_BACKGROUND_IMAGE_PATH, ""));
+        }
         this.getLayer().draw(bg, 0, 0);
     }
 
