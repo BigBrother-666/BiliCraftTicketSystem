@@ -124,7 +124,7 @@ public class TrainRoutes {
             path.add(start);
             if (end.contains(start) && path.size() > 1) {
                 List<StationAndRailway> outPath = new ArrayList<>();   // [车站名, 铁路名+方向]
-                Set<String> tags = new HashSet<>();
+                Set<String> tags = new LinkedHashSet<>();
                 boolean repeat = false;
                 for (int i = 0; i < path.size(); i++) {
                     String[] split = path.get(i).split("-");

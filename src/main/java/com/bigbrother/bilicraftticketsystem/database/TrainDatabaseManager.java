@@ -84,10 +84,7 @@ public class TrainDatabaseManager {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             updatePlayerNameByUuid(uuid, playerName);
             String sql = "INSERT INTO %s (`player_uuid`, `player_name`, `purchase_time`, `start_station`, `end_station`, `max_uses`, `max_speed`, `price`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)".formatted(ticketTableName);
-            String[] station = ticketNbt.getValue(BCTicket.KEY_TICKET_DISPLAY_NAME, "Unknown → Unknown").replace(" ", "").split("→");
-            if (station.length != 2) {
-                return;
-            }
+            String[] station = {ticketNbt.getValue(BCTicket.KEY_TICKET_START_STATION, "Unknown"),ticketNbt.getValue(BCTicket.KEY_TICKET_END_STATION, "Unknown ")};
             try (Connection connection = ds.getConnection()) {
                 PreparedStatement preparedStatement = connection.prepareStatement(sql);
                 preparedStatement.setString(1, uuid);

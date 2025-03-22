@@ -31,7 +31,6 @@ public class BCTicket {
     public static final String KEY_TICKET_OWNER_NAME = "ticketOwnerName";
     public static final String KEY_TICKET_MAX_SPEED = "ticketMaxSpeed";
     public static final String KEY_TICKET_ORIGIN_PRICE = "ticketOriginPrice";
-    public static final String KEY_TICKET_ITEM_NAME = "ticketItemName";
     public static final String KEY_TICKET_TAGS = "ticketTags";
     public static final String KEY_TICKET_START_PLATFORM_TAG = "startPlatformTag";
     public static final String KEY_TICKET_VERSION = "version";
@@ -88,7 +87,7 @@ public class BCTicket {
         totalPrice = getDiscountPrice(owner, option.getUses(), totalPrice);
 
         // 更新物品名
-        itemName = option.getUses() == 1 ? "%s->%s 单次票".formatted(pathInfo.getStart(), pathInfo.getEnd()) : "%s->%s %s次票".formatted(pathInfo.getStart(), pathInfo.getEnd(), option.getUses());
+        itemName = option.getUses() == 1 ? "%s → %s 单次票".formatted(pathInfo.getStart(), pathInfo.getEnd()) : "%s → %s %s次票".formatted(pathInfo.getStart(), pathInfo.getEnd(), option.getUses());
 
         // 更新lore
         ItemMeta itemMeta = ticket.getItemMeta();
@@ -113,7 +112,6 @@ public class BCTicket {
                     tag.putValue(KEY_TICKET_OWNER_NAME, owner.getName());
                     tag.putValue(KEY_TICKET_MAX_SPEED, option.getSpeed());
                     tag.putValue(KEY_TICKET_ORIGIN_PRICE, this.pathInfo.getPrice());
-                    tag.putValue(KEY_TICKET_ITEM_NAME, this.itemName);
                     tag.putValue(KEY_TICKET_TAGS, String.join(",", this.pathInfo.getTags()));
                     tag.putValue(KEY_TICKET_START_PLATFORM_TAG, pathInfo.getStartPlatformTag());
                     tag.putValue(KEY_TICKET_VERSION, MainConfig.expressTicketVersion);
@@ -141,7 +139,6 @@ public class BCTicket {
                     tag.putValue(KEY_TICKET_OWNER_NAME, owner.getName());
                     tag.putValue(KEY_TICKET_MAX_SPEED, customData.getValue(KEY_TICKET_MAX_SPEED, 2));
                     tag.putValue(KEY_TICKET_ORIGIN_PRICE, customData.getValue(KEY_TICKET_ORIGIN_PRICE, 0.0));
-                    tag.putValue(KEY_TICKET_ITEM_NAME, customData.getValue(KEY_TICKET_ITEM_NAME, "Unknown"));
                     tag.putValue(KEY_TICKET_TAGS, customData.getValue(KEY_TICKET_TAGS, ""));
                     tag.putValue(KEY_TICKET_START_PLATFORM_TAG, customData.getValue(KEY_TICKET_START_PLATFORM_TAG, ""));
                     tag.putValue(KEY_TICKET_VERSION, customData.getValue(KEY_TICKET_VERSION, 1));

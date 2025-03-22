@@ -213,85 +213,88 @@ public class TrainListeners implements Listener {
             // 不能上车，显示快速购买信息
             event.setCancelled(true);
             if (trainTicketInfo.containsKey(trainProperties.getTrainName())) {
-
-                // 防止提示出现多次
-                if (trainHintRecord.containsKey(trainProperties.getTrainName())) {
-                    if (!trainHintRecord.get(trainProperties.getTrainName()).add(player.getUniqueId())) {
-                        player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("forbidden-get-on", "")).decoration(TextDecoration.ITALIC, false));
-                        return;
-                    }
-                } else {
-                    trainHintRecord.put(trainProperties.getTrainName(), new HashSet<>());
-                    trainHintRecord.get(trainProperties.getTrainName()).add(player.getUniqueId());
-                }
-
-                CommonItemStack originTicket = trainTicketInfo.get(trainProperties.getTrainName());
-
-                // 没有使用过车票且中途试图上车的，不发送快速购票信息
-                if (!trainTags.containsAll(List.of(originTicket.getCustomData().getValue(BCTicket.KEY_TICKET_TAGS, "").split(",")))) {
-                    player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("forbidden-get-on", "")).decoration(TextDecoration.ITALIC, false));
-                    return;
-                }
-
-                CommonItemStack cloned = BCTicket.deepCopy(player, originTicket);
-                ItemStack trainTicket = cloned.toBukkit();
-                CommonTagCompound ticketNbt = cloned.getCustomData();
-                ItemMeta itemMeta = trainTicket.getItemMeta();
-
-                // 更新车票名
-                String ticketName = ticketNbt.getValue(BCTicket.KEY_TICKET_DISPLAY_NAME, String.class, "Unknown → Unknown") + " 单次票";
-                itemMeta.displayName(Component.text(ticketName, NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false).decoration(TextDecoration.BOLD, true));
-
-                // 更新车票使用次数
-                cloned.updateCustomData(tag -> {
-                    tag.putValue(BCTicket.KEY_TICKET_NUMBER_OF_USES, 0);
-                    tag.putValue(BCTicket.KEY_TICKET_MAX_NUMBER_OF_USES, 1);
-                });
-
-                player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("check-failed", "")).decoration(TextDecoration.ITALIC, false));
-                if (itemMeta.lore() == null) {
-                    return;
-                }
-                for (Component lore : itemMeta.lore()) {
-                    player.sendMessage(lore);
-                }
-                trainTicket.setItemMeta(itemMeta);
-
-                // 单程票价值 < 0 或 没有version 不显示快速购票
-                if (ticketNbt.getValue(BCTicket.KEY_TICKET_ORIGIN_PRICE, -1.0) < 0 || !originTicket.getCustomData().containsKey(BCTicket.KEY_TICKET_VERSION)) {
-                    return;
-                }
-
-                double discountPrice = getDiscountPrice(player, 1, ticketNbt.getValue(BCTicket.KEY_TICKET_ORIGIN_PRICE, -1.0));
-                player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("quick-buy", "").formatted(discountPrice))
-                        .decoration(TextDecoration.ITALIC, false)
-                        .clickEvent(ClickEvent.callback(audience -> {
-                            EconomyResponse r = econ.withdrawPlayer(player, discountPrice);
-
-                            if (r.transactionSuccess()) {
-                                player.sendMessage(MiniMessage.miniMessage().deserialize(
-                                                message.get("buy-success", "您成功花费 %.2f 购买了 %s")
-                                                        .formatted(r.amount, ticketName))
-                                        .decoration(TextDecoration.ITALIC, false));
-                                if (!player.getInventory().addItem(trainTicket).isEmpty()) {
-                                    // 背包满 车票丢到地上
-                                    player.getWorld().dropItemNaturally(player.getLocation(), trainTicket);
-                                }
-                                // 记录log
-                                Bukkit.getConsoleSender().sendMessage(MiniMessage.miniMessage().deserialize(
-                                        "<gold>[帕拉伦国有铁路车票系统] <green>玩家 %s 成功花费 %.2f 购买了 %s"
-                                                .formatted(player.getName(), r.amount, ticketName)));
-                                // 写入数据库
-                                trainDatabaseManager.addTicketInfo(player.getName(), player.getUniqueId().toString(), r.amount, ticketNbt);
-                            } else {
-                                player.sendMessage(MiniMessage.miniMessage().deserialize(
-                                                message.get("buy-failure", "车票购买失败：%s")
-                                                        .formatted(r.errorMessage))
-                                        .decoration(TextDecoration.ITALIC, false));
-                            }
-                        })));
+                showQuickBuy(trainProperties, player, trainTags);
             }
         }
+    }
+
+    private static void showQuickBuy(TrainProperties trainProperties, Player player, Collection<String> trainTags) {
+        // 防止提示出现多次
+        if (trainHintRecord.containsKey(trainProperties.getTrainName())) {
+            if (!trainHintRecord.get(trainProperties.getTrainName()).add(player.getUniqueId())) {
+                player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("forbidden-get-on", "")).decoration(TextDecoration.ITALIC, false));
+                return;
+            }
+        } else {
+            trainHintRecord.put(trainProperties.getTrainName(), new HashSet<>());
+            trainHintRecord.get(trainProperties.getTrainName()).add(player.getUniqueId());
+        }
+
+        CommonItemStack originTicket = trainTicketInfo.get(trainProperties.getTrainName());
+
+        // 没有使用过车票且中途试图上车的，不发送快速购票信息
+        if (!trainTags.containsAll(List.of(originTicket.getCustomData().getValue(BCTicket.KEY_TICKET_TAGS, "").split(",")))) {
+            player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("forbidden-get-on", "")).decoration(TextDecoration.ITALIC, false));
+            return;
+        }
+
+        CommonItemStack cloned = BCTicket.deepCopy(player, originTicket);
+        ItemStack trainTicket = cloned.toBukkit();
+        CommonTagCompound ticketNbt = cloned.getCustomData();
+        ItemMeta itemMeta = trainTicket.getItemMeta();
+
+        // 更新车票名
+        String ticketName = "%s → %s 单次票".formatted(ticketNbt.getValue(BCTicket.KEY_TICKET_START_STATION, "UnKnown"), ticketNbt.getValue(BCTicket.KEY_TICKET_END_STATION, "UnKnown"));
+        itemMeta.displayName(Component.text(ticketName, NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false).decoration(TextDecoration.BOLD, true));
+
+        // 更新车票使用次数
+        cloned.updateCustomData(tag -> {
+            tag.putValue(BCTicket.KEY_TICKET_NUMBER_OF_USES, 0);
+            tag.putValue(BCTicket.KEY_TICKET_MAX_NUMBER_OF_USES, 1);
+        });
+
+        player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("check-failed", "")).decoration(TextDecoration.ITALIC, false));
+        if (itemMeta.lore() == null) {
+            return;
+        }
+        for (Component lore : itemMeta.lore()) {
+            player.sendMessage(lore);
+        }
+        trainTicket.setItemMeta(itemMeta);
+
+        // 单程票价值 < 0 或 没有version 不显示快速购票
+        if (ticketNbt.getValue(BCTicket.KEY_TICKET_ORIGIN_PRICE, -1.0) < 0 || !originTicket.getCustomData().containsKey(BCTicket.KEY_TICKET_VERSION)) {
+            return;
+        }
+
+        double discountPrice = getDiscountPrice(player, 1, ticketNbt.getValue(BCTicket.KEY_TICKET_ORIGIN_PRICE, -1.0));
+        player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("quick-buy", "").formatted(discountPrice))
+                .decoration(TextDecoration.ITALIC, false)
+                .clickEvent(ClickEvent.callback(audience -> {
+                    EconomyResponse r = econ.withdrawPlayer(player, discountPrice);
+
+                    if (r.transactionSuccess()) {
+                        player.sendMessage(MiniMessage.miniMessage().deserialize(
+                                        message.get("buy-success", "您成功花费 %.2f 购买了 %s")
+                                                .formatted(r.amount, ticketName))
+                                .decoration(TextDecoration.ITALIC, false));
+                        if (!player.getInventory().addItem(trainTicket).isEmpty()) {
+                            // 背包满 车票丢到地上
+                            player.getWorld().dropItemNaturally(player.getLocation(), trainTicket);
+                        }
+                        // 记录log
+                        Bukkit.getConsoleSender().sendMessage(MiniMessage.miniMessage().deserialize(
+                                "<gold>[帕拉伦国有铁路车票系统] <green>玩家 %s 成功花费 %.2f 购买了 %s"
+                                        .formatted(player.getName(), r.amount, ticketName)));
+                        // 写入数据库
+                        trainDatabaseManager.addTicketInfo(player.getName(), player.getUniqueId().toString(), r.amount, ticketNbt);
+                    } else {
+                        player.sendMessage(MiniMessage.miniMessage().deserialize(
+                                        message.get("buy-failure", "车票购买失败：%s")
+                                                .formatted(r.errorMessage))
+                                .decoration(TextDecoration.ITALIC, false));
+                    }
+                })));
     }
 
     @EventHandler(priority = EventPriority.NORMAL)

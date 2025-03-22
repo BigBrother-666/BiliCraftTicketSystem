@@ -55,7 +55,6 @@ public class BCTicketSystemTabCompleter implements TabCompleter {
                                     BCTicket.KEY_TICKET_OWNER_NAME,
                                     BCTicket.KEY_TICKET_MAX_SPEED,
                                     BCTicket.KEY_TICKET_ORIGIN_PRICE,
-                                    BCTicket.KEY_TICKET_ITEM_NAME,
                                     BCTicket.KEY_TICKET_TAGS,
                                     BCTicket.KEY_TICKET_START_PLATFORM_TAG,
                                     BCTicket.KEY_TICKET_VERSION,
