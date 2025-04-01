@@ -1,8 +1,8 @@
-package com.bigbrother.bilicraftticketsystem.menu.items;
+package com.bigbrother.bilicraftticketsystem.menu.items.main;
 
 import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
-import com.bigbrother.bilicraftticketsystem.menu.MenuMain;
+import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicket;
 import lombok.Getter;
 import net.kyori.adventure.text.Component;

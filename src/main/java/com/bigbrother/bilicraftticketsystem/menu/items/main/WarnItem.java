@@ -1,8 +1,8 @@
-package com.bigbrother.bilicraftticketsystem.menu.items;
+package com.bigbrother.bilicraftticketsystem.menu.items.main;
 
 import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
-import com.bigbrother.bilicraftticketsystem.menu.MenuMain;
+import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;

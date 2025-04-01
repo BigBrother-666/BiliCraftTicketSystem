@@ -1,4 +1,4 @@
-package com.bigbrother.bilicraftticketsystem.menu.items;
+package com.bigbrother.bilicraftticketsystem.menu.items.common;
 
 import com.bigbrother.bilicraftticketsystem.Utils;
 import net.kyori.adventure.text.Component;
@@ -11,14 +11,14 @@ import xyz.xenondevs.invui.item.impl.controlitem.PageItem;
 
 import java.util.List;
 
-public class NextpageItem extends PageItem {
-    public NextpageItem() {
-        super(true);
+public class PrevpageItem extends PageItem {
+    public PrevpageItem() {
+        super(false);
     }
 
     @Override
     public ItemProvider getItemProvider(PagedGui<?> gui) {
-        ItemBuilder builder = new ItemBuilder(Utils.loadItemFromFile("nextpage"));
+        ItemBuilder builder = new ItemBuilder(Utils.loadItemFromFile("prevpage"));
         if (gui.getPageAmount() > 0) {
             builder.setLore(List.of(new AdventureComponentWrapper(Component.text("当前页：%s / 总页数：%s".formatted(gui.getCurrentPage() + 1, gui.getPageAmount()), NamedTextColor.GOLD))));
         }

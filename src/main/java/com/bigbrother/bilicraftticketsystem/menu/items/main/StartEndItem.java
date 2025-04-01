@@ -1,8 +1,8 @@
-package com.bigbrother.bilicraftticketsystem.menu.items;
+package com.bigbrother.bilicraftticketsystem.menu.items.main;
 
 import com.bigbrother.bilicraftticketsystem.Utils;
-import com.bigbrother.bilicraftticketsystem.menu.MenuLocation;
-import com.bigbrother.bilicraftticketsystem.menu.MenuMain;
+import com.bigbrother.bilicraftticketsystem.menu.impl.MenuLocation;
+import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;

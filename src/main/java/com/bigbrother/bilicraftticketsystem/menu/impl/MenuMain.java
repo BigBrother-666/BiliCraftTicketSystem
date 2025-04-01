@@ -1,11 +1,16 @@
-package com.bigbrother.bilicraftticketsystem.menu;
+package com.bigbrother.bilicraftticketsystem.menu.impl;
 
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.config.MenuConfig;
-import com.bigbrother.bilicraftticketsystem.menu.items.*;
+import com.bigbrother.bilicraftticketsystem.menu.Menu;
+import com.bigbrother.bilicraftticketsystem.menu.PlayerOption;
+import com.bigbrother.bilicraftticketsystem.menu.items.common.NextpageItem;
+import com.bigbrother.bilicraftticketsystem.menu.items.common.PrevpageItem;
+import com.bigbrother.bilicraftticketsystem.menu.items.main.FilterItem;
+import com.bigbrother.bilicraftticketsystem.menu.items.main.*;
 import lombok.Getter;
 import lombok.Setter;
 import net.kyori.adventure.text.Component;
@@ -103,6 +108,9 @@ public class MenuMain implements Menu {
                     case "filter":
                         filterItem = new FilterItem();
                         guiBuilder.addIngredient(split[0].charAt(0), filterItem);
+                        break;
+                    case "ticketbg":
+                        guiBuilder.addIngredient(split[0].charAt(0), new TicketbgItem());
                         break;
                     default:
                         try {

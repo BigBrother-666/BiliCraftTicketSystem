@@ -1,8 +1,8 @@
-package com.bigbrother.bilicraftticketsystem.menu.items;
+package com.bigbrother.bilicraftticketsystem.menu.items.location;
 
-import com.bigbrother.bilicraftticketsystem.menu.MenuFilter;
-import com.bigbrother.bilicraftticketsystem.menu.MenuLocation;
-import com.bigbrother.bilicraftticketsystem.menu.MenuMain;
+import com.bigbrother.bilicraftticketsystem.menu.impl.MenuFilter;
+import com.bigbrother.bilicraftticketsystem.menu.impl.MenuLocation;
+import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;

@@ -1,14 +1,19 @@
-package com.bigbrother.bilicraftticketsystem.menu;
+package com.bigbrother.bilicraftticketsystem.menu.impl;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
+import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.MenuConfig;
-import com.bigbrother.bilicraftticketsystem.menu.items.LocationItem;
-import com.bigbrother.bilicraftticketsystem.menu.items.ScrollDownItem;
-import com.bigbrother.bilicraftticketsystem.menu.items.ScrollUpItem;
+import com.bigbrother.bilicraftticketsystem.menu.Menu;
+import com.bigbrother.bilicraftticketsystem.menu.PlayerOption;
+import com.bigbrother.bilicraftticketsystem.menu.items.common.ScrollDownItem;
+import com.bigbrother.bilicraftticketsystem.menu.items.common.ScrollUpItem;
+import com.bigbrother.bilicraftticketsystem.menu.items.common.BackToMainItem;
+import com.bigbrother.bilicraftticketsystem.menu.items.filter.FilterLocItem;
+import com.bigbrother.bilicraftticketsystem.menu.items.filter.FilterRefreshItem;
+import com.bigbrother.bilicraftticketsystem.menu.items.main.TicketItem;
 import lombok.Getter;
-import lombok.Setter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -32,27 +37,28 @@ import java.util.*;
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
 import static com.bigbrother.bilicraftticketsystem.Utils.loadItemFromFile;
 
-
-public class MenuLocation implements Menu {
+public class MenuFilter implements Menu {
     @Getter
-    private static final Map<UUID, MenuLocation> locationMenuMapping = new HashMap<>();
+    private static final Map<UUID, MenuFilter> filterMenuMapping = new HashMap<>();
+    @Getter
+    private Set<String> filterStations;
+    @Getter
+    private List<Item> filterLocItems;
 
     private final Window window;
 
-    @Getter
-    @Setter
-    private boolean isStart;
+    private final ScrollGui<@NotNull Item> gui;
 
-    private MenuLocation(Player player, boolean isStart) {
-        this.isStart = isStart;
-
-        FileConfiguration locationConfig = MenuConfig.getLocationMenuConfig();
+    public MenuFilter(Player player) {
+        filterStations = new HashSet<>();
+        filterLocItems = new ArrayList<>();
+        FileConfiguration filterConfig = MenuConfig.getFilterMenuConfig();
 
         ScrollGui.@NotNull Builder<@NotNull Item> guiBuilder = ScrollGui.items()
-                .setStructure(locationConfig.getList("structure", String.class, Collections.emptyList()).toArray(new String[0]));
+                .setStructure(filterConfig.getList("structure", String.class, Collections.emptyList()).toArray(new String[0]));
 
         // 设置映射
-        for (String mapping : locationConfig.getList("mapping", String.class, Collections.emptyList())) {
+        for (String mapping : filterConfig.getList("mapping", String.class, Collections.emptyList())) {
             String[] split = mapping.split(" ");
             if (split.length == 2) {
                 String itemName;
@@ -71,6 +77,12 @@ public class MenuLocation implements Menu {
                     case "scrolldown":
                         guiBuilder.addIngredient(split[0].charAt(0), new ScrollDownItem());
                         break;
+                    case "back":
+                        guiBuilder.addIngredient(split[0].charAt(0), new BackToMainItem());
+                        break;
+                    case "refresh":
+                        guiBuilder.addIngredient(split[0].charAt(0), new FilterRefreshItem());
+                        break;
                     default:
                         try {
                             guiBuilder.addIngredient(split[0].charAt(0), new SimpleItem(new ItemBuilder(Material.valueOf(itemName))));
@@ -81,11 +93,63 @@ public class MenuLocation implements Menu {
             }
         }
 
-        // 添加物品
-        ConfigurationNode contents = locationConfig.getNode("content");
-        for (Map.Entry<String, Object> entry : contents.getValues().entrySet()) {
-            ConfigurationNode item = contents.getNode(entry.getKey());
+        gui = guiBuilder.build();
 
+        this.window = Window.single()
+                .setViewer(player)
+                .setTitle(new AdventureComponentWrapper(Component.text(filterConfig.get("title", String.class, ""))))
+                .setGui(gui)
+                .build();
+
+        filterMenuMapping.put(player.getUniqueId(), this);
+    }
+
+    @Override
+    public void open() {
+        if (window.isOpen()) {
+            close();
+            return;
+        }
+        this.window.open();
+    }
+
+    @Override
+    public void close() {
+        Bukkit.getScheduler().runTask(plugin, window::close);
+    }
+
+    public void setFilterLocItems(Player player) {
+        filterStations = new HashSet<>();
+        filterLocItems = new ArrayList<>();
+
+        // 根据显示的车票添加车站
+        Set<String> stations = new HashSet<>();
+        List<Item> tickets = MenuMain.getMenu(player).getMenuTicketList();
+        if (tickets != null && !tickets.isEmpty()) {
+            for (Item ticket : tickets) {
+                if (ticket instanceof TicketItem ticketItem) {
+                    for (TrainRoutes.StationAndRailway stationAndRailway : ticketItem.getTicket().getPathInfo().getPath()) {
+                        stations.add(stationAndRailway.getStationName());
+                    }
+                }
+            }
+        }
+
+        // 移除起始站 终到站
+        PlayerOption playerOption = MenuMain.getMenu(player).getPlayerOption();
+        stations.remove(playerOption.getStartStationString());
+        stations.remove(playerOption.getEndStationString());
+
+        // 添加物品
+        ConfigurationNode contents = MenuConfig.getLocationMenuConfig().getNode("content");
+        for (Map.Entry<String, Object> entry : contents.getValues().entrySet()) {
+            if (!stations.contains(entry.getKey())) {
+                continue;
+            }
+            ConfigurationNode item = contents.getNode(entry.getKey());
+            if (item == null) {
+                continue;
+            }
             // 设置物品信息
             String material = item.get("material", "");
             ItemStack customItem;
@@ -108,52 +172,25 @@ public class MenuLocation implements Menu {
             customItem.setItemMeta(itemMeta);
 
             // 添加物品
-            guiBuilder.addContent(new LocationItem(customItem));
+            FilterLocItem filterLocItem = new FilterLocItem(customItem);
+            filterLocItems.add(filterLocItem);
         }
 
-        this.window = Window.single()
-                .setViewer(player)
-                .setTitle(new AdventureComponentWrapper(Component.text(locationConfig.get("title", String.class, ""))))
-                .setGui(guiBuilder.build())
-                .build();
-
-        locationMenuMapping.put(player.getUniqueId(), this);
-    }
-
-    @Override
-    public void open() {
-        if (window.isOpen()) {
-            close();
-            return;
-        }
-        this.window.open();
-    }
-
-    @Override
-    public void close() {
-        Bukkit.getScheduler().runTask(plugin, window::close);
+        gui.setContent(filterLocItems);
     }
 
     public static void clearAll() {
-        for (Map.Entry<UUID, MenuLocation> entry : locationMenuMapping.entrySet()) {
+        for (Map.Entry<UUID, MenuFilter> entry : filterMenuMapping.entrySet()) {
             entry.getValue().close();
         }
-        locationMenuMapping.clear();
+        filterMenuMapping.clear();
     }
 
-    public static MenuLocation getMenu(Player player) {
-        return getMenu(player, null);
-    }
-
-    public static MenuLocation getMenu(Player player, Boolean isStart) {
-        if (locationMenuMapping.containsKey(player.getUniqueId())) {
-            MenuLocation menuLocation = locationMenuMapping.get(player.getUniqueId());
-            if (isStart != null) {
-                menuLocation.setStart(isStart);
-            }
-            return menuLocation;
+    public static MenuFilter getMenu(Player player) {
+        if (filterMenuMapping.containsKey(player.getUniqueId())) {
+            return filterMenuMapping.get(player.getUniqueId());
         } else {
-            return new MenuLocation(player, isStart);
+            return new MenuFilter(player);
         }
     }
 }

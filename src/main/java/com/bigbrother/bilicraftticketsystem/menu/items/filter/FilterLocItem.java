@@ -1,7 +1,7 @@
-package com.bigbrother.bilicraftticketsystem.menu.items;
+package com.bigbrother.bilicraftticketsystem.menu.items.filter;
 
 import com.bigbrother.bilicraftticketsystem.Utils;
-import com.bigbrother.bilicraftticketsystem.menu.MenuFilter;
+import com.bigbrother.bilicraftticketsystem.menu.impl.MenuFilter;
 import lombok.Getter;
 import lombok.Setter;
 import net.kyori.adventure.text.Component;

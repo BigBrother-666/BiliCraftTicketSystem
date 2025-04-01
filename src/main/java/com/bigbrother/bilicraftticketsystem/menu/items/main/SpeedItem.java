@@ -1,8 +1,8 @@
-package com.bigbrother.bilicraftticketsystem.menu.items;
+package com.bigbrother.bilicraftticketsystem.menu.items.main;
 
 import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
-import com.bigbrother.bilicraftticketsystem.menu.MenuMain;
+import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -19,17 +19,17 @@ import xyz.xenondevs.invui.item.impl.AbstractItem;
 import java.util.ArrayList;
 import java.util.List;
 
-public class UsesItem extends AbstractItem {
-    private int uses = 1;
+public class SpeedItem extends AbstractItem {
+    private double speed = 4;
 
     @Override
     public ItemProvider getItemProvider() {
-        ItemStack itemStack = Utils.loadItemFromFile("uses");
+        ItemStack itemStack = Utils.loadItemFromFile("speed");
         ItemMeta itemMeta = itemStack.getItemMeta();
         List<Component> lore = new ArrayList<>();
-        lore.add(Component.text("当前选择的使用次数：%d次".formatted(uses), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
-        lore.add(Component.text("左键+1次，右键-1次", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
-        lore.add(Component.text("shift左键+5次", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("当前选择的速度：%.1fkm/h".formatted(speed * 20 * 3.6), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("左键+%.1fkm/h，右键-%.1fkm/h".formatted(MainConfig.speedStep * 20 * 3.6, MainConfig.speedStep * 20 * 3.6), NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("最大%.1fkm/h，最小%.1fkm/h".formatted(MainConfig.maxSpeed * 20 * 3.6, MainConfig.minSpeed * 20 * 3.6), NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
         itemMeta.lore(lore);
         itemStack.setItemMeta(itemMeta);
         return new ItemBuilder(itemStack);
@@ -39,18 +39,15 @@ public class UsesItem extends AbstractItem {
     public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent inventoryClickEvent) {
         MenuMain menu = MenuMain.getMenu(player);
         if (clickType.isLeftClick()) {
-            int targetUses;
-            if (clickType.isShiftClick()) {
-                targetUses = Math.min(MainConfig.maxUses, uses + 5);
-            } else {
-                targetUses = Math.min(MainConfig.maxUses, uses + 1);
-            }
-            uses = targetUses;
-            menu.getPlayerOption().setUses(targetUses);
+            double targetSpeed = speed + MainConfig.speedStep;
+            targetSpeed = Math.min(MainConfig.maxSpeed, targetSpeed);
+            speed = targetSpeed;
+            menu.getPlayerOption().setSpeed(targetSpeed);
         } else if (clickType.isRightClick()) {
-            int targetUses = Math.max(1, uses - 1);
-            uses = targetUses;
-            menu.getPlayerOption().setUses(targetUses);
+            double targetSpeed = speed - MainConfig.speedStep;
+            targetSpeed = Math.max(MainConfig.minSpeed, targetSpeed);
+            speed = targetSpeed;
+            menu.getPlayerOption().setSpeed(targetSpeed);
         }
         notifyWindows();
         menu.updateTicketInfo();
