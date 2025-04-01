@@ -2,7 +2,7 @@ title: <#FF8C00>帕拉伦国有铁路车票系统-车票背景图
 
 structure:
   - "1 2 3 4 5 6 7 8 9"
-  - "# # # # # # # # #"
+  - "@ @ @ @ @ @ @ @ @"
   - ". . . . . . . . ."
   - ". . . . . . . . ."
   - ". . . . . . . . ."
@@ -20,6 +20,7 @@ mapping:
   - "9 item-selfbg"
   - ". item-sharedbg"
   - "# ORANGE_STAINED_GLASS_PANE"
+  - "@ item-bg-border"
   - "p item-prevpage"
   - "n item-nextpage"
   - "b item-back"

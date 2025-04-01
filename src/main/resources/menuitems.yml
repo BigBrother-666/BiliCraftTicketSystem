@@ -10,8 +10,8 @@ start:
       uniqueId: 04049c90-d3e9-4621-9caf-0000aaa71858
       name: HeadDatabase
       properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOTY4MTNiZDFhZTBjZDhkYTYxOWViNDNmYTI5MTFhMTA3MzJjMTgzNDc1OTkxOGExZjdlMGYyODQ3YmFhMzlmZiJ9fX0=
+        - name: textures
+          value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOTY4MTNiZDFhZTBjZDhkYTYxOWViNDNmYTI5MTFhMTA3MzJjMTgzNDc1OTkxOGExZjdlMGYyODQ3YmFhMzlmZiJ9fX0=
 end:
   v: 3700
   type: PLAYER_HEAD
@@ -24,8 +24,8 @@ end:
       uniqueId: 04049c90-d3e9-4621-9caf-0000aaa64539
       name: HeadDatabase
       properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYWE2OGNjMGM1NzlmNDIzZjUwYzAwZmUyY2QwMjZmOTlkMDJlOWUzMTdmYTdmNTFiNjY4ZGI1MGY4NjFlMzU5In19fQ==
+        - name: textures
+          value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYWE2OGNjMGM1NzlmNDIzZjUwYzAwZmUyY2QwMjZmOTlkMDJlOWUzMTdmYTdmNTFiNjY4ZGI1MGY4NjFlMzU5In19fQ==
 warn:
   v: 3700
   type: PLAYER_HEAD
@@ -34,23 +34,23 @@ warn:
     meta-type: SKULL
     display-name: '{"text":"","extra":[{"text":"车票使用方法&注意事项","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":true}]}'
     lore:
-    - '{"text":"","extra":[{"text":"==========================使用方法==========================","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"white","bold":true}]}'
-    - '{"text":"","extra":[{"text":"前往车票指定的可使用站台发车，主手拿车票上车","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
-    - '{"text":"","extra":[{"text":"现可使用/ticket uploadbg <url>设置车票背景图，使用方法详见wiki","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
-    - '{"text":"","extra":[{"text":"==========================注意事项==========================","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"white","bold":true}]}'
-    - '{"text":"","extra":[{"text":"1.请前往车票指定的站台乘车。","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"yellow","bold":false}]}'
-    - '{"text":"","extra":[{"text":"2.第一名玩家持票上车后，后续上车的玩家，必须持有相同路线的车票才能上车。","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"yellow","bold":false}]}'
-    - '{"text":"","extra":[{"text":"第一名玩家如果没有持票上车，则后续玩家上车不消耗车票，列车每站都会停车。","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"yellow","bold":false}]}'
-    - '{"text":"","extra":[{"text":"3.到达终点站后请及时下车，列车会在再次出站后强制销毁。","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"yellow","bold":false}]}'
-    - '{"text":"","extra":[{"text":"===========================================================","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"white","bold":true}]}'
-    - '{"text":"","extra":[{"text":"点击打开wiki页面查看线路图和详细使用方法。","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
+      - '{"text":"","extra":[{"text":"==========================使用方法==========================","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"white","bold":true}]}'
+      - '{"text":"","extra":[{"text":"前往车票指定的可使用站台发车，主手拿车票上车","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
+      - '{"text":"","extra":[{"text":"现可使用/ticket uploadbg <url>设置车票背景图，使用方法详见wiki","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
+      - '{"text":"","extra":[{"text":"==========================注意事项==========================","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"white","bold":true}]}'
+      - '{"text":"","extra":[{"text":"1.请前往车票指定的站台乘车。","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"yellow","bold":false}]}'
+      - '{"text":"","extra":[{"text":"2.第一名玩家持票上车后，后续上车的玩家，必须持有相同路线的车票才能上车。","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"yellow","bold":false}]}'
+      - '{"text":"","extra":[{"text":"第一名玩家如果没有持票上车，则后续玩家上车不消耗车票，列车每站都会停车。","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"yellow","bold":false}]}'
+      - '{"text":"","extra":[{"text":"3.到达终点站后请及时下车，列车会在再次出站后强制销毁。","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"yellow","bold":false}]}'
+      - '{"text":"","extra":[{"text":"===========================================================","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"white","bold":true}]}'
+      - '{"text":"","extra":[{"text":"点击打开wiki页面查看线路图和详细使用方法。","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
     skull-owner:
       ==: PlayerProfile
       uniqueId: 04049c90-d3e9-4621-9caf-0000aaa39269
       name: HeadDatabase
       properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZGE5MDAzMzliYjk3MWYwMjhhZmU2NzI0YTg1MjE5YmEyMzM5OTE4YmE0OWMxMTlkMmZiODcxZTQ3YWM5OWIzOSJ9fX0=
+        - name: textures
+          value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZGE5MDAzMzliYjk3MWYwMjhhZmU2NzI0YTg1MjE5YmEyMzM5OTE4YmE0OWMxMTlkMmZiODcxZTQ3YWM5OWIzOSJ9fX0=
 search:
   v: 3700
   type: PLAYER_HEAD
@@ -63,8 +63,8 @@ search:
       uniqueId: 04049c90-d3e9-4621-9caf-0000aaa60723
       name: HeadDatabase
       properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMjkxYWM0MzJhYTQwZDdlN2E2ODdhYTg1MDQxZGU2MzY3MTJkNGYwMjI2MzJkZDUzNTZjODgwNTIxYWYyNzIzYSJ9fX0=
+        - name: textures
+          value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMjkxYWM0MzJhYTQwZDdlN2E2ODdhYTg1MDQxZGU2MzY3MTJkNGYwMjI2MzJkZDUzNTZjODgwNTIxYWYyNzIzYSJ9fX0=
 uses:
   v: 3700
   type: PLAYER_HEAD
@@ -77,8 +77,8 @@ uses:
       uniqueId: 04049c90-d3e9-4621-9caf-0000aaa24269
       name: HeadDatabase
       properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOWQ1OGQzODYwZDIyMjEyYjkxNTUwMTFhMGU2OWI1YTkzNjJhMTk1MzJjNmUxMzk5OGI4MTI5M2IxMjJlOWRiYyJ9fX0=
+        - name: textures
+          value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOWQ1OGQzODYwZDIyMjEyYjkxNTUwMTFhMGU2OWI1YTkzNjJhMTk1MzJjNmUxMzk5OGI4MTI5M2IxMjJlOWRiYyJ9fX0=
 speed:
   v: 3700
   type: PLAYER_HEAD
@@ -91,8 +91,8 @@ speed:
       uniqueId: 04049c90-d3e9-4621-9caf-0000aaa84104
       name: HeadDatabase
       properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYTJjMjA1MGVjYTBlZmRkMDMxZTY1OGI5OTZjMjM5YmY3ZGEzYWVmODY1NjEyMzY3ZWQ5ZDg5NWFlN2EwZGE5ZiJ9fX0=
+        - name: textures
+          value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYTJjMjA1MGVjYTBlZmRkMDMxZTY1OGI5OTZjMjM5YmY3ZGEzYWVmODY1NjEyMzY3ZWQ5ZDg5NWFlN2EwZGE5ZiJ9fX0=
 flag-瓦尔德:
   v: 3700
   type: CYAN_BANNER
@@ -100,24 +100,24 @@ flag-瓦尔德:
     ==: ItemMeta
     meta-type: BANNER
     patterns:
-    - ==: Pattern
-      color: YELLOW
-      pattern: vhr
-    - ==: Pattern
-      color: CYAN
-      pattern: tr
-    - ==: Pattern
-      color: CYAN
-      pattern: br
-    - ==: Pattern
-      color: CYAN
-      pattern: sc
-    - ==: Pattern
-      color: YELLOW
-      pattern: ls
-    - ==: Pattern
-      color: CYAN
-      pattern: bo
+      - ==: Pattern
+        color: YELLOW
+        pattern: vhr
+      - ==: Pattern
+        color: CYAN
+        pattern: tr
+      - ==: Pattern
+        color: CYAN
+        pattern: br
+      - ==: Pattern
+        color: CYAN
+        pattern: sc
+      - ==: Pattern
+        color: YELLOW
+        pattern: ls
+      - ==: Pattern
+        color: CYAN
+        pattern: bo
 flag-普拉米尔:
   v: 3700
   type: BLUE_BANNER
@@ -125,15 +125,15 @@ flag-普拉米尔:
     ==: ItemMeta
     meta-type: BANNER
     patterns:
-    - ==: Pattern
-      color: LIME
-      pattern: tl
-    - ==: Pattern
-      color: LIME
-      pattern: br
-    - ==: Pattern
-      color: BLUE
-      pattern: bo
+      - ==: Pattern
+        color: LIME
+        pattern: tl
+      - ==: Pattern
+        color: LIME
+        pattern: br
+      - ==: Pattern
+        color: BLUE
+        pattern: bo
 flag-舒芙蕾:
   v: 3700
   type: RED_BANNER
@@ -141,24 +141,24 @@ flag-舒芙蕾:
     ==: ItemMeta
     meta-type: BANNER
     patterns:
-    - ==: Pattern
-      color: WHITE
-      pattern: ss
-    - ==: Pattern
-      color: RED
-      pattern: ls
-    - ==: Pattern
-      color: RED
-      pattern: rs
-    - ==: Pattern
-      color: WHITE
-      pattern: tl
-    - ==: Pattern
-      color: WHITE
-      pattern: br
-    - ==: Pattern
-      color: RED
-      pattern: bo
+      - ==: Pattern
+        color: WHITE
+        pattern: ss
+      - ==: Pattern
+        color: RED
+        pattern: ls
+      - ==: Pattern
+        color: RED
+        pattern: rs
+      - ==: Pattern
+        color: WHITE
+        pattern: tl
+      - ==: Pattern
+        color: WHITE
+        pattern: br
+      - ==: Pattern
+        color: RED
+        pattern: bo
 flag-蒙布朗:
   v: 3700
   type: WHITE_BANNER
@@ -166,24 +166,24 @@ flag-蒙布朗:
     ==: ItemMeta
     meta-type: BANNER
     patterns:
-    - ==: Pattern
-      color: LIGHT_BLUE
-      pattern: ls
-    - ==: Pattern
-      color: LIGHT_BLUE
-      pattern: rs
-    - ==: Pattern
-      color: LIGHT_BLUE
-      pattern: ms
-    - ==: Pattern
-      color: WHITE
-      pattern: bo
-    - ==: Pattern
-      color: WHITE
-      pattern: tr
-    - ==: Pattern
-      color: WHITE
-      pattern: bl
+      - ==: Pattern
+        color: LIGHT_BLUE
+        pattern: ls
+      - ==: Pattern
+        color: LIGHT_BLUE
+        pattern: rs
+      - ==: Pattern
+        color: LIGHT_BLUE
+        pattern: ms
+      - ==: Pattern
+        color: WHITE
+        pattern: bo
+      - ==: Pattern
+        color: WHITE
+        pattern: tr
+      - ==: Pattern
+        color: WHITE
+        pattern: bl
 flag-慕斯:
   v: 3700
   type: YELLOW_BANNER
@@ -191,21 +191,21 @@ flag-慕斯:
     ==: ItemMeta
     meta-type: BANNER
     patterns:
-    - ==: Pattern
-      color: LIME
-      pattern: bl
-    - ==: Pattern
-      color: LIME
-      pattern: br
-    - ==: Pattern
-      color: YELLOW
-      pattern: cs
-    - ==: Pattern
-      color: LIME
-      pattern: mc
-    - ==: Pattern
-      color: YELLOW
-      pattern: bo
+      - ==: Pattern
+        color: LIME
+        pattern: bl
+      - ==: Pattern
+        color: LIME
+        pattern: br
+      - ==: Pattern
+        color: YELLOW
+        pattern: cs
+      - ==: Pattern
+        color: LIME
+        pattern: mc
+      - ==: Pattern
+        color: YELLOW
+        pattern: bo
 flag-班戟列岛:
   v: 3700
   type: ORANGE_BANNER
@@ -213,24 +213,24 @@ flag-班戟列岛:
     ==: ItemMeta
     meta-type: BANNER
     patterns:
-    - ==: Pattern
-      color: WHITE
-      pattern: flo
-    - ==: Pattern
-      color: LIME
-      pattern: sc
-    - ==: Pattern
-      color: YELLOW
-      pattern: mc
-    - ==: Pattern
-      color: ORANGE
-      pattern: ts
-    - ==: Pattern
-      color: ORANGE
-      pattern: bs
-    - ==: Pattern
-      color: ORANGE
-      pattern: bo
+      - ==: Pattern
+        color: WHITE
+        pattern: flo
+      - ==: Pattern
+        color: LIME
+        pattern: sc
+      - ==: Pattern
+        color: YELLOW
+        pattern: mc
+      - ==: Pattern
+        color: ORANGE
+        pattern: ts
+      - ==: Pattern
+        color: ORANGE
+        pattern: bs
+      - ==: Pattern
+        color: ORANGE
+        pattern: bo
 scrollup:
   v: 3700
   type: PLAYER_HEAD
@@ -243,8 +243,8 @@ scrollup:
       uniqueId: 04049c90-d3e9-4621-9caf-00000aaa8786
       name: HeadDatabase
       properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNmNjYmY5ODgzZGQzNTlmZGYyMzg1YzkwYTQ1OWQ3Mzc3NjUzODJlYzQxMTdiMDQ4OTVhYzRkYzRiNjBmYyJ9fX0=
+        - name: textures
+          value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNmNjYmY5ODgzZGQzNTlmZGYyMzg1YzkwYTQ1OWQ3Mzc3NjUzODJlYzQxMTdiMDQ4OTVhYzRkYzRiNjBmYyJ9fX0=
 scrolldown:
   v: 3700
   type: PLAYER_HEAD
@@ -257,8 +257,8 @@ scrolldown:
       uniqueId: 04049c90-d3e9-4621-9caf-00000aaa8793
       name: HeadDatabase
       properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNzI0MzE5MTFmNDE3OGI0ZDJiNDEzYWE3ZjVjNzhhZTQ0NDdmZTkyNDY5NDNjMzFkZjMxMTYzYzBlMDQzZTBkNiJ9fX0=
+        - name: textures
+          value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNzI0MzE5MTFmNDE3OGI0ZDJiNDEzYWE3ZjVjNzhhZTQ0NDdmZTkyNDY5NDNjMzFkZjMxMTYzYzBlMDQzZTBkNiJ9fX0=
 prevpage:
   v: 3700
   type: PLAYER_HEAD
@@ -271,8 +271,8 @@ prevpage:
       uniqueId: 04049c90-d3e9-4621-9caf-00000aaa8790
       name: HeadDatabase
       properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMzdhZWU5YTc1YmYwZGY3ODk3MTgzMDE1Y2NhMGIyYTdkNzU1YzYzMzg4ZmYwMTc1MmQ1ZjQ0MTlmYzY0NSJ9fX0=
+        - name: textures
+          value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMzdhZWU5YTc1YmYwZGY3ODk3MTgzMDE1Y2NhMGIyYTdkNzU1YzYzMzg4ZmYwMTc1MmQ1ZjQ0MTlmYzY0NSJ9fX0=
 nextpage:
   v: 3700
   type: PLAYER_HEAD
@@ -285,8 +285,8 @@ nextpage:
       uniqueId: 04049c90-d3e9-4621-9caf-00000aaa8787
       name: HeadDatabase
       properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNjgyYWQxYjljYjRkZDIxMjU5YzBkNzVhYTMxNWZmMzg5YzNjZWY3NTJiZTM5NDkzMzgxNjRiYWM4NGE5NmUifX19
+        - name: textures
+          value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNjgyYWQxYjljYjRkZDIxMjU5YzBkNzVhYTMxNWZmMzg5YzNjZWY3NTJiZTM5NDkzMzgxNjRiYWM4NGE5NmUifX19
 refresh:
   v: 3700
   type: PLAYER_HEAD
@@ -299,8 +299,8 @@ refresh:
       uniqueId: 04049c90-d3e9-4621-9caf-0000aaa52587
       name: HeadDatabase
       properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvM2E0ZmFiM2ZkOTdlYjdlY2Y0OGFiNGZkMzI3ZTA5M2U4ODZmNGUyMTdhYWI2OTU4NTMxM2MyN2E1MDM1ODMxYSJ9fX0=
+        - name: textures
+          value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvM2E0ZmFiM2ZkOTdlYjdlY2Y0OGFiNGZkMzI3ZTA5M2U4ODZmNGUyMTdhYWI2OTU4NTMxM2MyN2E1MDM1ODMxYSJ9fX0=
 filter:
   v: 3700
   type: PLAYER_HEAD
@@ -309,15 +309,15 @@ filter:
     meta-type: SKULL
     display-name: '{"text":"","extra":[{"text":"筛选途经车站","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":true}]}'
     lore:
-    - '{"text":"","extra":[{"text":"当车票数量过多时，可以使用该功能筛选经过特定车站的车票","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
-    - '{"text":"","extra":[{"text":"进入筛选界面后，左键添加车站，右键移除车站","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
+      - '{"text":"","extra":[{"text":"当车票数量过多时，可以使用该功能筛选经过特定车站的车票","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
+      - '{"text":"","extra":[{"text":"进入筛选界面后，左键添加车站，右键移除车站","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
     skull-owner:
       ==: PlayerProfile
       uniqueId: 04049c90-d3e9-4621-9caf-0000aaa30877
       name: HeadDatabase
       properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNjhlODRmYTYzMTJlMDViZmY0OGNlZWM3NTBjZTViODUyNjkzOWNlZjYzYjZlZmE3YTUzOWE1YjFkMjVkMDViMCJ9fX0=
+        - name: textures
+          value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNjhlODRmYTYzMTJlMDViZmY0OGNlZWM3NTBjZTViODUyNjkzOWNlZjYzYjZlZmE3YTUzOWE1YjFkMjVkMDViMCJ9fX0=
 back:
   v: 3700
   type: PLAYER_HEAD
@@ -330,8 +330,8 @@ back:
       uniqueId: 04049c90-d3e9-4621-9caf-0000aaa21779
       name: HeadDatabase
       properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMmIwYzE2NDdkYWU1ZDVmNmJjNWRjYTU0OWYxNjUyNTU2YzdmMWJjMDhhZGVlMzdjY2ZjNDA5MGJjMjBlNjQ3ZSJ9fX0=
+        - name: textures
+          value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMmIwYzE2NDdkYWU1ZDVmNmJjNWRjYTU0OWYxNjUyNTU2YzdmMWJjMDhhZGVlMzdjY2ZjNDA5MGJjMjBlNjQ3ZSJ9fX0=
 selected:
   v: 3700
   type: PLAYER_HEAD
@@ -344,8 +344,8 @@ selected:
       uniqueId: 04049c90-d3e9-4621-9caf-0000aaa21797
       name: HeadDatabase
       properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYjVhM2I0OWJlZWMzYWIyM2FlMGI2MGRhYjU2ZTljYzhmYTE2NzY5YTI1ODMwYjVkOGQ2YzQ2Mzc4ZjU0NDMwIn19fQ==
+        - name: textures
+          value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYjVhM2I0OWJlZWMzYWIyM2FlMGI2MGRhYjU2ZTljYzhmYTE2NzY5YTI1ODMwYjVkOGQ2YzQ2Mzc4ZjU0NDMwIn19fQ==
 ticketbg:
   v: 3700
   type: PLAYER_HEAD
@@ -354,15 +354,18 @@ ticketbg:
     meta-type: SKULL
     display-name: '{"text":"","extra":[{"text":"选择车票背景图","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":true}]}'
     lore:
-    - '{"text":"","extra":[{"text":"可使用/ticket uploadbg <url> [自定义物品名] 上传背景图，详见wiki","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
-    - '{"text":"","extra":[{"text":"","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
+      - '{"text":"","extra":[{"text":"点击查看自己上传和所有共享的的车票背景图。","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
+      - '{"text":"","extra":[{"text":"============================================","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"dark_purple","bold":false}]}'
+      - '{"text":"","extra":[{"text":"可使用/ticket uploadbg <图片链接> <自定义背景图名> [车票字体颜色(可选，格式#RRGGBB)] 上传背景图，详细用法见帕拉伦国有铁路wiki。","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
+      - '{"text":"","extra":[{"text":"可以共享自己上传的背景图供其他玩家使用。","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
+      - '{"text":"","extra":[{"text":"也可使用/ticket bg指令直接打开该界面。","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
     skull-owner:
       ==: PlayerProfile
       uniqueId: 04049c90-d3e9-4621-9caf-0000aaa23556
       name: HeadDatabase
       properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvM2MwZTVkNTZiNDNiNmQzOWI0YmViYTc5NTdmYjM5MWVlY2FjMTYxNmMyNDIzMDA2ZWRjZGE0YTk2MjNmYWVlIn19fQ==
+        - name: textures
+          value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvM2MwZTVkNTZiNDNiNmQzOWI0YmViYTc5NTdmYjM5MWVlY2FjMTYxNmMyNDIzMDA2ZWRjZGE0YTk2MjNmYWVlIn19fQ==
 defaultbg:
   v: 3700
   type: PLAYER_HEAD
@@ -375,8 +378,8 @@ defaultbg:
       uniqueId: 04049c90-d3e9-4621-9caf-0000aaa52587
       name: HeadDatabase
       properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvM2E0ZmFiM2ZkOTdlYjdlY2Y0OGFiNGZkMzI3ZTA5M2U4ODZmNGUyMTdhYWI2OTU4NTMxM2MyN2E1MDM1ODMxYSJ9fX0=
+        - name: textures
+          value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvM2E0ZmFiM2ZkOTdlYjdlY2Y0OGFiNGZkMzI3ZTA5M2U4ODZmNGUyMTdhYWI2OTU4NTMxM2MyN2E1MDM1ODMxYSJ9fX0=
 usedbg:
   v: 3700
   type: FILLED_MAP
@@ -396,3 +399,14 @@ sharedbg:
   meta:
     ==: ItemMeta
     meta-type: UNSPECIFIC
+bg-border:
+  v: 3700
+  type: ORANGE_STAINED_GLASS_PANE
+  meta:
+    ==: ItemMeta
+    meta-type: UNSPECIFIC
+    display-name: '{"text":"","extra":[{"text":"","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":true}]}'
+    lore:
+      - '{"text":"","extra":[{"text":"  ↑自己上传的背景图↑","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
+      - '{"text":"","extra":[{"text":"=====================","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"gold","bold":false}]}'
+      - '{"text":"","extra":[{"text":"↓所有玩家共享的背景图↓","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
