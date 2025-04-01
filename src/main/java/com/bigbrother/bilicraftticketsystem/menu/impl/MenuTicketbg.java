@@ -129,11 +129,12 @@ public class MenuTicketbg implements Menu {
             }
 
             // 更新共享的背景
-            gui.setContent(List.of());
+            List<Item> content = new ArrayList<>();
             List<TicketbgInfo> sharedTickets = trainDatabaseManager.getAllSharedTickets();
             for (TicketbgInfo sharedTicket : sharedTickets) {
-                gui.addItems(new SharedbgItem(sharedTicket));
+                content.add(new SharedbgItem(sharedTicket));
             }
+            gui.setContent(content);
         });
     }
 
@@ -164,7 +165,6 @@ public class MenuTicketbg implements Menu {
             entry.getValue().close();
         }
         ticketbgMenuMapping.clear();
-        ticketbgUsageMapping.clear();
     }
 
     public static MenuTicketbg getMenu(Player player) {
