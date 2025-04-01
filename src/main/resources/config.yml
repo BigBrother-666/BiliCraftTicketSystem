@@ -1,15 +1,8 @@
 # 每公里价格
-price-per-km: 0.3
+price-per-km: 0.2
 
 # 跨站车车票名（不需要设置tag，speedLimit）
 express-ticket-name: express
-
-# 跨站车车票背景文件名（位于 plugins/Train_Carts/images）
-express-ticket-bgimage: test.jpg
-
-# 车票的版本，整数，用于和车票nbt中的版本比较，如果不同，则车票自动更新
-# 每次新增车站需要改动
-express-ticket-version: 1
 
 # 普通车的tag
 common-train-tag: common
@@ -25,16 +18,18 @@ uses:
   max: 50
   discount:
     # 次数下限-次数上限-折扣
-    - 5-10-0.8
-    - 11-25-0.7
-    - 26-50-0.6
+    - 5-10-0.7
+    - 11-25-0.6
+    - 26-50-0.5
 
 # 权限组的折扣，和上方的折扣叠加
 perm-discount:
   displayname-全局管理员:
     - 1-50-0.0
   bc-prefix-railways:
-    - 1-50-0.5
+    - 1-50-0.7
+  bc-prefix-roadways:
+    - 1-50-0.7
 
 # 跨站车发车后跳过的控制牌，按照skip控制牌格式（filter ignore skip）
 skip: "announce 0 10"
@@ -42,7 +37,25 @@ skip: "announce 0 10"
 ticket-font: 微软雅黑
 ticket-font-bold: true
 
-# 铁路标志色
+# 提示信息
+message:
+  # 聊天栏
+  buy-success: <gold>[帕拉伦国有铁路车票系统] <green>您成功花费 <bold>%.2f银币</bold> 购买了 <bold>%s</bold>
+  buy-failure: <gold>[帕拉伦国有铁路车票系统] <red>车票购买失败：%s
+  forbidden-get-on: <gold>[帕拉伦国有铁路车票系统] <red>主手车票不正确或列车已经驶离起始站，禁止上车
+  wrong-platform: <gold>[帕拉伦国有铁路车票系统] <red>此车票不能在本站台使用，请核对车票的可使用站台和本站台上的信息是否一致
+  not-support-ticket: <gold>[帕拉伦国有铁路车票系统] <red>不支持该车票
+  owner-conflict: <gold>[帕拉伦国有铁路车票系统] <red>不能使用其他玩家的车票
+  used: <gold>[帕拉伦国有铁路车票系统] <green>成功使用一张（次）%s 车票
+  check-failed: <gold>[帕拉伦国有铁路车票系统] <red>检票失败！主手没有本次列车的车票。本次列车的车票信息：
+  quick-buy: <gold>[帕拉伦国有铁路车票系统] <green><underlined>点击花费 <bold>%.2f银币</bold> 快速购买一张此列车的单程票
+  wiki: <gold>[帕拉伦国有铁路车票系统] <green><underlined><click:open_url:https://www.yuque.com/sasanarx/bilicraft/iunb5gkspevng8gf#>点击打开帕拉伦国有铁路wiki页面
+  # 车票系统内
+  filter-empty: 没有 <i><u>%s</i> 直达 <i><u>%s</i> 且途经 <i><u>%s</i> 的车票
+  # 直达车bossbar
+  express-normal: <green>%s <rainbow>======== 直达 ========＞</rainbow> %s</green>
+  express-end: <rainbow>>>>> <gold>列车已到达终点站：<red>%s站</red>，下车时，请您注意站台与列车之间的空隙</gold> <<<<</rainbow>
+
 railway-color:
   环线铁路: "#ff0000"
   芙德铁路: "#80db00"
@@ -50,6 +63,10 @@ railway-color:
   赫蒙铁路: "#0000dd"
   蒙德铁路: "#55ffff"
 
+# 车票的版本，整数，用于和车票nbt中的版本比较，如果不同，则车票自动更新
+# =========================== 每次新增车站需要改动 ===========================
+express-ticket-version: 5
+# ==========================================================================
 
 railway-routes:
   rrcw:
@@ -99,11 +116,11 @@ railway-routes:
     args: 'RED 7o b 4 6'
   mdu:
     curr-station-title: '&6>>>> 列车已到达 &b{station}站 &6，下车时，请您注意站台与列车之间的空隙。购票请使用/ticket指令。<<<<'
-    route: 冬泉谷->诺亚->转入环线铁路外环方向
+    route: 银光平原->冬泉谷->诺亚->转入环线铁路外环方向
     args: 'RED 7o b 4 6'
   mdd:
     curr-station-title: '&6>>>> 列车已到达 &b{station}站 &6，下车时，请您注意站台与列车之间的空隙。购票请使用/ticket指令。<<<<'
-    route: 诺亚->冬泉谷
+    route: 诺亚->冬泉谷->银光平原
     args: 'RED 7o b 4 6'
 
   # =======================================================================
@@ -116,23 +133,3 @@ railway-routes:
     curr-station-title: '&e>>>> 列车已到达  &f{station}站 &e ,下车时，请您注意站台和列车间的空隙，小心踏空。 <<<<'
     route: 德芙->摸鱼小镇->丰饶台地空港->魔女集会->摸鱼山->春风平原星门->森海市->麦麦橙汁冰镇->冰克洛->月港->龙颚岛
     args: 'YELLOW 7o a 4 6'
-
-
-# 提示信息
-message:
-  # 聊天栏
-  buy-success: <gold>[帕拉伦国有铁路车票系统] <green>您成功花费 <bold>%.2f银币</bold> 购买了 <bold>%s</bold>
-  buy-failure: <gold>[帕拉伦国有铁路车票系统] <red>车票购买失败：%s
-  forbidden-get-on: <gold>[帕拉伦国有铁路车票系统] <red>主手车票不正确或列车已经驶离起始站，禁止上车
-  wrong-platform: <gold>[帕拉伦国有铁路车票系统] <red>此车票不能在本站台使用，请核对车票的可使用站台和本站台上的信息是否一致
-  not-support-ticket: <gold>[帕拉伦国有铁路车票系统] <red>不支持该车票
-  owner-conflict: <gold>[帕拉伦国有铁路车票系统] <red>不能使用其他玩家的车票
-  used: <gold>[帕拉伦国有铁路车票系统] <green>成功使用一张（次）%s 车票
-  check-failed: <gold>[帕拉伦国有铁路车票系统] <red>检票失败！主手没有这趟列车的车票。本次列车的车票信息：
-  quick-buy: <gold>[帕拉伦国有铁路车票系统] <green><underlined>点击花费 <bold>%.2f银币</bold> 快速购买一张此列车的单程票
-  wiki: <gold>[帕拉伦国有铁路车票系统] <green><underlined><click:open_url:https://www.yuque.com/sasanarx/bilicraft/iunb5gkspevng8gf#>点击打开帕拉伦国有铁路wiki页面
-  # 车票系统内
-  filter-empty: 没有 <i><u>%s</i> 直达 <i><u>%s</i> 且途经 <i><u>%s</i> 的车票
-  # 直达车bossbar
-  express-normal: <green>%s <rainbow>======== 直达 ========＞</rainbow> %s</green>
-  express-end: <rainbow>>>>> <gold>列车已到达终点站：<red>%s站</red>，下车时，请您注意站台与列车之间的空隙</gold> <<<<</rainbow>

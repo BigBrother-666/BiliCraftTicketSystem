@@ -19,8 +19,11 @@ permissions:
   bcts.ticket.uploadbg:
     description: "上传车票背景图权限"
     default: op
+  bcts.ticket.adminuploadbg:
+    description: "放置showroute控制牌权限"
+    default: op
   bcts.ticket.deletebg:
-    description: "删除车票背景图权限"
+    description: "删除任意车票背景图权限"
     default: op
   bcts.ticket.reload:
     description: "重载配置文件权限"

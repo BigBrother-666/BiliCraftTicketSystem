@@ -36,6 +36,7 @@ warn:
     lore:
     - '{"text":"","extra":[{"text":"==========================使用方法==========================","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"white","bold":true}]}'
     - '{"text":"","extra":[{"text":"前往车票指定的可使用站台发车，主手拿车票上车","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
+    - '{"text":"","extra":[{"text":"现可使用/ticket uploadbg <url>设置车票背景图，使用方法详见wiki","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
     - '{"text":"","extra":[{"text":"==========================注意事项==========================","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"white","bold":true}]}'
     - '{"text":"","extra":[{"text":"1.请前往车票指定的站台乘车。","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"yellow","bold":false}]}'
     - '{"text":"","extra":[{"text":"2.第一名玩家持票上车后，后续上车的玩家，必须持有相同路线的车票才能上车。","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"yellow","bold":false}]}'
@@ -236,7 +237,7 @@ scrollup:
   meta:
     ==: ItemMeta
     meta-type: SKULL
-    display-name: '{"text":"","extra":[{"text":"向上滚动","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":true}]}'
+    display-name: '{"text":"","extra":[{"text":"向上滚动","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"gold","bold":true}]}'
     skull-owner:
       ==: PlayerProfile
       uniqueId: 04049c90-d3e9-4621-9caf-00000aaa8786
@@ -250,7 +251,7 @@ scrolldown:
   meta:
     ==: ItemMeta
     meta-type: SKULL
-    display-name: '{"text":"","extra":[{"text":"向下滚动","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":true}]}'
+    display-name: '{"text":"","extra":[{"text":"向下滚动","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"gold","bold":true}]}'
     skull-owner:
       ==: PlayerProfile
       uniqueId: 04049c90-d3e9-4621-9caf-00000aaa8793
@@ -264,7 +265,7 @@ prevpage:
   meta:
     ==: ItemMeta
     meta-type: SKULL
-    display-name: '{"text":"","extra":[{"text":"上一页","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":true}]}'
+    display-name: '{"text":"","extra":[{"text":"上一页","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"gold","bold":true}]}'
     skull-owner:
       ==: PlayerProfile
       uniqueId: 04049c90-d3e9-4621-9caf-00000aaa8790
@@ -278,7 +279,7 @@ nextpage:
   meta:
     ==: ItemMeta
     meta-type: SKULL
-    display-name: '{"text":"","extra":[{"text":"下一页","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":true}]}'
+    display-name: '{"text":"","extra":[{"text":"下一页","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"gold","bold":true}]}'
     skull-owner:
       ==: PlayerProfile
       uniqueId: 04049c90-d3e9-4621-9caf-00000aaa8787
@@ -323,7 +324,7 @@ back:
   meta:
     ==: ItemMeta
     meta-type: SKULL
-    display-name: '{"text":"","extra":[{"text":"应用筛选并返回主界面","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":true}]}'
+    display-name: '{"text":"","extra":[{"text":"返回主界面","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":true}]}'
     skull-owner:
       ==: PlayerProfile
       uniqueId: 04049c90-d3e9-4621-9caf-0000aaa21779
@@ -345,5 +346,53 @@ selected:
       properties:
       - name: textures
         value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYjVhM2I0OWJlZWMzYWIyM2FlMGI2MGRhYjU2ZTljYzhmYTE2NzY5YTI1ODMwYjVkOGQ2YzQ2Mzc4ZjU0NDMwIn19fQ==
-
-
+ticketbg:
+  v: 3700
+  type: PLAYER_HEAD
+  meta:
+    ==: ItemMeta
+    meta-type: SKULL
+    display-name: '{"text":"","extra":[{"text":"选择车票背景图","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":true}]}'
+    lore:
+    - '{"text":"","extra":[{"text":"可使用/ticket uploadbg <url> [自定义物品名] 上传背景图，详见wiki","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
+    - '{"text":"","extra":[{"text":"","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
+    skull-owner:
+      ==: PlayerProfile
+      uniqueId: 04049c90-d3e9-4621-9caf-0000aaa23556
+      name: HeadDatabase
+      properties:
+      - name: textures
+        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvM2MwZTVkNTZiNDNiNmQzOWI0YmViYTc5NTdmYjM5MWVlY2FjMTYxNmMyNDIzMDA2ZWRjZGE0YTk2MjNmYWVlIn19fQ==
+defaultbg:
+  v: 3700
+  type: PLAYER_HEAD
+  meta:
+    ==: ItemMeta
+    meta-type: SKULL
+    display-name: '{"text":"","extra":[{"text":"点击恢复为默认背景图","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":true}]}'
+    skull-owner:
+      ==: PlayerProfile
+      uniqueId: 04049c90-d3e9-4621-9caf-0000aaa52587
+      name: HeadDatabase
+      properties:
+      - name: textures
+        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvM2E0ZmFiM2ZkOTdlYjdlY2Y0OGFiNGZkMzI3ZTA5M2U4ODZmNGUyMTdhYWI2OTU4NTMxM2MyN2E1MDM1ODMxYSJ9fX0=
+usedbg:
+  v: 3700
+  type: FILLED_MAP
+  meta:
+    ==: ItemMeta
+    meta-type: MAP
+    map-id: 0
+selfbg:
+  v: 3700
+  type: MAP
+  meta:
+    ==: ItemMeta
+    meta-type: UNSPECIFIC
+sharedbg:
+  v: 3700
+  type: MAP
+  meta:
+    ==: ItemMeta
+    meta-type: UNSPECIFIC

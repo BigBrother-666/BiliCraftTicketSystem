@@ -114,6 +114,9 @@ content:
   "新特拉姆站":
     name: <aqua>新特拉姆站
     material: item-flag-瓦尔德
+  "银光平原站":
+    name: <aqua>银光平原站
+    material: item-flag-瓦尔德
 
   # -------------------- 蒙布朗 --------------------
   "冰晶湖站":
