@@ -7,14 +7,13 @@ import org.jetbrains.annotations.NotNull;
 
 public class MenuConfig {
     @Getter
-    @NotNull
     private static FileConfiguration filterMenuConfig;
     @Getter
-    @NotNull
     private static FileConfiguration locationMenuConfig;
     @Getter
-    @NotNull
     private static FileConfiguration mainMenuConfig;
+    @Getter
+    private static FileConfiguration ticketbgMenuConfig;
 
     public static void loadMenuConfig(BiliCraftTicketSystem plugin) {
         filterMenuConfig = new FileConfiguration(plugin, EnumConfig.MENU_FILTER.getFileName());
@@ -23,5 +22,7 @@ public class MenuConfig {
         locationMenuConfig.load();
         mainMenuConfig = new FileConfiguration(plugin, EnumConfig.MENU_MAIN.getFileName());
         mainMenuConfig.load();
+        ticketbgMenuConfig = new FileConfiguration(plugin, EnumConfig.MENU_TICKETBG.getFileName());
+        ticketbgMenuConfig.load();
     }
 }

@@ -9,9 +9,10 @@ import com.bigbrother.bilicraftticketsystem.config.MenuConfig;
 import com.bigbrother.bilicraftticketsystem.database.TrainDatabaseManager;
 import com.bigbrother.bilicraftticketsystem.listeners.PlayerListeners;
 import com.bigbrother.bilicraftticketsystem.listeners.TrainListeners;
-import com.bigbrother.bilicraftticketsystem.menu.MenuFilter;
-import com.bigbrother.bilicraftticketsystem.menu.MenuLocation;
-import com.bigbrother.bilicraftticketsystem.menu.MenuMain;
+import com.bigbrother.bilicraftticketsystem.menu.impl.MenuFilter;
+import com.bigbrother.bilicraftticketsystem.menu.impl.MenuLocation;
+import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
+import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
 import com.bigbrother.bilicraftticketsystem.signactions.*;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicketDisplay;
 import lombok.extern.slf4j.Slf4j;
@@ -54,6 +55,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         saveResource(EnumConfig.MENU_LOCATION.getFileName(), /* replace */ false);
         saveResource(EnumConfig.MENU_FILTER.getFileName(), /* replace */ false);
         saveResource(EnumConfig.MENU_ITEMS.getFileName(), /* replace */ false);
+        saveResource(EnumConfig.MENU_TICKETBG.getFileName(), /* replace */ false);
         saveResource(EnumConfig.ROUTE_MMD.getFileName(), /* replace */ false);
 
         // 注册指令
@@ -102,6 +104,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
             MenuMain.clearAll();
             MenuLocation.clearAll();
             MenuFilter.clearAll();
+            MenuTicketbg.clearAll();
         } catch (Exception e) {
             if (sender instanceof ConsoleCommandSender) {
                 plugin.getLogger().log(Level.WARNING, "加载配置文件时发生错误：" + e.getMessage());

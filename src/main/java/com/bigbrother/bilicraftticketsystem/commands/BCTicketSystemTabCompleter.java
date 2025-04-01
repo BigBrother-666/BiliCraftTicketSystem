@@ -43,6 +43,9 @@ public class BCTicketSystemTabCompleter implements TabCompleter {
                 if (commandSender.hasPermission("bcts.ticket.uploadbg")) {
                     completerList.add("uploadbg");
                 }
+                if (commandSender.hasPermission("bcts.ticket.adminuploadbg")) {
+                    completerList.add("adminuploadbg");
+                }
                 if (commandSender.hasPermission("bcts.ticket.deletebg")) {
                     completerList.add("deletebg");
                 }

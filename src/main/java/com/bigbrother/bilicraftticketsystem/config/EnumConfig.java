@@ -9,6 +9,7 @@ public enum EnumConfig {
     MENU_MAIN("menu_main.yml"),
     MENU_LOCATION("menu_location.yml"),
     MENU_FILTER("menu_filter.yml"),
+    MENU_TICKETBG("menu_ticketbg.yml"),
     MENU_ITEMS("menuitems.yml");
 
     private final String fileName;

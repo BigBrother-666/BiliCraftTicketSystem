@@ -10,16 +10,21 @@ import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.util.Map;
 
-import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
 import static com.bigbrother.bilicraftticketsystem.config.ItemsConfig.itemsConfig;
 
 public class Utils {
     private static final Cache<String, TextColor> colorCache = CacheBuilder.newBuilder().maximumSize(50).build();
+
+    public static File getPlayerTicketbgFolder(Player player) {
+        return new File(TrainCarts.plugin.getDataFile("images"), player.getUniqueId().toString());
+    }
 
     public static Component str2Component(String s) {
         return LegacyComponentSerializer.legacyAmpersand().deserialize(s);
@@ -72,18 +77,23 @@ public class Utils {
     }
 
 
+    @Nullable
     public static File getTicketbg(String fileName) {
-        File folder = TrainCarts.plugin.getDataFile("images");
-        if (folder.exists() && folder.isDirectory()) {
-            File[] files = folder.listFiles();
-            if (files != null) {
-                for (File file : files) {
-                    if (file.getName().startsWith(fileName)) {
-                        return file;
-                    }
-                }
-            }
+        if (fileName == null) {
+            return null;
+        }
+        File file = new File(TrainCarts.plugin.getDataFile("images"), fileName);
+        if (file.exists()) {
+            return file;
         }
         return null;
+    }
+
+    public static boolean deleteTicketbg(String fileName) {
+        File file = new File(TrainCarts.plugin.getDataFile("images"), fileName);
+        if (file.exists()) {
+            return file.delete();
+        }
+        return false;
     }
 }

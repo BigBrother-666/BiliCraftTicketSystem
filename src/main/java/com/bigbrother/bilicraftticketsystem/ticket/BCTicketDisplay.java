@@ -17,6 +17,8 @@ import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
+import com.bigbrother.bilicraftticketsystem.database.entity.TicketbgInfo;
+import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -28,6 +30,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.trainDatabaseManager;
 
 
 public class BCTicketDisplay extends MapDisplay {
@@ -90,9 +94,10 @@ public class BCTicketDisplay extends MapDisplay {
     public void renderBackground() {
         CommonTagCompound ticketNbt = this.getCommonMapItem().getCustomData();
         MapTexture bg;
-        File ticketbg = Utils.getTicketbg(ticketNbt.getUUID(BCTicket.KEY_TICKET_OWNER_UUID).toString());
-        if (ticketbg != null) {
-            bg = loadBackgroundImage(ticketbg.getName());
+        TicketbgInfo ticketbgInfo = trainDatabaseManager.getCurrTicketbgInfo(ticketNbt.getUUID(BCTicket.KEY_TICKET_OWNER_UUID).toString());
+
+        if (ticketbgInfo != null) {
+            bg = loadBackgroundImage(ticketbgInfo.getFilePath());
         } else {
             bg = loadBackgroundImage(ticketNbt.getValue(BCTicket.KEY_TICKET_BACKGROUND_IMAGE_PATH, ""));
         }
