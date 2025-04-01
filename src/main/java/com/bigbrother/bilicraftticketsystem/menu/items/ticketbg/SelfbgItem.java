@@ -6,6 +6,7 @@ import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
 import lombok.Setter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -56,6 +57,7 @@ public class SelfbgItem extends BgItem {
         lore.add(Component.text("上传玩家：" + ticketbgInfo.getPlayerName(), NamedTextColor.GREEN));
         lore.add(Component.text("上传时间：" + ticketbgInfo.getUploadTime(), NamedTextColor.GREEN));
         lore.add(Component.text("使用人数：" + ticketbgInfo.getUsageCount(), NamedTextColor.GREEN));
+        lore.add(Component.text("字体颜色：", NamedTextColor.GREEN).append(Component.text("■", TextColor.fromHexString(ticketbgInfo.getFontColor()))));
         if (ticketbgInfo.isShared()) {
             lore.add(Component.text("已共享", NamedTextColor.AQUA));
         } else {

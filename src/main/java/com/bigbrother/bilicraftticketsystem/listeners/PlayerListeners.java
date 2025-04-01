@@ -1,18 +1,23 @@
 package com.bigbrother.bilicraftticketsystem.listeners;
 
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
+import com.bigbrother.bilicraftticketsystem.database.entity.TicketbgInfo;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuFilter;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuLocation;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.InventoryView;
 
 import java.util.UUID;
+
+import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.trainDatabaseManager;
 
 public class PlayerListeners implements Listener {
     @EventHandler
@@ -22,6 +27,13 @@ public class PlayerListeners implements Listener {
         MenuLocation.getLocationMenuMapping().remove(uuid);
         MenuFilter.getFilterMenuMapping().remove(uuid);
         MenuTicketbg.getTicketbgMenuMapping().remove(uuid);
+    }
+
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        TicketbgInfo info = trainDatabaseManager.getCurrTicketbgInfo(player.getUniqueId().toString());
+        MenuTicketbg.getTicketbgUsageMapping().put(player.getUniqueId(), info);
     }
 
     @EventHandler(ignoreCancelled = true)

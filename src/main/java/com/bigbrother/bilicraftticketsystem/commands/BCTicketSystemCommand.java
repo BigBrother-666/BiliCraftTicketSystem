@@ -25,7 +25,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
+import javax.imageio.ImageIO;
 import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -81,9 +83,15 @@ public class BCTicketSystemCommand implements CommandExecutor {
                 case "font" -> subCommandFont(player);
                 case "statistics" -> subCommandStatistics(player, args);
                 case "co" -> subCommandCo(player, args);
+                case "bg" -> subCommandBg(player);
             }
         }
         return true;
+    }
+
+    private void subCommandBg(Player player) {
+        // 直接打开背景设置界面
+        MenuTicketbg.getMenu(player).open();
     }
 
     private void subCommandAdminUploadbg(Player player, String[] args) {
@@ -131,7 +139,7 @@ public class BCTicketSystemCommand implements CommandExecutor {
         }
         uploadCooldowns.put(player.getUniqueId(), currentTime);
 
-        if (args.length > 1) {
+        if (args.length > 2) {
             Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
                 String imageUrl = args[1];
                 File folder = Utils.getPlayerTicketbgFolder(player);
@@ -152,18 +160,29 @@ public class BCTicketSystemCommand implements CommandExecutor {
                 try {
                     String filePath = folder + File.separator + System.currentTimeMillis();
                     if (downloadAndSaveImage(imageUrl, filePath, player, args, isAdmin)) {
-                        player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <green>车票背景图上传成功！可使用/ticket指令管理上传的背景图。"));
+                        player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <green>车票背景图上传成功！可使用/ticket bg指令管理上传的背景图。"));
                     }
                 } catch (Exception e) {
                     player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>上传车票背景图时发生错误：" + e.getMessage()));
                 }
             });
         } else {
-            player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>指令格式错误，正确格式：/ticket uploadbg <图片链接> [物品名]"));
+            player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>指令格式错误，正确格式：/ticket uploadbg <图片链接> <自定义背景图名> [车票字体颜色(可选，格式#RRGGBB)]"));
         }
     }
 
     public boolean downloadAndSaveImage(String imageUrl, String savePath, Player player, String[] args, boolean isAdmin) {
+        String fontColor = "#000000";
+        if (args.length > 3) {
+            try {
+                Utils.hexToColor(args[3]);
+                fontColor = args[3];
+            } catch (IllegalArgumentException e) {
+                player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>16进制颜色代码不合法！格式：#RRGGBB"));
+                return false;
+            }
+        }
+
         try {
             // 获取图片大小
             long contentLength = getImageSize(imageUrl, player);
@@ -172,52 +191,37 @@ public class BCTicketSystemCommand implements CommandExecutor {
                 return false;
             }
 
-            // 检查图片大小（<= 200 KB）
-            if (contentLength > 200 * 1024) {
-                player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>图片大小不能超过 200 KB，当前大小：" + (contentLength / 1024) + " KB"));
+            // 检查图片大小（<= 500 KB）
+            if (contentLength > 500 * 1024) {
+                player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>图片大小不能超过 500 KB，当前大小：" + (contentLength / 1024) + " KB"));
                 return false;
             }
 
             // 接收文件
             byte[] imageBytes = getImageBytes(imageUrl);
 
-            // 检查文件后缀
-            String lowerUrl = imageUrl.toLowerCase();
-            if (lowerUrl.endsWith(".jpg") || lowerUrl.endsWith(".jpeg")) {
-                savePath += ".jpg";
-            } else if (lowerUrl.endsWith(".png")) {
-                savePath += ".png";
-            } else {
-                player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>图片文件后缀不合法，必须为 jpg、jpeg 或 png！"));
+            // 转化图片
+            try {
+                imageBytes = convertTo128x128(imageBytes, player);
+                if (imageBytes == null) {
+                    return false;
+                }
+            } catch (Exception e) {
+                player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>图片格式不支持或图片损坏！错误信息：" + e.getMessage()));
                 return false;
             }
-
-            // 检查文件头
-            if (!(isPng(imageBytes) || isJpeg(imageBytes))) {
-                player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>图片文件头验证失败！"));
-                return false;
-            }
-
-            // 检查尺寸
-//            BufferedImage image = ImageIO.read(new ByteArrayInputStream(imageBytes));
-//            if (image == null || image.getWidth() != 128 || image.getHeight() != 128) {
-//                player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>图片尺寸不是 128x128！"));
-//                return false;
-//            }
+            savePath += ".png";
 
             // 保存图片
             Files.write(Paths.get(savePath), imageBytes);
 
             // 数据库记录
-            String itemName = "&6" + player.getName() + " 上传的车票背景图";
-            if (args.length > 2) {
-                itemName = args[2];
-            }
+            String itemName = args[2].trim();
             String dbFilePath = savePath.replace(TrainCarts.plugin.getDataFile("images").toString(), "").substring(1);
             if (isAdmin) {
-                trainDatabaseManager.addTicketbgInfo(player.getName(), null, itemName, dbFilePath);
+                trainDatabaseManager.addTicketbgInfo("[管理员]", null, itemName, dbFilePath, fontColor);
             } else {
-                trainDatabaseManager.addTicketbgInfo(player.getName(), player.getUniqueId().toString(), itemName, dbFilePath);
+                trainDatabaseManager.addTicketbgInfo(player.getName(), player.getUniqueId().toString(), itemName, dbFilePath, fontColor);
             }
             return true;
 
@@ -225,6 +229,69 @@ public class BCTicketSystemCommand implements CommandExecutor {
             player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>上传或处理图片时发生错误: " + e.getMessage()));
             return false;
         }
+    }
+
+    public byte[] convertTo128x128(byte[] imageBytes, Player player) throws IOException {
+        // 读取图片文件
+        BufferedImage originalImage = ImageIO.read(new ByteArrayInputStream(imageBytes));
+        if (originalImage == null) {
+            player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>图片格式不支持或图片损坏！"));
+            return null;
+        }
+
+        // 获取原始图片的宽度和高度
+        int originalWidth = originalImage.getWidth();
+        int originalHeight = originalImage.getHeight();
+
+        // 检查尺寸
+        if (originalWidth < 128 || originalHeight < 128) {
+            player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>图片长或宽小于128像素！"));
+            return null;
+        }
+
+        // 计算缩放比例，缩放到最短边为128像素
+        int targetSize = 128;
+        int newWidth;
+        int newHeight;
+
+        // 按比例缩放，使长宽等比
+        if (originalWidth > originalHeight) {
+            newWidth = targetSize;
+            newHeight = (int) (originalHeight * (targetSize / (double) originalWidth));
+        } else {
+            newHeight = targetSize;
+            newWidth = (int) (originalWidth * (targetSize / (double) originalHeight));
+        }
+
+        // 创建一个缩放后的图片
+        Image scaledImage = originalImage.getScaledInstance(newWidth, newHeight, Image.SCALE_SMOOTH);
+        BufferedImage scaledBufferedImage = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_ARGB);
+
+        // 将缩放后的图片绘制到新的 BufferedImage 中
+        Graphics2D g2d = scaledBufferedImage.createGraphics();
+        g2d.drawImage(scaledImage, 0, 0, null);
+        g2d.dispose();
+
+        // 创建一个 128x128 的透明背景图片
+        BufferedImage finalImage = new BufferedImage(targetSize, targetSize, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = finalImage.createGraphics();
+
+        // 填充透明背景
+        g.setColor(new Color(0, 0, 0, 0)); // 透明
+        g.fillRect(0, 0, targetSize, targetSize);
+
+        // 计算位置，使得缩放后的图像居中
+        int xOffset = (targetSize - newWidth) / 2;
+        int yOffset = (targetSize - newHeight) / 2;
+
+        // 将缩放后的图片绘制到中心位置
+        g.drawImage(scaledBufferedImage, xOffset, yOffset, null);
+        g.dispose();
+
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        ImageIO.write(finalImage, "PNG", byteArrayOutputStream);
+
+        return byteArrayOutputStream.toByteArray();
     }
 
     public long getImageSize(String imageUrl, Player player) throws IOException {
@@ -258,22 +325,6 @@ public class BCTicketSystemCommand implements CommandExecutor {
             }
         }
         return outputStream.toByteArray();
-    }
-
-    // 检查 PNG 文件头
-    private boolean isPng(byte[] imageBytes) {
-        byte[] pngHeader = {(byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A};
-        for (int i = 0; i < 8; i++) {
-            if (imageBytes[i] != pngHeader[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    // 检查 JPEG 文件头
-    private boolean isJpeg(byte[] imageBytes) {
-        return imageBytes[0] == (byte) 0xFF && imageBytes[1] == (byte) 0xD8 && imageBytes[2] == (byte) 0xFF;
     }
 
     private CoreProtectAPI getCoreProtectAPI() {

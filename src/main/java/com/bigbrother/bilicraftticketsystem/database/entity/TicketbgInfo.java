@@ -16,4 +16,5 @@ public class TicketbgInfo {
     private String itemName;
     private String filePath;
     private boolean shared;
+    private String fontColor;
 }

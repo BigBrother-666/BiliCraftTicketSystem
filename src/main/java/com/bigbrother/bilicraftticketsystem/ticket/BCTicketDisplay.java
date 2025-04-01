@@ -1,11 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.ticket;
 
 import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
-import com.bergerkiller.bukkit.common.map.MapColorPalette;
-import com.bergerkiller.bukkit.common.map.MapDisplay;
-import com.bergerkiller.bukkit.common.map.MapFont;
-import com.bergerkiller.bukkit.common.map.MapSessionMode;
-import com.bergerkiller.bukkit.common.map.MapTexture;
+import com.bergerkiller.bukkit.common.map.*;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.tc.Localization;
@@ -18,7 +14,6 @@ import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.database.entity.TicketbgInfo;
-import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -93,8 +88,8 @@ public class BCTicketDisplay extends MapDisplay {
 
     public void renderBackground() {
         CommonTagCompound ticketNbt = this.getCommonMapItem().getCustomData();
-        MapTexture bg;
         TicketbgInfo ticketbgInfo = trainDatabaseManager.getCurrTicketbgInfo(ticketNbt.getUUID(BCTicket.KEY_TICKET_OWNER_UUID).toString());
+        MapTexture bg;
 
         if (ticketbgInfo != null) {
             bg = loadBackgroundImage(ticketbgInfo.getFilePath());
@@ -149,14 +144,27 @@ public class BCTicketDisplay extends MapDisplay {
 
     private void renderTicket() {
         this.getLayer(1).clear();
-
         ItemStack ticketItem = this.getMapItem();
         CommonTagCompound customData = this.getCommonMapItem().getCustomData();
+
+        // 获取字体颜色
+        TicketbgInfo ticketbgInfo = trainDatabaseManager.getCurrTicketbgInfo(customData.getUUID(BCTicket.KEY_TICKET_OWNER_UUID).toString());
+        Color c;
+        if (ticketbgInfo != null) {
+            try {
+                c = Utils.hexToColor(ticketbgInfo.getFontColor());
+            } catch (IllegalArgumentException e) {
+                c = Color.black;
+            }
+        } else {
+            c = Color.black;
+        }
+
         String displayName = customData.getValue(BCTicket.KEY_TICKET_DISPLAY_NAME, MainConfig.expressTicketName);
         if (ticketItem == null) {
             this.getLayer(1).draw(MapFont.MINECRAFT, 5, 40, MapColorPalette.COLOR_RED, Localization.TICKET_MAP_INVALID.get());
         } else {
-            this.getLayer(1).draw(mapFont, 5, 35, MapColorPalette.COLOR_BLACK, displayName);
+            this.getLayer(1).draw(mapFont, 5, 35, MapColorPalette.getColor(c), displayName);
             if (TicketStore.isTicketExpired(ticketItem)) {
                 this.getLayer(1).draw(MapFont.MINECRAFT, 5, 57, MapColorPalette.COLOR_RED, Localization.TICKET_MAP_EXPIRED.get());
             } else {
@@ -166,13 +174,13 @@ public class BCTicketDisplay extends MapDisplay {
                     maxUses = -1; // Just in case, so it works properly with Localization
                 }
                 String text = Localization.TICKET_MAP_USES.get(Integer.toString(maxUses), Integer.toString(numUses));
-                this.getLayer(1).draw(MapFont.MINECRAFT, 5, 57, MapColorPalette.COLOR_BLACK, text);
+                this.getLayer(1).draw(MapFont.MINECRAFT, 5, 57, MapColorPalette.getColor(c), text);
             }
 
             String ownerName = customData.getValue("ticketOwnerName", "Unknown Owner");
             ownerName = StringUtil.stripChatStyle(ownerName);
             if (TicketStore.isTicketOwner(this.getOwners().get(0), ticketItem)) {
-                this.getLayer(1).draw(MapFont.MINECRAFT, 5, 74, MapColorPalette.COLOR_BLACK, ownerName);
+                this.getLayer(1).draw(MapFont.MINECRAFT, 5, 74, MapColorPalette.getColor(c), ownerName);
             } else {
                 this.getLayer(1).draw(MapFont.MINECRAFT, 5, 74, MapColorPalette.COLOR_RED, ownerName);
             }

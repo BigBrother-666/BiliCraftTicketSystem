@@ -49,6 +49,9 @@ public class BCTicketSystemTabCompleter implements TabCompleter {
                 if (commandSender.hasPermission("bcts.ticket.deletebg")) {
                     completerList.add("deletebg");
                 }
+                if (commandSender.hasPermission("bcts.ticket.open")) {
+                    completerList.add("bg");
+                }
                 return completerList.stream().filter(s -> s.contains(args[0].trim())).collect(Collectors.toList());
             } else if (args.length == 2) {
                 if (args[0].equals("menuitem") && commandSender.hasPermission("bcts.ticket.menuitem")) {

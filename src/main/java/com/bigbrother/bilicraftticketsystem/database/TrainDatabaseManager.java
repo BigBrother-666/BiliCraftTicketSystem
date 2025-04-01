@@ -78,6 +78,7 @@ public class TrainDatabaseManager {
                                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                                 player_uuid VARCHAR(36),
                                 player_name VARCHAR(36),
+                                font_color VARCHAR(10) DEFAULT '#000000',
                                 upload_time DATETIME DEFAULT CURRENT_TIMESTAMP,
                                 usage_count INTEGER,
                                 item_name VARCHAR(256),
@@ -113,7 +114,7 @@ public class TrainDatabaseManager {
             return MenuTicketbg.getTicketbgUsageMapping().get(UUID.fromString(uuid));
         }
 
-        String sql = "SELECT %s.id AS id, %s.player_uuid AS player_uuid, player_name, upload_time, usage_count, item_name, file_path, shared FROM %s,%s WHERE %s.player_uuid=? AND %s.id=%s.bg_id"
+        String sql = "SELECT %s.id AS id, %s.player_uuid AS player_uuid, player_name, upload_time, usage_count, item_name, file_path, shared, font_color FROM %s,%s WHERE %s.player_uuid=? AND %s.id=%s.bg_id"
                 .formatted(ticketbgTableName, ticketbgTableName, ticketbgTableName, ticketbgUsageTableName, ticketbgUsageTableName, ticketbgTableName, ticketbgUsageTableName);
 
         try (Connection conn = ds.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -129,7 +130,8 @@ public class TrainDatabaseManager {
                         rs.getInt("usage_count"),
                         rs.getString("item_name"),
                         rs.getString("file_path"),
-                        rs.getBoolean("shared")
+                        rs.getBoolean("shared"),
+                        rs.getString("font_color")
                 );
             }
 
@@ -146,7 +148,7 @@ public class TrainDatabaseManager {
      */
     public List<TicketbgInfo> getAllSharedTickets() {
         List<TicketbgInfo> ticketbgInfoList = new ArrayList<>();
-        String sql = "SELECT id, player_uuid, player_name, upload_time, usage_count, item_name, file_path, shared FROM %s WHERE shared=? AND deleted=?".formatted(ticketbgTableName);
+        String sql = "SELECT id, player_uuid, player_name, upload_time, usage_count, item_name, file_path, shared, font_color FROM %s WHERE shared=? AND deleted=?".formatted(ticketbgTableName);
 
         try (Connection conn = ds.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setBoolean(1, true);
@@ -162,7 +164,8 @@ public class TrainDatabaseManager {
                         rs.getInt("usage_count"),
                         rs.getString("item_name"),
                         rs.getString("file_path"),
-                        rs.getBoolean("shared")
+                        rs.getBoolean("shared"),
+                        rs.getString("font_color")
                 ));
             }
 
@@ -179,7 +182,7 @@ public class TrainDatabaseManager {
      */
     public List<TicketbgInfo> getAllSelfTickets(String uuid) {
         List<TicketbgInfo> ticketbgInfoList = new ArrayList<>();
-        String sql = "SELECT id, player_uuid, player_name, upload_time, usage_count, item_name, file_path, shared FROM %s WHERE player_uuid=? AND deleted=?".formatted(ticketbgTableName);
+        String sql = "SELECT id, player_uuid, player_name, upload_time, usage_count, item_name, file_path, shared, font_color FROM %s WHERE player_uuid=? AND deleted=?".formatted(ticketbgTableName);
 
         try (Connection conn = ds.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, uuid);
@@ -195,7 +198,8 @@ public class TrainDatabaseManager {
                         rs.getInt("usage_count"),
                         rs.getString("item_name"),
                         rs.getString("file_path"),
-                        rs.getBoolean("shared")
+                        rs.getBoolean("shared"),
+                        rs.getString("font_color")
                 ));
             }
 
@@ -319,7 +323,7 @@ public class TrainDatabaseManager {
      */
     @Nullable
     private FullTicketbgInfo getTicketInfoById(int bgId) {
-        String sql = "SELECT id, player_uuid, player_name, upload_time, usage_count, item_name, file_path, shared, deleted FROM %s WHERE id=?".formatted(ticketbgTableName);
+        String sql = "SELECT id, player_uuid, player_name, upload_time, usage_count, item_name, file_path, shared, deleted, font_color FROM %s WHERE id=?".formatted(ticketbgTableName);
         try (Connection connection = ds.getConnection()) {
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
             preparedStatement.setInt(1, bgId);
@@ -334,6 +338,7 @@ public class TrainDatabaseManager {
                         rs.getString("item_name"),
                         rs.getString("file_path"),
                         rs.getBoolean("shared"),
+                        rs.getString("font_color"),
                         rs.getBoolean("deleted")
                 );
             }
@@ -417,19 +422,27 @@ public class TrainDatabaseManager {
      * @param uuid       玩家uuid
      * @param itemName   背景名
      * @param filePath   文件路径
+     * @param fontColor  车票字体16进制颜色
      */
-    public void addTicketbgInfo(String playerName, String uuid, String itemName, String filePath) {
+    public void addTicketbgInfo(String playerName, String uuid, String itemName, String filePath, String fontColor) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             updatePlayerNameByUuid(uuid, playerName, ticketbgTableName);
-            String sql = "INSERT INTO %s (`player_uuid`, `player_name`, `upload_time`, `usage_count`, `item_name`, `file_path`) VALUES (?, ?, ?, ?, ?, ?)".formatted(ticketbgTableName);
+            String sql = "INSERT INTO %s (`player_uuid`, `player_name`, `upload_time`, `usage_count`, `item_name`, `file_path`, `shared`, `font_color`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)".formatted(ticketbgTableName);
             try (Connection connection = ds.getConnection()) {
                 PreparedStatement preparedStatement = connection.prepareStatement(sql);
-                preparedStatement.setString(1, uuid);
+                if (uuid == null) {
+                    preparedStatement.setNull(1, Types.VARCHAR);
+                    preparedStatement.setBoolean(7, true);
+                } else {
+                    preparedStatement.setString(1, uuid);
+                    preparedStatement.setBoolean(7, false);
+                }
                 preparedStatement.setString(2, playerName);
                 preparedStatement.setString(3, LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
                 preparedStatement.setInt(4, 0);
                 preparedStatement.setString(5, itemName);
                 preparedStatement.setString(6, filePath);
+                preparedStatement.setString(8, fontColor);
                 preparedStatement.executeUpdate();
             } catch (SQLException e) {
                 plugin.getLogger().log(Level.WARNING, e.toString());

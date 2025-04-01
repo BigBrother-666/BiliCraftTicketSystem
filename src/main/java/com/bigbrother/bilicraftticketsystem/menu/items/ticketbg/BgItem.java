@@ -23,10 +23,10 @@ public abstract class BgItem extends AbstractItem {
      * @return true 可以使用按钮
      */
     public boolean isCooldown(Player player) {
-        // 冷却 1.5s
+        // 冷却 1.0s
         long lastUsedTime = uploadCooldowns.getOrDefault(player.getUniqueId(), 0L);
         long currentTime = System.currentTimeMillis();
-        long timeLeft = (lastUsedTime + (long) (1000 * 1.5)) - currentTime;
+        long timeLeft = (lastUsedTime + (long) (1000 * 1.0)) - currentTime;
         if (timeLeft > 0) {
             double secondsLeft = timeLeft / 1000.0;
             player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>点击过于频繁，请过 %.1f 秒后再试！".formatted(secondsLeft)));

@@ -12,8 +12,8 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.Nullable;
 
+import java.awt.*;
 import java.io.File;
 import java.util.Map;
 
@@ -76,19 +76,6 @@ public class Utils {
         return new ItemStack(Material.AIR);
     }
 
-
-    @Nullable
-    public static File getTicketbg(String fileName) {
-        if (fileName == null) {
-            return null;
-        }
-        File file = new File(TrainCarts.plugin.getDataFile("images"), fileName);
-        if (file.exists()) {
-            return file;
-        }
-        return null;
-    }
-
     public static boolean deleteTicketbg(String fileName) {
         File file = new File(TrainCarts.plugin.getDataFile("images"), fileName);
         if (file.exists()) {
@@ -96,4 +83,22 @@ public class Utils {
         }
         return false;
     }
+
+    public static Color hexToColor(String hex) throws IllegalArgumentException {
+        if (hex.startsWith("#")) {
+            hex = hex.substring(1);
+        }
+
+        if (hex.length() != 6) {
+            throw new IllegalArgumentException("Invalid HEX color: " + hex);
+        }
+
+        int red = Integer.parseInt(hex.substring(0, 2), 16);
+        int green = Integer.parseInt(hex.substring(2, 4), 16);
+        int blue = Integer.parseInt(hex.substring(4, 6), 16);
+
+        return new Color(red, green, blue);
+    }
+
+
 }

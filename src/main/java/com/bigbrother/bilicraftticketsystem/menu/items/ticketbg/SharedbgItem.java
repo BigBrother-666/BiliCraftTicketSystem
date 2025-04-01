@@ -5,6 +5,7 @@ import com.bigbrother.bilicraftticketsystem.database.entity.TicketbgInfo;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -54,6 +55,7 @@ public class SharedbgItem extends BgItem {
         lore.add(Component.text("上传玩家：" + ticketbgInfo.getPlayerName(), NamedTextColor.GREEN));
         lore.add(Component.text("上传时间：" + ticketbgInfo.getUploadTime(), NamedTextColor.GREEN));
         lore.add(Component.text("使用人数：" + ticketbgInfo.getUsageCount(), NamedTextColor.GREEN));
+        lore.add(Component.text("字体颜色：", NamedTextColor.GREEN).append(Component.text("■", TextColor.fromHexString(ticketbgInfo.getFontColor()))));
         lore.add(Component.text("===============================", NamedTextColor.DARK_PURPLE));
         if (isUseCurrTicketbg(viewer)) {
             lore.add(Component.text("正在使用此背景", NamedTextColor.GREEN));
