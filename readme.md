@@ -14,19 +14,19 @@
 
 ## 4. 指令
 
-| 指令/功能                                       | 权限                        | 说明                                                                                               |
-|---------------------------------------------|---------------------------|--------------------------------------------------------------------------------------------------|
-| ticket                                      | bcts.ticket.open          | 打开车票购买界面                                                                                         |
-| ticket uploadbg \<url> \[自定义物品名]            | bcts.ticket.uploadbg      | 上传背景图片                                                                                           |
-| ticket deletebg \<图片id>                     | bcts.ticket.deletebg      | 指令删除任意背景图 / gui删除任意共享的背景图                                                                        |
-| ticket adminuploadbg \<url> \[物品名]          | bcts.ticket.adminuploadbg | 以管理员身份上传背景图片（没有个数限制）                                                                             |
-| ticket reload                               | bcts.ticket.reload        | 重载所有配置文件                                                                                         |
-| ticket item \<add/get> <自定义物品名>             | bcts.ticket.menuitem      | 将手中的物品保存到配置文件（menuitems.yml）或获取自定义物品，以便编辑菜单界面使用。使用时，在mapping列表填写item-自定义物品名，所有功能按钮的物品名已经预定义，详见下表 |
-| ticket nbt \<key> \[value]                  | bcts.ticket.nbt           | 查看/设置车票的nbt，已经定义的nbt信息如下表所示                                                                      |
-| ticket statistics \<ticket/bcspawn> \<days> | bcts.ticket.statistics    | 查看车票/发车的统计信息                                                                                     |
-| ticket co add \<站台tag>                      | bcts.ticket.co            | 从co数据库导入发车信息(需要指针对准按钮/压力板)                                                                       |
-| 建立bcspawn控制牌                                | bcts.buildsign.bcspawn    |                                                                                                  |
-| 建立showroute控制牌                              | bcts.buildsign.showroute  |                                                                                                  |
+| 指令/功能                                             | 权限                        | 说明                                                                                               |
+|---------------------------------------------------|---------------------------|--------------------------------------------------------------------------------------------------|
+| ticket / ticket bg                                | bcts.ticket.open          | 打开车票购买界面 / 车票背景界面                                                                                |
+| ticket uploadbg \<图片链接> \<自定义背景图名> \[车票字体颜色]      | bcts.ticket.uploadbg      | 上传背景图片，颜色格式 #RRGGBB                                                                              |
+| ticket deletebg \<图片id>                           | bcts.ticket.deletebg      | 指令删除任意背景图 / gui删除任意共享的背景图                                                                        |
+| ticket adminuploadbg \<图片链接> \<自定义背景图名> \[车票字体颜色] | bcts.ticket.adminuploadbg | 以管理员身份上传背景图片（没有个数限制）                                                                             |
+| ticket reload                                     | bcts.ticket.reload        | 重载所有配置文件                                                                                         |
+| ticket item \<add/get> <自定义物品名>                   | bcts.ticket.menuitem      | 将手中的物品保存到配置文件（menuitems.yml）或获取自定义物品，以便编辑菜单界面使用。使用时，在mapping列表填写item-自定义物品名，所有功能按钮的物品名已经预定义，详见下表 |
+| ticket nbt \<key> \[value]                        | bcts.ticket.nbt           | 查看/设置车票的nbt，已经定义的nbt信息如下表所示                                                                      |
+| ticket statistics \<ticket/bcspawn> \<days>       | bcts.ticket.statistics    | 查看车票/发车的统计信息                                                                                     |
+| ticket co add \<站台tag>                            | bcts.ticket.co            | 从co数据库导入发车信息(需要指针对准按钮/压力板)                                                                       |
+| 建立bcspawn控制牌                                      | bcts.buildsign.bcspawn    |                                                                                                  |
+| 建立showroute控制牌                                    | bcts.buildsign.showroute  |                                                                                                  |
 
 ## 5. 自定义菜单界面（menu_*.yml）
 
