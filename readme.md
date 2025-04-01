@@ -14,18 +14,19 @@
 
 ## 4. 指令
 
-| 指令/功能                                       | 权限                       | 说明                                                                                               |
-|---------------------------------------------|--------------------------|--------------------------------------------------------------------------------------------------|
-| ticket                                      | bcts.ticket.open         | 打开车票购买界面                                                                                         |
-| ticket uploadbg \<url>                      | bcts.ticket.uploadbg     | 上传背景图片权限                                                                                         |
-| ticket deletebg                             | bcts.ticket.deletebg     | 删除背景图片权限                                                                                         |
-| ticket reload                               | bcts.ticket.reload       | 重载所有配置文件                                                                                         |
-| ticket item \<add/get> <自定义物品名>             | bcts.ticket.menuitem     | 将手中的物品保存到配置文件（menuitems.yml）或获取自定义物品，以便编辑菜单界面使用。使用时，在mapping列表填写item-自定义物品名，所有功能按钮的物品名已经预定义，详见下表 |
-| ticket nbt \<key> \[value]                  | bcts.ticket.nbt          | 查看/设置车票的nbt，已经定义的nbt信息如下表所示                                                                      |
-| ticket statistics \<ticket/bcspawn> \<days> | bcts.ticket.statistics   | 查看车票/发车的统计信息                                                                                     |
-| ticket co add \<站台tag>                      | bcts.ticket.co           | 从co数据库导入发车信息(需要指针对准按钮/压力板)                                                                       |
-| 建立bcspawn控制牌                                | bcts.buildsign.bcspawn   |                                                                                                  |
-| 建立showroute控制牌                              | bcts.buildsign.showroute |                                                                                                  |
+| 指令/功能                                       | 权限                        | 说明                                                                                               |
+|---------------------------------------------|---------------------------|--------------------------------------------------------------------------------------------------|
+| ticket                                      | bcts.ticket.open          | 打开车票购买界面                                                                                         |
+| ticket uploadbg \<url> \[自定义物品名]            | bcts.ticket.uploadbg      | 上传背景图片                                                                                           |
+| ticket deletebg \<图片id>                     | bcts.ticket.deletebg      | 指令删除任意背景图 / gui删除任意共享的背景图                                                                        |
+| ticket adminuploadbg \<url> \[物品名]          | bcts.ticket.adminuploadbg | 以管理员身份上传背景图片（没有个数限制）                                                                             |
+| ticket reload                               | bcts.ticket.reload        | 重载所有配置文件                                                                                         |
+| ticket item \<add/get> <自定义物品名>             | bcts.ticket.menuitem      | 将手中的物品保存到配置文件（menuitems.yml）或获取自定义物品，以便编辑菜单界面使用。使用时，在mapping列表填写item-自定义物品名，所有功能按钮的物品名已经预定义，详见下表 |
+| ticket nbt \<key> \[value]                  | bcts.ticket.nbt           | 查看/设置车票的nbt，已经定义的nbt信息如下表所示                                                                      |
+| ticket statistics \<ticket/bcspawn> \<days> | bcts.ticket.statistics    | 查看车票/发车的统计信息                                                                                     |
+| ticket co add \<站台tag>                      | bcts.ticket.co            | 从co数据库导入发车信息(需要指针对准按钮/压力板)                                                                       |
+| 建立bcspawn控制牌                                | bcts.buildsign.bcspawn    |                                                                                                  |
+| 建立showroute控制牌                              | bcts.buildsign.showroute  |                                                                                                  |
 
 ## 5. 自定义菜单界面（menu_*.yml）
 
@@ -40,24 +41,29 @@
 
 ## 6. 可使用/预定义的界面结构映射物品名
 
-| 界面            | 物品名                       | 功能        |
-|---------------|---------------------------|-----------|
-| 主界面           | content                   | 显示车票的格子   |
-| 主界面           | item-start                | 起始站选择按钮   |
-| 主界面           | item-end                  | 终到站选择按钮   |
-| 主界面           | item-speed                | 速度调整按钮    |
-| 主界面           | item-uses                 | 使用次数调整按钮  |
-| 主界面           | item-search               | 搜索车票按钮    |
-| 主界面           | item-warn                 | 注意事项按钮    |
-| 主界面           | item-prevpage             | 上一页按钮     |
-| 主界面           | item-nextpage             | 下一页按钮     |
-| 主界面           | item-filter               | 筛选        |
-| 车站选择界面/车站筛选界面 | content                   | 显示车站的格子   |
-| 车站选择界面/车站筛选界面 | item-scrollup             | 滚动条向上滚动   |
-| 车站选择界面/车站筛选界面 | item-scrolldown           | 滚动条向下滚动   |
-| 车站筛选界面        | item-refresh              | 清空所有筛选    |
-| 车站筛选界面        | item-back                 | 确定并返回主菜单  |
-| 所有            | bukkit物品枚举名或item-其他自定义物品名 | 无功能，仅用于装饰 |
+| 界面            | 物品名                       | 功能           |
+|---------------|---------------------------|--------------|
+| 主界面           | content                   | 显示车票的格子      |
+| 主界面           | item-start                | 起始站选择按钮      |
+| 主界面           | item-end                  | 终到站选择按钮      |
+| 主界面           | item-speed                | 速度调整按钮       |
+| 主界面           | item-uses                 | 使用次数调整按钮     |
+| 主界面           | item-search               | 搜索车票按钮       |
+| 主界面           | item-warn                 | 注意事项按钮       |
+| 主界面/设置车票背景界面  | item-prevpage             | 上一页按钮        |
+| 主界面/设置车票背景界面  | item-nextpage             | 下一页按钮        |
+| 主界面           | item-filter               | 筛选按钮         |
+| 主界面           | item-ticketbgInfo         | 设置车票背景按钮     |
+| 车站选择界面/车站筛选界面 | content                   | 显示车站的格子      |
+| 车站选择界面/车站筛选界面 | item-scrollup             | 滚动条向上滚动      |
+| 车站选择界面/车站筛选界面 | item-scrolldown           | 滚动条向下滚动      |
+| 车站筛选界面        | item-refresh              | 清空所有筛选       |
+| 车站筛选界面        | item-back                 | 确定并返回主菜单     |
+| 设置车票背景界面      | item-selfbg               | 自己上传的背景      |
+| 设置车票背景界面      | item-sharedbg             | 对所有玩家公开使用的背景 |
+| 设置车票背景界面      | item-usedbg               | 当前使用的背景      |
+| 设置车票背景界面      | item-defaultbg            | 恢复默认背景图按钮    |
+| 所有            | bukkit物品枚举名或item-其他自定义物品名 | 无功能，仅用于装饰    |
 
 此外，自定义物品`selected`被预定义为筛选界面车站选择后显示的物品。
 
