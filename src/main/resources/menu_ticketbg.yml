@@ -6,7 +6,7 @@ structure:
   - ". . . . . . . . ."
   - ". . . . . . . . ."
   - ". . . . . . . . ."
-  - "b # p # # # n # d"
+  - "b # p # s # n # d"
 
 mapping:
   - "1 item-selfbg"
@@ -25,3 +25,4 @@ mapping:
   - "n item-nextpage"
   - "b item-back"
   - "d item-defaultbg"
+  - "s item-sort"

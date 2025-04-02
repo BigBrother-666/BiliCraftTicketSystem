@@ -8,16 +8,14 @@ import com.bigbrother.bilicraftticketsystem.menu.Menu;
 import com.bigbrother.bilicraftticketsystem.menu.items.common.BackToMainItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.common.NextpageItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.common.PrevpageItem;
-import com.bigbrother.bilicraftticketsystem.menu.items.ticketbg.BgItem;
-import com.bigbrother.bilicraftticketsystem.menu.items.ticketbg.DefaultbgItem;
-import com.bigbrother.bilicraftticketsystem.menu.items.ticketbg.SelfbgItem;
-import com.bigbrother.bilicraftticketsystem.menu.items.ticketbg.SharedbgItem;
+import com.bigbrother.bilicraftticketsystem.menu.items.ticketbg.*;
 import lombok.Getter;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import xyz.xenondevs.inventoryaccess.component.AdventureComponentWrapper;
 import xyz.xenondevs.invui.gui.PagedGui;
 import xyz.xenondevs.invui.gui.structure.Markers;
@@ -34,6 +32,7 @@ import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.trainDa
 public class MenuTicketbg implements Menu {
     @Getter
     private static int selfbgMaxCnt = 0;
+
     static {
         FileConfiguration ticketbgConfig = MenuConfig.getTicketbgMenuConfig();
         // 设置映射
@@ -54,7 +53,9 @@ public class MenuTicketbg implements Menu {
     private final List<BgItem> selfbgItemList;
     private final Player player;
     private final Window window;
-    PagedGui<@NotNull Item> gui;
+    private final PagedGui<@NotNull Item> gui;
+    @Nullable
+    private SortItem sortItem;
 
     private MenuTicketbg(Player player) {
         this.selfbgItemList = new ArrayList<>();
@@ -95,6 +96,11 @@ public class MenuTicketbg implements Menu {
                     case "defaultbg":
                         guiBuilder.addIngredient(split[0].charAt(0), new DefaultbgItem());
                         break;
+                    case "sort":
+                        SortItem item = new SortItem();
+                        guiBuilder.addIngredient(split[0].charAt(0), item);
+                        sortItem = item;
+                        break;
                     default:
                         try {
                             guiBuilder.addIngredient(split[0].charAt(0), new SimpleItem(new ItemBuilder(Material.valueOf(itemName))));
@@ -117,8 +123,14 @@ public class MenuTicketbg implements Menu {
 
     public void asyncUpdateAllTicketbg() {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            SortField field;
+            if (sortItem != null) {
+                field = sortItem.getSortField();
+            } else {
+                field = SortField.UPLOAD_TIME;
+            }
             // 更新自己上传的背景
-            List<TicketbgInfo> selfTickets = trainDatabaseManager.getAllSelfTickets(player.getUniqueId().toString());
+            List<TicketbgInfo> selfTickets = trainDatabaseManager.getAllSelfTickets(player.getUniqueId().toString(), field);
             for (int i = 0; i < selfbgItemList.size(); i++) {
                 if (i < selfTickets.size()) {
                     selfbgItemList.get(i).setTicketbgInfo(selfTickets.get(i));
@@ -130,7 +142,7 @@ public class MenuTicketbg implements Menu {
 
             // 更新共享的背景
             List<Item> content = new ArrayList<>();
-            List<TicketbgInfo> sharedTickets = trainDatabaseManager.getAllSharedTickets();
+            List<TicketbgInfo> sharedTickets = trainDatabaseManager.getAllSharedTickets(field);
             for (TicketbgInfo sharedTicket : sharedTickets) {
                 content.add(new SharedbgItem(sharedTicket));
             }

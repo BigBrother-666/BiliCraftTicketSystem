@@ -7,6 +7,7 @@ import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.database.entity.FullTicketbgInfo;
 import com.bigbrother.bilicraftticketsystem.database.entity.TicketbgInfo;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
+import com.bigbrother.bilicraftticketsystem.menu.items.ticketbg.SortField;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicket;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -63,6 +64,7 @@ public class TrainDatabaseManager {
                     );
                     """.formatted(ticketTableName);
             statement.execute(sql);
+
             sql = """
                     CREATE TABLE IF NOT EXISTS %s (
                                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -73,6 +75,7 @@ public class TrainDatabaseManager {
                     );
                     """.formatted(bcspawnTableName);
             statement.execute(sql);
+
             sql = """
                     CREATE TABLE IF NOT EXISTS %s (
                                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -88,10 +91,15 @@ public class TrainDatabaseManager {
                     );
                     """.formatted(ticketbgTableName);
             statement.execute(sql);
+            sql = "CREATE INDEX IF NOT EXISTS idx_%s_player_uuid ON %s (player_uuid);".formatted(ticketbgTableName, ticketbgTableName);
+            statement.execute(sql);
+            sql = "CREATE INDEX IF NOT EXISTS idx_%s_upload_time ON %s (upload_time);".formatted(ticketbgTableName, ticketbgTableName);
+            statement.execute(sql);
+
             sql = """
                     CREATE TABLE IF NOT EXISTS %s (
                                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                player_uuid VARCHAR(36),
+                                player_uuid VARCHAR(36) UNIQUE,
                                 usage_time DATETIME DEFAULT CURRENT_TIMESTAMP,
                                 bg_id INTEGER
                     );
@@ -146,9 +154,10 @@ public class TrainDatabaseManager {
      *
      * @return 所有共享的车票背景
      */
-    public List<TicketbgInfo> getAllSharedTickets() {
+    public List<TicketbgInfo> getAllSharedTickets(SortField sortField) {
         List<TicketbgInfo> ticketbgInfoList = new ArrayList<>();
-        String sql = "SELECT id, player_uuid, player_name, upload_time, usage_count, item_name, file_path, shared, font_color FROM %s WHERE shared=? AND deleted=?".formatted(ticketbgTableName);
+        String sql = "SELECT id, player_uuid, player_name, upload_time, usage_count, item_name, file_path, shared, font_color FROM %s WHERE shared=? AND deleted=? ORDER BY %s DESC"
+                .formatted(ticketbgTableName, sortField.getField());
 
         try (Connection conn = ds.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setBoolean(1, true);
@@ -180,9 +189,10 @@ public class TrainDatabaseManager {
      *
      * @return 自己的车票背景
      */
-    public List<TicketbgInfo> getAllSelfTickets(String uuid) {
+    public List<TicketbgInfo> getAllSelfTickets(String uuid, SortField sortField) {
         List<TicketbgInfo> ticketbgInfoList = new ArrayList<>();
-        String sql = "SELECT id, player_uuid, player_name, upload_time, usage_count, item_name, file_path, shared, font_color FROM %s WHERE player_uuid=? AND deleted=?".formatted(ticketbgTableName);
+        String sql = "SELECT id, player_uuid, player_name, upload_time, usage_count, item_name, file_path, shared, font_color FROM %s WHERE player_uuid=? AND deleted=? ORDER BY %s DESC"
+                .formatted(ticketbgTableName, sortField.getField());
 
         try (Connection conn = ds.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, uuid);
