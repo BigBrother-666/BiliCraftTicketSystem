@@ -3,7 +3,6 @@ package com.bigbrother.bilicraftticketsystem.config;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import lombok.Getter;
-import org.jetbrains.annotations.NotNull;
 
 public class MenuConfig {
     @Getter

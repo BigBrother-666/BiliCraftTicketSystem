@@ -34,6 +34,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     public static BiliCraftTicketSystem plugin;
     public static Economy econ = null;
     public static TrainDatabaseManager trainDatabaseManager;
+    public static final Component PREFIX = Component.text("[帕拉伦国有铁路车票系统] ", NamedTextColor.GOLD);
 
     // 控制牌
     public final CustomSignActionAnnounce customSignActionAnnounce = new CustomSignActionAnnounce();
@@ -93,31 +94,36 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     public void loadConfig(CommandSender sender) {
         try {
             MainConfig.loadMainConfig(this);
+            plugin.getLogger().log(Level.INFO, "成功加载主配置");
             ItemsConfig.loadItemsConfig(this);
             MenuConfig.loadMenuConfig(this);
+            plugin.getLogger().log(Level.INFO, "成功加载GUI配置");
             BCTicketDisplay.loadFont();
             TrainRoutes.readGraphFromFile(this.getDataFolder().getPath() + File.separator + "routes.mmd");
+            plugin.getLogger().log(Level.INFO, "mermaid路径解析成功");
             if (trainDatabaseManager != null) {
                 trainDatabaseManager.getDs().close();
             }
             trainDatabaseManager = new TrainDatabaseManager(plugin);
+            plugin.getLogger().log(Level.INFO, "数据库加载完成");
             MenuMain.clearAll();
             MenuLocation.clearAll();
             MenuFilter.clearAll();
             MenuTicketbg.clearAll();
         } catch (Exception e) {
             if (sender instanceof ConsoleCommandSender) {
-                plugin.getLogger().log(Level.WARNING, "加载配置文件时发生错误：" + e.getMessage());
+                plugin.getLogger().log(Level.WARNING, "加载配置时发生错误：" + e.getMessage());
             } else {
-                sender.sendMessage(Component.text("加载配置文件时发生错误：" + e.getMessage(), NamedTextColor.RED));
+                sender.sendMessage(Component.text("加载配置时发生错误：" + e.getMessage(), NamedTextColor.RED));
             }
             return;
         }
 
         if (sender instanceof ConsoleCommandSender) {
-            plugin.getLogger().log(Level.INFO, "所有配置文件加载完成！");
+            plugin.getLogger().log(Level.INFO, "所有配置加载完成");
         } else {
-            sender.sendMessage(Component.text("所有配置文件加载完成！", NamedTextColor.GREEN));
+            sender.sendMessage(Component.text("所有配置加载完成", NamedTextColor.GREEN));
+            plugin.getLogger().log(Level.INFO, "所有配置加载完成");
         }
     }
 

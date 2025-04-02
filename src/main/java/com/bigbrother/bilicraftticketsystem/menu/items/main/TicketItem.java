@@ -2,6 +2,7 @@ package com.bigbrother.bilicraftticketsystem.menu.items.main;
 
 import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
+import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicket;
 import lombok.Getter;
@@ -70,21 +71,13 @@ public class TicketItem extends AbstractItem {
             EconomyResponse r = econ.withdrawPlayer(player, ticket.getTotalPrice());
             if (r.transactionSuccess()) {
                 ticket.give();
-
-                player.sendMessage(
-                        MiniMessage.miniMessage().deserialize(message.get("buy-success", "您成功花费 %.2f 购买了 %s")
-                                .formatted(r.amount, ticket.getItemName())).decoration(TextDecoration.ITALIC, false));
+                player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("buy-success", "您成功花费 %.2f 购买了 %s").formatted(r.amount, ticket.getItemName())).decoration(TextDecoration.ITALIC, false));
                 // 记录log
-                Bukkit.getConsoleSender().sendMessage(MiniMessage.miniMessage().deserialize(
-                        "<gold>[帕拉伦国有铁路车票系统] <green>玩家 %s 成功花费 %.2f 购买了 %s"
-                                .formatted(player.getName(), r.amount, ticket.getItemName())));
+                Bukkit.getConsoleSender().sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("玩家 %s 成功花费 %.2f 购买了 %s".formatted(player.getName(), r.amount, ticket.getItemName()), NamedTextColor.GREEN)));
                 // 记录到数据库
                 trainDatabaseManager.addTicketInfo(player.getName(), player.getUniqueId().toString(), r.amount, CommonItemStack.of(ticket.getTicket()).getCustomData());
             } else {
-                player.sendMessage(MiniMessage.miniMessage().deserialize(
-                                message.get("buy-failure", "车票购买失败：%s")
-                                        .formatted(r.errorMessage))
-                        .decoration(TextDecoration.ITALIC, false));
+                player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("buy-failure", "车票购买失败：%s").formatted(r.errorMessage)).decoration(TextDecoration.ITALIC, false));
             }
         } else {
             ticket.give();

@@ -1,5 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.ticketbg;
 
+import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.database.entity.TicketbgInfo;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
@@ -7,6 +8,7 @@ import lombok.Setter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -53,22 +55,22 @@ public class SelfbgItem extends BgItem {
         if (lore == null) {
             lore = new ArrayList<>();
         }
-        lore.add(Component.text("========== 背景图信息 ==========", NamedTextColor.DARK_PURPLE));
-        lore.add(Component.text("上传玩家：" + ticketbgInfo.getPlayerName(), NamedTextColor.GREEN));
-        lore.add(Component.text("上传时间：" + ticketbgInfo.getUploadTime(), NamedTextColor.GREEN));
-        lore.add(Component.text("使用人数：" + ticketbgInfo.getUsageCount(), NamedTextColor.GREEN));
-        lore.add(Component.text("字体颜色：", NamedTextColor.GREEN).append(Component.text("■", TextColor.fromHexString(ticketbgInfo.getFontColor()))));
+        lore.add(Component.text("========== 背景图信息 ==========", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("上传玩家：" + ticketbgInfo.getPlayerName(), NamedTextColor.DARK_AQUA).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("上传时间：" + ticketbgInfo.getUploadTime(), NamedTextColor.DARK_AQUA).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("使用人数：" + ticketbgInfo.getUsageCount(), NamedTextColor.DARK_AQUA).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("字体颜色：", NamedTextColor.DARK_AQUA).append(Component.text("■", TextColor.fromHexString(ticketbgInfo.getFontColor()))).decoration(TextDecoration.ITALIC, false));
         if (ticketbgInfo.isShared()) {
             lore.add(Component.text("已共享", NamedTextColor.AQUA));
         } else {
             lore.add(Component.text("未共享", NamedTextColor.DARK_GRAY));
         }
-        lore.add(Component.text("===============================", NamedTextColor.DARK_PURPLE));
+        lore.add(Component.text("===============================", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false));
         if (isUseCurrTicketbg(viewer)) {
-            lore.add(Component.text("正在使用此背景", NamedTextColor.GREEN));
-            lore.add(Component.text("右键共享/取消共享此背景，shift+左键删除此背景", NamedTextColor.GOLD));
+            lore.add(Component.text("正在使用此背景", NamedTextColor.AQUA));
+            lore.add(Component.text("右键共享/取消共享此背景，shift+左键删除此背景", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
         } else {
-            lore.add(Component.text("左键使用此背景，右键共享/取消共享此背景，shift+左键删除此背景", NamedTextColor.GOLD));
+            lore.add(Component.text("左键使用此背景，右键共享/取消共享此背景，shift+左键删除此背景", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
         }
         itemMeta.addItemFlags(ItemFlag.HIDE_ITEM_SPECIFICS);
         itemMeta.lore(lore);
@@ -86,24 +88,24 @@ public class SelfbgItem extends BgItem {
 
         if (clickType.isLeftClick() && !clickType.isShiftClick()) {
             if (isUseCurrTicketbg(player)) {
-                player.sendMessage(Component.text("[帕拉伦国有铁路车票系统] ", NamedTextColor.GOLD).append(Component.text("当前正在使用此背景！", NamedTextColor.YELLOW)));
+                player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("当前正在使用此背景！", NamedTextColor.YELLOW)));
                 return;
             }
             trainDatabaseManager.updateUsageTicketbg(this.getTicketbgInfo().getId(), player.getUniqueId().toString());
             MenuTicketbg.getTicketbgUsageMapping().put(player.getUniqueId(), this.getTicketbgInfo());
             MenuTicketbg.updateAllWindows();
-            player.sendMessage(Component.text("[帕拉伦国有铁路车票系统] ", NamedTextColor.GOLD).append(Component.text("设置背景图成功", NamedTextColor.GREEN)));
+            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("设置背景图成功", NamedTextColor.GREEN)));
         } else if (clickType.isRightClick()) {
             trainDatabaseManager.setShared(this.getTicketbgInfo().getId(), !this.getTicketbgInfo().isShared());
             if (this.getTicketbgInfo().isShared()) {
-                player.sendMessage(Component.text("[帕拉伦国有铁路车票系统] ", NamedTextColor.GOLD).append(Component.text("取消共享背景图成功", NamedTextColor.GREEN)));
+                player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("取消共享背景图成功", NamedTextColor.GREEN)));
             } else {
-                player.sendMessage(Component.text("[帕拉伦国有铁路车票系统] ", NamedTextColor.GOLD).append(Component.text("共享背景图成功", NamedTextColor.GREEN)));
+                player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("共享背景图成功", NamedTextColor.GREEN)));
             }
             MenuTicketbg.updateAllWindows();
         } else if (clickType.isLeftClick()) {
             trainDatabaseManager.deleteTicketbgLogical(this.getTicketbgInfo().getId());
-            player.sendMessage(Component.text("[帕拉伦国有铁路车票系统] ", NamedTextColor.GOLD).append(Component.text("删除背景图成功", NamedTextColor.GREEN)));
+            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("删除背景图成功", NamedTextColor.GREEN)));
             MenuTicketbg.updateAllWindows();
         }
     }

@@ -41,7 +41,7 @@ public class FilterLocItem extends AbstractItem {
             if (lore == null) {
                 lore = new ArrayList<>();
             }
-            lore.add(Component.text("已选择", NamedTextColor.GREEN));
+            lore.add(Component.text("已选择", NamedTextColor.DARK_AQUA));
             itemMeta.lore(lore);
             selectedItem.setItemMeta(itemMeta);
             return new ItemBuilder(selectedItem);

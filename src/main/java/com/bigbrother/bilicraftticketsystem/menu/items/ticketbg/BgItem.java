@@ -1,10 +1,12 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.ticketbg;
 
+import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.database.entity.TicketbgInfo;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
 import lombok.Getter;
 import lombok.Setter;
-import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
 import xyz.xenondevs.invui.item.impl.AbstractItem;
 
@@ -29,7 +31,7 @@ public abstract class BgItem extends AbstractItem {
         long timeLeft = (lastUsedTime + (long) (1000 * 1.0)) - currentTime;
         if (timeLeft > 0) {
             double secondsLeft = timeLeft / 1000.0;
-            player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>点击过于频繁，请过 %.1f 秒后再试！".formatted(secondsLeft)));
+            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("点击过于频繁，请过 %.1f 秒后再试！".formatted(secondsLeft), NamedTextColor.RED)));
             return true;
         }
         uploadCooldowns.put(player.getUniqueId(), currentTime);

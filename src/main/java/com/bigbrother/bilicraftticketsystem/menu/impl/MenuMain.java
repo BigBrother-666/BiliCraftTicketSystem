@@ -9,7 +9,6 @@ import com.bigbrother.bilicraftticketsystem.menu.Menu;
 import com.bigbrother.bilicraftticketsystem.menu.PlayerOption;
 import com.bigbrother.bilicraftticketsystem.menu.items.common.NextpageItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.common.PrevpageItem;
-import com.bigbrother.bilicraftticketsystem.menu.items.main.FilterItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.main.*;
 import lombok.Getter;
 import lombok.Setter;

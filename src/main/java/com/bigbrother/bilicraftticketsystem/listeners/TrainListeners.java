@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
 import com.bergerkiller.bukkit.tc.tickets.Ticket;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
+import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.signactions.SignActionShowroute;
 import com.bigbrother.bilicraftticketsystem.signactions.component.RouteBossbar;
@@ -274,25 +275,17 @@ public class TrainListeners implements Listener {
                     EconomyResponse r = econ.withdrawPlayer(player, discountPrice);
 
                     if (r.transactionSuccess()) {
-                        player.sendMessage(MiniMessage.miniMessage().deserialize(
-                                        message.get("buy-success", "您成功花费 %.2f 购买了 %s")
-                                                .formatted(r.amount, ticketName))
-                                .decoration(TextDecoration.ITALIC, false));
+                        player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("buy-success", "您成功花费 %.2f 购买了 %s").formatted(r.amount, ticketName)).decoration(TextDecoration.ITALIC, false));
                         if (!player.getInventory().addItem(trainTicket).isEmpty()) {
                             // 背包满 车票丢到地上
                             player.getWorld().dropItemNaturally(player.getLocation(), trainTicket);
                         }
                         // 记录log
-                        Bukkit.getConsoleSender().sendMessage(MiniMessage.miniMessage().deserialize(
-                                "<gold>[帕拉伦国有铁路车票系统] <green>玩家 %s 成功花费 %.2f 购买了 %s"
-                                        .formatted(player.getName(), r.amount, ticketName)));
+                        Bukkit.getConsoleSender().sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("玩家 %s 成功花费 %.2f 购买了 %s".formatted(player.getName(), r.amount, ticketName), NamedTextColor.GREEN)));
                         // 写入数据库
                         trainDatabaseManager.addTicketInfo(player.getName(), player.getUniqueId().toString(), r.amount, ticketNbt);
                     } else {
-                        player.sendMessage(MiniMessage.miniMessage().deserialize(
-                                        message.get("buy-failure", "车票购买失败：%s")
-                                                .formatted(r.errorMessage))
-                                .decoration(TextDecoration.ITALIC, false));
+                        player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("buy-failure", "车票购买失败：%s").formatted(r.errorMessage)).decoration(TextDecoration.ITALIC, false));
                     }
                 })));
     }

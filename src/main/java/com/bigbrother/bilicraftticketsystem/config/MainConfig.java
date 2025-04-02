@@ -7,7 +7,6 @@ import lombok.Data;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.logging.Level;
 
 @Data
 public class MainConfig {
@@ -59,7 +58,5 @@ public class MainConfig {
         discount = uses.getList("discount", String.class, Collections.emptyList());
 
         skip = mainConfig.get("skip", "");
-
-        plugin.getLogger().log(Level.INFO, "成功加载主配置！");
     }
 }

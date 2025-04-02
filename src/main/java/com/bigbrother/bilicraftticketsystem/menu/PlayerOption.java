@@ -3,7 +3,6 @@ package com.bigbrother.bilicraftticketsystem.menu;
 import lombok.Data;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
 @Data
@@ -15,8 +14,8 @@ public class PlayerOption {
     private boolean searchedFlag = false;
 
     public PlayerOption() {
-        this.startStation = Component.text("未选择起始站", NamedTextColor.RED).decoration(TextDecoration.ITALIC, false);
-        this.endStation = Component.text("未选择终到站", NamedTextColor.RED).decoration(TextDecoration.ITALIC, false);
+        this.startStation = Component.text("未选择起始站", NamedTextColor.RED);
+        this.endStation = Component.text("未选择终到站", NamedTextColor.RED);
         this.speed = 4.0;
         this.uses = 1;
     }

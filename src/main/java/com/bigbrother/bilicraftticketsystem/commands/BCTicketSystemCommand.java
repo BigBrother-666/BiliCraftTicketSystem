@@ -13,13 +13,13 @@ import net.coreprotect.CoreProtect;
 import net.coreprotect.CoreProtectAPI;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -37,6 +37,7 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.*;
+import java.util.logging.Level;
 
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.trainDatabaseManager;
 import static com.bigbrother.bilicraftticketsystem.ticket.BCTicket.KEY_TICKET_OWNER_NAME;
@@ -115,9 +116,9 @@ public class BCTicketSystemCommand implements CommandExecutor {
             } catch (NumberFormatException ignored) {
             }
             if (bgId != null && trainDatabaseManager.deleteTicketbgLogical(bgId) > 0) {
-                player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <green>车票背景图删除成功"));
+                player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("车票背景图删除成功", NamedTextColor.GREEN)));
             } else {
-                player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <yellow>无法删除，背景图id不存在"));
+                player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("无法删除，背景图id不存在", NamedTextColor.YELLOW)));
             }
         }
     }
@@ -134,7 +135,7 @@ public class BCTicketSystemCommand implements CommandExecutor {
         long timeLeft = (lastUsedTime + 1000 * 10) - currentTime;
         if (timeLeft > 0) {
             double secondsLeft = timeLeft / 1000.0;
-            player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>上传过于频繁，请过 %.1f 秒后再使用此命令！".formatted(secondsLeft)));
+            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("上传过于频繁，请过 %.1f 秒后再使用此命令！".formatted(secondsLeft), NamedTextColor.RED)));
             return;
         }
         uploadCooldowns.put(player.getUniqueId(), currentTime);
@@ -145,29 +146,29 @@ public class BCTicketSystemCommand implements CommandExecutor {
                 File folder = Utils.getPlayerTicketbgFolder(player);
                 if (!folder.exists()) {
                     if (!folder.mkdirs()) {
-                        player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>上传车票背景图失败：创建文件夹失败"));
+                        player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("上传车票背景图失败：创建文件夹失败", NamedTextColor.RED)));
                         return;
                     }
                 }
 
                 // 检查上传数量是否达到最大
                 if (!isAdmin && trainDatabaseManager.getPlayerTicketbgCount(player.getUniqueId().toString()) >= MenuTicketbg.getSelfbgMaxCnt()) {
-                    player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>最多上传 %d 个背景图，请先删除不需要的背景图再上传。".formatted(MenuTicketbg.getSelfbgMaxCnt())));
+                    player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("最多上传 %d 个背景图，请先删除不需要的背景图再上传".formatted(MenuTicketbg.getSelfbgMaxCnt()), NamedTextColor.RED)));
                     return;
                 }
 
-                player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <aqua>上传背景图中..."));
+                player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("上传背景图中...", NamedTextColor.AQUA)));
                 try {
                     String filePath = folder + File.separator + System.currentTimeMillis();
                     if (downloadAndSaveImage(imageUrl, filePath, player, args, isAdmin)) {
-                        player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <green>车票背景图上传成功！可使用/ticket bg指令管理上传的背景图。"));
+                        player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("车票背景图上传成功！可使用/ticket bg指令管理上传的背景图", NamedTextColor.GREEN)));
                     }
                 } catch (Exception e) {
-                    player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>上传车票背景图时发生错误：" + e.getMessage()));
+                    player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("上传车票背景图时发生错误：" + e.getMessage(), NamedTextColor.RED)));
                 }
             });
         } else {
-            player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>指令格式错误，正确格式：/ticket uploadbg <图片链接> <自定义背景图名> [车票字体颜色(可选，格式#RRGGBB)]"));
+            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("指令格式错误，正确格式：/ticket uploadbg <图片链接> <自定义背景图名> [车票字体颜色(可选，格式#RRGGBB)]", NamedTextColor.RED)));
         }
     }
 
@@ -178,7 +179,7 @@ public class BCTicketSystemCommand implements CommandExecutor {
                 Utils.hexToColor(args[3]);
                 fontColor = args[3];
             } catch (IllegalArgumentException e) {
-                player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>16进制颜色代码不合法！格式：#RRGGBB"));
+                player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("16进制颜色代码不合法！格式：#RRGGBB", NamedTextColor.RED)));
                 return false;
             }
         }
@@ -187,13 +188,13 @@ public class BCTicketSystemCommand implements CommandExecutor {
             // 获取图片大小
             long contentLength = getImageSize(imageUrl, player);
             if (contentLength == -1) {
-                player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>无法获取图片大小！"));
+                player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("无法获取图片大小！", NamedTextColor.RED)));
                 return false;
             }
 
             // 检查图片大小（<= 500 KB）
             if (contentLength > 500 * 1024) {
-                player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>图片大小不能超过 500 KB，当前大小：" + (contentLength / 1024) + " KB"));
+                player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("图片大小不能超过 500 KB，当前大小：" + (contentLength / 1024) + " KB", NamedTextColor.RED)));
                 return false;
             }
 
@@ -207,7 +208,7 @@ public class BCTicketSystemCommand implements CommandExecutor {
                     return false;
                 }
             } catch (Exception e) {
-                player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>图片格式不支持或图片损坏！错误信息：" + e.getMessage()));
+                player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("图片格式不支持或图片损坏！错误信息：" + e.getMessage(), NamedTextColor.RED)));
                 return false;
             }
             savePath += ".png";
@@ -226,7 +227,7 @@ public class BCTicketSystemCommand implements CommandExecutor {
             return true;
 
         } catch (IOException e) {
-            player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>上传或处理图片时发生错误: " + e.getMessage()));
+            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("上传或处理图片时发生错误：" + e.getMessage(), NamedTextColor.RED)));
             return false;
         }
     }
@@ -235,7 +236,7 @@ public class BCTicketSystemCommand implements CommandExecutor {
         // 读取图片文件
         BufferedImage originalImage = ImageIO.read(new ByteArrayInputStream(imageBytes));
         if (originalImage == null) {
-            player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>图片格式不支持或图片损坏！"));
+            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("图片格式不支持或图片损坏！", NamedTextColor.RED)));
             return null;
         }
 
@@ -245,7 +246,7 @@ public class BCTicketSystemCommand implements CommandExecutor {
 
         // 检查尺寸
         if (originalWidth < 128 || originalHeight < 128) {
-            player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>图片长或宽小于128像素！"));
+            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("图片长或宽小于128像素！", NamedTextColor.RED)));
             return null;
         }
 
@@ -303,7 +304,7 @@ public class BCTicketSystemCommand implements CommandExecutor {
 
         int responseCode = conn.getResponseCode();
         if (responseCode != 200) {
-            player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>[帕拉伦国有铁路车票系统] <red>无法获取图片信息，状态码: " + responseCode));
+            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("无法获取图片信息，状态码：" + responseCode, NamedTextColor.RED)));
             return -1;
         }
 
@@ -488,7 +489,12 @@ public class BCTicketSystemCommand implements CommandExecutor {
             commandSender.sendMessage(Component.text("你没有权限使用这条命令喵~", NamedTextColor.RED));
             return;
         }
-        commandSender.sendMessage(Component.text("配置文件重载中...", NamedTextColor.GREEN));
+        if (commandSender instanceof ConsoleCommandSender) {
+            plugin.getLogger().log(Level.INFO, "配置文件重载中...");
+        } else {
+            commandSender.sendMessage(Component.text("配置文件重载中...", NamedTextColor.GREEN));
+            plugin.getLogger().log(Level.INFO, "配置文件重载中...");
+        }
         Bukkit.getScheduler().runTaskAsynchronously(plugin, sender -> plugin.loadConfig(commandSender));
     }
 

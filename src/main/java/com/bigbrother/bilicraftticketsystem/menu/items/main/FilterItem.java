@@ -5,6 +5,7 @@ import com.bigbrother.bilicraftticketsystem.menu.impl.MenuFilter;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -30,10 +31,10 @@ public class FilterItem extends AbstractItem {
         }
         if (tickets == null || tickets.isEmpty()) {
             // 添加 “当前不可用”
-            lore.add(Component.text("筛选不可用，请先搜索车票", NamedTextColor.RED));
+            lore.add(Component.text("筛选不可用，请先搜索车票", NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
         } else {
             MenuFilter menuFilter = MenuFilter.getMenu(player);
-            lore.add(Component.text("已选择的途经车站：", NamedTextColor.GOLD));
+            lore.add(Component.text("已选择的途经车站：", NamedTextColor.DARK_AQUA));
             lore.add(getFormattedComponent(menuFilter));
         }
         itemStack.lore(lore);
@@ -47,15 +48,15 @@ public class FilterItem extends AbstractItem {
         for (String filterStation : filterStations) {
             if (i % 10 == 0) {
                 if (i == filterStations.size()) {
-                    lore = lore.append(Component.text(filterStation, NamedTextColor.GREEN));
+                    lore = lore.append(Component.text(filterStation, NamedTextColor.AQUA));
                 } else {
-                    lore = lore.append(Component.text(filterStation + ", \n", NamedTextColor.GREEN));
+                    lore = lore.append(Component.text(filterStation + ", \n", NamedTextColor.AQUA));
                 }
             } else {
                 if (i == filterStations.size()) {
-                    lore = lore.append(Component.text(filterStation, NamedTextColor.GREEN));
+                    lore = lore.append(Component.text(filterStation, NamedTextColor.AQUA));
                 } else {
-                    lore = lore.append(Component.text(filterStation + ", ", NamedTextColor.GREEN));
+                    lore = lore.append(Component.text(filterStation + ", ", NamedTextColor.AQUA));
                 }
             }
             i++;

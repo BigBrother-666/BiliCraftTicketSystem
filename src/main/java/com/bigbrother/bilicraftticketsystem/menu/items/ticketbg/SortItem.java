@@ -5,6 +5,7 @@ import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
 import lombok.Getter;
 import lombok.Setter;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -36,9 +37,9 @@ public class SortItem extends BgItem {
         }
 
         if (sortField == SortField.UPLOAD_TIME) {
-            lore.add(Component.text("当前：上传时间倒序"));
+            lore.add(Component.text("当前：上传时间倒序", NamedTextColor.DARK_AQUA));
         } else if (sortField == SortField.USAGE_COUNT) {
-            lore.add(Component.text("当前：使用人数倒序"));
+            lore.add(Component.text("当前：使用人数倒序", NamedTextColor.DARK_AQUA));
         }
         itemMeta.lore(lore);
         itemStack.setItemMeta(itemMeta);
