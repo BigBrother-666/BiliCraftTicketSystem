@@ -17,7 +17,7 @@ import org.bukkit.inventory.InventoryView;
 
 import java.util.UUID;
 
-import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.trainDatabaseManager;
+import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
 
 public class PlayerListeners implements Listener {
     @EventHandler
@@ -32,7 +32,7 @@ public class PlayerListeners implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        TicketbgInfo info = trainDatabaseManager.getCurrTicketbgInfo(player.getUniqueId().toString());
+        TicketbgInfo info = plugin.getTrainDatabaseManager().getCurrTicketbgInfo(player.getUniqueId().toString());
         MenuTicketbg.getTicketbgUsageMapping().put(player.getUniqueId(), info);
     }
 

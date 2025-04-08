@@ -15,6 +15,7 @@ import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
 import com.bigbrother.bilicraftticketsystem.signactions.*;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicketDisplay;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -27,22 +28,23 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 import java.util.List;
-import java.util.logging.Level;
 
 @Slf4j
 public final class BiliCraftTicketSystem extends JavaPlugin {
     public static BiliCraftTicketSystem plugin;
-    public static Economy econ = null;
-    public static TrainDatabaseManager trainDatabaseManager;
     public static final Component PREFIX = Component.text("[帕拉伦国有铁路车票系统] ", NamedTextColor.GOLD);
+    @Getter
+    private Economy econ = null;
+    @Getter
+    private TrainDatabaseManager trainDatabaseManager;
 
     // 控制牌
-    public final CustomSignActionAnnounce customSignActionAnnounce = new CustomSignActionAnnounce();
-    public final SignActionBCSpawn signActionBCSpawn = new SignActionBCSpawn();
-    public final CustomSignActionStation customSignActionStation = new CustomSignActionStation();
-    public final SignActionShowroute signActionShowroute = new SignActionShowroute();
-    public final CustomSignActionSpawn customSignActionSpawn = new CustomSignActionSpawn();
-    public final CustomSignActionProperties customSignActionProperties = new CustomSignActionProperties();
+    private final CustomSignActionAnnounce customSignActionAnnounce = new CustomSignActionAnnounce();
+    private final SignActionBCSpawn signActionBCSpawn = new SignActionBCSpawn();
+    private final CustomSignActionStation customSignActionStation = new CustomSignActionStation();
+    private final SignActionShowroute signActionShowroute = new SignActionShowroute();
+    private final CustomSignActionSpawn customSignActionSpawn = new CustomSignActionSpawn();
+    private final CustomSignActionProperties customSignActionProperties = new CustomSignActionProperties();
 
     @Override
     public void onEnable() {
@@ -51,6 +53,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         plugin = this;
         // Plugin startup logic
         // 生成配置文件
+        this.getComponentLogger().info(Component.text("拷贝配置文件...", NamedTextColor.GOLD));
         saveResource(EnumConfig.MAIN_CONFIG.getFileName(), /* replace */ false);
         saveResource(EnumConfig.MENU_MAIN.getFileName(), /* replace */ false);
         saveResource(EnumConfig.MENU_LOCATION.getFileName(), /* replace */ false);
@@ -61,21 +64,21 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
 
         // 注册指令
         new BCTicketSystemCommand(this);
+        this.getComponentLogger().info(Component.text("指令注册成功", NamedTextColor.GOLD));
 
         // 注册监听器
         Bukkit.getPluginManager().registerEvents(new TrainListeners(), this);
         Bukkit.getPluginManager().registerEvents(new PlayerListeners(), this);
         Bukkit.getPluginManager().registerEvents(new SignActionShowroute(), this);
+        this.getComponentLogger().info(Component.text("监听器注册成功", NamedTextColor.GOLD));
 
         // 加载经济系统
         if (!setupEconomy()) {
-            getLogger().severe("Vault初始化失败！");
+            this.getComponentLogger().error(Component.text("Vault初始化失败！", NamedTextColor.RED));
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
-
-        // 加载配置文件
-        Bukkit.getScheduler().runTaskAsynchronously(this, sender -> loadConfig(Bukkit.getConsoleSender()));
+        this.getComponentLogger().info(Component.text("Vault初始化成功", NamedTextColor.GOLD));
 
         // 注册控制牌
         SignAction.register(customSignActionAnnounce, true);
@@ -84,6 +87,11 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         SignAction.register(signActionShowroute);
         SignAction.register(customSignActionSpawn, true);
         SignAction.register(customSignActionProperties, true);
+        this.getComponentLogger().info(Component.text("控制牌注册成功", NamedTextColor.GOLD));
+
+        // 加载配置文件
+        this.getComponentLogger().info(Component.text("开始异步读取配置文件...", NamedTextColor.GOLD));
+        Bukkit.getScheduler().runTaskAsynchronously(this, sender -> loadConfig(Bukkit.getConsoleSender()));
     }
 
     /**
@@ -94,36 +102,37 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     public void loadConfig(CommandSender sender) {
         try {
             MainConfig.loadMainConfig(this);
-            plugin.getLogger().log(Level.INFO, "成功加载主配置");
+            plugin.getComponentLogger().info(Component.text("成功加载主配置", NamedTextColor.GOLD));
             ItemsConfig.loadItemsConfig(this);
             MenuConfig.loadMenuConfig(this);
-            plugin.getLogger().log(Level.INFO, "成功加载GUI配置");
+            plugin.getComponentLogger().info(Component.text("成功加载GUI配置", NamedTextColor.GOLD));
             BCTicketDisplay.loadFont();
             TrainRoutes.readGraphFromFile(this.getDataFolder().getPath() + File.separator + "routes.mmd");
-            plugin.getLogger().log(Level.INFO, "mermaid路径解析成功");
+            plugin.getComponentLogger().info(Component.text("mermaid路径解析成功", NamedTextColor.GOLD));
             if (trainDatabaseManager != null) {
                 trainDatabaseManager.getDs().close();
             }
             trainDatabaseManager = new TrainDatabaseManager(plugin);
-            plugin.getLogger().log(Level.INFO, "数据库加载完成");
+            plugin.getComponentLogger().info(Component.text("数据库加载完成", NamedTextColor.GOLD));
             MenuMain.clearAll();
             MenuLocation.clearAll();
             MenuFilter.clearAll();
             MenuTicketbg.clearAll();
         } catch (Exception e) {
             if (sender instanceof ConsoleCommandSender) {
-                plugin.getLogger().log(Level.WARNING, "加载配置时发生错误：" + e.getMessage());
+                plugin.getComponentLogger().error(Component.text("加载配置时发生错误：" + e.getMessage(), NamedTextColor.RED));
             } else {
+                plugin.getComponentLogger().error(Component.text("加载配置时发生错误：" + e.getMessage(), NamedTextColor.RED));
                 sender.sendMessage(Component.text("加载配置时发生错误：" + e.getMessage(), NamedTextColor.RED));
             }
             return;
         }
 
         if (sender instanceof ConsoleCommandSender) {
-            plugin.getLogger().log(Level.INFO, "所有配置加载完成");
+            plugin.getComponentLogger().info(Component.text("所有配置加载完成", NamedTextColor.GOLD));
         } else {
-            sender.sendMessage(Component.text("所有配置加载完成", NamedTextColor.GREEN));
-            plugin.getLogger().log(Level.INFO, "所有配置加载完成");
+            sender.sendMessage(Component.text("所有配置加载完成", NamedTextColor.GOLD));
+            plugin.getComponentLogger().info(Component.text("所有配置加载完成", NamedTextColor.GOLD));
         }
     }
 
@@ -145,19 +154,22 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
 
     private void printLogo() {
         List<Component> logo = List.of(
+                Component.text("============================================================================================================\n"),
                 Component.text("           ___    ___          _____    _            _             _      ___    _  _          _                   \n", NamedTextColor.GOLD),
                 Component.text("    o O O | _ )  / __|        |_   _|  (_)    __    | |__   ___   | |_   / __|  | || |  ___   | |_    ___   _ __   \n", NamedTextColor.GOLD),
                 Component.text("   o      | _ \\ | (__           | |    | |   / _|   | / /  / -_)  |  _|  \\__ \\   \\_, | (_-<   |  _|  / -_) | '  \\  \n", NamedTextColor.GOLD),
                 Component.text("  TS__[O] |___/  \\___|         _|_|_  _|_|_  \\__|_  |_\\_\\  \\___|  _\\__|  |___/  _|__/  /__/_  _\\__|  \\___| |_|_|_| \n", NamedTextColor.GOLD),
                 Component.text(" {======||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"|| \"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"||\"\"\"\"\"| \n", NamedTextColor.GOLD),
-                Component.text("./o--000'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-' \n", NamedTextColor.GOLD)
+                Component.text("./o--000'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-'`-0-0-' \n", NamedTextColor.GOLD),
+                Component.text("=========================================== ")
+                        .append(Component.text("v" + this.getPluginMeta().getVersion() + "  by " + String.join(", ", this.getPluginMeta().getAuthors()), NamedTextColor.AQUA))
+                        .append(Component.text(" ==========================================="))
         );
         Component output = Component.text("\n");
         for (Component component : logo) {
             output = output.append(component);
         }
-        output = output.color(NamedTextColor.GOLD);
-        Bukkit.getConsoleSender().sendMessage(output);
+        this.getComponentLogger().info(output);
     }
 
     @Override

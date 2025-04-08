@@ -33,8 +33,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.*;
 
-import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.econ;
-import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.trainDatabaseManager;
+import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.*;
 import static com.bigbrother.bilicraftticketsystem.config.MainConfig.message;
 import static com.bigbrother.bilicraftticketsystem.ticket.BCTicket.getDiscountPrice;
 
@@ -272,7 +271,7 @@ public class TrainListeners implements Listener {
         player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("quick-buy", "").formatted(discountPrice))
                 .decoration(TextDecoration.ITALIC, false)
                 .clickEvent(ClickEvent.callback(audience -> {
-                    EconomyResponse r = econ.withdrawPlayer(player, discountPrice);
+                    EconomyResponse r = plugin.getEcon().withdrawPlayer(player, discountPrice);
 
                     if (r.transactionSuccess()) {
                         player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("buy-success", "您成功花费 %.2f 购买了 %s").formatted(r.amount, ticketName)).decoration(TextDecoration.ITALIC, false));
@@ -283,7 +282,7 @@ public class TrainListeners implements Listener {
                         // 记录log
                         Bukkit.getConsoleSender().sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("玩家 %s 成功花费 %.2f 购买了 %s".formatted(player.getName(), r.amount, ticketName), NamedTextColor.GREEN)));
                         // 写入数据库
-                        trainDatabaseManager.addTicketInfo(player.getName(), player.getUniqueId().toString(), r.amount, ticketNbt);
+                        plugin.getTrainDatabaseManager().addTicketInfo(player.getName(), player.getUniqueId().toString(), r.amount, ticketNbt);
                     } else {
                         player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("buy-failure", "车票购买失败：%s").formatted(r.errorMessage)).decoration(TextDecoration.ITALIC, false));
                     }

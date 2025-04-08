@@ -27,7 +27,6 @@ import xyz.xenondevs.invui.window.Window;
 import java.util.*;
 
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
-import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.trainDatabaseManager;
 
 public class MenuTicketbg implements Menu {
     @Getter
@@ -130,7 +129,7 @@ public class MenuTicketbg implements Menu {
                 field = SortField.UPLOAD_TIME;
             }
             // 更新自己上传的背景
-            List<TicketbgInfo> selfTickets = trainDatabaseManager.getAllSelfTickets(player.getUniqueId().toString(), field);
+            List<TicketbgInfo> selfTickets = plugin.getTrainDatabaseManager().getAllSelfTickets(player.getUniqueId().toString(), field);
             for (int i = 0; i < selfbgItemList.size(); i++) {
                 if (i < selfTickets.size()) {
                     selfbgItemList.get(i).setTicketbgInfo(selfTickets.get(i));
@@ -142,7 +141,7 @@ public class MenuTicketbg implements Menu {
 
             // 更新共享的背景
             List<Item> content = new ArrayList<>();
-            List<TicketbgInfo> sharedTickets = trainDatabaseManager.getAllSharedTickets(field);
+            List<TicketbgInfo> sharedTickets = plugin.getTrainDatabaseManager().getAllSharedTickets(field);
             for (TicketbgInfo sharedTicket : sharedTickets) {
                 content.add(new SharedbgItem(sharedTicket));
             }

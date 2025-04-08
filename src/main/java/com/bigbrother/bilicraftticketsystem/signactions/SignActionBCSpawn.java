@@ -10,7 +10,7 @@ import com.bergerkiller.bukkit.tc.signactions.spawner.SpawnSign;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
-import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.trainDatabaseManager;
+import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
 
 public class SignActionBCSpawn extends SignActionSpawn {
     @Override
@@ -33,7 +33,7 @@ public class SignActionBCSpawn extends SignActionSpawn {
                 group.getProperties().addTags(line3);
                 group.onPropertiesChanged();
                 // 发车信息记录到数据库
-                trainDatabaseManager.addBcspawnInfo(line3);
+                plugin.getTrainDatabaseManager().addBcspawnInfo(line3);
             }
         }
         if (info.isAction(SignActionType.REDSTONE_ON)) {

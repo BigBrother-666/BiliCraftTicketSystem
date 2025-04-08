@@ -14,6 +14,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import lombok.Getter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.jetbrains.annotations.Nullable;
 
@@ -24,7 +25,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.logging.Level;
 
 public class TrainDatabaseManager {
     @Getter
@@ -106,7 +106,7 @@ public class TrainDatabaseManager {
                     """.formatted(ticketbgUsageTableName);
             statement.execute(sql);
         } catch (SQLException e) {
-            plugin.getLogger().log(Level.WARNING, e.toString());
+            plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
         }
     }
 
@@ -144,7 +144,7 @@ public class TrainDatabaseManager {
             }
 
         } catch (SQLException e) {
-            plugin.getLogger().log(Level.WARNING, e.toString());
+            plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
         }
         return null;
     }
@@ -179,7 +179,7 @@ public class TrainDatabaseManager {
             }
 
         } catch (SQLException e) {
-            plugin.getLogger().log(Level.WARNING, e.toString());
+            plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
         }
         return ticketbgInfoList;
     }
@@ -214,7 +214,7 @@ public class TrainDatabaseManager {
             }
 
         } catch (SQLException e) {
-            plugin.getLogger().log(Level.WARNING, e.toString());
+            plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
         }
         return ticketbgInfoList;
     }
@@ -253,7 +253,7 @@ public class TrainDatabaseManager {
                 updateTicketbgUsageCount(bgId);
             }
         } catch (SQLException e) {
-            plugin.getLogger().log(Level.WARNING, e.toString());
+            plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
         }
     }
 
@@ -269,7 +269,7 @@ public class TrainDatabaseManager {
             preparedStatement.setInt(1, bgId);
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
-            plugin.getLogger().log(Level.WARNING, e.toString());
+            plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
         }
     }
 
@@ -288,7 +288,7 @@ public class TrainDatabaseManager {
             preparedStatement.setInt(2, bgId);
             ret = preparedStatement.executeUpdate();
         } catch (SQLException e) {
-            plugin.getLogger().log(Level.WARNING, e.toString());
+            plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
         }
 
         FullTicketbgInfo info = getTicketInfoById(bgId);
@@ -314,7 +314,7 @@ public class TrainDatabaseManager {
             preparedStatement.setInt(2, bgId);
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
-            plugin.getLogger().log(Level.WARNING, e.toString());
+            plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
         }
 
         FullTicketbgInfo info = getTicketInfoById(bgId);
@@ -353,7 +353,7 @@ public class TrainDatabaseManager {
                 );
             }
         } catch (SQLException e) {
-            plugin.getLogger().log(Level.WARNING, e.toString());
+            plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
         }
         return null;
     }
@@ -372,7 +372,7 @@ public class TrainDatabaseManager {
             preparedStatement.setInt(2, bgId);
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
-            plugin.getLogger().log(Level.WARNING, e.toString());
+            plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
         }
     }
 
@@ -397,7 +397,7 @@ public class TrainDatabaseManager {
                 return rs.getInt("count");
             }
         } catch (SQLException e) {
-            plugin.getLogger().log(Level.WARNING, e.toString());
+            plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
         }
         return -1;
     }
@@ -421,7 +421,7 @@ public class TrainDatabaseManager {
             }
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
-            plugin.getLogger().log(Level.WARNING, e.toString());
+            plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
         }
     }
 
@@ -455,7 +455,7 @@ public class TrainDatabaseManager {
                 preparedStatement.setString(8, fontColor);
                 preparedStatement.executeUpdate();
             } catch (SQLException e) {
-                plugin.getLogger().log(Level.WARNING, e.toString());
+                plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
             }
         });
     }
@@ -485,7 +485,7 @@ public class TrainDatabaseManager {
                 preparedStatement.setDouble(8, price);
                 preparedStatement.executeUpdate();
             } catch (SQLException e) {
-                plugin.getLogger().log(Level.WARNING, e.toString());
+                plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
             }
         });
     }
@@ -525,7 +525,7 @@ public class TrainDatabaseManager {
                     preparedStatement.setString(4, railway);
                     preparedStatement.executeUpdate();
                 } catch (SQLException e) {
-                    plugin.getLogger().log(Level.WARNING, e.toString());
+                    plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
                 }
             }
         });
@@ -569,7 +569,7 @@ public class TrainDatabaseManager {
             stmt.setString(2, playerUuid);
             stmt.executeUpdate();
         } catch (SQLException e) {
-            plugin.getLogger().log(Level.WARNING, e.toString());
+            plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
         }
     }
 
@@ -607,7 +607,7 @@ public class TrainDatabaseManager {
             }
 
         } catch (SQLException e) {
-            plugin.getLogger().log(Level.WARNING, e.toString());
+            plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
         }
 
         return result;
@@ -661,7 +661,7 @@ public class TrainDatabaseManager {
 
             }
         } catch (SQLException e) {
-            plugin.getLogger().log(Level.WARNING, e.toString());
+            plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
         }
 
         return result;
@@ -701,7 +701,7 @@ public class TrainDatabaseManager {
             }
 
         } catch (SQLException e) {
-            plugin.getLogger().log(Level.WARNING, e.toString());
+            plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
         }
 
         return result;
@@ -745,7 +745,7 @@ public class TrainDatabaseManager {
                         .append(Utils.str2Component("%-15s".formatted(spawnDirection)));
             }
         } catch (SQLException e) {
-            plugin.getLogger().log(Level.WARNING, e.toString());
+            plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
         }
 
         return result;

@@ -25,8 +25,7 @@ import xyz.xenondevs.invui.item.impl.AbstractItem;
 
 import java.util.List;
 
-import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.econ;
-import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.trainDatabaseManager;
+import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.*;
 import static com.bigbrother.bilicraftticketsystem.config.MainConfig.message;
 
 @Getter
@@ -68,14 +67,14 @@ public class TicketItem extends AbstractItem {
         }
 
         if (!clickType.isCreativeAction()) {
-            EconomyResponse r = econ.withdrawPlayer(player, ticket.getTotalPrice());
+            EconomyResponse r = plugin.getEcon().withdrawPlayer(player, ticket.getTotalPrice());
             if (r.transactionSuccess()) {
                 ticket.give();
                 player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("buy-success", "您成功花费 %.2f 购买了 %s").formatted(r.amount, ticket.getItemName())).decoration(TextDecoration.ITALIC, false));
                 // 记录log
                 Bukkit.getConsoleSender().sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("玩家 %s 成功花费 %.2f 购买了 %s".formatted(player.getName(), r.amount, ticket.getItemName()), NamedTextColor.GREEN)));
                 // 记录到数据库
-                trainDatabaseManager.addTicketInfo(player.getName(), player.getUniqueId().toString(), r.amount, CommonItemStack.of(ticket.getTicket()).getCustomData());
+                plugin.getTrainDatabaseManager().addTicketInfo(player.getName(), player.getUniqueId().toString(), r.amount, CommonItemStack.of(ticket.getTicket()).getCustomData());
             } else {
                 player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("buy-failure", "车票购买失败：%s").formatted(r.errorMessage)).decoration(TextDecoration.ITALIC, false));
             }

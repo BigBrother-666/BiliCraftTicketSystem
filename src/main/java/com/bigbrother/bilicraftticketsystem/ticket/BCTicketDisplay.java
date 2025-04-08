@@ -14,6 +14,9 @@ import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.database.entity.TicketbgInfo;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -23,17 +26,13 @@ import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.trainDatabaseManager;
 
 
 public class BCTicketDisplay extends MapDisplay {
     private static MapFont<Character> mapFont;
 
     public static void loadFont() {
-        Logger logger = BiliCraftTicketSystem.plugin.getLogger();
+        ComponentLogger logger = BiliCraftTicketSystem.plugin.getComponentLogger();
         if (MainConfig.ticketFont != null && !MainConfig.ticketFont.isEmpty()) {
             mapFont = MapFont.fromJavaFont(MainConfig.ticketFont, MainConfig.ticketFontBold ? Font.BOLD : Font.PLAIN, 9);
         } else {
@@ -54,20 +53,15 @@ public class BCTicketDisplay extends MapDisplay {
                         ge.registerFont(customFont);
 
                         mapFont = MapFont.fromJavaFont(customFont);
-                        logger.log(Level.INFO, "成功加载字体: " + customFont.getFontName());
+                        logger.info(Component.text("成功加载字体: " + customFont.getFontName(), NamedTextColor.GOLD));
+                        return;
                     } catch (IOException | FontFormatException e) {
-                        logger.log(Level.WARNING, "加载字体失败: " + e.getMessage());
-                        logger.log(Level.WARNING, "使用默认字体");
-                        mapFont = MapFont.MINECRAFT;
+                        logger.warn(Component.text("加载字体失败: {}" + e.getMessage(), NamedTextColor.RED));
                     }
-                } else {
-                    logger.log(Level.WARNING, "使用默认字体");
-                    mapFont = MapFont.MINECRAFT;
                 }
-            } else {
-                logger.log(Level.WARNING, "使用默认字体");
-                mapFont = MapFont.MINECRAFT;
             }
+            logger.info(Component.text("使用默认字体", NamedTextColor.GOLD));
+            mapFont = MapFont.MINECRAFT;
         }
     }
 
@@ -88,7 +82,7 @@ public class BCTicketDisplay extends MapDisplay {
 
     public void renderBackground() {
         CommonTagCompound ticketNbt = this.getCommonMapItem().getCustomData();
-        TicketbgInfo ticketbgInfo = trainDatabaseManager.getCurrTicketbgInfo(ticketNbt.getUUID(BCTicket.KEY_TICKET_OWNER_UUID).toString());
+        TicketbgInfo ticketbgInfo = BiliCraftTicketSystem.plugin.getTrainDatabaseManager().getCurrTicketbgInfo(ticketNbt.getUUID(BCTicket.KEY_TICKET_OWNER_UUID).toString());
         MapTexture bg;
 
         if (ticketbgInfo != null) {
@@ -148,7 +142,7 @@ public class BCTicketDisplay extends MapDisplay {
         CommonTagCompound customData = this.getCommonMapItem().getCustomData();
 
         // 获取字体颜色
-        TicketbgInfo ticketbgInfo = trainDatabaseManager.getCurrTicketbgInfo(customData.getUUID(BCTicket.KEY_TICKET_OWNER_UUID).toString());
+        TicketbgInfo ticketbgInfo = BiliCraftTicketSystem.plugin.getTrainDatabaseManager().getCurrTicketbgInfo(customData.getUUID(BCTicket.KEY_TICKET_OWNER_UUID).toString());
         Color c;
         if (ticketbgInfo != null) {
             try {
