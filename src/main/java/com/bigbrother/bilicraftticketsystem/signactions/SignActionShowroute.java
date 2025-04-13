@@ -8,7 +8,7 @@ import com.bergerkiller.bukkit.tc.events.seat.MemberBeforeSeatExitEvent;
 import com.bergerkiller.bukkit.tc.events.seat.MemberSeatEnterEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
-import com.bigbrother.bilicraftticketsystem.config.MainConfig;
+import com.bigbrother.bilicraftticketsystem.config.RailwayRoutesConfig;
 import com.bigbrother.bilicraftticketsystem.signactions.component.RouteBossbar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -41,7 +41,7 @@ public class SignActionShowroute extends SignAction implements Listener {
 
         String args = info.getLine(3);
         if (args == null || args.isEmpty()) {
-            args = MainConfig.railwayRoutes.get("%s.args".formatted(splitRouteInfo[0].trim()), String.class, "RED 7 a 2 3");
+            args = RailwayRoutesConfig.railwayRoutes.get("%s.args".formatted(splitRouteInfo[0].trim()), String.class, "RED 7 a 2 3");
         }
 
         String[] argsInfoSplit = args.trim().split(" ");

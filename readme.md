@@ -17,6 +17,8 @@
 | 指令/功能                                             | 权限                        | 说明                                                                                               |
 |---------------------------------------------------|---------------------------|--------------------------------------------------------------------------------------------------|
 | ticket / ticket bg                                | bcts.ticket.open          | 打开车票购买界面 / 车票背景界面                                                                                |
+| ticket addroute \<routeid>                        | bcts.ticket.addroute      | 添加或修改showroute控制牌的路径                                                                             |
+| ticket delroute \<routeid>                        | bcts.ticket.delroute      | 删除showroute控制牌的路径                                                                                |
 | ticket uploadbg \<图片链接> \<自定义背景图名> \[车票字体颜色]      | bcts.ticket.uploadbg      | 上传背景图片，颜色格式 #RRGGBB                                                                              |
 | ticket deletebg \<图片id>                           | bcts.ticket.deletebg      | 指令删除任意背景图 / gui删除任意共享的背景图                                                                        |
 | ticket adminuploadbg \<图片链接> \<自定义背景图名> \[车票字体颜色] | bcts.ticket.adminuploadbg | 以管理员身份上传背景图片（没有个数限制）                                                                             |

@@ -2,6 +2,7 @@ package com.bigbrother.bilicraftticketsystem.signactions.component;
 
 import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
+import com.bigbrother.bilicraftticketsystem.config.RailwayRoutesConfig;
 import lombok.Data;
 import lombok.Getter;
 import net.kyori.adventure.bossbar.BossBar;
@@ -27,10 +28,11 @@ public class RouteBossbar {
     int totalTagNum = 0;
 
     public RouteBossbar(String routeId, Args args) {
-        String route = MainConfig.railwayRoutes.get("%s.route".formatted(routeId.trim()), String.class, null);
+        String route = RailwayRoutesConfig.railwayRoutes.get("%s.route".formatted(routeId.trim()), String.class, null);
         if (route == null) {
             this.routeList = null;
             this.bossBar = null;
+            this.routeId = null;
             return;
         }
         this.routeId = routeId;
@@ -48,6 +50,7 @@ public class RouteBossbar {
         this.totalTagNum = totalTagNum + 1;
         String[] split = ticketDisplayName.split(" → ");
         if (split.length != 2) {
+            this.routeList = null;
             this.bossBar = null;
             this.routeId = null;
             return;
@@ -68,7 +71,7 @@ public class RouteBossbar {
             bossBar.progress(Math.min((float) (nextStationIdx + 1) / routeList.size(), 1.0f));
         }
 
-        String title = MainConfig.railwayRoutes.get("%s.curr-station-title".formatted(routeId.trim()), String.class, null);
+        String title = RailwayRoutesConfig.railwayRoutes.get("%s.curr-station-title".formatted(routeId.trim()), String.class, null);
         if (title == null) {
             bossBar.name(Utils.str2Component(getNextTitle()));
         } else {
@@ -78,7 +81,7 @@ public class RouteBossbar {
 
     public void update(String[] args, String currStation, String routeId) {
         if (!routeId.equals(this.routeId)) {
-            String route = MainConfig.railwayRoutes.get("%s.route".formatted(routeId.trim()), String.class, null);
+            String route = RailwayRoutesConfig.railwayRoutes.get("%s.route".formatted(routeId.trim()), String.class, null);
             if (route == null) {
                 routeList = null;
                 return;
@@ -206,10 +209,10 @@ public class RouteBossbar {
         public Args(String[] args) {
             if (args.length == 5) {
                 this.bossbarColor = BossBar.Color.valueOf(args[0].trim().toUpperCase());
-                this.passedColor = convert(args[1]);
-                this.notPassedColor = convert(args[2]);
-                this.passedNum = Integer.parseInt(args[3]);
-                this.notPassedNum = Integer.parseInt(args[4]);
+                this.passedColor = convert(args[1].trim());
+                this.notPassedColor = convert(args[2].trim());
+                this.passedNum = Integer.parseInt(args[3].trim());
+                this.notPassedNum = Integer.parseInt(args[4].trim());
             }
         }
 

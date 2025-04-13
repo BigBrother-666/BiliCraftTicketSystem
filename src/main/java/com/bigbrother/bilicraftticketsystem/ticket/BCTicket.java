@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.common.wrappers.ChatText;
 import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
+import com.bigbrother.bilicraftticketsystem.config.RailwayRoutesConfig;
 import com.bigbrother.bilicraftticketsystem.menu.PlayerOption;
 import lombok.Getter;
 import net.kyori.adventure.text.Component;
@@ -114,7 +115,7 @@ public class BCTicket {
                     tag.putValue(KEY_TICKET_ORIGIN_PRICE, this.pathInfo.getPrice());
                     tag.putValue(KEY_TICKET_TAGS, String.join(",", this.pathInfo.getTags()));
                     tag.putValue(KEY_TICKET_START_PLATFORM_TAG, pathInfo.getStartPlatformTag());
-                    tag.putValue(KEY_TICKET_VERSION, MainConfig.expressTicketVersion);
+                    tag.putValue(KEY_TICKET_VERSION, RailwayRoutesConfig.expressTicketVersion);
                     tag.putValue(KEY_TICKET_START_STATION, option.getStartStationString());
                     tag.putValue(KEY_TICKET_END_STATION, option.getEndStationString());
                     tag.putValue(KEY_TICKET_DISTANCE, pathInfo.getDistance());

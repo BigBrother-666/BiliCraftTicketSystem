@@ -49,6 +49,12 @@ permissions:
   bcts.buildsign.showroute:
     description: "放置showroute控制牌权限"
     default: op
+  bcts.ticket.addroute:
+    description: "添加route权限"
+    default: op
+  bcts.ticket.delroute:
+    description: "删除route权限"
+    default: op
 
 libraries:
   - com.zaxxer:HikariCP:5.0.1

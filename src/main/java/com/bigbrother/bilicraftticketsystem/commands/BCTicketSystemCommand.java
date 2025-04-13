@@ -7,8 +7,10 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.config.RailwayRoutesConfig;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
+import lombok.Getter;
 import net.coreprotect.CoreProtect;
 import net.coreprotect.CoreProtectAPI;
 import net.kyori.adventure.text.Component;
@@ -43,7 +45,11 @@ import static com.bigbrother.bilicraftticketsystem.ticket.BCTicket.KEY_TICKET_OW
 
 public class BCTicketSystemCommand implements CommandExecutor {
     private final BiliCraftTicketSystem plugin;
+    // 背景界面玩家点击冷却
     private final HashMap<UUID, Long> uploadCooldowns = new HashMap<>();
+    // 处于添加路径状态的玩家，uuid-routeid
+    @Getter
+    private final HashMap<UUID, String> addRouteMode = new HashMap<>();
 
     public BCTicketSystemCommand(final @NotNull BiliCraftTicketSystem plugin) {
         this.plugin = plugin;
@@ -83,9 +89,63 @@ public class BCTicketSystemCommand implements CommandExecutor {
                 case "statistics" -> subCommandStatistics(player, args);
                 case "co" -> subCommandCo(player, args);
                 case "bg" -> subCommandBg(player);
+                case "addroute" -> subCommandAddroute(player, args);
+                case "delroute" -> subCommandDelroute(player, args);
             }
         }
         return true;
+    }
+
+    private void subCommandDelroute(Player player, String[] args) {
+        if (!player.hasPermission("bcts.ticket.delroute")) {
+            player.sendMessage(Component.text("你没有权限使用这条命令喵~", NamedTextColor.RED));
+            return;
+        }
+
+        if (args.length > 1) {
+            if (RailwayRoutesConfig.railwayRoutes.contains(args[1])) {
+                if (!RailwayRoutesConfig.railwayRoutes.get("%s.owner".formatted(args[1]), "").equals(player.getUniqueId().toString())) {
+                    player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("不能删除其他玩家添加的路线。", NamedTextColor.RED)));
+                    return;
+                }
+                RailwayRoutesConfig.railwayRoutes.remove(args[1]);
+                RailwayRoutesConfig.save();
+                player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("成功删除路径 %s".formatted(args[1]), NamedTextColor.GREEN)));
+            } else {
+                player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("不存在id为 %s 的路径".formatted(args[1]), NamedTextColor.RED)));
+            }
+        } else {
+            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("指令格式错误，正确格式：/ticket delroute <routeid>", NamedTextColor.RED)));
+        }
+    }
+
+    private void subCommandAddroute(Player player, String[] args) {
+        if (!player.hasPermission("bcts.ticket.addroute")) {
+            player.sendMessage(Component.text("你没有权限使用这条命令喵~", NamedTextColor.RED));
+            return;
+        }
+
+        if (addRouteMode.containsKey(player.getUniqueId())) {
+            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("当前正在处于添加路线模式。", NamedTextColor.YELLOW)));
+            return;
+        }
+
+        if (args.length > 1) {
+            if (RailwayRoutesConfig.railwayRoutes.contains(args[1])) {
+                if (!RailwayRoutesConfig.railwayRoutes.get("%s.owner".formatted(args[1]), "").equals(player.getUniqueId().toString())) {
+                    player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("不能修改其他玩家添加的路线。", NamedTextColor.RED)));
+                    return;
+                }
+                player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("开始修改路线 %s，所有输入不需要添加 / ".formatted(args[1]), NamedTextColor.GREEN)));
+            } else {
+                player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("开始添加路线 %s，所有输入不需要添加 / ".formatted(args[1]), NamedTextColor.GREEN)));
+            }
+            addRouteMode.put(player.getUniqueId(), args[1]);
+            RailwayRoutesConfig.railwayRoutes.set("%s.owner".formatted(args[1]), player.getUniqueId().toString());
+            player.sendMessage(Component.text("step1: 请输入到站时的显示内容，可用占位符{station}，表示当前车站名：", NamedTextColor.AQUA));
+        } else {
+            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("指令格式错误，正确格式：/ticket addroute <routeid>", NamedTextColor.RED)));
+        }
     }
 
     private void subCommandBg(Player player) {
@@ -170,7 +230,7 @@ public class BCTicketSystemCommand implements CommandExecutor {
         }
     }
 
-    public boolean downloadAndSaveImage(String imageUrl, String savePath, Player player, String[] args, boolean isAdmin) {
+    private boolean downloadAndSaveImage(String imageUrl, String savePath, Player player, String[] args, boolean isAdmin) {
         String fontColor = "#000000";
         if (args.length > 3) {
             try {
@@ -230,7 +290,7 @@ public class BCTicketSystemCommand implements CommandExecutor {
         }
     }
 
-    public byte[] convertTo128x128(byte[] imageBytes, Player player) throws IOException {
+    private byte[] convertTo128x128(byte[] imageBytes, Player player) throws IOException {
         // 读取图片文件
         BufferedImage originalImage = ImageIO.read(new ByteArrayInputStream(imageBytes));
         if (originalImage == null) {
@@ -293,7 +353,7 @@ public class BCTicketSystemCommand implements CommandExecutor {
         return byteArrayOutputStream.toByteArray();
     }
 
-    public long getImageSize(String imageUrl, Player player) throws IOException {
+    private long getImageSize(String imageUrl, Player player) throws IOException {
         URL url = new URL(imageUrl);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("HEAD");

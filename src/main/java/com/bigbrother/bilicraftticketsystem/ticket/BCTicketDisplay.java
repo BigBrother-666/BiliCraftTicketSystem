@@ -13,6 +13,7 @@ import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
+import com.bigbrother.bilicraftticketsystem.config.RailwayRoutesConfig;
 import com.bigbrother.bilicraftticketsystem.database.entity.TicketbgInfo;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -101,7 +102,7 @@ public class BCTicketDisplay extends MapDisplay {
         }
         int version = ticketNbt.getValue(BCTicket.KEY_TICKET_VERSION, Integer.class, null);
         // 版本一样，不需要更新
-        if (version == MainConfig.expressTicketVersion) {
+        if (version == RailwayRoutesConfig.expressTicketVersion) {
             return;
         }
         List<String> tags = List.of(ticketNbt.getValue(BCTicket.KEY_TICKET_TAGS, "").split(","));
@@ -133,7 +134,7 @@ public class BCTicketDisplay extends MapDisplay {
                 }
             }
         }
-        ticket.updateCustomData(tag -> tag.putValue(BCTicket.KEY_TICKET_VERSION, MainConfig.expressTicketVersion));
+        ticket.updateCustomData(tag -> tag.putValue(BCTicket.KEY_TICKET_VERSION, RailwayRoutesConfig.expressTicketVersion));
     }
 
     private void renderTicket() {

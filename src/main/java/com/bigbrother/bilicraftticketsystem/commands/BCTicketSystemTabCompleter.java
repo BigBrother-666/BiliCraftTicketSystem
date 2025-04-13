@@ -2,6 +2,7 @@ package com.bigbrother.bilicraftticketsystem.commands;
 
 import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.config.ItemsConfig;
+import com.bigbrother.bilicraftticketsystem.config.RailwayRoutesConfig;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicket;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -19,7 +20,7 @@ import java.util.stream.Stream;
 public class BCTicketSystemTabCompleter implements TabCompleter {
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if (commandSender instanceof Player) {
+        if (commandSender instanceof Player player) {
             if (args.length == 1) {
                 List<String> completerList = new ArrayList<>();
                 if (commandSender.hasPermission("bcts.ticket.menuitem")) {
@@ -52,6 +53,12 @@ public class BCTicketSystemTabCompleter implements TabCompleter {
                 if (commandSender.hasPermission("bcts.ticket.open")) {
                     completerList.add("bg");
                 }
+                if (commandSender.hasPermission("bcts.ticket.addroute")) {
+                    completerList.add("addroute");
+                }
+                if (commandSender.hasPermission("bcts.ticket.delroute")) {
+                    completerList.add("delroute");
+                }
                 return completerList.stream().filter(s -> s.contains(args[0].trim())).collect(Collectors.toList());
             } else if (args.length == 2) {
                 if (args[0].equals("menuitem") && commandSender.hasPermission("bcts.ticket.menuitem")) {
@@ -81,6 +88,15 @@ public class BCTicketSystemTabCompleter implements TabCompleter {
                     return List.of("ticket", "bcspawn");
                 } else if (args[0].equals("co") && commandSender.hasPermission("bcts.ticket.co")) {
                     return List.of("add", "undo");
+                } else if (args[0].equals("addroute") && commandSender.hasPermission("bcts.ticket.addroute") ||
+                        args[0].equals("delroute") && commandSender.hasPermission("bcts.ticket.delroute")) {
+                    List<String> completerList = new ArrayList<>();
+                    for (String key : RailwayRoutesConfig.railwayRoutes.getKeys()) {
+                        if (RailwayRoutesConfig.railwayRoutes.get("%s.owner".formatted(key), "").equals(player.getUniqueId().toString())) {
+                            completerList.add(key);
+                        }
+                    }
+                    return completerList;
                 }
             } else if (args.length == 3) {
                 if (args[0].equals("co") && args[1].equals("add") && commandSender.hasPermission("bcts.ticket.co")) {
@@ -94,7 +110,7 @@ public class BCTicketSystemTabCompleter implements TabCompleter {
                         }
                     }
                     return completerList.stream().filter(s -> s.startsWith(args[2])).collect(Collectors.toList());
-                } else if (args[0].equals("menuitem") && commandSender.hasPermission("bcts.ticket.menuitem")){
+                } else if (args[0].equals("menuitem") && commandSender.hasPermission("bcts.ticket.menuitem")) {
                     return ItemsConfig.itemsConfig.getKeys().stream().toList();
                 }
             }

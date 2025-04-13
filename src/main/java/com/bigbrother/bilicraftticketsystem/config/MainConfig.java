@@ -15,13 +15,11 @@ public class MainConfig {
     public static double speedStep;
     public static String expressTicketName;
     public static String expressTicketBgimage;
-    public static int expressTicketVersion;
     public static String commonTrainTag;
     public static String ticketFont;
     public static Boolean ticketFontBold;
     public static double pricePerKm;
     public static ConfigurationNode message;
-    public static ConfigurationNode railwayRoutes;
     public static ConfigurationNode permDiscount;
     public static ConfigurationNode railwayColor;
     public static int maxUses;
@@ -34,7 +32,6 @@ public class MainConfig {
 
         expressTicketName = mainConfig.get("express-ticket-name", "express");
         expressTicketBgimage = mainConfig.get("express-ticket-bgimage", "");
-        expressTicketVersion = mainConfig.get("express-ticket-version", 1);
         commonTrainTag = mainConfig.get("common-train-tag", "common");
         ticketFont = mainConfig.get("ticket-font", "");
         ticketFontBold = mainConfig.get("ticket-font-bold", true);
@@ -44,8 +41,6 @@ public class MainConfig {
         maxSpeed = speed.get("max", 5.0);
         minSpeed = speed.get("min", 2.0);
         speedStep = speed.get("step", 0.2);
-
-        railwayRoutes = mainConfig.getNode("railway-routes");
 
         permDiscount = mainConfig.getNode("perm-discount");
 

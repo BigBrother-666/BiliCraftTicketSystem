@@ -2,10 +2,7 @@ package com.bigbrother.bilicraftticketsystem;
 
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bigbrother.bilicraftticketsystem.commands.BCTicketSystemCommand;
-import com.bigbrother.bilicraftticketsystem.config.EnumConfig;
-import com.bigbrother.bilicraftticketsystem.config.ItemsConfig;
-import com.bigbrother.bilicraftticketsystem.config.MainConfig;
-import com.bigbrother.bilicraftticketsystem.config.MenuConfig;
+import com.bigbrother.bilicraftticketsystem.config.*;
 import com.bigbrother.bilicraftticketsystem.database.TrainDatabaseManager;
 import com.bigbrother.bilicraftticketsystem.listeners.PlayerListeners;
 import com.bigbrother.bilicraftticketsystem.listeners.TrainListeners;
@@ -37,6 +34,8 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     private Economy econ = null;
     @Getter
     private TrainDatabaseManager trainDatabaseManager;
+    @Getter
+    private BCTicketSystemCommand bcTicketSystemCommand;
 
     // 控制牌
     private final CustomSignActionAnnounce customSignActionAnnounce = new CustomSignActionAnnounce();
@@ -54,7 +53,9 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         // Plugin startup logic
         // 生成配置文件
         this.getComponentLogger().info(Component.text("拷贝配置文件...", NamedTextColor.GOLD));
+
         saveResource(EnumConfig.MAIN_CONFIG.getFileName(), /* replace */ false);
+        saveResource(EnumConfig.RAILWAY_ROUTES_CONFIG.getFileName(), /* replace */ false);
         saveResource(EnumConfig.MENU_MAIN.getFileName(), /* replace */ false);
         saveResource(EnumConfig.MENU_LOCATION.getFileName(), /* replace */ false);
         saveResource(EnumConfig.MENU_FILTER.getFileName(), /* replace */ false);
@@ -63,7 +64,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         saveResource(EnumConfig.ROUTE_MMD.getFileName(), /* replace */ false);
 
         // 注册指令
-        new BCTicketSystemCommand(this);
+        this.bcTicketSystemCommand = new BCTicketSystemCommand(this);
         this.getComponentLogger().info(Component.text("指令注册成功", NamedTextColor.GOLD));
 
         // 注册监听器
@@ -102,6 +103,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     public void loadConfig(CommandSender sender) {
         try {
             MainConfig.loadMainConfig(this);
+            RailwayRoutesConfig.load(this);
             plugin.getComponentLogger().info(Component.text("成功加载主配置", NamedTextColor.GOLD));
             ItemsConfig.loadItemsConfig(this);
             MenuConfig.loadMenuConfig(this);
