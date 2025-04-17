@@ -3,6 +3,7 @@ package com.bigbrother.bilicraftticketsystem.menu;
 import lombok.Data;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
 @Data
@@ -18,6 +19,14 @@ public class PlayerOption {
         this.endStation = Component.text("未选择终到站", NamedTextColor.RED);
         this.speed = 4.0;
         this.uses = 1;
+    }
+
+    public Component getStartStation() {
+        return startStation.decoration(TextDecoration.ITALIC, true);
+    }
+
+    public Component getEndStation() {
+        return endStation.decoration(TextDecoration.ITALIC, true);
     }
 
     public String getStartStationString() {

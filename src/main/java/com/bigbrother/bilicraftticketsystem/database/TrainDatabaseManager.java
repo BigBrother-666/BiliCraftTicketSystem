@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.database.entity.BcspawnInfo;
 import com.bigbrother.bilicraftticketsystem.database.entity.FullTicketbgInfo;
 import com.bigbrother.bilicraftticketsystem.database.entity.TicketbgInfo;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
@@ -34,6 +35,7 @@ public class TrainDatabaseManager {
     public static final String bcspawnTableName = "bcspawn_info";
     public static final String ticketbgTableName = "ticketbg_info";
     public static final String ticketbgUsageTableName = "ticketbg_usage_info";
+    public static final String bcspawnCoordTableName = "bcspawn_coord_info";
 
     public TrainDatabaseManager(BiliCraftTicketSystem plugin) {
         this.plugin = plugin;
@@ -105,9 +107,161 @@ public class TrainDatabaseManager {
                     );
                     """.formatted(ticketbgUsageTableName);
             statement.execute(sql);
+
+            sql = """
+                    CREATE TABLE IF NOT EXISTS %s (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                spawn_station VARCHAR(100),
+                                spawn_direction VARCHAR(100),
+                                spawn_railway VARCHAR(100),
+                                tag VARCHAR(20),
+                                coord_x INTEGER,
+                                coord_y INTEGER,
+                                coord_z INTEGER,
+                                world VARCHAR(50)
+                    );
+                    """.formatted(bcspawnCoordTableName);
+            statement.execute(sql);
+            sql = "CREATE INDEX IF NOT EXISTS idx_%s_bcspawn ON %s (spawn_station, spawn_direction, spawn_railway);".formatted(bcspawnCoordTableName, bcspawnCoordTableName);
+            statement.execute(sql);
         } catch (SQLException e) {
             plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
         }
+    }
+
+    /**
+     * 添加bcspawn控制牌信息到数据库，如果已经存在该startPlatformTag的数据，则更新
+     *
+     * @param startPlatformTag 站台tag
+     * @param x                x坐标
+     * @param y                y坐标
+     * @param z                z坐标
+     * @param world            控制牌所在的世界名
+     */
+    public void addBcspawnCoord(String startPlatformTag, int x, int y, int z, String world) {
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            String[] split = startPlatformTag.split("-");
+            if (split.length < 2) {
+                return;
+            }
+            String station = null;
+            String railway = null;
+            String direction = null;
+            if (TrainRoutes.getStationTagMap().get(split[0]) == null) {
+                return;
+            }
+            for (String s : TrainRoutes.getStationTagMap().get(split[0])) {
+                String[] sp = s.split("-");
+                if (sp.length == 3 && sp[2].startsWith(split[1])) {
+                    station = sp[0];
+                    railway = sp[1];
+                    direction = sp[2];
+                }
+            }
+            if (station == null || railway == null) {
+                return;
+            }
+
+            BcspawnInfo bcspawnInfo = getBcspawnInfo(station, railway, direction);
+            if (bcspawnInfo == null) {
+                String sql = "INSERT INTO %s (`spawn_station`, `spawn_direction`, `spawn_railway`, `tag`, `coord_x`, `coord_y`, `coord_z`, `world`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)".formatted(bcspawnCoordTableName);
+                try (Connection connection = ds.getConnection()) {
+                    PreparedStatement preparedStatement = connection.prepareStatement(sql);
+                    preparedStatement.setString(1, station);
+                    preparedStatement.setString(2, direction);
+                    preparedStatement.setString(3, railway);
+                    preparedStatement.setString(4, split[0]);
+                    preparedStatement.setInt(5, x);
+                    preparedStatement.setInt(6, y);
+                    preparedStatement.setInt(7, z);
+                    preparedStatement.setString(8, world);
+                    preparedStatement.executeUpdate();
+                } catch (SQLException e) {
+                    plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
+                }
+            } else if (!(bcspawnInfo.getCoordX() == x && bcspawnInfo.getCoordY() == y && bcspawnInfo.getCoordY() == z)) {
+                // update
+                String sql = "UPDATE %s SET coord_x=?, coord_y=?, coord_z=?, world=? WHERE spawn_station=? AND spawn_direction=? AND spawn_railway=?".formatted(bcspawnCoordTableName);
+                try (Connection connection = ds.getConnection()) {
+                    PreparedStatement preparedStatement = connection.prepareStatement(sql);
+                    preparedStatement.setInt(1, x);
+                    preparedStatement.setInt(2, y);
+                    preparedStatement.setInt(3, z);
+                    preparedStatement.setString(4, world);
+                    preparedStatement.setString(5, station);
+                    preparedStatement.setString(6, direction);
+                    preparedStatement.setString(7, railway);
+                    preparedStatement.executeUpdate();
+                } catch (SQLException e) {
+                    plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
+                }
+            }
+        });
+    }
+
+    /**
+     * 获取 BcspawnInfo
+     *
+     * @param station   车站名
+     * @param railway   铁路名
+     * @param direction 方向
+     * @return BcspawnInfo
+     */
+    @Nullable
+    private BcspawnInfo getBcspawnInfo(String station, String railway, String direction) {
+        String sql = "SELECT `spawn_station`, `spawn_direction`, `spawn_railway`, `tag`, `coord_x`, `coord_y`, `coord_z`, `world` FROM %s WHERE spawn_station=? AND spawn_direction=? AND spawn_railway=?".formatted(bcspawnCoordTableName);
+        try (Connection connection = ds.getConnection()) {
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+            preparedStatement.setString(1, station);
+            preparedStatement.setString(2, direction);
+            preparedStatement.setString(3, railway);
+            ResultSet rs = preparedStatement.executeQuery();
+            if (rs.next()) {
+                return new BcspawnInfo(
+                        rs.getString("spawn_station"),
+                        rs.getString("spawn_direction"),
+                        rs.getString("spawn_railway"),
+                        rs.getString("tag"),
+                        rs.getInt("coord_x"),
+                        rs.getInt("coord_y"),
+                        rs.getInt("coord_z"),
+                        rs.getString("world")
+                );
+            }
+        } catch (SQLException e) {
+            plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
+        }
+        return null;
+    }
+
+    /**
+     * 获取所有bcspawn控制牌信息
+     *
+     * @return bcspawn信息列表
+     */
+    public List<BcspawnInfo> getAllBcspawnInfo() {
+        List<BcspawnInfo> bcspawnInfoList = new ArrayList<>();
+
+        String sql = "SELECT `spawn_station`, `spawn_direction`, `spawn_railway`, `tag`, `coord_x`, `coord_y`, `coord_z`, `world` FROM %s".formatted(bcspawnCoordTableName);
+        try (Connection connection = ds.getConnection()) {
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+            ResultSet rs = preparedStatement.executeQuery();
+            while (rs.next()) {
+                bcspawnInfoList.add(new BcspawnInfo(
+                        rs.getString("spawn_station"),
+                        rs.getString("spawn_direction"),
+                        rs.getString("spawn_railway"),
+                        rs.getString("tag"),
+                        rs.getInt("coord_x"),
+                        rs.getInt("coord_y"),
+                        rs.getInt("coord_z"),
+                        rs.getString("world")
+                ));
+            }
+        } catch (SQLException e) {
+            plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
+        }
+        return bcspawnInfoList;
     }
 
     /**

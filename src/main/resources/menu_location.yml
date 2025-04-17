@@ -3,12 +3,13 @@ title: <#FF8C00>帕拉伦国有铁路车票系统-车站选择
 structure:
   - ". . . . . . . . u"
   - ". . . . . . . . #"
-  - ". . . . . . . . #"
+  - ". . . . . . . . n"
   - ". . . . . . . . #"
   - ". . . . . . . . #"
   - ". . . . . . . . d"
 
 mapping:
+  - "n item-nearest"
   - ". content"
   - "# ORANGE_STAINED_GLASS_PANE"
   - "u item-scrollup"

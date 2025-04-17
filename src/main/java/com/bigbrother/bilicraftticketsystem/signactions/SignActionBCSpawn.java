@@ -9,17 +9,25 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.signactions.spawner.SpawnSign;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Location;
 
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
 
 public class SignActionBCSpawn extends SignActionSpawn {
     @Override
     public void execute(SignActionEvent info) {
+        String line3 = info.getLine(3).trim();
+
+        if (info.isAction(SignActionType.GROUP_ENTER)) {
+            Location location = info.getSign().getLocation();
+            plugin.getTrainDatabaseManager().addBcspawnCoord(line3, location.getBlockX(), location.getBlockY(), location.getBlockZ(), location.getWorld().getName());
+        }
+
         if (!info.isAction(SignActionType.REDSTONE_ON, SignActionType.REDSTONE_OFF)) {
             return;
         }
         // Find and parse the spawn sign
-        String line3 = info.getLine(3).trim();
+
         if (info.isAction(SignActionType.REDSTONE_ON)) {
             info.setLine(3, "");
         }

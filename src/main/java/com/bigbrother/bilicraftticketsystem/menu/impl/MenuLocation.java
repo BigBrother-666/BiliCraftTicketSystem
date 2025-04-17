@@ -8,6 +8,7 @@ import com.bigbrother.bilicraftticketsystem.menu.Menu;
 import com.bigbrother.bilicraftticketsystem.menu.items.location.LocationItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.common.ScrollDownItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.common.ScrollUpItem;
+import com.bigbrother.bilicraftticketsystem.menu.items.location.NearestLocItem;
 import lombok.Getter;
 import lombok.Setter;
 import net.kyori.adventure.text.Component;
@@ -16,7 +17,6 @@ import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
@@ -38,6 +38,7 @@ public class MenuLocation implements Menu {
     @Getter
     private static final Map<UUID, MenuLocation> locationMenuMapping = new HashMap<>();
 
+    private NearestLocItem nearestLocItem;
     private final Window window;
 
     @Getter
@@ -72,6 +73,10 @@ public class MenuLocation implements Menu {
                     case "scrolldown":
                         guiBuilder.addIngredient(split[0].charAt(0), new ScrollDownItem());
                         break;
+                    case "nearest":
+                        nearestLocItem = new NearestLocItem(player);
+                        guiBuilder.addIngredient(split[0].charAt(0), nearestLocItem);
+                        break;
                     default:
                         try {
                             guiBuilder.addIngredient(split[0].charAt(0), new SimpleItem(new ItemBuilder(Material.valueOf(itemName))));
@@ -96,7 +101,6 @@ public class MenuLocation implements Menu {
                 customItem = new ItemStack(Material.valueOf(item.get("material", "").trim()));
             }
             ItemMeta itemMeta = customItem.getItemMeta();
-            itemMeta.addItemFlags(ItemFlag.HIDE_ITEM_SPECIFICS);
             List<Component> lore = itemMeta.lore();
             if (lore == null) {
                 lore = new ArrayList<>();
@@ -128,6 +132,9 @@ public class MenuLocation implements Menu {
             return;
         }
         this.window.open();
+        if (nearestLocItem != null) {
+            nearestLocItem.calcNearestStation();
+        }
     }
 
     @Override
@@ -140,6 +147,7 @@ public class MenuLocation implements Menu {
             entry.getValue().close();
         }
         locationMenuMapping.clear();
+        NearestLocItem.setBcspawnInfoList(plugin.getTrainDatabaseManager().getAllBcspawnInfo());
     }
 
     public static MenuLocation getMenu(Player player) {

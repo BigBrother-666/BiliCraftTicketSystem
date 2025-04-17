@@ -34,12 +34,12 @@ public class StartEndItem extends AbstractItem {
         ItemMeta itemMeta;
         if (isStart) {
             itemMeta = startItemStack.getItemMeta();
-            itemMeta.lore(List.of(Component.text("当前选择：", NamedTextColor.DARK_AQUA).append(Component.text(menu.getPlayerOption().getStartStationString()))));
+            itemMeta.lore(List.of(Component.text("当前选择：", NamedTextColor.DARK_AQUA).append(menu.getPlayerOption().getStartStation())));
             startItemStack.setItemMeta(itemMeta);
             return new ItemBuilder(startItemStack);
         } else {
             itemMeta = endItemStack.getItemMeta();
-            itemMeta.lore(List.of(Component.text("当前选择：", NamedTextColor.DARK_AQUA).append(Component.text(menu.getPlayerOption().getEndStationString()))));
+            itemMeta.lore(List.of(Component.text("当前选择：", NamedTextColor.DARK_AQUA).append(menu.getPlayerOption().getEndStation())));
             endItemStack.setItemMeta(itemMeta);
             return new ItemBuilder(endItemStack);
         }

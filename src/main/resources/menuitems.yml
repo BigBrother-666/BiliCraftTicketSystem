@@ -421,3 +421,19 @@ sort:
     lore:
     - '{"text":"","extra":[{"text":"左键按照上传时间倒序排序","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
     - '{"text":"","extra":[{"text":"右键按照使用人数倒序排序","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
+nearest:
+  v: 3700
+  type: BLACK_BANNER
+  meta:
+    ==: ItemMeta
+    meta-type: BANNER
+    patterns:
+    - ==: Pattern
+      color: WHITE
+      pattern: mr
+    - ==: Pattern
+      color: BLACK
+      pattern: hh
+    display-name: '{"text":"","extra":[{"text":"点击选择距离最近的车站","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"gold","bold":true}]}'
+    lore:
+    - '{"text":"","extra":[{"text":"定位中...","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"aqua","bold":false}]}'
