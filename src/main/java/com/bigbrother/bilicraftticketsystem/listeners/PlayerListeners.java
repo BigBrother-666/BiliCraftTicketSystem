@@ -2,14 +2,12 @@ package com.bigbrother.bilicraftticketsystem.listeners;
 
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
-import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.RailwayRoutesConfig;
 import com.bigbrother.bilicraftticketsystem.database.entity.TicketbgInfo;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuFilter;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuLocation;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
-import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -19,6 +17,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.InventoryView;
@@ -65,7 +64,7 @@ public class PlayerListeners implements Listener {
 
     // 处理route添加
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
-    public void onPlayerChat(AsyncChatEvent chatEvent) {
+    public void onPlayerChat(AsyncPlayerChatEvent chatEvent) {
         Player player = chatEvent.getPlayer();
         UUID uuid = player.getUniqueId();
         if (plugin.getBcTicketSystemCommand().getAddRouteMode().containsKey(uuid)) {
@@ -77,7 +76,7 @@ public class PlayerListeners implements Listener {
             // step
             Integer step = stepMap.get(uuid);
             String routeid = plugin.getBcTicketSystemCommand().getAddRouteMode().get(uuid);
-            String chatStr = Utils.component2Str(chatEvent.message());
+            String chatStr = chatEvent.getMessage();
             switch (step) {
                 case 0:
                     // 输入到站时的内容
