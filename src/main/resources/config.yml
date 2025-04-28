@@ -48,6 +48,7 @@ message:
   owner-conflict: <gold>[帕拉伦国有铁路车票系统] <red>不能使用其他玩家的车票
   used: <gold>[帕拉伦国有铁路车票系统] <green>成功使用一张（次）%s 车票
   check-failed: <gold>[帕拉伦国有铁路车票系统] <red>检票失败！主手没有本次列车的车票。本次列车的车票信息：
+  old-ticket: <gold>[帕拉伦国有铁路车票系统] <red>旧版车票已禁用
   quick-buy: <gold>[帕拉伦国有铁路车票系统] <green><underlined>点击花费 <bold>%.2f银币</bold> 快速购买一张此列车的单程票
   wiki: <gold>[帕拉伦国有铁路车票系统] <green><underlined><click:open_url:https://www.yuque.com/sasanarx/bilicraft/iunb5gkspevng8gf#>点击打开帕拉伦国有铁路wiki页面
   # 车票系统内

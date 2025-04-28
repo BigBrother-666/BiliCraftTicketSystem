@@ -155,6 +155,12 @@ public class TrainListeners implements Listener {
                     }
                 }
 
+                if (!nbt.containsKey(BCTicket.KEY_TICKET_VERSION)) {
+                    player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("old-ticket", "")));
+                    event.setCancelled(true);
+                    return;
+                }
+
                 // 列车为初始车 或 主手车票tag和列车tag一致，可以上车
                 if (trainTags.contains(MainConfig.commonTrainTag) || ticketTags.size() == trainTags.size() && trainTags.containsAll(ticketTags)) {
                     // 设置skip
@@ -263,7 +269,7 @@ public class TrainListeners implements Listener {
         trainTicket.setItemMeta(itemMeta);
 
         // 单程票价值 < 0 或 没有version 不显示快速购票
-        if (ticketNbt.getValue(BCTicket.KEY_TICKET_ORIGIN_PRICE, -1.0) < 0 || !originTicket.getCustomData().containsKey(BCTicket.KEY_TICKET_VERSION)) {
+        if (ticketNbt.getValue(BCTicket.KEY_TICKET_ORIGIN_PRICE, -1.0) < 0) {
             return;
         }
 
