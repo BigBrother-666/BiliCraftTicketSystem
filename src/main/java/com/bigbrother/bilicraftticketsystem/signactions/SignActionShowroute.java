@@ -83,13 +83,19 @@ public class SignActionShowroute extends SignAction implements Listener {
         if (!signChangeActionEvent.getPlayer().hasPermission("bcts.buildsign.showroute")) {
             return false;
         }
+        String[] splitRouteInfo = signChangeActionEvent.getLine(2).trim().split(" ");
+        if (splitRouteInfo.length == 2) {
+            String routeId = splitRouteInfo[0];
+            if (RailwayRoutesConfig.railwayRoutes.get("%s.route".formatted(routeId.trim()), String.class, null) == null) {
+                signChangeActionEvent.getPlayer().sendMessage(Component.text("控制牌指定的线路id(%s)不存在".formatted(routeId), NamedTextColor.RED));
+                return false;
+            }
+        } else {
+            signChangeActionEvent.getPlayer().sendMessage(Component.text("第三行有多余的空格 或 缺少路线id或本站名参数", NamedTextColor.RED));
+            return false;
+        }
         signChangeActionEvent.getPlayer().sendMessage(Component.text("建立控制牌成功，该控制牌可以在boss栏显示线路信息", NamedTextColor.GREEN));
         return true;
-    }
-
-    @Override
-    public boolean canSupportRC() {
-        return false;
     }
 
     @EventHandler(priority = EventPriority.NORMAL)

@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.Getter;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 
 
@@ -83,7 +84,7 @@ public class RouteBossbar {
         if (!routeId.equals(this.routeId)) {
             String route = RailwayRoutesConfig.railwayRoutes.get("%s.route".formatted(routeId.trim()), String.class, null);
             if (route == null) {
-                routeList = null;
+                // 不执行更新
                 return;
             }
             this.routeId = routeId;
