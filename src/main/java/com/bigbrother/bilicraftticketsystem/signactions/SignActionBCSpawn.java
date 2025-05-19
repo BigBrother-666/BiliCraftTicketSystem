@@ -7,6 +7,8 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.signactions.spawner.SpawnSign;
+import com.bigbrother.bilicraftticketsystem.database.entity.BcspawnInfo;
+import com.bigbrother.bilicraftticketsystem.menu.items.location.NearestLocItem;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Location;
@@ -17,6 +19,21 @@ public class SignActionBCSpawn extends SignActionSpawn {
     @Override
     public void execute(SignActionEvent info) {
         String line3 = info.getLine(3).trim();
+
+        if (line3.isEmpty()) {
+            // 由于未知原因导致的控制牌tag缺失
+            // 通过数据库记录寻找tag
+            for (BcspawnInfo bcspawnInfo : NearestLocItem.getBcspawnInfoList()) {
+                if (bcspawnInfo.getWorld().equals(info.getWorld().getName()) &&
+                        bcspawnInfo.getCoordX() == info.getLocation().getBlockX() &&
+                        bcspawnInfo.getCoordY() == info.getLocation().getBlockY() &&
+                        bcspawnInfo.getCoordZ() == info.getLocation().getBlockZ()
+                ) {
+                    line3 = "%s-%s".formatted(bcspawnInfo.getTag(), bcspawnInfo.getSpawnDirection().replace("方向", ""));
+                    break;
+                }
+            }
+        }
 
         if (info.isAction(SignActionType.GROUP_ENTER)) {
             Location location = info.getSign().getLocation();

@@ -200,6 +200,41 @@ public class TrainDatabaseManager {
     }
 
     /**
+     * 根据控制牌坐标获取 BcspawnInfo
+     *
+     * @param x x
+     * @param y y
+     * @param z z
+     * @return BcspawnInfo
+     */
+    @Nullable
+    private BcspawnInfo getBcspawnInfo(int x, int y, int z) {
+        String sql = "SELECT `spawn_station`, `spawn_direction`, `spawn_railway`, `tag`, `coord_x`, `coord_y`, `coord_z`, `world` FROM %s WHERE coord_x=? AND coord_y=? AND coord_z=?".formatted(bcspawnCoordTableName);
+        try (Connection connection = ds.getConnection()) {
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+            preparedStatement.setInt(1, x);
+            preparedStatement.setInt(2, y);
+            preparedStatement.setInt(3, z);
+            ResultSet rs = preparedStatement.executeQuery();
+            if (rs.next()) {
+                return new BcspawnInfo(
+                        rs.getString("spawn_station"),
+                        rs.getString("spawn_direction"),
+                        rs.getString("spawn_railway"),
+                        rs.getString("tag"),
+                        rs.getInt("coord_x"),
+                        rs.getInt("coord_y"),
+                        rs.getInt("coord_z"),
+                        rs.getString("world")
+                );
+            }
+        } catch (SQLException e) {
+            plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
+        }
+        return null;
+    }
+
+    /**
      * 获取 BcspawnInfo
      *
      * @param station   车站名
