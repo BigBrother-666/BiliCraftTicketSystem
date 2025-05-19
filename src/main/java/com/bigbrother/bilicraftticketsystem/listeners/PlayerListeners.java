@@ -43,6 +43,8 @@ public class PlayerListeners implements Listener {
         String removedRouteid = plugin.getBcTicketSystemCommand().getAddRouteMode().remove(uuid);
         if (removedRouteid != null) {
             RailwayRoutesConfig.railwayRoutes.remove(removedRouteid);
+            // 添加route时退出游戏，重新加载config
+            RailwayRoutesConfig.load(plugin);
         }
     }
 
@@ -134,6 +136,7 @@ public class PlayerListeners implements Listener {
                     // 添加
                     RailwayRoutesConfig.railwayRoutes.set("%s.args".formatted(routeid), chatStr);
                     RailwayRoutesConfig.save();
+                    RailwayRoutesConfig.load(plugin);
                     stepMap.remove(uuid);
                     plugin.getBcTicketSystemCommand().getAddRouteMode().remove(uuid);
                     player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("线路 %s 添加成功。".formatted(routeid), NamedTextColor.GREEN)));
