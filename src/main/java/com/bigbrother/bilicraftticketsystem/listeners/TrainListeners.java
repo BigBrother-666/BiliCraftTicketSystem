@@ -1,5 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.listeners;
 
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
@@ -42,7 +43,7 @@ public class TrainListeners implements Listener {
     private static final Map<String, Set<UUID>> trainPlayerInfo = new HashMap<>();
     private static final Map<String, Set<UUID>> trainHintRecord = new HashMap<>();
 
-    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onMemberSeatEnterParalonRailway(MemberBeforeSeatEnterEvent event) {
         if (event.wasSeatChange()) {
             return; // Already handled by MemberSeatChangeEvent
@@ -62,11 +63,11 @@ public class TrainListeners implements Listener {
             if (prop.getCanOnlyOwnersEnter() && !prop.hasOwnership(player)) {
                 return;
             }
-        }
 
-        // 如果是国铁，取消原版TC监听
-        if (event.getMember().getGroup().getProperties().getTickets().contains(MainConfig.expressTicketName)) {
-            event.setCancelled(true);
+            // 如果是国铁，跳过原版TC监听
+            if (event.getMember().getGroup().getProperties().getTickets().contains(MainConfig.expressTicketName)) {
+                event.setCancelled(true);
+            }
         }
     }
 
@@ -92,8 +93,15 @@ public class TrainListeners implements Listener {
 
             TrainProperties trainProperties = newMember.getGroup().getProperties();
 
-            // 是否是国铁列车
+            // 是否是国铁直达车
+            // 或 设置为无票车后
             if (!trainProperties.getTickets().contains(MainConfig.expressTicketName)) {
+                return;
+            }
+
+            // 已经使用过车票，直接上车
+            if (trainPlayerInfo.containsKey(trainProperties.getTrainName()) && trainPlayerInfo.get(trainProperties.getTrainName()).contains(player.getUniqueId())) {
+                event.setCancelled(false);
                 return;
             }
 
@@ -103,60 +111,53 @@ public class TrainListeners implements Listener {
             Ticket ticket = TicketStore.getTicketFromItem(mainHand);
             Collection<String> trainTags = trainProperties.getTags();
 
-            if (ticket == null && trainTags.contains(MainConfig.commonTrainTag)) {
-                // 设置为无票车
-                trainProperties.clearTickets();
-                trainProperties.getHolder().onPropertiesChanged();
-                event.setCancelled(false);
-                return;
-            }
+            if (ticket == null) {
+                // =============================== 无票 ===============================
+                // 1.正常情况
+                if (trainTags.contains(MainConfig.commonTrainTag)) {
+                    // 设置为无票车
+                    trainProperties.clearTickets();
+                    trainProperties.getHolder().onPropertiesChanged();
+                    event.setCancelled(false);
+                    return;
+                }
+                //
+            } else {
+                // =============================== 有票 ===============================
+                CommonTagCompound nbt = mainHand.getCustomData();
+                List<String> ticketTags = List.of(nbt.getValue(BCTicket.KEY_TICKET_TAGS, "").split(","));
 
-            if (ticket != null && !ticket.getName().equals(MainConfig.expressTicketName)) {
-                player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("not-support-ticket", "不支持该车票")));
-                event.setCancelled(true);
-                return;
-            }
-
-            // 该玩家已经使用过车票，可直接上车
-            if (trainPlayerInfo.containsKey(trainProperties.getTrainName()) && trainPlayerInfo.get(trainProperties.getTrainName()).contains(player.getUniqueId())) {
-                event.setCancelled(false);
-                return;
-            }
-
-            List<String> ticketTags = null;
-            CommonTagCompound nbt = mainHand.getCustomData();
-            if (ticket != null) {
-                ticketTags = List.of(nbt.getValue(BCTicket.KEY_TICKET_TAGS, "").split(","));
-            }
-
-            if (!TicketStore.isTicketOwner(player, mainHand)) {
-                player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("owner-conflict", "不能使用其他玩家的车票")));
-                event.setCancelled(true);
-                return;
-            }
-
-            if (ticketTags != null && !ticketTags.get(0).isEmpty()) {
-                // 检查是否是正确的站台
-                // 寻找用来判断的tag
-                String ticketStartStationTag = nbt.getValue(BCTicket.KEY_TICKET_START_PLATFORM_TAG, "");
-                if (!ticketStartStationTag.isEmpty()) {
-                    for (String trainTag : trainTags) {
-                        String[] split = trainTag.split("-");
-                        if (split.length == 2) {
-                            // 找到
-                            if (!ticketStartStationTag.split("-")[0].equals(split[0]) || !ticketStartStationTag.split("-")[1].startsWith(split[1])) {
-                                // 错误的站台
-                                player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("wrong-platform", "")));
-                                event.setCancelled(true);
-                                return;
-                            }
-                            break;
-                        }
-                    }
+                // 其他玩家的车票
+                if (!TicketStore.isTicketOwner(player, mainHand)) {
+                    player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("owner-conflict", "不能使用其他玩家的车票")));
+                    event.setCancelled(true);
+                    return;
                 }
 
+                // 过期的车票
+                if (TicketStore.isTicketExpired(mainHand)) {
+                    player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("expired-ticket", "车票已过期")));
+                    event.setCancelled(true);
+                    return;
+                }
+
+                // 不支持的车票
+                if (!ticket.getName().equals(MainConfig.expressTicketName) || ticketTags.get(0).isEmpty()) {
+                    player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("not-support-ticket", "不支持该车票")));
+                    event.setCancelled(true);
+                    return;
+                }
+
+                // 旧版本车票
                 if (!nbt.containsKey(BCTicket.KEY_TICKET_VERSION)) {
-                    player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("old-ticket", "")));
+                    player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("old-ticket", "旧版车票已禁用")));
+                    event.setCancelled(true);
+                    return;
+                }
+
+                // ================= 使用正确车票上车 =================
+                // 检查站台是否正确
+                if (verifyPlatform(nbt, trainTags, player)) {
                     event.setCancelled(true);
                     return;
                 }
@@ -169,24 +170,28 @@ public class TrainListeners implements Listener {
                         trainProperties.setSkipOptions(SignSkipOptions.create(Integer.parseInt(split[1]), Integer.parseInt(split[2]), split[0]));
                     }
 
-                    // 设置其他属性
-                    trainProperties.apply(ticket.getProperties());
-                    // 设置速度和tag
+                    ConfigurationNode ticketTrainProperties = ticket.getProperties().clone();
+                    ticketTrainProperties.remove("carts");
+
+                    // 设置速度
                     if (nbt.getValue(BCTicket.KEY_TICKET_MAX_SPEED, 4.0) > trainProperties.getSpeedLimit()) {
-                        trainProperties.setSpeedLimit(nbt.getValue(BCTicket.KEY_TICKET_MAX_SPEED, 4.0));
+                        ticketTrainProperties.set("speedLimit", nbt.getValue(BCTicket.KEY_TICKET_MAX_SPEED, 4.0));
                     }
-                    trainProperties.clearTags();
-                    for (String ticketTag : ticketTags) {
-                        trainProperties.addTags(ticketTag);
-                    }
+
+                    // 设置tag
+                    ticketTrainProperties.set("tags", ticketTags);
+                    trainProperties.apply(ticketTrainProperties);
+
                     trainTicketInfo.put(trainProperties.getTrainName(), mainHand);
                     trainProperties.getHolder().onPropertiesChanged();
 
-                    // 检查是否是最后一次使用车票（动态设置车票最大使用次数需要）
+                    // 使用次数+1
+                    mainHand.updateCustomData(tag -> tag.putValue(BCTicket.KEY_TICKET_NUMBER_OF_USES, tag.getValue(BCTicket.KEY_TICKET_NUMBER_OF_USES, 0) + 1));
+                    // 检查是否达到最大次数
                     if (nbt.getValue(BCTicket.KEY_TICKET_MAX_NUMBER_OF_USES, 0) > 0 && nbt.getValue(BCTicket.KEY_TICKET_MAX_NUMBER_OF_USES, 0) <= nbt.getValue(BCTicket.KEY_TICKET_NUMBER_OF_USES, 0) + 1) {
-                        mainHand.updateCustomData(tag -> tag.putValue(BCTicket.KEY_TICKET_NUMBER_OF_USES, MainConfig.maxUses - 1));
-                        HumanHand.setItemInMainHand(player, mainHand.toBukkit());
+                        mainHand.setAmount(mainHand.getAmount() - 1);
                     }
+                    HumanHand.setItemInMainHand(player, mainHand.toBukkit());
 
                     // 所有车厢显示bossbar
                     for (MinecartMember<?> minecartMember : event.getMember().getGroup()) {
@@ -209,9 +214,6 @@ public class TrainListeners implements Listener {
 
                     player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("used", "成功使用一张（次）%s 车票").formatted(nbt.getValue(BCTicket.KEY_TICKET_DISPLAY_NAME))));
                     event.setCancelled(false);
-
-                    // 原版TC逻辑
-                    TicketStore.handleTickets(player, trainProperties);
                     return;
                 }
             }
@@ -222,6 +224,25 @@ public class TrainListeners implements Listener {
                 showQuickBuy(trainProperties, player, trainTags);
             }
         }
+    }
+
+    private static boolean verifyPlatform(CommonTagCompound nbt, Collection<String> trainTags, Player player) {
+        String ticketStartStationTag = nbt.getValue(BCTicket.KEY_TICKET_START_PLATFORM_TAG, "");
+        if (!ticketStartStationTag.isEmpty()) {
+            for (String trainTag : trainTags) {
+                String[] split = trainTag.split("-");
+                if (split.length == 2) {
+                    // 找到
+                    if (!ticketStartStationTag.split("-")[0].equals(split[0]) || !ticketStartStationTag.split("-")[1].startsWith(split[1])) {
+                        // 错误的站台
+                        player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("wrong-platform", "")));
+                        return true;
+                    }
+                    break;
+                }
+            }
+        }
+        return false;
     }
 
     private static void showQuickBuy(TrainProperties trainProperties, Player player, Collection<String> trainTags) {
