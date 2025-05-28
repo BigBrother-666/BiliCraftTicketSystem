@@ -28,4 +28,18 @@ public class BcspawnInfo {
             return null;
         }
     }
+
+    public int getFixedY() {
+        return coordY + 3;
+    }
+
+    @Nullable
+    public Location getFixedLocation() {
+        World world1 = Bukkit.getWorld(world);
+        if (world1 != null) {
+            return new Location(world1, coordX, this.getFixedY(), coordZ);
+        } else {
+            return null;
+        }
+    }
 }

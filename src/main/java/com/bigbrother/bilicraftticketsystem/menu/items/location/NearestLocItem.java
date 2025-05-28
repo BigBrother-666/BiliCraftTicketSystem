@@ -65,7 +65,7 @@ public class NearestLocItem extends LocationItem {
             double minDistanceSquared = Double.MAX_VALUE;
             for (BcspawnInfo bcspawnInfo : bcspawnInfoList) {
                 if (bcspawnInfo.getWorld().equals(playerLocation.getWorld().getName())) {
-                    Location bcspawnLocation = bcspawnInfo.getLocation();
+                    Location bcspawnLocation = bcspawnInfo.getFixedLocation();
                     if (bcspawnLocation != null) {
                         double distanceSquared = playerLocation.distanceSquared(bcspawnLocation);
                         if (minDistanceSquared > distanceSquared) {
@@ -81,7 +81,7 @@ public class NearestLocItem extends LocationItem {
             List<Component> lore = new ArrayList<>();
             if (nearestBcspawn != null) {
                 lore.add(Component.text("距离最近的车站：%s(%.2fm)，位于(x=%d, y=%d, z=%d)附近"
-                        .formatted(nearestBcspawn.getSpawnStation(), Math.sqrt(minDistanceSquared), nearestBcspawn.getCoordX(), nearestBcspawn.getCoordY() + 2, nearestBcspawn.getCoordZ()), NamedTextColor.DARK_AQUA));
+                        .formatted(nearestBcspawn.getSpawnStation(), Math.sqrt(minDistanceSquared), nearestBcspawn.getCoordX(), nearestBcspawn.getFixedY(), nearestBcspawn.getCoordZ()), NamedTextColor.DARK_AQUA));
             } else {
                 lore.add(Component.text("当前世界没有国铁车站", NamedTextColor.RED));
             }
