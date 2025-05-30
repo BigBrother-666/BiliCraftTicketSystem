@@ -1,4 +1,4 @@
-package com.bigbrother.bilicraftticketsystem.signactions;
+package com.bigbrother.bilicraftticketsystem.addon.signactions;
 
 import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.Permission;

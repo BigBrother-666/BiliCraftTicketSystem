@@ -1,11 +1,11 @@
-package com.bigbrother.bilicraftticketsystem.signactions;
+package com.bigbrother.bilicraftticketsystem.addon.signactions;
 
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignActionStation;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
-import com.bigbrother.bilicraftticketsystem.signactions.component.RouteBossbar;
+import com.bigbrother.bilicraftticketsystem.addon.signactions.component.RouteBossbar;
 
 public class CustomSignActionStation extends SignActionStation {
     @Override

@@ -10,7 +10,7 @@ import com.bigbrother.bilicraftticketsystem.menu.impl.MenuFilter;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuLocation;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
-import com.bigbrother.bilicraftticketsystem.signactions.*;
+import com.bigbrother.bilicraftticketsystem.addon.signactions.*;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicketDisplay;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;

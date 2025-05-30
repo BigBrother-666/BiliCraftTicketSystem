@@ -1,4 +1,4 @@
-package com.bigbrother.bilicraftticketsystem.signactions.component;
+package com.bigbrother.bilicraftticketsystem.addon.signactions.component;
 
 import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
@@ -7,7 +7,6 @@ import lombok.Data;
 import lombok.Getter;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 
 

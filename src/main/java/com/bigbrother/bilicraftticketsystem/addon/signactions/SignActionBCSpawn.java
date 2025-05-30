@@ -1,4 +1,4 @@
-package com.bigbrother.bilicraftticketsystem.signactions;
+package com.bigbrother.bilicraftticketsystem.addon.signactions;
 
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
