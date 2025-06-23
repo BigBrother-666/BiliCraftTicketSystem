@@ -114,13 +114,13 @@
         <dependency>
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
-            <version>1.20.4-R0.1-SNAPSHOT</version>
+            <version>1.21.4-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.bergerkiller.bukkit</groupId>
             <artifactId>TrainCarts</artifactId>
-            <version>1.21.1-v1</version>
+            <version>1.21.5-v1</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -144,7 +144,7 @@
         <dependency>
             <groupId>net.coreprotect</groupId>
             <artifactId>coreprotect</artifactId>
-            <version>22.2</version>
+            <version>22.4</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
