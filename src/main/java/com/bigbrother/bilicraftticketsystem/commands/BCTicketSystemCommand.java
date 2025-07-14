@@ -104,12 +104,17 @@ public class BCTicketSystemCommand implements CommandExecutor {
 
         if (args.length > 1) {
             if (RailwayRoutesConfig.railwayRoutes.contains(args[1])) {
-                if (!RailwayRoutesConfig.railwayRoutes.get("%s.owner".formatted(args[1]), "").equals(player.getUniqueId().toString())) {
+                // owner 存在且非空且和当前玩家uuid不同
+                if (RailwayRoutesConfig.railwayRoutes.contains("%s.owner".formatted(args[1])) &&
+                        !RailwayRoutesConfig.railwayRoutes.get("%s.owner".formatted(args[1]), "").isEmpty() &&
+                        !RailwayRoutesConfig.railwayRoutes.get("%s.owner".formatted(args[1])).equals(player.getUniqueId().toString())
+                ) {
                     player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("不能删除其他玩家添加的路线。", NamedTextColor.RED)));
                     return;
                 }
                 RailwayRoutesConfig.railwayRoutes.remove(args[1]);
                 RailwayRoutesConfig.save();
+                RailwayRoutesConfig.load(plugin);
                 player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("成功删除路径 %s".formatted(args[1]), NamedTextColor.GREEN)));
             } else {
                 player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("不存在id为 %s 的路径".formatted(args[1]), NamedTextColor.RED)));
@@ -132,7 +137,10 @@ public class BCTicketSystemCommand implements CommandExecutor {
 
         if (args.length > 1) {
             if (RailwayRoutesConfig.railwayRoutes.contains(args[1])) {
-                if (!RailwayRoutesConfig.railwayRoutes.get("%s.owner".formatted(args[1]), "").equals(player.getUniqueId().toString())) {
+                if (RailwayRoutesConfig.railwayRoutes.contains("%s.owner".formatted(args[1])) &&
+                        !RailwayRoutesConfig.railwayRoutes.get("%s.owner".formatted(args[1]), "").isEmpty() &&
+                        !RailwayRoutesConfig.railwayRoutes.get("%s.owner".formatted(args[1])).equals(player.getUniqueId().toString())
+                ) {
                     player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("不能修改其他玩家添加的路线。", NamedTextColor.RED)));
                     return;
                 }
