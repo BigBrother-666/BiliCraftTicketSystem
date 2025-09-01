@@ -80,7 +80,7 @@ public class NearestLocItem extends LocationItem {
             ItemMeta itemMeta = this.itemStack.getItemMeta();
             List<Component> lore = new ArrayList<>();
             if (nearestBcspawn != null) {
-                lore.add(Component.text("距离最近的车站：%s(%.2fm)，位于(x=%d, y=%d, z=%d)附近"
+                lore.add(Component.text("距离最近的车站：%s(%.2fm)，位于(x=%d, z=%d, z=%d)附近"
                         .formatted(nearestBcspawn.getSpawnStation(), Math.sqrt(minDistanceSquared), nearestBcspawn.getCoordX(), nearestBcspawn.getFixedY(), nearestBcspawn.getCoordZ()), NamedTextColor.DARK_AQUA));
             } else {
                 lore.add(Component.text("当前世界没有国铁车站", NamedTextColor.RED));

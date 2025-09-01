@@ -1,7 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.menu.impl;
 
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
-import com.bigbrother.bilicraftticketsystem.TrainRoutes;
+import com.bigbrother.bilicraftticketsystem.MermaidGraph;
 import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.config.MenuConfig;
@@ -29,6 +29,7 @@ import xyz.xenondevs.invui.item.impl.SimpleItem;
 import xyz.xenondevs.invui.window.Window;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
 
@@ -151,7 +152,7 @@ public class MenuMain implements Menu {
         for (Item item : menuTicketList) {
             if (item instanceof TicketItem ticketItem &&
                     ticketItem.getTicket() != null &&
-                    TrainRoutes.StationAndRailway.getAllStations(ticketItem.getTicket().getPathInfo().getPath()).containsAll(filter)) {
+                    new HashSet<>(ticketItem.getTicket().getPathInfo().getPath().stream().map(MermaidGraph.Node::getStationName).collect(Collectors.toList())).containsAll(filter)) {
                 filteredTickets.add(item);
             }
         }

@@ -1,5 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.commands;
 
+import com.bigbrother.bilicraftticketsystem.MermaidGraph;
 import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.config.ItemsConfig;
 import com.bigbrother.bilicraftticketsystem.config.RailwayRoutesConfig;
@@ -101,11 +102,10 @@ public class BCTicketSystemTabCompleter implements TabCompleter {
             } else if (args.length == 3) {
                 if (args[0].equals("co") && args[1].equals("add") && commandSender.hasPermission("bcts.ticket.co")) {
                     List<String> completerList = new ArrayList<>();
-                    for (Map.Entry<String, List<String>> entry : TrainRoutes.getStationTagMap().entrySet()) {
-                        for (String s : entry.getValue()) {
-                            String[] split = s.split("-");
-                            if (split.length == 3) {
-                                completerList.add(entry.getKey() + "-" + split[2]);
+                    for (Map.Entry<String, List<MermaidGraph.Node>> entry : TrainRoutes.graph.nodeTagMap.entrySet()) {
+                        for (MermaidGraph.Node node : entry.getValue()) {
+                            if (node.isStation()) {
+                                completerList.add(entry.getKey() + "-" + node.getRailwayDirection());
                             }
                         }
                     }

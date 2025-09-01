@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.wrappers.ChatText;
+import com.bigbrother.bilicraftticketsystem.MermaidGraph;
 import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
@@ -88,7 +89,7 @@ public class BCTicket {
         totalPrice = getDiscountPrice(owner, option.getUses(), totalPrice);
 
         // 更新物品名
-        itemName = option.getUses() == 1 ? "%s → %s 单次票".formatted(pathInfo.getStart(), pathInfo.getEnd()) : "%s → %s %s次票".formatted(pathInfo.getStart(), pathInfo.getEnd(), option.getUses());
+        itemName = (option.getUses() == 1 ? "%s → %s 单次票" : "%s → %s %s次票").formatted(pathInfo.getStartStation().getStationName(), pathInfo.getEndStation().getStationName());
 
         // 更新lore
         ItemMeta itemMeta = ticket.getItemMeta();
@@ -106,7 +107,7 @@ public class BCTicket {
                     tag.putValue("plugin", "TrainCarts");
                     tag.putValue(KEY_TICKET_NAME, MainConfig.expressTicketName);
                     tag.putValue(KEY_TICKET_CREATION_TIME, System.currentTimeMillis());
-                    tag.putValue(KEY_TICKET_DISPLAY_NAME, "%s → %s".formatted(pathInfo.getStart().substring(0, pathInfo.getStart().lastIndexOf("站")), pathInfo.getEnd().substring(0, pathInfo.getEnd().lastIndexOf("站"))));
+                    tag.putValue(KEY_TICKET_DISPLAY_NAME, "%s → %s".formatted(pathInfo.getStartStation().getClearStationName(), pathInfo.getEndStation().getClearStationName()));
                     tag.putValue(KEY_TICKET_NUMBER_OF_USES, 0);
                     tag.putValue(KEY_TICKET_MAX_NUMBER_OF_USES, option.getUses());
                     tag.putUUID(KEY_TICKET_OWNER_UUID, owner.getUniqueId());
@@ -176,13 +177,13 @@ public class BCTicket {
     public static List<Component> getBaseTicketInfoLore(TrainRoutes.PathInfo pathInfo, double speed) {
         List<Component> lore = new ArrayList<>();
         lore.add(Component.text("起始站 ---> 终到站：", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false).decoration(TextDecoration.BOLD, true));
-        lore.add(Component.text("%s ---直达---> %s".formatted(pathInfo.getStart(), pathInfo.getEnd()), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("%s ---直达---> %s".formatted(pathInfo.getStartStation().getStationName(), pathInfo.getEndStation().getStationName()), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
         lore.add(Component.text("可使用的站台：", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false).decoration(TextDecoration.BOLD, true));
         lore.add(Component.text(pathInfo.getStartPlatform(), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
 
         // 路线详情lore
         lore.add(Component.text("路线详情（只停起始站和终到站）：", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false).decoration(TextDecoration.BOLD, true));
-        List<TrainRoutes.StationAndRailway> path = pathInfo.getPath();
+        List<MermaidGraph.Node> path = pathInfo.getPath();
         Component join = Component.text("");
         List<String> railways = new ArrayList<>();
         for (int i = 0; i < path.size(); i++) {

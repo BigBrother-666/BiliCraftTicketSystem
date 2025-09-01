@@ -2,6 +2,7 @@ package com.bigbrother.bilicraftticketsystem.database;
 
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
+import com.bigbrother.bilicraftticketsystem.MermaidGraph;
 import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.database.entity.BcspawnInfo;
@@ -147,15 +148,14 @@ public class TrainDatabaseManager {
             String station = null;
             String railway = null;
             String direction = null;
-            if (TrainRoutes.getStationTagMap().get(split[0]) == null) {
+            if (TrainRoutes.graph.nodeTagMap.get(split[0]) == null) {
                 return;
             }
-            for (String s : TrainRoutes.getStationTagMap().get(split[0])) {
-                String[] sp = s.split("-");
-                if (sp.length == 3 && sp[2].startsWith(split[1])) {
-                    station = sp[0];
-                    railway = sp[1];
-                    direction = sp[2];
+            for (MermaidGraph.Node node : TrainRoutes.graph.nodeTagMap.get(split[0])) {
+                if (node.isStation() && node.getRailwayDirection().startsWith(split[1])) {
+                    station = node.getStationName();
+                    railway = node.getRailwayName();
+                    direction = node.getRailwayDirection();
                 }
             }
             if (station == null || railway == null) {
@@ -203,7 +203,7 @@ public class TrainDatabaseManager {
      * 根据控制牌坐标获取 BcspawnInfo
      *
      * @param x x
-     * @param y y
+     * @param y z
      * @param z z
      * @return BcspawnInfo
      */
@@ -688,15 +688,14 @@ public class TrainDatabaseManager {
             String station = null;
             String railway = null;
             String direction = null;
-            if (TrainRoutes.getStationTagMap().get(split[0]) == null) {
+            if (TrainRoutes.graph.nodeTagMap.get(split[0]) == null) {
                 return;
             }
-            for (String s : TrainRoutes.getStationTagMap().get(split[0])) {
-                String[] sp = s.split("-");
-                if (sp.length == 3 && sp[2].startsWith(split[1])) {
-                    station = sp[0];
-                    railway = sp[1];
-                    direction = sp[2];
+            for (MermaidGraph.Node node : TrainRoutes.graph.nodeTagMap.get(split[0])) {
+                if (node.isStation() && node.getRailwayDirection().startsWith(split[1])) {
+                    station = node.getStationName();
+                    railway = node.getRailwayName();
+                    direction = node.getRailwayDirection();
                 }
             }
 
