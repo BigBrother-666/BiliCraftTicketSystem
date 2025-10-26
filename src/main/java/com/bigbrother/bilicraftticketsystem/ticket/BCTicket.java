@@ -188,7 +188,7 @@ public class BCTicket {
         List<String> railways = new ArrayList<>();
         for (int i = 0; i < path.size(); i++) {
             String stationName = path.get(i).getStationName();
-            String railwayName = path.get(i).getRailwayName();
+            String railwayName = path.get(i).getRailwayName() + path.get(i).getRailwayDirection();
 
             if (!railways.isEmpty() && !railways.get(railways.size() - 1).equals(railwayName)) {
                 railways.add(railwayName);
