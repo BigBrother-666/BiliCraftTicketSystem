@@ -176,10 +176,15 @@ public class BCTicket {
 
     public static List<Component> getBaseTicketInfoLore(TrainRoutes.PathInfo pathInfo, double speed) {
         List<Component> lore = new ArrayList<>();
+        MermaidGraph.Node startStation = pathInfo.getStartStation();
         lore.add(Component.text("起始站 ---> 终到站：", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false).decoration(TextDecoration.BOLD, true));
-        lore.add(Component.text("%s ---直达---> %s".formatted(pathInfo.getStartStation().getStationName(), pathInfo.getEndStation().getStationName()), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
-        lore.add(Component.text("可使用的站台：", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false).decoration(TextDecoration.BOLD, true));
-        lore.add(Component.text(pathInfo.getStartPlatform(), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("%s ---直达---> %s".formatted(startStation.getStationName(), pathInfo.getEndStation().getStationName()), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("车票使用方法：", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false).decoration(TextDecoration.BOLD, true));
+        lore.add(Component.text("前往国铁 [%s] , 使用标有 [%s %s] 的发车装置发车, 主手拿本车票上车"
+                        .formatted(startStation.getStationName(),
+                                startStation.getRailwayName(),
+                                startStation.getRailwayDirection()),
+                NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
 
         // 路线详情lore
         lore.add(Component.text("路线详情（只停起始站和终到站）：", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false).decoration(TextDecoration.BOLD, true));
