@@ -11,7 +11,8 @@ public enum EnumConfig {
     MENU_FILTER("menu_filter.yml"),
     MENU_TICKETBG("menu_ticketbg.yml"),
     MENU_ITEMS("menuitems.yml"),
-    RAILWAY_ROUTES_CONFIG("railway_routes.yml");
+    RAILWAY_ROUTES_CONFIG("railway_routes.yml"),
+    ADDON_CONFIG("addon.yml");
 
     private final String fileName;
 

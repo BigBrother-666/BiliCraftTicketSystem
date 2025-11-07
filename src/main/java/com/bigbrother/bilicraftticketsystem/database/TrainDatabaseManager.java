@@ -141,23 +141,15 @@ public class TrainDatabaseManager {
      */
     public void addBcspawnCoord(String startPlatformTag, int x, int y, int z, String world) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            String[] split = startPlatformTag.split("-");
-            if (split.length < 2) {
+            MermaidGraph.Node bcSpawnNode = TrainRoutes.graph.getBCSpawnNode(startPlatformTag);
+            if (bcSpawnNode == null) {
                 return;
             }
-            String station = null;
-            String railway = null;
-            String direction = null;
-            if (TrainRoutes.graph.nodeTagMap.get(split[0]) == null) {
-                return;
-            }
-            for (MermaidGraph.Node node : TrainRoutes.graph.nodeTagMap.get(split[0])) {
-                if (node.isStation() && node.getRailwayDirection().startsWith(split[1])) {
-                    station = node.getStationName();
-                    railway = node.getRailwayName();
-                    direction = node.getRailwayDirection();
-                }
-            }
+
+            String station = bcSpawnNode.getStationName();
+            String railway = bcSpawnNode.getRailwayName();
+            String direction = bcSpawnNode.getRailwayDirection();
+
             if (station == null || railway == null) {
                 return;
             }
@@ -170,7 +162,7 @@ public class TrainDatabaseManager {
                     preparedStatement.setString(1, station);
                     preparedStatement.setString(2, direction);
                     preparedStatement.setString(3, railway);
-                    preparedStatement.setString(4, split[0]);
+                    preparedStatement.setString(4, bcSpawnNode.getTag());
                     preparedStatement.setInt(5, x);
                     preparedStatement.setInt(6, y);
                     preparedStatement.setInt(7, z);
@@ -681,23 +673,14 @@ public class TrainDatabaseManager {
 
     public void addBcspawnInfo(String startPlatformTag, List<String> dateTime) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            String[] split = startPlatformTag.split("-");
-            if (split.length < 2) {
+            MermaidGraph.Node bcSpawnNode = TrainRoutes.graph.getBCSpawnNode(startPlatformTag);
+            if (bcSpawnNode == null) {
                 return;
             }
-            String station = null;
-            String railway = null;
-            String direction = null;
-            if (TrainRoutes.graph.nodeTagMap.get(split[0]) == null) {
-                return;
-            }
-            for (MermaidGraph.Node node : TrainRoutes.graph.nodeTagMap.get(split[0])) {
-                if (node.isStation() && node.getRailwayDirection().startsWith(split[1])) {
-                    station = node.getStationName();
-                    railway = node.getRailwayName();
-                    direction = node.getRailwayDirection();
-                }
-            }
+
+            String station = bcSpawnNode.getStationName();
+            String railway = bcSpawnNode.getRailwayName();
+            String direction = bcSpawnNode.getRailwayDirection();
 
             if (station == null || railway == null) {
                 return;

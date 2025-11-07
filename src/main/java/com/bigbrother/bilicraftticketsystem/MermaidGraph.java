@@ -2,6 +2,7 @@ package com.bigbrother.bilicraftticketsystem;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
@@ -9,7 +10,7 @@ import static com.bigbrother.bilicraftticketsystem.config.MainConfig.pricePerKm;
 
 public class MermaidGraph {
     // 根据tag找节点详情
-    public final Map<String, List<MermaidGraph.Node>> nodeTagMap;
+    public final Map<String, List<Node>> nodeTagMap;
 
     // 邻接表
     public final Map<Node, List<Edge>> adjacencyList;
@@ -41,11 +42,90 @@ public class MermaidGraph {
         }
 
         /**
+         * @return 是否是未开通的车站节点
+         */
+        public boolean isUnusedStationNode() {
+            return !this.isStation() && TrainRoutes.graph.nodeTagMap.get(tag).size() == 2;
+        }
+
+        /**
          * @return 去掉“站”字的车站名
          */
         public String getClearStationName() {
             return stationName.substring(0, stationName.length() - 1);
         }
+
+        public @Nullable String getPlatformTag() {
+            if (this.isStation()) {
+                return tag + "-" + railwayDirection;
+            }
+            return null;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (!(o instanceof Node other)) {
+                return false;
+            }
+            return Objects.equals(stationName, other.stationName)
+                    && Objects.equals(railwayName, other.railwayName)
+                    && Objects.equals(railwayDirection, other.railwayDirection)
+                    && Objects.equals(tag, other.tag);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(stationName, railwayName, railwayDirection, tag);
+        }
+    }
+
+    /**
+     * 根据站台tag寻找节点信息
+     *
+     * @param platformTag 站台tag
+     * @return 节点
+     */
+    public @Nullable Node getBCSpawnNode(String platformTag) {
+        String[] split = platformTag.split("-");
+        if (split.length < 2) {
+            return null;
+        }
+        if (nodeTagMap.get(split[0]) == null) {
+            return null;
+        }
+        for (MermaidGraph.Node node : nodeTagMap.get(split[0])) {
+            if (node.isStation() && node.getRailwayDirection().startsWith(split[1])) {
+                return node;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 查找图中的所有开始节点（即没有入边的节点）
+     *
+     * @return 开始节点集合
+     */
+    public Set<Node> findStartNodes() {
+        // 收集所有节点
+        Set<Node> allNodes = new HashSet<>();
+        Set<Node> hasIncomingEdge = new HashSet<>();
+
+        // 遍历邻接表
+        for (Map.Entry<Node, List<Edge>> entry : adjacencyList.entrySet()) {
+            Node source = entry.getKey();
+            allNodes.add(source);
+
+            // 记录所有有入边的目标节点
+            for (Edge edge : entry.getValue()) {
+                hasIncomingEdge.add(edge.getTarget());
+                allNodes.add(edge.getTarget());
+            }
+        }
+
+        // 开始节点 = 所有节点 - 有入边的节点
+        allNodes.removeAll(hasIncomingEdge);
+        return allNodes;
     }
 
     public static Node parseMermaid(String s) {

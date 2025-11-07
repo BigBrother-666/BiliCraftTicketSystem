@@ -13,6 +13,8 @@ import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
 import com.bergerkiller.bukkit.tc.tickets.Ticket;
 import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
+import com.bigbrother.bilicraftticketsystem.MermaidGraph;
+import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.addon.signactions.SignActionShowroute;
 import com.bigbrother.bilicraftticketsystem.addon.signactions.component.RouteBossbar;
@@ -227,13 +229,14 @@ public class TrainListeners implements Listener {
     }
 
     private static boolean verifyPlatform(CommonTagCompound nbt, Collection<String> trainTags, Player player) {
-        String ticketStartStationTag = nbt.getValue(BCTicket.KEY_TICKET_START_PLATFORM_TAG, "");
-        if (!ticketStartStationTag.isEmpty()) {
+        MermaidGraph.Node ticketStartStationNode = TrainRoutes.graph.getBCSpawnNode(nbt.getValue(BCTicket.KEY_TICKET_START_PLATFORM_TAG, ""));
+        if (ticketStartStationNode != null) {
             for (String trainTag : trainTags) {
-                String[] split = trainTag.split("-");
-                if (split.length == 2) {
+                MermaidGraph.Node bcSpawnNode = TrainRoutes.graph.getBCSpawnNode(trainTag);
+                if (bcSpawnNode != null) {
                     // 找到
-                    if (!ticketStartStationTag.split("-")[0].equals(split[0]) || !ticketStartStationTag.split("-")[1].startsWith(split[1])) {
+                    if (!ticketStartStationNode.getTag().equals(bcSpawnNode.getTag()) ||
+                            !ticketStartStationNode.getRailwayDirection().equals(bcSpawnNode.getRailwayDirection())) {
                         // 错误的站台
                         player.sendMessage(MiniMessage.miniMessage().deserialize(message.get("wrong-platform", "")));
                         return true;

@@ -11,6 +11,9 @@ commands:
   ticket:
     description: 帕拉伦国有铁路车票系统指令
     aliases: [ ticket ]
+  railgeo:
+    description: 帕拉伦国有铁路铁路地理数据指令
+    aliases: [ railgeo ]
 
 permissions:
   bcts.ticket.open:

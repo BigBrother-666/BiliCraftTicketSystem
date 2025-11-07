@@ -1,6 +1,7 @@
 package com.bigbrother.bilicraftticketsystem;
 
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
+import com.bigbrother.bilicraftticketsystem.addon.geodata.GeoCommand;
 import com.bigbrother.bilicraftticketsystem.commands.BCTicketSystemCommand;
 import com.bigbrother.bilicraftticketsystem.config.*;
 import com.bigbrother.bilicraftticketsystem.database.TrainDatabaseManager;
@@ -36,6 +37,8 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     private TrainDatabaseManager trainDatabaseManager;
     @Getter
     private BCTicketSystemCommand bcTicketSystemCommand;
+    @Getter
+    private final File geodataDir = new File(this.getDataFolder(), "geojson");
 
     // 控制牌
     private final CustomSignActionAnnounce customSignActionAnnounce = new CustomSignActionAnnounce();
@@ -62,9 +65,16 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         saveResource(EnumConfig.MENU_ITEMS.getFileName(), /* replace */ false);
         saveResource(EnumConfig.MENU_TICKETBG.getFileName(), /* replace */ false);
         saveResource(EnumConfig.ROUTE_MMD.getFileName(), /* replace */ false);
+        saveResource(EnumConfig.ADDON_CONFIG.getFileName(), /* replace */ false);
+
+        if (!geodataDir.exists()) {
+            //noinspection ResultOfMethodCallIgnored
+            geodataDir.mkdir();
+        }
 
         // 注册指令
         this.bcTicketSystemCommand = new BCTicketSystemCommand(this);
+        new GeoCommand(this);
         this.getComponentLogger().info(Component.text("指令注册成功", NamedTextColor.GOLD));
 
         // 注册监听器
@@ -105,17 +115,24 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
             MainConfig.loadMainConfig(this);
             RailwayRoutesConfig.load(this);
             plugin.getComponentLogger().info(Component.text("成功加载主配置", NamedTextColor.GOLD));
+
             ItemsConfig.loadItemsConfig(this);
             MenuConfig.loadMenuConfig(this);
             plugin.getComponentLogger().info(Component.text("成功加载GUI配置", NamedTextColor.GOLD));
+
+            AddonConfig.loadAddonConfig(this);
+            plugin.getComponentLogger().info(Component.text("成功加载额外功能", NamedTextColor.GOLD));
+
             BCTicketDisplay.loadFont();
             TrainRoutes.readGraphFromFile(this.getDataFolder().getPath() + File.separator + "routes.mmd");
             plugin.getComponentLogger().info(Component.text("mermaid路径解析成功", NamedTextColor.GOLD));
+
             if (trainDatabaseManager != null) {
                 trainDatabaseManager.getDs().close();
             }
             trainDatabaseManager = new TrainDatabaseManager(plugin);
             plugin.getComponentLogger().info(Component.text("数据库加载完成", NamedTextColor.GOLD));
+
             MenuMain.clearAll();
             MenuLocation.clearAll();
             MenuFilter.clearAll();
@@ -183,5 +200,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         SignAction.unregister(signActionShowroute);
         SignAction.unregister(customSignActionSpawn);
         SignAction.unregister(customSignActionProperties);
+
+        Bukkit.getScheduler().cancelTasks(plugin);
     }
 }

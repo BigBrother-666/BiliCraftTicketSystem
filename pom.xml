@@ -45,6 +45,14 @@
                             <pattern>xyz.xenondevs</pattern>
                             <shadedPattern>com.bigbrother.shade.invui</shadedPattern>
                         </relocation>
+                        <relocation>
+                            <pattern>de.grundid.opendatalab</pattern>
+                            <shadedPattern>com.bigbrother.shade.geojson</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>com.fasterxml.jackson</pattern>
+                            <shadedPattern>com.bigbrother.shade.jackson</shadedPattern>
+                        </relocation>
                     </relocations>
                 </configuration>
             </plugin>
@@ -152,6 +160,11 @@
             <artifactId>invui</artifactId>
             <version>1.44</version>
             <type>pom</type>
+        </dependency>
+        <dependency>
+            <groupId>de.grundid.opendatalab</groupId>
+            <artifactId>geojson-jackson</artifactId>
+            <version>1.14</version>
         </dependency>
     </dependencies>
 </project>
