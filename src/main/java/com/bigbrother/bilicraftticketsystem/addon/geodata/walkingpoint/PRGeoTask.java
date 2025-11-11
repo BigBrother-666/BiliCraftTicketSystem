@@ -7,9 +7,10 @@ import lombok.Getter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
-import org.bukkit.command.CommandSender;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -34,7 +35,7 @@ import static com.bigbrother.bilicraftticketsystem.addon.geodata.Utils.sendCompo
  * 每 n 格（10左右）记录一次坐标，若当前坐标和上一次记录的坐标x或z坐标相同（直线），则覆盖上次记录的点；
  * 若不同，则有可能是弯道，记录弯道开始坐标（上一个记录的坐标）的下标，直到再次遇到直线，然后对这段曲线使用一次 RDP 算法。
  */
-public class GeoTask {
+public class PRGeoTask {
     @Getter
     public enum LineType {
         MAIN_LINE_FIRST("main_line_first"),
@@ -48,22 +49,31 @@ public class GeoTask {
         LineType(String type) {
             this.type = type;
         }
+
+        public static LineType fromType(String type) {
+            for (LineType lt : values()) {
+                if (lt.type.equalsIgnoreCase(type)) {
+                    return lt;
+                }
+            }
+            return NONE;
+        }
     }
 
     private final BiliCraftTicketSystem plugin;
-    private GeoWalkingPoint geoWalkingPoint;
+    private PRGeoWalkingPoint geoWalkingPoint;
     private Player sender;
     private BukkitTask bukkitTask;
 
     private final AtomicBoolean finished = new AtomicBoolean(true);
 
-    public GeoTask(BiliCraftTicketSystem plugin) {
+    public PRGeoTask(BiliCraftTicketSystem plugin) {
         this.plugin = plugin;
     }
 
     public void startPathFinding(String platformTag, @NotNull Player sender) {
         this.sender = sender;
-        this.geoWalkingPoint = new GeoWalkingPoint(this.sender, plugin);
+        this.geoWalkingPoint = new PRGeoWalkingPoint(this.sender, plugin);
 
         // 同时只能有一个任务进行
         if (!finished.get()) {
@@ -114,14 +124,14 @@ public class GeoTask {
             sendComponentMessage(sender, Component.text("任务失败，站台tag不存在", NamedTextColor.RED));
             return;
         }
-        GeoWalkingPoint.ErrorType startErrorType = geoWalkingPoint.findNextSwitcher(startNode.getTag());
-        if (startErrorType != GeoWalkingPoint.ErrorType.NONE && startErrorType != GeoWalkingPoint.ErrorType.UNEXPECTED_SIGN) {
+        PRGeoWalkingPoint.ErrorType startErrorType = geoWalkingPoint.findNextSwitcher(startNode.getTag());
+        if (startErrorType != PRGeoWalkingPoint.ErrorType.NONE && startErrorType != PRGeoWalkingPoint.ErrorType.UNEXPECTED_SIGN) {
             sendComponentMessage(sender, Component.text("任务失败，switcher和指定的站台tag不匹配", NamedTextColor.RED));
             return;
         }
 
-        Queue<GeoWalkingPoint.WalkingPointNode> nodeQueue = new LinkedList<>();
-        nodeQueue.add(new GeoWalkingPoint.WalkingPointNode(
+        Queue<PRGeoWalkingPoint.WalkingPointNode> nodeQueue = new LinkedList<>();
+        nodeQueue.add(new PRGeoWalkingPoint.WalkingPointNode(
                 startNode,
                 geoWalkingPoint.getLastDirection(),
                 geoWalkingPoint.getLastLocation()
@@ -129,7 +139,7 @@ public class GeoTask {
 
         // BFS
         while (!nodeQueue.isEmpty()) {
-            GeoWalkingPoint.WalkingPointNode source = nodeQueue.poll();
+            PRGeoWalkingPoint.WalkingPointNode source = nodeQueue.poll();
             geoWalkingPoint.resetWalkingPoint(source);
             geoWalkingPoint.resetFeatureCollection();
 
@@ -149,71 +159,16 @@ public class GeoTask {
                 continue;
             }
 
-            // ===================== 从当前位置寻找下一个remtag（正线第一部分）=====================
-            // 只有开通的车站才有
+            // ===================== 如果是车站节点，遍历进站和出站线 =====================
             if (source.isStation()) {
-                // remtag可能需要多找几次
-                boolean find = false;
-                for (int i = 0; i < 4; i++) {
-                    GeoWalkingPoint.ErrorType errorType = geoWalkingPoint.findNextRemtag(source.getTag());
-                    switch (errorType) {
-                        case NONE:
-                            find = true;
-                            break;
-                        case UNEXPECTED_SIGN:
-                            // 发现不正确的remtag
-                            continue;
-                        case WALKING_POINT_ERROR:
-                            return;
-                    }
-                    if (find) {
-                        break;
-                    }
-                }
-                geoWalkingPoint.addCoords2FeatureCollection(LineType.MAIN_LINE_FIRST, source, null);
-            }
-
-            // ===================== 遍历所有正线 =====================
-            for (MermaidGraph.Edge edge : edges) {
-                MermaidGraph.Node target = edge.getTarget();
-                GeoWalkingPoint.ErrorType errorType;
-                // 从当前remtag寻找下一个switcher/remtag（正线第二部分）
-                if (target.isUnusedStationNode()) {
-                    // 下一个节点是未开通车站（只有remtag）
-                    errorType = geoWalkingPoint.findNextRemtag(target.getTag());
-                } else {
-                    errorType = geoWalkingPoint.findNextSwitcher(target.getTag());
-                }
-                switch (errorType) {
-                    case NONE:
-                        break;
-                    case UNEXPECTED_SIGN:
-                        // 发现bcspawn/station，是起点/终点站
-                        break;
-                    case WALKING_POINT_ERROR:
-                        return;
-                }
-                geoWalkingPoint.addCoords2FeatureCollection(LineType.MAIN_LINE_SECOND, source, target);
-
-                // 记录这个switcher/remtag（未开通车站）/bcspawn（起点站）/station（终点站）的坐标和方向，入队列
-                nodeQueue.add(new GeoWalkingPoint.WalkingPointNode(
-                        target,
-                        geoWalkingPoint.getLastDirection(),
-                        geoWalkingPoint.getLastLocation()
-                ));
-            }
-
-            // ===================== 如果是车站节点，重置WalkingPoint，遍历进站和出站线 =====================
-            if (source.isStation()) {
-                geoWalkingPoint.resetWalkingPoint(source);
-                GeoWalkingPoint.ErrorType errorType = geoWalkingPoint.findNextBCSpawn(source.getPlatformTag());
-                if (!errorType.equals(GeoWalkingPoint.ErrorType.NONE)) {
+                PRGeoWalkingPoint.ErrorType errorType = geoWalkingPoint.findNextBCSpawn(source.getPlatformTag());
+                if (!errorType.equals(PRGeoWalkingPoint.ErrorType.NONE)) {
                     sendComponentMessage(sender, Component.text("遍历铁轨异常结束！", NamedTextColor.RED));
                     return;
                 }
 
                 // 添加bcspawn车站节点信息
-                geoWalkingPoint.addPoint2FeatureCollection(new GeoWalkingPoint.WalkingPointNode(source, geoWalkingPoint.getLastDirection(), geoWalkingPoint.getLastLocation()));
+                geoWalkingPoint.addPoint2FeatureCollection(new PRGeoWalkingPoint.WalkingPointNode(source, geoWalkingPoint.getLastDirection(), geoWalkingPoint.getLastLocation()));
 
                 if (geoWalkingPoint.getCoodrinates().size() > 1) {
                     // 非起始/终点站
@@ -221,20 +176,72 @@ public class GeoTask {
                 }
 
                 errorType = geoWalkingPoint.findNextRemtag(source.getTag());
-                if (!errorType.equals(GeoWalkingPoint.ErrorType.NONE)) {
+                if (!errorType.equals(PRGeoWalkingPoint.ErrorType.NONE)) {
                     sendComponentMessage(sender, Component.text("遍历铁轨异常结束！", NamedTextColor.RED));
                     return;
                 }
                 geoWalkingPoint.addCoords2FeatureCollection(LineType.LINE_OUT, source, null);
+            } else {
+                // 添加switcher节点
+                geoWalkingPoint.addPoint2FeatureCollection(source);
             }
 
+            // ===================== 从当前位置寻找出站道岔（正线第一部分）=====================
+            // 只有开通的车站才有
+            Vector outJunctionDirection = null;
+            Location outJunctionLocation = null;
+            if (source.isStation()) {
+                // 重置WalkingPoint
+                geoWalkingPoint.resetWalkingPoint(source);
+                // 找出站道岔
+                geoWalkingPoint.findOutJunction(source.getTag());
+                outJunctionDirection = geoWalkingPoint.getLastDirection();
+                outJunctionLocation = geoWalkingPoint.getLastLocation();
+                geoWalkingPoint.addCoords2FeatureCollection(LineType.MAIN_LINE_FIRST, source, null);
+            }
+
+            // ===================== 遍历所有正线第二部分 =====================
+            for (MermaidGraph.Edge edge : edges) {
+                // 重置WalkingPoint到出站道岔或bcspawn
+                if (outJunctionDirection != null && outJunctionLocation != null) {
+                    geoWalkingPoint.resetWalkingPoint(outJunctionLocation.getBlock(), outJunctionDirection);
+                } else {
+                    geoWalkingPoint.resetWalkingPoint(source);
+                }
+
+                MermaidGraph.Node target = edge.getTarget();
+                PRGeoWalkingPoint.ErrorType errorType;
+                // 从当前switcher/remtag/出站道岔寻找下一个switcher/remtag（正线第二部分）
+                geoWalkingPoint.addTags(source.getTag());
+                errorType = geoWalkingPoint.findNextSwitcher(target.getTag());
+                switch (errorType) {
+                    case NONE:
+                        break;
+                    case UNEXPECTED_SIGN:
+                        // 发现bcspawn/station，是起点/终点站
+                        break;
+                    case WALKING_POINT_ERROR:
+                        sendComponentMessage(sender, Component.text("遍历铁轨异常结束！", NamedTextColor.RED));
+                        return;
+                }
+                geoWalkingPoint.addCoords2FeatureCollection(LineType.MAIN_LINE_SECOND, source, target);
+
+                // 记录这个switcher/remtag（未开通车站）/bcspawn（起点站）/station（终点站）的坐标和方向，入队列
+                nodeQueue.add(new PRGeoWalkingPoint.WalkingPointNode(
+                        target,
+                        geoWalkingPoint.getLastDirection(),
+                        geoWalkingPoint.getLastLocation()
+                ));
+            }
+
+            // ==========================================================
             // 保存一个完整的节点geojson文件
             geoWalkingPoint.saveGeojsonFile(
                     new File(
                             plugin.getGeodataDir(),
                             "%s_%s.geojson".formatted(
-                                    source.getTag(),
-                                    source.getRailwayDirection()
+                                    source.getTag().replace("/",""),
+                                    source.getRailwayDirection().replace("/","")
                             )
                     )
             );

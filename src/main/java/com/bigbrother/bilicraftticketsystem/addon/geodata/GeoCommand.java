@@ -3,7 +3,7 @@ package com.bigbrother.bilicraftticketsystem.addon.geodata;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.MermaidGraph;
 import com.bigbrother.bilicraftticketsystem.TrainRoutes;
-import com.bigbrother.bilicraftticketsystem.addon.geodata.walkingpoint.GeoTask;
+import com.bigbrother.bilicraftticketsystem.addon.geodata.walkingpoint.PRGeoTask;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
@@ -21,7 +21,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class GeoCommand implements CommandExecutor, TabCompleter {
-    private GeoTask geoTask;
+    private PRGeoTask geoTask;
     private final BiliCraftTicketSystem plugin;
 
     public GeoCommand(BiliCraftTicketSystem plugin) {
@@ -42,7 +42,7 @@ public class GeoCommand implements CommandExecutor, TabCompleter {
                 return false;
             } else {
                 if (geoTask == null) {
-                    geoTask = new GeoTask(plugin);
+                    geoTask = new PRGeoTask(plugin);
                 }
                 if (args[0].equalsIgnoreCase("start") && args.length > 1) {
                     geoTask.startPathFinding(args[1].trim(), player);

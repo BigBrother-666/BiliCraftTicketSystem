@@ -42,13 +42,6 @@ public class MermaidGraph {
         }
 
         /**
-         * @return 是否是未开通的车站节点
-         */
-        public boolean isUnusedStationNode() {
-            return !this.isStation() && TrainRoutes.graph.nodeTagMap.get(tag).size() == 2;
-        }
-
-        /**
          * @return 去掉“站”字的车站名
          */
         public String getClearStationName() {

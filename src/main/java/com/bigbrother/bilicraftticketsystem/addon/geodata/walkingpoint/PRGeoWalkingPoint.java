@@ -32,7 +32,7 @@ import java.util.*;
 import static com.bigbrother.bilicraftticketsystem.addon.geodata.Utils.sendComponentMessage;
 
 @Data
-public class GeoWalkingPoint {
+public class PRGeoWalkingPoint {
     /**
      * 带有方向位置信息的节点
      */
@@ -68,8 +68,9 @@ public class GeoWalkingPoint {
     private List<LngLatAlt> coodrinates;
     private final ObjectMapper mapper;
     private FeatureCollection collection;
+    private LinkedHashSet<LngLatAlt> lineOutCoords;
 
-    public GeoWalkingPoint(@Nullable Block endRail, Block startRail, Vector startDirection, Player sender, BiliCraftTicketSystem plugin) {
+    public PRGeoWalkingPoint(@Nullable Block endRail, Block startRail, Vector startDirection, Player sender, BiliCraftTicketSystem plugin) {
         this.endRail = endRail;
         this.sender = sender;
         this.plugin = plugin;
@@ -80,11 +81,11 @@ public class GeoWalkingPoint {
         resetWalkingPoint(startRail, startDirection);
     }
 
-    public GeoWalkingPoint(Block startRail, Vector startDirection, Player sender, BiliCraftTicketSystem plugin) {
+    public PRGeoWalkingPoint(Block startRail, Vector startDirection, Player sender, BiliCraftTicketSystem plugin) {
         this(null, startRail, startDirection, sender, plugin);
     }
 
-    public GeoWalkingPoint(Player sender, BiliCraftTicketSystem plugin) {
+    public PRGeoWalkingPoint(Player sender, BiliCraftTicketSystem plugin) {
         this(sender.getLocation().getBlock(), sender.getLocation().getDirection(), sender, plugin);
     }
 
@@ -110,6 +111,7 @@ public class GeoWalkingPoint {
         this.member.getProperties().getHolder().onPropertiesChanged();
         this.trackWalkingPoint = new TrackWalkingPoint(startRail.getLocation(), startDirection);
         this.trackWalkingPoint.setFollowPredictedPath(this.member);
+        this.trackWalkingPoint.skipFirst();
     }
 
     private void initMember(Block startRail, Vector startDirection) {
@@ -164,10 +166,20 @@ public class GeoWalkingPoint {
                         sendComponentMessage(sender, Component.text("检测到包含 %s 的道岔switcher控制牌".formatted(tag), NamedTextColor.GREEN));
                         return ErrorType.NONE;
                     }
-                } else if (sign.getLine(1).trim().toLowerCase().startsWith("bcspawn") || sign.getLine(1).trim().toLowerCase().startsWith("station")) {
+                } else if (sign.getLine(1).trim().toLowerCase().startsWith("bcspawn")) {
                     // 非正常情况：找switcher途中发现bcspawn/station
                     sendComponentMessage(sender, Component.text("寻找 %s switcher途中检测到 %s bcspawn控制牌".formatted(tag, sign.getLine(3)), NamedTextColor.YELLOW));
+                    if (sign.getLine(3).contains(tag)) {
+                        return ErrorType.UNEXPECTED_SIGN;
+                    } else {
+                        return ErrorType.WALKING_POINT_ERROR;
+                    }
+                } else if (sign.getLine(1).trim().toLowerCase().startsWith("station")) {
+                    sendComponentMessage(sender, Component.text("寻找 %s switcher途中检测到station控制牌（终点站）".formatted(tag), NamedTextColor.YELLOW));
                     return ErrorType.UNEXPECTED_SIGN;
+                } else if (sign.getLine(2).trim().toLowerCase().startsWith("remtag") && sign.getLine(3).trim().equals(tag)) {
+                    sendComponentMessage(sender, Component.text("检测到未开通车站 %s".formatted(tag), NamedTextColor.GREEN));
+                    return ErrorType.NONE;
                 }
             }
         } while (!nextRail());
@@ -232,6 +244,63 @@ public class GeoWalkingPoint {
             }
         } while (!nextRail());
         return ErrorType.WALKING_POINT_ERROR;
+    }
+
+    /**
+     * 从正线走到出站的道岔节点，必须在保存line_out后使用
+     * 并简化line_out重叠的部分
+     *
+     * @return 固定返回成功
+     */
+    public ErrorType findOutJunction(String tag) {
+        addTags(tag);
+        if (lineOutCoords == null) {
+            return ErrorType.NONE;
+        }
+        do {
+            RailLookup.TrackedSign[] signs = trackWalkingPoint.state.railPiece().signs();
+            if (signs == null) {
+                continue;
+            }
+            for (RailLookup.TrackedSign sign : signs) {
+                if (sign.getLine(1).trim().toLowerCase().startsWith("bcspawn")) {
+                    nextRail();
+                    this.clearCoords();
+                    return ErrorType.NONE;
+                }
+            }
+
+            Block railBlock = trackWalkingPoint.state.railBlock();
+
+            LngLatAlt coord = new LngLatAlt(railBlock.getX(), railBlock.getZ(), railBlock.getY());
+
+            if (lineOutCoords.contains(coord)) {
+                // 简化line_out重叠的部分
+                Feature lineOutFeature = null;
+                for (Feature feature : collection.getFeatures()) {
+                    if (feature.getGeometry() instanceof LineString) {
+                        PRGeoTask.LineType lineType = PRGeoTask.LineType.fromType((String) feature.getProperties().getOrDefault("line_type", "none"));
+                        if (lineType.equals(PRGeoTask.LineType.LINE_OUT)) {
+                            lineOutFeature = feature;
+                        }
+                    }
+                }
+                if (lineOutFeature != null) {
+                    List<LngLatAlt> newLineOutCoords = new ArrayList<>();
+                    for (LngLatAlt lineOutCoord : lineOutCoords) {
+                        newLineOutCoords.add(lineOutCoord);
+                        if (lineOutCoord.equals(coord)) {
+                            break;
+                        }
+                    }
+
+                    lineOutFeature.setGeometry(new LineString(newLineOutCoords.toArray(new LngLatAlt[0])));
+                }
+                lineOutCoords = null;
+                break;
+            }
+        } while (!nextRail());
+        return ErrorType.NONE;
     }
 
     /**
@@ -306,6 +375,10 @@ public class GeoWalkingPoint {
      * 增加一条线（LineString）
      */
     public void addLine(Map<String, Object> props) {
+        // 添加最后一个点，防止线路断开
+        Block railBlock = trackWalkingPoint.state.railBlock();
+        this.coodrinates.add(new LngLatAlt(railBlock.getX(), railBlock.getZ(), railBlock.getY()));
+
         LineString line = new LineString(coodrinates.toArray(new LngLatAlt[0]));
         Feature feature = new Feature();
         feature.setGeometry(line);
@@ -347,19 +420,19 @@ public class GeoWalkingPoint {
      * @param start    区间开始节点
      * @param end      区间结束节点
      */
-    public void addCoords2FeatureCollection(GeoTask.LineType lineType, MermaidGraph.Node start, @Nullable MermaidGraph.Node end) {
+    public void addCoords2FeatureCollection(PRGeoTask.LineType lineType, MermaidGraph.Node start, @Nullable MermaidGraph.Node end) {
         Map<String, Object> props = new HashMap<>();
         props.put("line_type", lineType.getType());
         props.put("line_color", MainConfig.railwayColor.get(start.getRailwayName(), "#a9a9a9"));
         props.put("distance", coordCnt);
 
-        props.put("start_tag", start.getTag());
-        props.put("start_station_name", start.getStationName());
-        props.put("start_railway_direction", start.getRailwayDirection());
-        props.put("start_railway_name", start.getRailwayName());
+        if (lineType.equals(PRGeoTask.LineType.LINE_OUT)) {
+            // 暂存坐标
+            lineOutCoords = new LinkedHashSet<>(coodrinates);
+        }
 
         // 只有第二段正线需要end节点信息
-        if (end != null && lineType.equals(GeoTask.LineType.MAIN_LINE_SECOND)) {
+        if (end != null && lineType.equals(PRGeoTask.LineType.MAIN_LINE_SECOND)) {
             props.put("end_tag", end.getTag());
             props.put("end_station_name", end.getStationName());
             props.put("end_railway_direction", end.getRailwayDirection());
@@ -374,34 +447,14 @@ public class GeoWalkingPoint {
      * 保存为 GeoJSON 文件
      */
     public void saveGeojsonFile(File file) {
-        // 删除line_out和main_line_first的重叠部分
-        Feature lineOutFeature = null;
-        Feature mainLineFirstFeature = null;
-        for (Feature feature : collection.getFeatures()) {
-            if (feature.getGeometry() instanceof LineString) {
-                GeoTask.LineType lineType = (GeoTask.LineType) feature.getProperties().getOrDefault("line_type", GeoTask.LineType.NONE);
-                switch (lineType) {
-                    case MAIN_LINE_FIRST:
-                        mainLineFirstFeature = feature;
-                        break;
-                    case LINE_OUT:
-                        lineOutFeature = feature;
-                        break;
-                }
-            }
-        }
-        if (lineOutFeature != null && mainLineFirstFeature != null) {
-            removeDupCoord(lineOutFeature, mainLineFirstFeature);
-        }
-
         // 保存之前优化折线坐标
         Feature node = null;
         List<String> childTags = new ArrayList<>();
         for (Feature feature : collection.getFeatures()) {
             if (feature.getGeometry() instanceof LineString lineString) {
                 feature.setGeometry(new LineString(Utils.simplifyLineString(lineString.getCoordinates()).toArray(new LngLatAlt[0])));
-                GeoTask.LineType lineType = (GeoTask.LineType) feature.getProperties().getOrDefault("line_type", GeoTask.LineType.NONE);
-                if (lineType.equals(GeoTask.LineType.MAIN_LINE_SECOND)) {
+                PRGeoTask.LineType lineType = PRGeoTask.LineType.fromType((String) feature.getProperties().getOrDefault("line_type", "none"));
+                if (lineType.equals(PRGeoTask.LineType.MAIN_LINE_SECOND)) {
                     childTags.add((String) feature.getProperties().get("end_tag"));
                 }
             } else if (feature.getGeometry() instanceof Point) {
@@ -421,20 +474,6 @@ public class GeoWalkingPoint {
             return;
         }
         sendComponentMessage(sender, Component.text("保存geojson: " + file.getPath(), NamedTextColor.GREEN));
-    }
-
-    private void removeDupCoord(Feature lineOutFeature, Feature mainLineFirstFeature) {
-        List<LngLatAlt> lineOutCoords = ((LineString) lineOutFeature.getGeometry()).getCoordinates();
-        List<LngLatAlt> mainLineFirstCoords = ((LineString) mainLineFirstFeature.getGeometry()).getCoordinates();
-        if (lineOutCoords.size() <= 2 || mainLineFirstCoords.size() <= 2) {
-            return;
-        }
-        for (int i = 0; i < mainLineFirstCoords.size(); i++) {
-            if (lineOutCoords.get(lineOutCoords.size() - i - 1).equals(mainLineFirstCoords.get(mainLineFirstCoords.size() - i - 1))) {
-                lineOutCoords.remove(lineOutCoords.size() - i - 1);
-            }
-        }
-        lineOutFeature.setGeometry(new LineString(lineOutCoords.toArray(new LngLatAlt[0])));
     }
 
     public void resetFeatureCollection() {

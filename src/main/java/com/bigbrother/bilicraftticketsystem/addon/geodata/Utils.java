@@ -39,9 +39,9 @@ public class Utils {
             return tags;
         }
         line = line.substring(line.indexOf(":") + 1);
-        line = line.replace("@t", "").trim();
+        line = line.replace("t@", "").trim();
         if (!line.isEmpty()) {
-            tags.addAll(Arrays.asList(line.split(",")));
+            tags.addAll(Arrays.asList(line.split(";")));
         }
         return tags;
     }
