@@ -3,27 +3,29 @@ package com.bigbrother.bilicraftticketsystem.addon.geodata;
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.DirectionStatement;
 import net.kyori.adventure.text.Component;
-import org.bukkit.entity.Player;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.format.TextColor;
 import org.geojson.LngLatAlt;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
-
 public class Utils {
     /**
-     * 发送消息给玩家或控制台
-     *
-     * @param msg 消息
+     * 获取component的字体颜色
      */
-    public static void sendComponentMessage(Player sender, Component msg) {
-        if (sender.isOnline()) {
-            sender.sendMessage(msg);
-        } else {
-            plugin.getServer().getConsoleSender().sendMessage(msg);
+    public static TextColor getPrimaryColor(Component component) {
+        if (component instanceof TextComponent text && text.color() != null) {
+            return text.color();
         }
+        for (Component child : component.children()) {
+            TextColor c = getPrimaryColor(child);
+            if (c != null) {
+                return c;
+            }
+        }
+        return null;
     }
 
     /**

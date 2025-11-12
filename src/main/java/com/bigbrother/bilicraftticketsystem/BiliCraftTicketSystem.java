@@ -25,7 +25,13 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.logging.FileHandler;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 @Slf4j
 public final class BiliCraftTicketSystem extends JavaPlugin {
@@ -66,11 +72,6 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         saveResource(EnumConfig.MENU_TICKETBG.getFileName(), /* replace */ false);
         saveResource(EnumConfig.ROUTE_MMD.getFileName(), /* replace */ false);
         saveResource(EnumConfig.ADDON_CONFIG.getFileName(), /* replace */ false);
-
-        if (!geodataDir.exists()) {
-            //noinspection ResultOfMethodCallIgnored
-            geodataDir.mkdir();
-        }
 
         // 注册指令
         this.bcTicketSystemCommand = new BCTicketSystemCommand(this);
@@ -169,6 +170,39 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         }
         econ = rsp.getProvider();
         return true;
+    }
+
+    /**
+     * 获取地理信息采集任务的logger
+     * log存放在 logs/ 下
+     *
+     * @return logger
+     */
+    public Logger getGeoTaskLogger() {
+        Logger logger = Logger.getLogger("bcts-" + System.currentTimeMillis());
+        logger.setUseParentHandlers(false); // 不输出到控制台
+
+        try {
+            // 创建日志文件夹
+            var logDir = getDataFolder().toPath().resolve("logs").toFile();
+            if (!logDir.exists()) {
+                logDir.mkdirs();
+            }
+
+            String timeStr = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
+            String filePath = logDir.getAbsolutePath() + File.separator + timeStr + ".log";
+
+            FileHandler fileHandler = new FileHandler(filePath, false);
+            fileHandler.setEncoding("UTF-8");
+            fileHandler.setFormatter(new SimpleFormatter());
+
+            logger.addHandler(fileHandler);
+
+        } catch (IOException e) {
+            getLogger().severe("无法创建日志文件: " + e.getMessage());
+        }
+
+        return logger;
     }
 
     private void printLogo() {

@@ -17,6 +17,9 @@ import lombok.Data;
 import lombok.Getter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.EntityType;
@@ -28,8 +31,10 @@ import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.logging.Handler;
+import java.util.logging.Logger;
 
-import static com.bigbrother.bilicraftticketsystem.addon.geodata.Utils.sendComponentMessage;
+import static com.bigbrother.bilicraftticketsystem.addon.geodata.Utils.getPrimaryColor;
 
 @Data
 public class PRGeoWalkingPoint {
@@ -55,6 +60,7 @@ public class PRGeoWalkingPoint {
     }
 
     private final BiliCraftTicketSystem plugin;
+    private final Logger logger;
 
     // 初始化信息
     @Nullable
@@ -75,6 +81,7 @@ public class PRGeoWalkingPoint {
         this.sender = sender;
         this.plugin = plugin;
         this.mapper = new ObjectMapper();
+        this.logger = plugin.getGeoTaskLogger();
 
         resetFeatureCollection();
         initMember(startRail, startDirection);
@@ -163,22 +170,22 @@ public class PRGeoWalkingPoint {
                     }
                     // 找到需要的控制牌
                     if (tags.contains(tag) || tag == null) {
-                        sendComponentMessage(sender, Component.text("检测到包含 %s 的道岔switcher控制牌".formatted(tag), NamedTextColor.GREEN));
+                        sendMessageAndLog(Component.text("检测到包含 %s 的道岔switcher控制牌".formatted(tag), NamedTextColor.GREEN));
                         return ErrorType.NONE;
                     }
                 } else if (sign.getLine(1).trim().toLowerCase().startsWith("bcspawn")) {
                     // 非正常情况：找switcher途中发现bcspawn/station
-                    sendComponentMessage(sender, Component.text("寻找 %s switcher途中检测到 %s bcspawn控制牌".formatted(tag, sign.getLine(3)), NamedTextColor.YELLOW));
+                    sendMessageAndLog(Component.text("寻找 %s switcher途中检测到 %s bcspawn控制牌".formatted(tag, sign.getLine(3)), NamedTextColor.YELLOW));
                     if (sign.getLine(3).contains(tag)) {
                         return ErrorType.UNEXPECTED_SIGN;
                     } else {
                         return ErrorType.WALKING_POINT_ERROR;
                     }
                 } else if (sign.getLine(1).trim().toLowerCase().startsWith("station")) {
-                    sendComponentMessage(sender, Component.text("寻找 %s switcher途中检测到station控制牌（终点站）".formatted(tag), NamedTextColor.YELLOW));
+                    sendMessageAndLog(Component.text("寻找 %s switcher途中检测到station控制牌（终点站）".formatted(tag), NamedTextColor.YELLOW));
                     return ErrorType.UNEXPECTED_SIGN;
                 } else if (sign.getLine(2).trim().toLowerCase().startsWith("remtag") && sign.getLine(3).trim().equals(tag)) {
-                    sendComponentMessage(sender, Component.text("检测到未开通车站 %s".formatted(tag), NamedTextColor.GREEN));
+                    sendMessageAndLog(Component.text("检测到未开通车站 %s".formatted(tag), NamedTextColor.GREEN));
                     return ErrorType.NONE;
                 }
             }
@@ -202,10 +209,10 @@ public class PRGeoWalkingPoint {
             for (RailLookup.TrackedSign sign : signs) {
                 if (sign.getLine(2).trim().toLowerCase().startsWith("remtag")) {
                     if (sign.getLine(3).trim().equals(tag)) {
-                        sendComponentMessage(sender, Component.text("检测到remtag控制牌: %s".formatted(tag), NamedTextColor.GREEN));
+                        sendMessageAndLog(Component.text("检测到remtag控制牌: %s".formatted(tag), NamedTextColor.GREEN));
                         return ErrorType.NONE;
                     } else {
-                        sendComponentMessage(sender, Component.text("检测到remtag控制牌tag不匹配（目标：%s, 实际：%s）".formatted(tag, sign.getLine(3).trim()), NamedTextColor.YELLOW));
+                        sendMessageAndLog(Component.text("检测到remtag控制牌tag不匹配（目标：%s, 实际：%s）".formatted(tag, sign.getLine(3).trim()), NamedTextColor.YELLOW));
                         nextRail();
                         return ErrorType.UNEXPECTED_SIGN;
                     }
@@ -230,15 +237,15 @@ public class PRGeoWalkingPoint {
             for (RailLookup.TrackedSign sign : signs) {
                 if (sign.getLine(1).trim().toLowerCase().startsWith("bcspawn")) {
                     if (sign.getLine(3).trim().equals(platformTag)) {
-                        sendComponentMessage(sender, Component.text("检测到bcspawn控制牌: %s".formatted(platformTag), NamedTextColor.GREEN));
+                        sendMessageAndLog(Component.text("检测到bcspawn控制牌: %s".formatted(platformTag), NamedTextColor.GREEN));
                         return ErrorType.NONE;
                     } else {
-                        sendComponentMessage(sender, Component.text("检测到bcspawn控制牌站台tag不匹配（目标：%s, 实际：%s）".formatted(platformTag, sign.getLine(3).trim()), NamedTextColor.YELLOW));
+                        sendMessageAndLog(Component.text("检测到bcspawn控制牌站台tag不匹配（目标：%s, 实际：%s）".formatted(platformTag, sign.getLine(3).trim()), NamedTextColor.YELLOW));
                         return ErrorType.UNEXPECTED_SIGN;
                     }
                 } else if (sign.getLine(1).trim().toLowerCase().startsWith("station")) {
                     // 没有正线的终到站
-                    sendComponentMessage(sender, Component.text("检测到终到站的station", NamedTextColor.GREEN));
+                    sendMessageAndLog(Component.text("检测到终到站的station", NamedTextColor.GREEN));
                     return ErrorType.NONE;
                 }
             }
@@ -316,11 +323,11 @@ public class PRGeoWalkingPoint {
         this.coordCnt += 1;
         if (BlockUtil.equals(railBlock, endRail)) {
             Component msg = Component.text("==== 遍历铁轨结束 ====", NamedTextColor.GREEN);
-            sendComponentMessage(sender, msg);
+            sendMessageAndLog(msg);
             return true;
         } else if (!trackWalkingPoint.moveFull()) {
             Component msg = Component.text("遍历铁轨结束！原因：" + trackWalkingPoint.failReason.toString(), NamedTextColor.YELLOW);
-            sendComponentMessage(sender, msg);
+            sendMessageAndLog(msg);
             return true;
         }
         return false;
@@ -446,7 +453,14 @@ public class PRGeoWalkingPoint {
     /**
      * 保存为 GeoJSON 文件
      */
-    public void saveGeojsonFile(File file) {
+    public void saveGeojsonFile(String fileName) {
+        File geodataDir = plugin.getGeodataDir();
+        if (!geodataDir.exists()) {
+            //noinspection ResultOfMethodCallIgnored
+            geodataDir.mkdir();
+        }
+        File file = new File(geodataDir, fileName);
+
         // 保存之前优化折线坐标
         Feature node = null;
         List<String> childTags = new ArrayList<>();
@@ -470,14 +484,61 @@ public class PRGeoWalkingPoint {
         try {
             mapper.writerWithDefaultPrettyPrinter().writeValue(file, collection);
         } catch (IOException e) {
-            sendComponentMessage(sender, Component.text("保存geojson时失败: " + e.getMessage(), NamedTextColor.RED));
+            sendMessageAndLog(Component.text("保存geojson时失败: " + e.getMessage(), NamedTextColor.RED));
             return;
         }
-        sendComponentMessage(sender, Component.text("保存geojson: " + file.getPath(), NamedTextColor.GREEN));
+        sendMessageAndLog(Component.text("保存geojson: " + file.getPath(), NamedTextColor.GREEN));
     }
 
     public void resetFeatureCollection() {
         this.collection = new FeatureCollection();
+    }
+
+    /**
+     * 销毁遍历用的矿车
+     */
+    private void destroyMember() {
+        if (member == null) {
+            return;
+        }
+        if (Bukkit.isPrimaryThread()) {
+            member.getGroup().destroy();
+        } else {
+            Bukkit.getScheduler().runTask(plugin, () -> member.getGroup().destroy());
+        }
+    }
+
+    /**
+     * 销毁这个GeoWalkingPoint
+     */
+    public void destroy() {
+        destroyMember();
+        for (Handler handler : logger.getHandlers()) {
+            handler.close();
+        }
+    }
+
+    /**
+     * 发送消息给玩家并写入日志文件
+     *
+     * @param msg 消息
+     */
+    private void sendMessageAndLog(Component msg) {
+        if (sender.isOnline()) {
+            sender.sendMessage(msg);
+        }
+        TextColor color = getPrimaryColor(msg);
+        String plain = PlainTextComponentSerializer.plainText().serialize(msg);
+
+        if (color == NamedTextColor.GREEN) {
+            logger.info(plain);
+        } else if (color == NamedTextColor.YELLOW) {
+            logger.warning(plain);
+        } else if (color == NamedTextColor.RED) {
+            logger.severe(plain);
+        } else {
+            logger.info(plain); // 默认
+        }
     }
 }
 
