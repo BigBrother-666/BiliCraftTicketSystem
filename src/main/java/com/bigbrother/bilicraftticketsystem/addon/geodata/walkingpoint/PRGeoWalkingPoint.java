@@ -53,6 +53,30 @@ public class PRGeoWalkingPoint {
         }
     }
 
+    @Getter
+    public enum LineType {
+        MAIN_LINE_FIRST("main_line_first"),
+        MAIN_LINE_SECOND("main_line_second"),
+        LINE_IN("line_in"),
+        LINE_OUT("line_out"),
+        NONE("none");
+
+        private final String type;
+
+        LineType(String type) {
+            this.type = type;
+        }
+
+        public static LineType fromType(String type) {
+            for (LineType lt : values()) {
+                if (lt.type.equalsIgnoreCase(type)) {
+                    return lt;
+                }
+            }
+            return NONE;
+        }
+    }
+
     public enum ErrorType {
         NONE,
         UNEXPECTED_SIGN,
@@ -151,10 +175,11 @@ public class PRGeoWalkingPoint {
     /**
      * 寻找下一个包含某tag的switcher控制牌
      *
-     * @param tag tag
+     * @param currTag 当前tag，为null时表示起点
+     * @param nextTag 目标tag
      * @return 错误信息，NONE=无错误，UNEXPECTED_SIGN=找到switcher之前遇到了bcspawn，WALKING_POINT_ERROR=有环路或铁轨断开
      */
-    public ErrorType findNextSwitcher(String tag) {
+    public ErrorType findNextSwitcher(String currTag, String nextTag) {
         do {
             RailLookup.TrackedSign[] signs = trackWalkingPoint.state.railPiece().signs();
             if (signs == null) {
@@ -169,23 +194,26 @@ public class PRGeoWalkingPoint {
                         tags.addAll(Utils.parseSwitcherTags(line));
                     }
                     // 找到需要的控制牌
-                    if (tags.contains(tag) || tag == null) {
-                        sendMessageAndLog(Component.text("检测到包含 %s 的道岔switcher控制牌".formatted(tag), NamedTextColor.GREEN));
+                    if (tags.contains(nextTag) || nextTag == null) {
+                        sendMessageAndLog(Component.text("检测到包含 %s 的道岔switcher控制牌".formatted(nextTag), NamedTextColor.GREEN));
                         return ErrorType.NONE;
                     }
                 } else if (sign.getLine(1).trim().toLowerCase().startsWith("bcspawn")) {
-                    // 非正常情况：找switcher途中发现bcspawn/station
-                    sendMessageAndLog(Component.text("寻找 %s switcher途中检测到 %s bcspawn控制牌".formatted(tag, sign.getLine(3)), NamedTextColor.YELLOW));
-                    if (sign.getLine(3).contains(tag)) {
+                    // 非正常情况：找switcher途中发现bcspawn
+                    if (sign.getLine(3).contains(nextTag)) {
                         return ErrorType.UNEXPECTED_SIGN;
+                    } else if (currTag != null && sign.getLine(3).contains(currTag)) {
+                        //noinspection UnnecessaryContinue
+                        continue;
                     } else {
+                        sendMessageAndLog(Component.text("寻找 %s switcher途中检测到 %s bcspawn控制牌".formatted(nextTag, sign.getLine(3)), NamedTextColor.YELLOW));
                         return ErrorType.WALKING_POINT_ERROR;
                     }
-                } else if (sign.getLine(1).trim().toLowerCase().startsWith("station")) {
-                    sendMessageAndLog(Component.text("寻找 %s switcher途中检测到station控制牌（终点站）".formatted(tag), NamedTextColor.YELLOW));
+                } else if (sign.getLine(1).trim().toLowerCase().startsWith("station") && coordCnt > 100) {
+                    sendMessageAndLog(Component.text("寻找 %s switcher途中检测到station控制牌（终点站）".formatted(nextTag), NamedTextColor.YELLOW));
                     return ErrorType.UNEXPECTED_SIGN;
-                } else if (sign.getLine(2).trim().toLowerCase().startsWith("remtag") && sign.getLine(3).trim().equals(tag)) {
-                    sendMessageAndLog(Component.text("检测到未开通车站 %s".formatted(tag), NamedTextColor.GREEN));
+                } else if (sign.getLine(2).trim().toLowerCase().startsWith("remtag") && sign.getLine(3).trim().equals(nextTag)) {
+                    sendMessageAndLog(Component.text("检测到未开通车站 %s".formatted(nextTag), NamedTextColor.GREEN));
                     return ErrorType.NONE;
                 }
             }
@@ -265,18 +293,6 @@ public class PRGeoWalkingPoint {
             return ErrorType.NONE;
         }
         do {
-            RailLookup.TrackedSign[] signs = trackWalkingPoint.state.railPiece().signs();
-            if (signs == null) {
-                continue;
-            }
-            for (RailLookup.TrackedSign sign : signs) {
-                if (sign.getLine(1).trim().toLowerCase().startsWith("bcspawn")) {
-                    nextRail();
-                    this.clearCoords();
-                    return ErrorType.NONE;
-                }
-            }
-
             Block railBlock = trackWalkingPoint.state.railBlock();
 
             LngLatAlt coord = new LngLatAlt(railBlock.getX(), railBlock.getZ(), railBlock.getY());
@@ -286,8 +302,8 @@ public class PRGeoWalkingPoint {
                 Feature lineOutFeature = null;
                 for (Feature feature : collection.getFeatures()) {
                     if (feature.getGeometry() instanceof LineString) {
-                        PRGeoTask.LineType lineType = PRGeoTask.LineType.fromType((String) feature.getProperties().getOrDefault("line_type", "none"));
-                        if (lineType.equals(PRGeoTask.LineType.LINE_OUT)) {
+                        LineType lineType = LineType.fromType((String) feature.getProperties().getOrDefault("line_type", "none"));
+                        if (lineType.equals(LineType.LINE_OUT)) {
                             lineOutFeature = feature;
                         }
                     }
@@ -301,7 +317,15 @@ public class PRGeoWalkingPoint {
                         }
                     }
 
-                    lineOutFeature.setGeometry(new LineString(newLineOutCoords.toArray(new LngLatAlt[0])));
+                    if (newLineOutCoords.size() < 2) {
+                        // 终点站移除line_out
+                        List<Feature> features = collection.getFeatures();
+                        features.remove(lineOutFeature);
+                        collection.setFeatures(features);
+                    } else {
+                        lineOutFeature.setGeometry(new LineString(newLineOutCoords.toArray(new LngLatAlt[0])));
+                        lineOutFeature.setProperty("distance", newLineOutCoords.size());
+                    }
                 }
                 lineOutCoords = null;
                 break;
@@ -383,8 +407,12 @@ public class PRGeoWalkingPoint {
      */
     public void addLine(Map<String, Object> props) {
         // 添加最后一个点，防止线路断开
-        Block railBlock = trackWalkingPoint.state.railBlock();
-        this.coodrinates.add(new LngLatAlt(railBlock.getX(), railBlock.getZ(), railBlock.getY()));
+        if (coodrinates.size() > 1) {
+            Block railBlock = trackWalkingPoint.state.railBlock();
+            this.coodrinates.add(new LngLatAlt(railBlock.getX(), railBlock.getZ(), railBlock.getY()));
+        } else {
+            this.clearCoords();
+        }
 
         LineString line = new LineString(coodrinates.toArray(new LngLatAlt[0]));
         Feature feature = new Feature();
@@ -427,19 +455,19 @@ public class PRGeoWalkingPoint {
      * @param start    区间开始节点
      * @param end      区间结束节点
      */
-    public void addCoords2FeatureCollection(PRGeoTask.LineType lineType, MermaidGraph.Node start, @Nullable MermaidGraph.Node end) {
+    public void addCoords2FeatureCollection(LineType lineType, MermaidGraph.Node start, @Nullable MermaidGraph.Node end) {
         Map<String, Object> props = new HashMap<>();
         props.put("line_type", lineType.getType());
         props.put("line_color", MainConfig.railwayColor.get(start.getRailwayName(), "#a9a9a9"));
-        props.put("distance", coordCnt);
+        props.put("distance", Math.max(coordCnt, 0));
 
-        if (lineType.equals(PRGeoTask.LineType.LINE_OUT)) {
+        if (lineType.equals(LineType.LINE_OUT)) {
             // 暂存坐标
             lineOutCoords = new LinkedHashSet<>(coodrinates);
         }
 
         // 只有第二段正线需要end节点信息
-        if (end != null && lineType.equals(PRGeoTask.LineType.MAIN_LINE_SECOND)) {
+        if (end != null && lineType.equals(LineType.MAIN_LINE_SECOND)) {
             props.put("end_tag", end.getTag());
             props.put("end_station_name", end.getStationName());
             props.put("end_railway_direction", end.getRailwayDirection());
@@ -467,8 +495,8 @@ public class PRGeoWalkingPoint {
         for (Feature feature : collection.getFeatures()) {
             if (feature.getGeometry() instanceof LineString lineString) {
                 feature.setGeometry(new LineString(Utils.simplifyLineString(lineString.getCoordinates()).toArray(new LngLatAlt[0])));
-                PRGeoTask.LineType lineType = PRGeoTask.LineType.fromType((String) feature.getProperties().getOrDefault("line_type", "none"));
-                if (lineType.equals(PRGeoTask.LineType.MAIN_LINE_SECOND)) {
+                LineType lineType = LineType.fromType((String) feature.getProperties().getOrDefault("line_type", "none"));
+                if (lineType.equals(LineType.MAIN_LINE_SECOND)) {
                     childTags.add((String) feature.getProperties().get("end_tag"));
                 }
             } else if (feature.getGeometry() instanceof Point) {

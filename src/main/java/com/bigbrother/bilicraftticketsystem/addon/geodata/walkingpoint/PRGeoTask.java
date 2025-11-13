@@ -3,7 +3,6 @@ package com.bigbrother.bilicraftticketsystem.addon.geodata.walkingpoint;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.MermaidGraph;
 import com.bigbrother.bilicraftticketsystem.TrainRoutes;
-import lombok.Getter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -13,7 +12,6 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -34,30 +32,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * 若不同，则有可能是弯道，记录弯道开始坐标（上一个记录的坐标）的下标，直到再次遇到直线，然后对这段曲线使用一次 RDP 算法。
  */
 public class PRGeoTask {
-    @Getter
-    public enum LineType {
-        MAIN_LINE_FIRST("main_line_first"),
-        MAIN_LINE_SECOND("main_line_second"),
-        LINE_IN("line_in"),
-        LINE_OUT("line_out"),
-        NONE("none");
-
-        private final String type;
-
-        LineType(String type) {
-            this.type = type;
-        }
-
-        public static LineType fromType(String type) {
-            for (LineType lt : values()) {
-                if (lt.type.equalsIgnoreCase(type)) {
-                    return lt;
-                }
-            }
-            return NONE;
-        }
-    }
-
     private final BiliCraftTicketSystem plugin;
     private PRGeoWalkingPoint geoWalkingPoint;
     private Player sender;
@@ -123,7 +97,7 @@ public class PRGeoTask {
             sender.sendMessage(Component.text("任务失败，站台tag不存在", NamedTextColor.RED));
             return;
         }
-        PRGeoWalkingPoint.ErrorType startErrorType = geoWalkingPoint.findNextSwitcher(startNode.getTag());
+        PRGeoWalkingPoint.ErrorType startErrorType = geoWalkingPoint.findNextSwitcher(null, startNode.getTag());
         if (startErrorType != PRGeoWalkingPoint.ErrorType.NONE && startErrorType != PRGeoWalkingPoint.ErrorType.UNEXPECTED_SIGN) {
             sender.sendMessage(Component.text("任务失败，switcher和指定的站台tag不匹配", NamedTextColor.RED));
             return;
@@ -168,7 +142,7 @@ public class PRGeoTask {
 
                 if (geoWalkingPoint.getCoodrinates().size() > 1) {
                     // 非起始/终点站
-                    geoWalkingPoint.addCoords2FeatureCollection(LineType.LINE_IN, source, null);
+                    geoWalkingPoint.addCoords2FeatureCollection(PRGeoWalkingPoint.LineType.LINE_IN, source, null);
                 }
 
                 errorType = geoWalkingPoint.findNextRemtag(source.getTag());
@@ -176,7 +150,7 @@ public class PRGeoTask {
                     sender.sendMessage(Component.text("遍历铁轨异常结束！", NamedTextColor.RED));
                     return;
                 }
-                geoWalkingPoint.addCoords2FeatureCollection(LineType.LINE_OUT, source, null);
+                geoWalkingPoint.addCoords2FeatureCollection(PRGeoWalkingPoint.LineType.LINE_OUT, source, null);
             } else {
                 // 添加switcher节点
                 geoWalkingPoint.addPoint2FeatureCollection(source);
@@ -193,7 +167,7 @@ public class PRGeoTask {
                 geoWalkingPoint.findOutJunction(source.getTag());
                 outJunctionDirection = geoWalkingPoint.getLastDirection();
                 outJunctionLocation = geoWalkingPoint.getLastLocation();
-                geoWalkingPoint.addCoords2FeatureCollection(LineType.MAIN_LINE_FIRST, source, null);
+                geoWalkingPoint.addCoords2FeatureCollection(PRGeoWalkingPoint.LineType.MAIN_LINE_FIRST, source, null);
             }
 
             // ===================== 遍历所有正线第二部分 =====================
@@ -207,9 +181,9 @@ public class PRGeoTask {
 
                 MermaidGraph.Node target = edge.getTarget();
                 PRGeoWalkingPoint.ErrorType errorType;
-                // 从当前switcher/remtag/出站道岔寻找下一个switcher/remtag（正线第二部分）
+                // 从当前switcher/bcspawn/出站道岔寻找下一个switcher/remtag（正线第二部分）
                 geoWalkingPoint.addTags(source.getTag());
-                errorType = geoWalkingPoint.findNextSwitcher(target.getTag());
+                errorType = geoWalkingPoint.findNextSwitcher(source.getTag(), target.getTag());
                 switch (errorType) {
                     case NONE:
                         break;
@@ -220,7 +194,7 @@ public class PRGeoTask {
                         sender.sendMessage(Component.text("遍历铁轨异常结束！", NamedTextColor.RED));
                         return;
                 }
-                geoWalkingPoint.addCoords2FeatureCollection(LineType.MAIN_LINE_SECOND, source, target);
+                geoWalkingPoint.addCoords2FeatureCollection(PRGeoWalkingPoint.LineType.MAIN_LINE_SECOND, source, target);
 
                 // 记录这个switcher/remtag（未开通车站）/bcspawn（起点站）/station（终点站）的坐标和方向，入队列
                 nodeQueue.add(new PRGeoWalkingPoint.WalkingPointNode(
