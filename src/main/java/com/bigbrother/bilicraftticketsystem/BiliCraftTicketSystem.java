@@ -1,6 +1,7 @@
 package com.bigbrother.bilicraftticketsystem;
 
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
+import com.bigbrother.bilicraftticketsystem.addon.AddonConfig;
 import com.bigbrother.bilicraftticketsystem.addon.geodata.GeoCommand;
 import com.bigbrother.bilicraftticketsystem.commands.BCTicketSystemCommand;
 import com.bigbrother.bilicraftticketsystem.config.*;
@@ -113,6 +114,8 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
      */
     public void loadConfig(CommandSender sender) {
         try {
+            Bukkit.getScheduler().cancelTasks(plugin);
+
             MainConfig.loadMainConfig(this);
             RailwayRoutesConfig.load(this);
             plugin.getComponentLogger().info(Component.text("成功加载主配置", NamedTextColor.GOLD));
@@ -140,10 +143,10 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
             MenuTicketbg.clearAll();
         } catch (Exception e) {
             if (sender instanceof ConsoleCommandSender) {
-                plugin.getComponentLogger().error(Component.text("加载配置时发生错误：" + e.getMessage(), NamedTextColor.RED));
+                plugin.getComponentLogger().error(Component.text("加载配置时发生错误：" + e, NamedTextColor.RED));
             } else {
-                plugin.getComponentLogger().error(Component.text("加载配置时发生错误：" + e.getMessage(), NamedTextColor.RED));
-                sender.sendMessage(Component.text("加载配置时发生错误：" + e.getMessage(), NamedTextColor.RED));
+                plugin.getComponentLogger().error(Component.text("加载配置时发生错误：" + e, NamedTextColor.RED));
+                sender.sendMessage(Component.text("加载配置时发生错误：" + e, NamedTextColor.RED));
             }
             return;
         }

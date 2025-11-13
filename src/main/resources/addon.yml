@@ -1,3 +1,10 @@
 geo-data:
+  # 遍历铁路时忽略的tag（必须是带有正线的开通车站）
+  ignore-station-tag: []
+
+  # 遍历铁轨的起点坐标和方向
+  start-node:
+
+  # 实时列车位置信息
   real-time-data: true
 

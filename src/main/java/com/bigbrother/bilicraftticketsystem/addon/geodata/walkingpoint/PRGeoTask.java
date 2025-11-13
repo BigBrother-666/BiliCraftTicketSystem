@@ -3,8 +3,11 @@ package com.bigbrother.bilicraftticketsystem.addon.geodata.walkingpoint;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.MermaidGraph;
 import com.bigbrother.bilicraftticketsystem.TrainRoutes;
+import com.bigbrother.bilicraftticketsystem.addon.AddonConfig;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -16,6 +19,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Handler;
+import java.util.logging.Logger;
+
+import static com.bigbrother.bilicraftticketsystem.addon.geodata.Utils.getPrimaryColor;
 
 
 /**
@@ -36,31 +43,48 @@ public class PRGeoTask {
     private PRGeoWalkingPoint geoWalkingPoint;
     private Player sender;
     private BukkitTask bukkitTask;
+    private final Logger logger;
+    private final boolean lessLog;
 
     private final AtomicBoolean finished = new AtomicBoolean(true);
 
-    public PRGeoTask(BiliCraftTicketSystem plugin) {
+    public PRGeoTask(BiliCraftTicketSystem plugin, boolean lessLog) {
         this.plugin = plugin;
+        this.lessLog = lessLog;
+        this.logger = plugin.getGeoTaskLogger();
     }
 
-    public void startPathFinding(String platformTag, @NotNull Player sender) {
+    public void startPathFinding(@NotNull Player sender) {
         this.sender = sender;
-        this.geoWalkingPoint = new PRGeoWalkingPoint(this.sender, plugin);
 
         // 同时只能有一个任务进行
         if (!finished.get()) {
-            sender.sendMessage(Component.text("当前已经有铁轨遍历任务在进行", NamedTextColor.YELLOW));
+            sendMessageAndLog(Component.text("当前已经有铁轨遍历任务在进行", NamedTextColor.YELLOW), true);
             return;
         }
 
-        sender.sendMessage(Component.text("开始铁轨遍历任务", NamedTextColor.DARK_AQUA));
+        sendMessageAndLog(Component.text("开始铁轨遍历任务", NamedTextColor.DARK_AQUA), true);
 
         // 任务线程
         bukkitTask = Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             finished.set(false);
 
-            iterateMermaidGraph(platformTag);
-
+            for (MermaidGraph.Node node : TrainRoutes.graph.startNode) {
+                PRGeoWalkingPoint.WalkingPointNode startNodeData = AddonConfig.getStartNodeData(node);
+                if (startNodeData == null) {
+                    sendMessageAndLog(Component.text("开始节点 [%s] 起点未指定".formatted(node.getPlatformTag()), NamedTextColor.YELLOW), true);
+                    stopPathFinding();
+                    return;
+                }
+                this.geoWalkingPoint = new PRGeoWalkingPoint(
+                        startNodeData.getLocation().getBlock(),
+                        startNodeData.getDirection(),
+                        this.sender,
+                        plugin,
+                        this
+                );
+                iterateMermaidGraph(startNodeData);
+            }
             stopPathFinding();
         });
     }
@@ -70,12 +94,19 @@ public class PRGeoTask {
             bukkitTask.cancel();
             bukkitTask = null;
         } else {
-            sender.sendMessage(Component.text("铁轨遍历任务不存在！", NamedTextColor.YELLOW));
+            sendMessageAndLog(Component.text("铁轨遍历任务不存在！", NamedTextColor.YELLOW), true);
             return;
         }
-        this.geoWalkingPoint.destroy();
+
+        if (this.geoWalkingPoint != null) {
+            this.geoWalkingPoint.destroyMember();
+        }
+
+        for (Handler handler : logger.getHandlers()) {
+            handler.close();
+        }
         finished.set(true);
-        sender.sendMessage(Component.text("铁轨遍历任务已结束", NamedTextColor.DARK_AQUA));
+        sendMessageAndLog(Component.text("铁轨遍历任务已结束", NamedTextColor.DARK_AQUA), true);
     }
 
     /**
@@ -91,15 +122,14 @@ public class PRGeoTask {
      * <p>
      * 特殊：起点、终点、尽头式车站
      */
-    private void iterateMermaidGraph(String platformTag) {
-        MermaidGraph.Node startNode = TrainRoutes.graph.getBCSpawnNode(platformTag);
+    private void iterateMermaidGraph(MermaidGraph.Node startNode) {
         if (startNode == null) {
-            sender.sendMessage(Component.text("任务失败，站台tag不存在", NamedTextColor.RED));
+            sendMessageAndLog(Component.text("任务失败，站台tag不存在", NamedTextColor.RED), true);
             return;
         }
         PRGeoWalkingPoint.ErrorType startErrorType = geoWalkingPoint.findNextSwitcher(null, startNode.getTag());
         if (startErrorType != PRGeoWalkingPoint.ErrorType.NONE && startErrorType != PRGeoWalkingPoint.ErrorType.UNEXPECTED_SIGN) {
-            sender.sendMessage(Component.text("任务失败，switcher和指定的站台tag不匹配", NamedTextColor.RED));
+            sendMessageAndLog(Component.text("任务失败，switcher和指定的站台tag不匹配", NamedTextColor.RED), true);
             return;
         }
 
@@ -133,7 +163,7 @@ public class PRGeoTask {
             if (source.isStation()) {
                 PRGeoWalkingPoint.ErrorType errorType = geoWalkingPoint.findNextBCSpawn(source.getPlatformTag());
                 if (!errorType.equals(PRGeoWalkingPoint.ErrorType.NONE)) {
-                    sender.sendMessage(Component.text("遍历铁轨异常结束！", NamedTextColor.RED));
+                    sendMessageAndLog(Component.text("遍历铁轨异常结束！", NamedTextColor.RED), true);
                     return;
                 }
 
@@ -147,7 +177,7 @@ public class PRGeoTask {
 
                 errorType = geoWalkingPoint.findNextRemtag(source.getTag());
                 if (!errorType.equals(PRGeoWalkingPoint.ErrorType.NONE)) {
-                    sender.sendMessage(Component.text("遍历铁轨异常结束！", NamedTextColor.RED));
+                    sendMessageAndLog(Component.text("遍历铁轨异常结束！", NamedTextColor.RED), true);
                     return;
                 }
                 geoWalkingPoint.addCoords2FeatureCollection(PRGeoWalkingPoint.LineType.LINE_OUT, source, null);
@@ -191,7 +221,7 @@ public class PRGeoTask {
                         // 发现bcspawn/station，是起点/终点站
                         break;
                     case WALKING_POINT_ERROR:
-                        sender.sendMessage(Component.text("遍历铁轨异常结束！", NamedTextColor.RED));
+                        sendMessageAndLog(Component.text("遍历铁轨异常结束！", NamedTextColor.RED), true);
                         return;
                 }
                 geoWalkingPoint.addCoords2FeatureCollection(PRGeoWalkingPoint.LineType.MAIN_LINE_SECOND, source, target);
@@ -212,6 +242,33 @@ public class PRGeoTask {
                             source.getRailwayDirection().replace("/", "")
                     )
             );
+        }
+    }
+
+    /**
+     * 发送消息给玩家并写入日志文件
+     *
+     * @param msg 消息
+     */
+    public void sendMessageAndLog(Component msg) {
+        sendMessageAndLog(msg, false);
+    }
+
+    public void sendMessageAndLog(Component msg, boolean ignoreLessLog) {
+        if (ignoreLessLog || (!lessLog && sender.isOnline())) {
+            sender.sendMessage(msg);
+        }
+        TextColor color = getPrimaryColor(msg);
+        String plain = PlainTextComponentSerializer.plainText().serialize(msg);
+
+        if (color == NamedTextColor.GREEN) {
+            logger.info(plain);
+        } else if (color == NamedTextColor.YELLOW) {
+            logger.warning(plain);
+        } else if (color == NamedTextColor.RED) {
+            logger.severe(plain);
+        } else {
+            logger.info(plain); // 默认
         }
     }
 }

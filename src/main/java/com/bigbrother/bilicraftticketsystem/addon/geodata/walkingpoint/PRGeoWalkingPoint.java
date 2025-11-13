@@ -17,8 +17,6 @@ import lombok.Data;
 import lombok.Getter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextColor;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -33,8 +31,6 @@ import java.io.IOException;
 import java.util.*;
 import java.util.logging.Handler;
 import java.util.logging.Logger;
-
-import static com.bigbrother.bilicraftticketsystem.addon.geodata.Utils.getPrimaryColor;
 
 @Data
 public class PRGeoWalkingPoint {
@@ -84,7 +80,7 @@ public class PRGeoWalkingPoint {
     }
 
     private final BiliCraftTicketSystem plugin;
-    private final Logger logger;
+    private final PRGeoTask geoTask;
 
     // 初始化信息
     @Nullable
@@ -100,24 +96,20 @@ public class PRGeoWalkingPoint {
     private FeatureCollection collection;
     private LinkedHashSet<LngLatAlt> lineOutCoords;
 
-    public PRGeoWalkingPoint(@Nullable Block endRail, Block startRail, Vector startDirection, Player sender, BiliCraftTicketSystem plugin) {
+    public PRGeoWalkingPoint(@Nullable Block endRail, Block startRail, Vector startDirection, Player sender, BiliCraftTicketSystem plugin, PRGeoTask geoTask) {
         this.endRail = endRail;
         this.sender = sender;
         this.plugin = plugin;
+        this.geoTask = geoTask;
         this.mapper = new ObjectMapper();
-        this.logger = plugin.getGeoTaskLogger();
 
         resetFeatureCollection();
         initMember(startRail, startDirection);
         resetWalkingPoint(startRail, startDirection);
     }
 
-    public PRGeoWalkingPoint(Block startRail, Vector startDirection, Player sender, BiliCraftTicketSystem plugin) {
-        this(null, startRail, startDirection, sender, plugin);
-    }
-
-    public PRGeoWalkingPoint(Player sender, BiliCraftTicketSystem plugin) {
-        this(sender.getLocation().getBlock(), sender.getLocation().getDirection(), sender, plugin);
+    public PRGeoWalkingPoint(Block startRail, Vector startDirection, Player sender, BiliCraftTicketSystem plugin, PRGeoTask geoTask) {
+        this(null, startRail, startDirection, sender, plugin, geoTask);
     }
 
     public Location getLastLocation() {
@@ -195,7 +187,7 @@ public class PRGeoWalkingPoint {
                     }
                     // 找到需要的控制牌
                     if (tags.contains(nextTag) || nextTag == null) {
-                        sendMessageAndLog(Component.text("检测到包含 %s 的道岔switcher控制牌".formatted(nextTag), NamedTextColor.GREEN));
+                        geoTask.sendMessageAndLog(Component.text("检测到包含 %s 的道岔switcher控制牌".formatted(nextTag), NamedTextColor.GREEN));
                         return ErrorType.NONE;
                     }
                 } else if (sign.getLine(1).trim().toLowerCase().startsWith("bcspawn")) {
@@ -206,14 +198,14 @@ public class PRGeoWalkingPoint {
                         //noinspection UnnecessaryContinue
                         continue;
                     } else {
-                        sendMessageAndLog(Component.text("寻找 %s switcher途中检测到 %s bcspawn控制牌".formatted(nextTag, sign.getLine(3)), NamedTextColor.YELLOW));
+                        geoTask.sendMessageAndLog(Component.text("寻找 %s switcher途中检测到 %s bcspawn控制牌".formatted(nextTag, sign.getLine(3)), NamedTextColor.YELLOW));
                         return ErrorType.WALKING_POINT_ERROR;
                     }
                 } else if (sign.getLine(1).trim().toLowerCase().startsWith("station") && coordCnt > 100) {
-                    sendMessageAndLog(Component.text("寻找 %s switcher途中检测到station控制牌（终点站）".formatted(nextTag), NamedTextColor.YELLOW));
+                    geoTask.sendMessageAndLog(Component.text("寻找 %s switcher途中检测到station控制牌（终点站）".formatted(nextTag), NamedTextColor.YELLOW));
                     return ErrorType.UNEXPECTED_SIGN;
                 } else if (sign.getLine(2).trim().toLowerCase().startsWith("remtag") && sign.getLine(3).trim().equals(nextTag)) {
-                    sendMessageAndLog(Component.text("检测到未开通车站 %s".formatted(nextTag), NamedTextColor.GREEN));
+                    geoTask.sendMessageAndLog(Component.text("检测到未开通车站 %s".formatted(nextTag), NamedTextColor.GREEN));
                     return ErrorType.NONE;
                 }
             }
@@ -237,10 +229,10 @@ public class PRGeoWalkingPoint {
             for (RailLookup.TrackedSign sign : signs) {
                 if (sign.getLine(2).trim().toLowerCase().startsWith("remtag")) {
                     if (sign.getLine(3).trim().equals(tag)) {
-                        sendMessageAndLog(Component.text("检测到remtag控制牌: %s".formatted(tag), NamedTextColor.GREEN));
+                        geoTask.sendMessageAndLog(Component.text("检测到remtag控制牌: %s".formatted(tag), NamedTextColor.GREEN));
                         return ErrorType.NONE;
                     } else {
-                        sendMessageAndLog(Component.text("检测到remtag控制牌tag不匹配（目标：%s, 实际：%s）".formatted(tag, sign.getLine(3).trim()), NamedTextColor.YELLOW));
+                        geoTask.sendMessageAndLog(Component.text("检测到remtag控制牌tag不匹配（目标：%s, 实际：%s）".formatted(tag, sign.getLine(3).trim()), NamedTextColor.YELLOW));
                         nextRail();
                         return ErrorType.UNEXPECTED_SIGN;
                     }
@@ -265,15 +257,15 @@ public class PRGeoWalkingPoint {
             for (RailLookup.TrackedSign sign : signs) {
                 if (sign.getLine(1).trim().toLowerCase().startsWith("bcspawn")) {
                     if (sign.getLine(3).trim().equals(platformTag)) {
-                        sendMessageAndLog(Component.text("检测到bcspawn控制牌: %s".formatted(platformTag), NamedTextColor.GREEN));
+                        geoTask.sendMessageAndLog(Component.text("检测到bcspawn控制牌: %s".formatted(platformTag), NamedTextColor.GREEN));
                         return ErrorType.NONE;
                     } else {
-                        sendMessageAndLog(Component.text("检测到bcspawn控制牌站台tag不匹配（目标：%s, 实际：%s）".formatted(platformTag, sign.getLine(3).trim()), NamedTextColor.YELLOW));
+                        geoTask.sendMessageAndLog(Component.text("检测到bcspawn控制牌站台tag不匹配（目标：%s, 实际：%s）".formatted(platformTag, sign.getLine(3).trim()), NamedTextColor.YELLOW));
                         return ErrorType.UNEXPECTED_SIGN;
                     }
                 } else if (sign.getLine(1).trim().toLowerCase().startsWith("station")) {
                     // 没有正线的终到站
-                    sendMessageAndLog(Component.text("检测到终到站的station", NamedTextColor.GREEN));
+                    geoTask.sendMessageAndLog(Component.text("检测到终到站的station", NamedTextColor.GREEN));
                     return ErrorType.NONE;
                 }
             }
@@ -347,11 +339,11 @@ public class PRGeoWalkingPoint {
         this.coordCnt += 1;
         if (BlockUtil.equals(railBlock, endRail)) {
             Component msg = Component.text("==== 遍历铁轨结束 ====", NamedTextColor.GREEN);
-            sendMessageAndLog(msg);
+            geoTask.sendMessageAndLog(msg);
             return true;
         } else if (!trackWalkingPoint.moveFull()) {
             Component msg = Component.text("遍历铁轨结束！原因：" + trackWalkingPoint.failReason.toString(), NamedTextColor.YELLOW);
-            sendMessageAndLog(msg);
+            geoTask.sendMessageAndLog(msg);
             return true;
         }
         return false;
@@ -512,10 +504,10 @@ public class PRGeoWalkingPoint {
         try {
             mapper.writerWithDefaultPrettyPrinter().writeValue(file, collection);
         } catch (IOException e) {
-            sendMessageAndLog(Component.text("保存geojson时失败: " + e.getMessage(), NamedTextColor.RED));
+            geoTask.sendMessageAndLog(Component.text("保存geojson时失败: " + e.getMessage(), NamedTextColor.RED));
             return;
         }
-        sendMessageAndLog(Component.text("保存geojson: " + file.getPath(), NamedTextColor.GREEN));
+        geoTask.sendMessageAndLog(Component.text("保存geojson: " + file.getPath(), NamedTextColor.GREEN));
     }
 
     public void resetFeatureCollection() {
@@ -525,7 +517,7 @@ public class PRGeoWalkingPoint {
     /**
      * 销毁遍历用的矿车
      */
-    private void destroyMember() {
+    public void destroyMember() {
         if (member == null) {
             return;
         }
@@ -533,39 +525,6 @@ public class PRGeoWalkingPoint {
             member.getGroup().destroy();
         } else {
             Bukkit.getScheduler().runTask(plugin, () -> member.getGroup().destroy());
-        }
-    }
-
-    /**
-     * 销毁这个GeoWalkingPoint
-     */
-    public void destroy() {
-        destroyMember();
-        for (Handler handler : logger.getHandlers()) {
-            handler.close();
-        }
-    }
-
-    /**
-     * 发送消息给玩家并写入日志文件
-     *
-     * @param msg 消息
-     */
-    private void sendMessageAndLog(Component msg) {
-        if (sender.isOnline()) {
-            sender.sendMessage(msg);
-        }
-        TextColor color = getPrimaryColor(msg);
-        String plain = PlainTextComponentSerializer.plainText().serialize(msg);
-
-        if (color == NamedTextColor.GREEN) {
-            logger.info(plain);
-        } else if (color == NamedTextColor.YELLOW) {
-            logger.warning(plain);
-        } else if (color == NamedTextColor.RED) {
-            logger.severe(plain);
-        } else {
-            logger.info(plain); // 默认
         }
     }
 }

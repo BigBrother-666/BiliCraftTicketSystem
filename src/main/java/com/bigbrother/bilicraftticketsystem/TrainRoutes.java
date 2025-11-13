@@ -91,6 +91,7 @@ public class TrainRoutes {
             }
         }
         br.close();
+        graph.findStartNodes();
     }
 
     public static List<PathInfo> getPathInfoList(String startStation, String endStation) {

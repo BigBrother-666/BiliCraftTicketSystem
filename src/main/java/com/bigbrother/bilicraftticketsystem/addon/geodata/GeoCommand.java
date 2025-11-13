@@ -3,6 +3,7 @@ package com.bigbrother.bilicraftticketsystem.addon.geodata;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.MermaidGraph;
 import com.bigbrother.bilicraftticketsystem.TrainRoutes;
+import com.bigbrother.bilicraftticketsystem.addon.AddonConfig;
 import com.bigbrother.bilicraftticketsystem.addon.geodata.walkingpoint.PRGeoTask;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -41,33 +42,39 @@ public class GeoCommand implements CommandExecutor, TabCompleter {
             if (args.length == 0) {
                 return false;
             } else {
-                if (geoTask == null) {
-                    geoTask = new PRGeoTask(plugin);
-                }
-                if (args[0].equalsIgnoreCase("start") && args.length > 1) {
-                    geoTask.startPathFinding(args[1].trim(), player);
+                if (args[0].equalsIgnoreCase("start")) {
+                    boolean lessLog = false;
+                    if (args.length > 1 && args[1].equalsIgnoreCase("--less-log")) {
+                        lessLog = true;
+                    }
+                    if (geoTask == null) {
+                        geoTask = new PRGeoTask(plugin, lessLog);
+                    }
+                    geoTask.startPathFinding(player);
                 } else if (args[0].equalsIgnoreCase("stop")) {
                     geoTask.stopPathFinding();
+                } else if (args[0].equalsIgnoreCase("setStartNode") && args.length > 1) {
+                    AddonConfig.addStartNode(args[1].trim(), player.getLocation(), player.getLocation().getDirection());
+                    player.sendMessage(Component.text("成功设置节点 [%s] 的起点".formatted(args[1].trim()), NamedTextColor.GREEN));
                 } else {
-                    player.sendMessage(Component.text("指令格式错误！"));
+                    player.sendMessage(Component.text("指令格式错误！", NamedTextColor.RED));
                 }
             }
         }
+
         return true;
     }
 
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 1) {
-            return List.of("start", "stop");
+            return List.of("setStartNode", "start", "stop");
         } else if (args.length == 2) {
             List<String> completerList = new ArrayList<>();
-            for (Map.Entry<String, List<MermaidGraph.Node>> entry : TrainRoutes.graph.nodeTagMap.entrySet()) {
-                for (MermaidGraph.Node node : entry.getValue()) {
-                    if (node.isStation()) {
-                        completerList.add(entry.getKey() + "-" + node.getRailwayDirection());
-                    }
-                }
+            if (args[0].equalsIgnoreCase("setStartNode")) {
+                completerList.addAll(TrainRoutes.graph.startNode.stream().map(MermaidGraph.Node::getPlatformTag).toList());
+            } else if (args[0].equalsIgnoreCase("start")) {
+                completerList.add("--less-log");
             }
             return completerList.stream().filter(s -> s.startsWith(args[1])).collect(Collectors.toList());
         }

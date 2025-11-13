@@ -15,6 +15,9 @@ public class MermaidGraph {
     // 邻接表
     public final Map<Node, List<Edge>> adjacencyList;
 
+    // 入度为0的节点
+    public Set<Node> startNode;
+
     public MermaidGraph() {
         nodeTagMap = new HashMap<>();
         adjacencyList = new HashMap<>();
@@ -96,10 +99,9 @@ public class MermaidGraph {
 
     /**
      * 查找图中的所有开始节点（即没有入边的节点）
-     *
-     * @return 开始节点集合
+     * 调用后读取startNode变量
      */
-    public Set<Node> findStartNodes() {
+    public void findStartNodes() {
         // 收集所有节点
         Set<Node> allNodes = new HashSet<>();
         Set<Node> hasIncomingEdge = new HashSet<>();
@@ -118,7 +120,15 @@ public class MermaidGraph {
 
         // 开始节点 = 所有节点 - 有入边的节点
         allNodes.removeAll(hasIncomingEdge);
-        return allNodes;
+        if (allNodes.isEmpty()) {
+            if (hasIncomingEdge.isEmpty()) {
+                startNode = Set.of();
+            } else {
+                startNode = Set.of(hasIncomingEdge.iterator().next());
+            }
+        } else {
+            startNode = allNodes;
+        }
     }
 
     public static Node parseMermaid(String s) {
