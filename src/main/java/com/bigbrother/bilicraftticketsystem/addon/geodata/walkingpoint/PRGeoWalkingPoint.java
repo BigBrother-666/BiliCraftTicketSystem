@@ -29,8 +29,8 @@ import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.logging.Handler;
-import java.util.logging.Logger;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 @Data
 public class PRGeoWalkingPoint {
@@ -104,7 +104,20 @@ public class PRGeoWalkingPoint {
         this.mapper = new ObjectMapper();
 
         resetFeatureCollection();
-        initMember(startRail, startDirection);
+        if (Bukkit.isPrimaryThread()) {
+            initMember(startRail, startDirection);
+        } else {
+            Future<Boolean> syncMethod = Bukkit.getScheduler().callSyncMethod(plugin, () -> {
+                initMember(startRail, startDirection);
+                return true;
+            });
+            try {
+                syncMethod.get();
+            } catch (InterruptedException | ExecutionException e) {
+                geoTask.sendMessageAndLog(Component.text("初始化矿车失败！" + e, NamedTextColor.RED), true);
+            }
+        }
+
         resetWalkingPoint(startRail, startDirection);
     }
 
@@ -279,6 +292,7 @@ public class PRGeoWalkingPoint {
      *
      * @return 固定返回成功
      */
+    @SuppressWarnings("UnusedReturnValue")
     public ErrorType findOutJunction(String tag) {
         addTags(tag);
         if (lineOutCoords == null) {

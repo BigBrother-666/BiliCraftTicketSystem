@@ -69,23 +69,28 @@ public class PRGeoTask {
         bukkitTask = Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             finished.set(false);
 
-            for (MermaidGraph.Node node : TrainRoutes.graph.startNode) {
-                PRGeoWalkingPoint.WalkingPointNode startNodeData = AddonConfig.getStartNodeData(node);
-                if (startNodeData == null) {
-                    sendMessageAndLog(Component.text("开始节点 [%s] 起点未指定".formatted(node.getPlatformTag()), NamedTextColor.YELLOW), true);
-                    stopPathFinding();
-                    return;
+            try {
+                for (MermaidGraph.Node node : TrainRoutes.graph.startNode) {
+                    PRGeoWalkingPoint.WalkingPointNode startNodeData = AddonConfig.getStartNodeData(node);
+                    if (startNodeData == null) {
+                        sendMessageAndLog(Component.text("开始节点 [%s] 起点未指定".formatted(node.getPlatformTag()), NamedTextColor.YELLOW), true);
+                        stopPathFinding();
+                        return;
+                    }
+                    this.geoWalkingPoint = new PRGeoWalkingPoint(
+                            startNodeData.getLocation().getBlock(),
+                            startNodeData.getDirection(),
+                            this.sender,
+                            plugin,
+                            this
+                    );
+                    iterateMermaidGraph(startNodeData);
                 }
-                this.geoWalkingPoint = new PRGeoWalkingPoint(
-                        startNodeData.getLocation().getBlock(),
-                        startNodeData.getDirection(),
-                        this.sender,
-                        plugin,
-                        this
-                );
-                iterateMermaidGraph(startNodeData);
+            } catch (Exception e) {
+                sendMessageAndLog(Component.text("遍历铁轨时发生异常：" + e, NamedTextColor.RED), true);
+            } finally {
+                stopPathFinding();
             }
-            stopPathFinding();
         });
     }
 
@@ -270,5 +275,9 @@ public class PRGeoTask {
         } else {
             logger.info(plain); // 默认
         }
+    }
+
+    public boolean isFinished() {
+        return finished.get();
     }
 }

@@ -17,7 +17,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -43,16 +42,17 @@ public class GeoCommand implements CommandExecutor, TabCompleter {
                 return false;
             } else {
                 if (args[0].equalsIgnoreCase("start")) {
-                    boolean lessLog = false;
-                    if (args.length > 1 && args[1].equalsIgnoreCase("--less-log")) {
-                        lessLog = true;
-                    }
-                    if (geoTask == null) {
+                    boolean lessLog = args.length > 1 && args[1].equalsIgnoreCase("--less-log");
+                    if (geoTask == null || geoTask.isFinished()) {
                         geoTask = new PRGeoTask(plugin, lessLog);
                     }
                     geoTask.startPathFinding(player);
                 } else if (args[0].equalsIgnoreCase("stop")) {
-                    geoTask.stopPathFinding();
+                    if (geoTask != null) {
+                        geoTask.stopPathFinding();
+                    } else {
+                        sender.sendMessage(Component.text("铁轨遍历任务不存在！", NamedTextColor.YELLOW));
+                    }
                 } else if (args[0].equalsIgnoreCase("setStartNode") && args.length > 1) {
                     AddonConfig.addStartNode(args[1].trim(), player.getLocation(), player.getLocation().getDirection());
                     player.sendMessage(Component.text("成功设置节点 [%s] 的起点".formatted(args[1].trim()), NamedTextColor.GREEN));
