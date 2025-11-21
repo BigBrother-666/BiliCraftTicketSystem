@@ -6,7 +6,7 @@
 
     <groupId>com.bigbrother</groupId>
     <artifactId>BiliCraftTicketSystem</artifactId>
-    <version>1.7.4</version>
+    <version>1.8.0</version>
     <packaging>jar</packaging>
 
     <name>BiliCraftTicketSystem</name>
