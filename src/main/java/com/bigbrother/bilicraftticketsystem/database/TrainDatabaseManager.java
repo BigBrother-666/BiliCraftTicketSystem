@@ -141,7 +141,7 @@ public class TrainDatabaseManager {
      */
     public void addBcspawnCoord(String startPlatformTag, int x, int y, int z, String world) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            MermaidGraph.Node bcSpawnNode = TrainRoutes.graph.getBCSpawnNode(startPlatformTag);
+            MermaidGraph.Node bcSpawnNode = TrainRoutes.graph.getNodeFromPtag(startPlatformTag);
             if (bcSpawnNode == null) {
                 return;
             }
@@ -673,7 +673,7 @@ public class TrainDatabaseManager {
 
     public void addBcspawnInfo(String startPlatformTag, List<String> dateTime) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            MermaidGraph.Node bcSpawnNode = TrainRoutes.graph.getBCSpawnNode(startPlatformTag);
+            MermaidGraph.Node bcSpawnNode = TrainRoutes.graph.getNodeFromPtag(startPlatformTag);
             if (bcSpawnNode == null) {
                 return;
             }

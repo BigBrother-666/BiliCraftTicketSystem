@@ -229,10 +229,10 @@ public class TrainListeners implements Listener {
     }
 
     private static boolean verifyPlatform(CommonTagCompound nbt, Collection<String> trainTags, Player player) {
-        MermaidGraph.Node ticketStartStationNode = TrainRoutes.graph.getBCSpawnNode(nbt.getValue(BCTicket.KEY_TICKET_START_PLATFORM_TAG, ""));
+        MermaidGraph.Node ticketStartStationNode = TrainRoutes.graph.getNodeFromPtag(nbt.getValue(BCTicket.KEY_TICKET_START_PLATFORM_TAG, ""));
         if (ticketStartStationNode != null) {
             for (String trainTag : trainTags) {
-                MermaidGraph.Node bcSpawnNode = TrainRoutes.graph.getBCSpawnNode(trainTag);
+                MermaidGraph.Node bcSpawnNode = TrainRoutes.graph.getNodeFromPtag(trainTag);
                 if (bcSpawnNode != null) {
                     // 找到
                     if (!ticketStartStationNode.getTag().equals(bcSpawnNode.getTag()) ||

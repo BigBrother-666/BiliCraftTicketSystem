@@ -1,4 +1,4 @@
-package com.bigbrother.bilicraftticketsystem.addon.geodata.walkingpoint;
+package com.bigbrother.bilicraftticketsystem.addon.geodata.prgeotask;
 
 import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
@@ -10,23 +10,26 @@ import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.MermaidGraph;
 import com.bigbrother.bilicraftticketsystem.TrainRoutes;
-import com.bigbrother.bilicraftticketsystem.addon.geodata.Utils;
+import com.bigbrother.bilicraftticketsystem.addon.geodata.GeojsonManager;
+import com.bigbrother.bilicraftticketsystem.addon.geodata.GeoUtils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 import lombok.Getter;
+import lombok.Setter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
-import org.geojson.*;
+import org.geojson.Feature;
+import org.geojson.LineString;
+import org.geojson.LngLatAlt;
+import org.geojson.Point;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -81,48 +84,25 @@ public class PRGeoWalkingPoint {
 
     private final BiliCraftTicketSystem plugin;
     private final PRGeoTask geoTask;
-
+    private GeojsonManager geojsonManager;
     // 初始化信息
+
     @Nullable
-    private final Block endRail;
+    @Setter
+    private Block endRail;
     private TrackWalkingPoint trackWalkingPoint;
-    private final Player sender;
     private MinecartMember<?> member;
+
 
     // 统计信息
     private int coordCnt;
     private List<LngLatAlt> coodrinates;
-    private final ObjectMapper mapper;
-    private FeatureCollection collection;
     private LinkedHashSet<LngLatAlt> lineOutCoords;
 
-    public PRGeoWalkingPoint(@Nullable Block endRail, Block startRail, Vector startDirection, Player sender, BiliCraftTicketSystem plugin, PRGeoTask geoTask) {
-        this.endRail = endRail;
-        this.sender = sender;
+    public PRGeoWalkingPoint(BiliCraftTicketSystem plugin, PRGeoTask geoTask) {
         this.plugin = plugin;
         this.geoTask = geoTask;
-        this.mapper = new ObjectMapper();
-
-        resetFeatureCollection();
-        if (Bukkit.isPrimaryThread()) {
-            initMember(startRail, startDirection);
-        } else {
-            Future<Boolean> syncMethod = Bukkit.getScheduler().callSyncMethod(plugin, () -> {
-                initMember(startRail, startDirection);
-                return true;
-            });
-            try {
-                syncMethod.get();
-            } catch (InterruptedException | ExecutionException e) {
-                geoTask.sendMessageAndLog(Component.text("初始化矿车失败！" + e, NamedTextColor.RED), true);
-            }
-        }
-
-        resetWalkingPoint(startRail, startDirection);
-    }
-
-    public PRGeoWalkingPoint(Block startRail, Vector startDirection, Player sender, BiliCraftTicketSystem plugin, PRGeoTask geoTask) {
-        this(null, startRail, startDirection, sender, plugin, geoTask);
+        this.geojsonManager = new GeojsonManager(plugin.getGeodataDir());
     }
 
     public Location getLastLocation() {
@@ -140,6 +120,22 @@ public class PRGeoWalkingPoint {
      * @param startDirection 方向
      */
     public void resetWalkingPoint(Block startRail, Vector startDirection) {
+        if (this.member == null || this.member.isUnloaded()) {
+            if (Bukkit.isPrimaryThread()) {
+                initMember(startRail, startDirection);
+            } else {
+                Future<Boolean> syncMethod = Bukkit.getScheduler().callSyncMethod(plugin, () -> {
+                    initMember(startRail, startDirection);
+                    return true;
+                });
+                try {
+                    syncMethod.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    geoTask.sendMessageAndLog(Component.text("初始化矿车失败！" + e, NamedTextColor.RED), true);
+                }
+            }
+        }
+
         this.coodrinates = new ArrayList<>();
         this.coordCnt = 0;
 
@@ -196,7 +192,7 @@ public class PRGeoWalkingPoint {
                     List<String> tags = new ArrayList<>();
                     for (int i = 2; i <= 3; i++) {
                         String line = sign.getLine(i);
-                        tags.addAll(Utils.parseSwitcherTags(line));
+                        tags.addAll(GeoUtils.parseSwitcherTags(line));
                     }
                     // 找到需要的控制牌
                     if (tags.contains(nextTag) || nextTag == null) {
@@ -277,8 +273,8 @@ public class PRGeoWalkingPoint {
                         return ErrorType.UNEXPECTED_SIGN;
                     }
                 } else if (sign.getLine(1).trim().toLowerCase().startsWith("station")) {
-                    // 没有正线的终到站
-                    geoTask.sendMessageAndLog(Component.text("检测到终到站的station", NamedTextColor.GREEN));
+                    // 没有正线的终到站 或 station先于bcspawn
+                    geoTask.sendMessageAndLog(Component.text("在bcspawn前检测到station", NamedTextColor.GREEN));
                     return ErrorType.NONE;
                 }
             }
@@ -301,12 +297,24 @@ public class PRGeoWalkingPoint {
         do {
             Block railBlock = trackWalkingPoint.state.railBlock();
 
+            RailLookup.TrackedSign[] signs = trackWalkingPoint.state.railPiece().signs();
+            if (signs == null) {
+                continue;
+            }
+            for (RailLookup.TrackedSign sign : signs) {
+                if (sign.getLine(2).trim().toLowerCase().startsWith("remtag") && sign.getLine(3).trim().toLowerCase().startsWith(tag)) {
+                    // 限制最大距离，正常不应该找到remtag
+                    geoTask.sendMessageAndLog(Component.text("找到出站道岔前，发现 %s remtag".formatted(tag), NamedTextColor.YELLOW));
+                    return ErrorType.NONE;
+                }
+            }
+
             LngLatAlt coord = new LngLatAlt(railBlock.getX(), railBlock.getZ(), railBlock.getY());
 
             if (lineOutCoords.contains(coord)) {
                 // 简化line_out重叠的部分
                 Feature lineOutFeature = null;
-                for (Feature feature : collection.getFeatures()) {
+                for (Feature feature : geojsonManager.getCollection().getFeatures()) {
                     if (feature.getGeometry() instanceof LineString) {
                         LineType lineType = LineType.fromType((String) feature.getProperties().getOrDefault("line_type", "none"));
                         if (lineType.equals(LineType.LINE_OUT)) {
@@ -325,9 +333,9 @@ public class PRGeoWalkingPoint {
 
                     if (newLineOutCoords.size() < 2) {
                         // 终点站移除line_out
-                        List<Feature> features = collection.getFeatures();
+                        List<Feature> features = geojsonManager.getCollection().getFeatures();
                         features.remove(lineOutFeature);
-                        collection.setFeatures(features);
+                        geojsonManager.getCollection().setFeatures(features);
                     } else {
                         lineOutFeature.setGeometry(new LineString(newLineOutCoords.toArray(new LngLatAlt[0])));
                         lineOutFeature.setProperty("distance", newLineOutCoords.size());
@@ -338,6 +346,20 @@ public class PRGeoWalkingPoint {
             }
         } while (!nextRail());
         return ErrorType.NONE;
+    }
+
+    /**
+     * 遍历，直到找到设置的endRail
+     */
+    public void findEndRail() {
+        if (endRail == null) {
+            geoTask.sendMessageAndLog(Component.text("遍历铁轨结束！没有指定结束铁轨坐标", NamedTextColor.YELLOW), true);
+            return;
+        }
+
+        //noinspection StatementWithEmptyBody
+        while (!nextRail()) ;
+        endRail = null;
     }
 
     /**
@@ -352,11 +374,11 @@ public class PRGeoWalkingPoint {
         this.coodrinates.add(new LngLatAlt(railBlock.getX(), railBlock.getZ(), railBlock.getY()));
         this.coordCnt += 1;
         if (BlockUtil.equals(railBlock, endRail)) {
-            Component msg = Component.text("==== 遍历铁轨结束 ====", NamedTextColor.GREEN);
+            Component msg = Component.text("找到目标点 -> " + GeoUtils.formatLoc(endRail.getLocation()), NamedTextColor.DARK_AQUA);
             geoTask.sendMessageAndLog(msg);
             return true;
         } else if (!trackWalkingPoint.moveFull()) {
-            Component msg = Component.text("遍历铁轨结束！原因：" + trackWalkingPoint.failReason.toString(), NamedTextColor.YELLOW);
+            Component msg = Component.text("遍历铁轨结束！原因：" + trackWalkingPoint.failReason.toString(), NamedTextColor.DARK_AQUA);
             geoTask.sendMessageAndLog(msg);
             return true;
         }
@@ -372,7 +394,7 @@ public class PRGeoWalkingPoint {
             return;
         }
         for (RailLookup.TrackedSign sign : signs) {
-            if (sign.getLine(2).trim().toLowerCase().startsWith("addtag")) {
+            if (sign.getHeader().isAlwaysOn() && sign.getLine(2).trim().toLowerCase().startsWith("addtag")) {
                 String tag = sign.getLine(3).trim();
                 if (!TrainRoutes.graph.nodeTagMap.containsKey(tag)) {
                     // 非快速车控制tag
@@ -408,50 +430,14 @@ public class PRGeoWalkingPoint {
         this.trackWalkingPoint.setFollowPredictedPath(this.member);
     }
 
-    /**
-     * 增加一条线（LineString）
-     */
-    public void addLine(Map<String, Object> props) {
-        // 添加最后一个点，防止线路断开
-        if (coodrinates.size() > 1) {
-            Block railBlock = trackWalkingPoint.state.railBlock();
-            this.coodrinates.add(new LngLatAlt(railBlock.getX(), railBlock.getZ(), railBlock.getY()));
-        } else {
-            this.clearCoords();
-        }
-
-        LineString line = new LineString(coodrinates.toArray(new LngLatAlt[0]));
-        Feature feature = new Feature();
-        feature.setGeometry(line);
-        if (props != null) {
-            feature.setProperties(props);
-        }
-        collection.getFeatures().add(feature);
-    }
-
-    /**
-     * 向FeatureCollection增加一个点
-     *
-     * @param coord 点坐标
-     * @param props 点的自定义properties
-     */
-    public void addPoint2FeatureCollection(LngLatAlt coord, Map<String, Object> props) {
-        Point point = new Point(coord);
-        Feature feature = new Feature();
-        feature.setGeometry(point);
-        if (props != null) {
-            feature.setProperties(props);
-        }
-        collection.getFeatures().add(feature);
-    }
-
     public void addPoint2FeatureCollection(WalkingPointNode node) {
         Map<String, Object> props = new HashMap<>();
+        props.put("platform_tag", node.getPlatformTag());
         props.put("tag", node.getTag());
         props.put("station_name", node.getStationName());
         props.put("railway_name", node.getRailwayName());
         props.put("railway_direction", node.getRailwayDirection());
-        this.addPoint2FeatureCollection(new LngLatAlt(node.location.getBlockX(), node.location.getBlockZ(), node.location.getBlockY()), props);
+        geojsonManager.addPoint(new LngLatAlt(node.location.getBlockX(), node.location.getBlockZ(), node.location.getBlockY()), props);
     }
 
     /**
@@ -464,7 +450,13 @@ public class PRGeoWalkingPoint {
     public void addCoords2FeatureCollection(LineType lineType, MermaidGraph.Node start, @Nullable MermaidGraph.Node end) {
         Map<String, Object> props = new HashMap<>();
         props.put("line_type", lineType.getType());
-        props.put("line_color", MainConfig.railwayColor.get(start.getRailwayName(), "#a9a9a9"));
+        // wtf????
+        if (start.getRailwayName().isEmpty()) {
+            props.put("line_color", "#a9a9a9");
+        } else {
+            props.put("line_color", MainConfig.railwayColor.get(start.getRailwayName(), "#a9a9a9"));
+        }
+
         props.put("distance", Math.max(coordCnt, 0));
 
         if (lineType.equals(LineType.LINE_OUT)) {
@@ -474,13 +466,21 @@ public class PRGeoWalkingPoint {
 
         // 只有第二段正线需要end节点信息
         if (end != null && lineType.equals(LineType.MAIN_LINE_SECOND)) {
+            props.put("end_platform_tag", end.getPlatformTag());
             props.put("end_tag", end.getTag());
             props.put("end_station_name", end.getStationName());
             props.put("end_railway_direction", end.getRailwayDirection());
             props.put("end_railway_name", end.getRailwayName());
         }
 
-        this.addLine(props);
+        // 添加最后一个点，防止线路断开
+        if (coodrinates.size() > 1) {
+            Block railBlock = trackWalkingPoint.state.railBlock();
+            this.coodrinates.add(new LngLatAlt(railBlock.getX(), railBlock.getZ(), railBlock.getY()));
+        } else {
+            this.clearCoords();
+        }
+        geojsonManager.addLine(coodrinates, props);
         this.clearCoords();
     }
 
@@ -488,22 +488,15 @@ public class PRGeoWalkingPoint {
      * 保存为 GeoJSON 文件
      */
     public void saveGeojsonFile(String fileName) {
-        File geodataDir = plugin.getGeodataDir();
-        if (!geodataDir.exists()) {
-            //noinspection ResultOfMethodCallIgnored
-            geodataDir.mkdir();
-        }
-        File file = new File(geodataDir, fileName);
-
         // 保存之前优化折线坐标
         Feature node = null;
         List<String> childTags = new ArrayList<>();
-        for (Feature feature : collection.getFeatures()) {
+        for (Feature feature : geojsonManager.getCollection().getFeatures()) {
             if (feature.getGeometry() instanceof LineString lineString) {
-                feature.setGeometry(new LineString(Utils.simplifyLineString(lineString.getCoordinates()).toArray(new LngLatAlt[0])));
+                feature.setGeometry(new LineString(GeoUtils.simplifyLineString(lineString.getCoordinates()).toArray(new LngLatAlt[0])));
                 LineType lineType = LineType.fromType((String) feature.getProperties().getOrDefault("line_type", "none"));
                 if (lineType.equals(LineType.MAIN_LINE_SECOND)) {
-                    childTags.add((String) feature.getProperties().get("end_tag"));
+                    childTags.add((String) feature.getProperties().get("end_platform_tag"));
                 }
             } else if (feature.getGeometry() instanceof Point) {
                 node = feature;
@@ -512,27 +505,23 @@ public class PRGeoWalkingPoint {
 
         // 添加子结点属性，方便前端构建图结构
         if (node != null) {
-            node.getProperties().put("child_tags", childTags);
+            node.getProperties().put("child_platform_tags", childTags);
         }
 
         try {
-            mapper.writerWithDefaultPrettyPrinter().writeValue(file, collection);
+            geojsonManager.saveGeojsonFile(fileName);
         } catch (IOException e) {
             geoTask.sendMessageAndLog(Component.text("保存geojson时失败: " + e.getMessage(), NamedTextColor.RED));
             return;
         }
-        geoTask.sendMessageAndLog(Component.text("保存geojson: " + file.getPath(), NamedTextColor.GREEN));
-    }
-
-    public void resetFeatureCollection() {
-        this.collection = new FeatureCollection();
+        geoTask.sendMessageAndLog(Component.text("保存geojson: " + fileName, NamedTextColor.DARK_GREEN).decorate(TextDecoration.ITALIC));
     }
 
     /**
      * 销毁遍历用的矿车
      */
     public void destroyMember() {
-        if (member == null) {
+        if (member == null || member.isUnloaded()) {
             return;
         }
         if (Bukkit.isPrimaryThread()) {

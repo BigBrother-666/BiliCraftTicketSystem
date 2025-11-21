@@ -3,6 +3,9 @@ package com.bigbrother.bilicraftticketsystem;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bigbrother.bilicraftticketsystem.addon.AddonConfig;
 import com.bigbrother.bilicraftticketsystem.addon.geodata.GeoCommand;
+import com.bigbrother.bilicraftticketsystem.addon.geodata.GeoDatabaseManager;
+import com.bigbrother.bilicraftticketsystem.addon.geodata.prgeotask.PRGeoTask;
+import com.bigbrother.bilicraftticketsystem.addon.signactions.*;
 import com.bigbrother.bilicraftticketsystem.commands.BCTicketSystemCommand;
 import com.bigbrother.bilicraftticketsystem.config.*;
 import com.bigbrother.bilicraftticketsystem.database.TrainDatabaseManager;
@@ -12,7 +15,6 @@ import com.bigbrother.bilicraftticketsystem.menu.impl.MenuFilter;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuLocation;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
-import com.bigbrother.bilicraftticketsystem.addon.signactions.*;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicketDisplay;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -26,13 +28,7 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
-import java.util.logging.FileHandler;
-import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
 
 @Slf4j
 public final class BiliCraftTicketSystem extends JavaPlugin {
@@ -43,7 +39,10 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     @Getter
     private TrainDatabaseManager trainDatabaseManager;
     @Getter
+    private GeoDatabaseManager geoDatabaseManager;
+    @Getter
     private BCTicketSystemCommand bcTicketSystemCommand;
+    private GeoCommand geoCommand;
     @Getter
     private final File geodataDir = new File(this.getDataFolder(), "geojson");
 
@@ -76,7 +75,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
 
         // 注册指令
         this.bcTicketSystemCommand = new BCTicketSystemCommand(this);
-        new GeoCommand(this);
+        this.geoCommand = new GeoCommand(this);
         this.getComponentLogger().info(Component.text("指令注册成功", NamedTextColor.GOLD));
 
         // 注册监听器
@@ -110,6 +109,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     /**
      * 加载所有配置
      * 加载插件和reload时调用
+     *
      * @param sender sender
      */
     public void loadConfig(CommandSender sender) {
@@ -134,7 +134,8 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
             if (trainDatabaseManager != null) {
                 trainDatabaseManager.getDs().close();
             }
-            trainDatabaseManager = new TrainDatabaseManager(plugin);
+            trainDatabaseManager = new TrainDatabaseManager(this);
+            geoDatabaseManager = new GeoDatabaseManager(this);
             plugin.getComponentLogger().info(Component.text("数据库加载完成", NamedTextColor.GOLD));
 
             MenuMain.clearAll();
@@ -161,6 +162,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
 
     /**
      * 加载经济插件
+     *
      * @return 是否成功
      */
     private boolean setupEconomy() {
@@ -173,39 +175,6 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         }
         econ = rsp.getProvider();
         return true;
-    }
-
-    /**
-     * 获取地理信息采集任务的logger
-     * log存放在 logs/ 下
-     *
-     * @return logger
-     */
-    public Logger getGeoTaskLogger() {
-        Logger logger = Logger.getLogger("bcts-" + System.currentTimeMillis());
-        logger.setUseParentHandlers(false); // 不输出到控制台
-
-        try {
-            // 创建日志文件夹
-            var logDir = getDataFolder().toPath().resolve("logs").toFile();
-            if (!logDir.exists()) {
-                logDir.mkdirs();
-            }
-
-            String timeStr = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
-            String filePath = logDir.getAbsolutePath() + File.separator + timeStr + ".log";
-
-            FileHandler fileHandler = new FileHandler(filePath, false);
-            fileHandler.setEncoding("UTF-8");
-            fileHandler.setFormatter(new SimpleFormatter());
-
-            logger.addHandler(fileHandler);
-
-        } catch (IOException e) {
-            getLogger().severe("无法创建日志文件: " + e.getMessage());
-        }
-
-        return logger;
     }
 
     private void printLogo() {
@@ -239,5 +208,9 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         SignAction.unregister(customSignActionProperties);
 
         Bukkit.getScheduler().cancelTasks(plugin);
+
+        if (this.geoCommand != null) {
+            geoCommand.getTaskMap().values().forEach(PRGeoTask::closeLoggerHandler);
+        }
     }
 }

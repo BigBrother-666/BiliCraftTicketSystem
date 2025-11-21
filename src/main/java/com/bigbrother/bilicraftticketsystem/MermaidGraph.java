@@ -9,6 +9,8 @@ import java.util.*;
 import static com.bigbrother.bilicraftticketsystem.config.MainConfig.pricePerKm;
 
 public class MermaidGraph {
+    public static final String emptyField = "/";
+
     // 根据tag找节点详情
     public final Map<String, List<Node>> nodeTagMap;
 
@@ -16,7 +18,7 @@ public class MermaidGraph {
     public final Map<Node, List<Edge>> adjacencyList;
 
     // 入度为0的节点
-    public Set<Node> startNode;
+    public Set<Node> startNodes;
 
     public MermaidGraph() {
         nodeTagMap = new HashMap<>();
@@ -52,10 +54,7 @@ public class MermaidGraph {
         }
 
         public @Nullable String getPlatformTag() {
-            if (this.isStation()) {
-                return tag + "-" + railwayDirection;
-            }
-            return null;
+            return tag + "-" + railwayDirection;
         }
 
         @Override
@@ -81,8 +80,9 @@ public class MermaidGraph {
      * @param platformTag 站台tag
      * @return 节点
      */
-    public @Nullable Node getBCSpawnNode(String platformTag) {
-        String[] split = platformTag.split("-");
+    public @Nullable Node getNodeFromPtag(String platformTag) {
+        // 注意limit设置-1，否则switcher节点的站台tag（"tag-"）split后只有一个元素
+        String[] split = platformTag.split("-", -1);
         if (split.length < 2) {
             return null;
         }
@@ -90,11 +90,32 @@ public class MermaidGraph {
             return null;
         }
         for (MermaidGraph.Node node : nodeTagMap.get(split[0])) {
-            if (node.isStation() && node.getRailwayDirection().startsWith(split[1])) {
+            if (node.getRailwayDirection().startsWith(split[1])) {
                 return node;
             }
         }
         return null;
+    }
+
+    /**
+     * 获取指定节点的所有父节点
+     *
+     * @param node 目标节点
+     * @return 父节点列表，没有父节点则返回空列表
+     */
+    public Set<Node> getParentNodes(Node node) {
+        Set<Node> parentNodes = new HashSet<>();
+        for (Map.Entry<Node, List<Edge>> entry : adjacencyList.entrySet()) {
+            Node potentialParent = entry.getKey();
+            List<Edge> edges = entry.getValue();
+            for (Edge edge : edges) {
+                if (edge.getTarget().equals(node)) {
+                    parentNodes.add(potentialParent);
+                    break;
+                }
+            }
+        }
+        return parentNodes;
     }
 
     /**
@@ -122,18 +143,40 @@ public class MermaidGraph {
         allNodes.removeAll(hasIncomingEdge);
         if (allNodes.isEmpty()) {
             if (hasIncomingEdge.isEmpty()) {
-                startNode = Set.of();
+                startNodes = Set.of();
             } else {
-                startNode = Set.of(hasIncomingEdge.iterator().next());
+                startNodes = Set.of(hasIncomingEdge.iterator().next());
             }
         } else {
-            startNode = allNodes;
+            startNodes = allNodes;
         }
+    }
+
+    /**
+     * 收集所有节点
+     */
+    public Set<Node> getAllNodes() {
+        Set<Node> allNodes = new HashSet<>();
+
+        for (Map.Entry<Node, List<Edge>> entry : adjacencyList.entrySet()) {
+            Node source = entry.getKey();
+            allNodes.add(source);
+            for (Edge edge : entry.getValue()) {
+                allNodes.add(edge.getTarget());
+            }
+        }
+        return allNodes;
     }
 
     public static Node parseMermaid(String s) {
         String[] split = s.split("-");
         if (split.length >= 4) {
+            for (int i = 0; i < split.length; i++) {
+                split[i] = split[i].trim();
+                if (split[i].equals(emptyField)) {
+                    split[i] = "";
+                }
+            }
             return new Node(split[0], split[1], split[2], split[3]);
         } else {
             throw new IllegalArgumentException("mermaid格式错误： " + s);

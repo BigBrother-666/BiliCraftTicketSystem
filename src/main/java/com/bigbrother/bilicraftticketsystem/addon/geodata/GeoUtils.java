@@ -5,13 +5,16 @@ import com.bergerkiller.bukkit.tc.DirectionStatement;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.TextColor;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.util.Vector;
 import org.geojson.LngLatAlt;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class Utils {
+public class GeoUtils {
     /**
      * 获取component的字体颜色
      */
@@ -117,5 +120,29 @@ public class Utils {
         if (dx1 == 0 && dx2 == 0) return true;
 
         return false;
+    }
+
+    public static boolean isRail(Material type) {
+        return type == Material.RAIL
+                || type == Material.POWERED_RAIL
+                || type == Material.DETECTOR_RAIL
+                || type == Material.ACTIVATOR_RAIL;
+    }
+
+    public static String formatLoc(Location loc) {
+        return String.format("(%d, %d, %d - %s)",
+                loc.getBlockX(),
+                loc.getBlockY(),
+                loc.getBlockZ(),
+                loc.getWorld().getName()
+        );
+    }
+
+    public static String formatVector(Vector vector) {
+        return String.format("(%d, %d, %d)",
+                vector.getBlockX(),
+                vector.getBlockY(),
+                vector.getBlockZ()
+        );
     }
 }
