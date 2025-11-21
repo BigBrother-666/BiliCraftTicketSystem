@@ -216,7 +216,7 @@ public class PRGeoTask {
             sendMessageAndLog(Component.text("任务失败，站台tag不存在", NamedTextColor.RED), true);
             return;
         }
-        geoWalkingPoint.resetWalkingPoint(startNode.getLocation().getBlock(),  startNode.getDirection());
+        geoWalkingPoint.resetWalkingPoint(startNode.getLocation().getBlock(), startNode.getDirection());
         PRGeoWalkingPoint.ErrorType startErrorType = geoWalkingPoint.findNextSwitcher(null, startNode.getTag());
         if (startErrorType != PRGeoWalkingPoint.ErrorType.NONE && startErrorType != PRGeoWalkingPoint.ErrorType.UNEXPECTED_SIGN) {
             sendMessageAndLog(Component.text("任务失败，switcher和指定的站台tag不匹配", NamedTextColor.RED), true);
@@ -238,9 +238,12 @@ public class PRGeoTask {
      * @param updateMode 是否是更新模式，更新模式：不向队列添加新节点，只处理队列中的节点
      */
     private void bfs(Queue<PRGeoWalkingPoint.WalkingPointNode> nodeQueue, boolean updateMode) {
+        Set<MermaidGraph.Node> visited = new HashSet<>();
+
         // BFS
         while (!nodeQueue.isEmpty()) {
             PRGeoWalkingPoint.WalkingPointNode source = nodeQueue.poll();
+            visited.add(source);
             geoWalkingPoint.resetWalkingPoint(source);
 
             // 保存节点起始坐标方向
@@ -266,7 +269,7 @@ public class PRGeoTask {
             iterateLineFirst(source);
 
             // ===================== 从出站道岔遍历所有正线第二部分 =====================
-            iterateLineSecond(nodeQueue, source, updateMode);
+            iterateLineSecond(nodeQueue, source, visited, updateMode);
 
             // ==========================================================
             // 保存一个完整的节点geojson文件
@@ -357,9 +360,10 @@ public class PRGeoTask {
      *
      * @param nodeQueue  节点BFS队列，用于插入子结点
      * @param source     起始节点
+     * @param visited    已经遍历过的节点，防止环路
      * @param updateMode 是否是更新模式，更新模式：不向队列添加新节点，只处理队列中的节点
      */
-    private void iterateLineSecond(Queue<PRGeoWalkingPoint.WalkingPointNode> nodeQueue, PRGeoWalkingPoint.WalkingPointNode source, boolean updateMode) {
+    private void iterateLineSecond(Queue<PRGeoWalkingPoint.WalkingPointNode> nodeQueue, PRGeoWalkingPoint.WalkingPointNode source, Set<MermaidGraph.Node> visited, boolean updateMode) {
         // ===================== 遍历所有正线第二部分 =====================
         Location outJunctionLocation = geoWalkingPoint.getLastLocation();
         Vector outJunctionDirection = geoWalkingPoint.getLastDirection();
@@ -388,7 +392,7 @@ public class PRGeoTask {
             }
             geoWalkingPoint.addCoords2FeatureCollection(PRGeoWalkingPoint.LineType.MAIN_LINE_SECOND, source, target);
 
-            if (!updateMode) {
+            if (!updateMode && visited.add(target)) {
                 // 记录这个switcher/remtag（未开通车站）/bcspawn（起点站）/station（终点站）的坐标和方向，入队列
                 nodeQueue.add(new PRGeoWalkingPoint.WalkingPointNode(
                         target,
