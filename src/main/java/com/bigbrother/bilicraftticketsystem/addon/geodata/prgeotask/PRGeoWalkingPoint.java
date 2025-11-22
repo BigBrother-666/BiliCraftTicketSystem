@@ -226,9 +226,10 @@ public class PRGeoWalkingPoint {
      * 寻找下一个移除某tag的remtag控制牌
      *
      * @param tag 移除的tag
+     * @param retry 最大重试次数，找remtag过程中可能会遇到其他remtag
      * @return 错误信息，NONE=无错误，UNEXPECTED_SIGN=遇到的第一个remtag的tag不匹配，WALKING_POINT_ERROR=有环路或铁轨断开
      */
-    public ErrorType findNextRemtag(String tag) {
+    public ErrorType findNextRemtag(String tag, int retry) {
         addTags(tag);
         do {
             RailLookup.TrackedSign[] signs = trackWalkingPoint.state.railPiece().signs();
@@ -242,8 +243,10 @@ public class PRGeoWalkingPoint {
                         return ErrorType.NONE;
                     } else {
                         geoTask.sendMessageAndLog(Component.text("检测到remtag控制牌tag不匹配（目标：%s, 实际：%s）".formatted(tag, sign.getLine(3).trim()), NamedTextColor.YELLOW));
-                        nextRail();
-                        return ErrorType.UNEXPECTED_SIGN;
+                        retry -= 1;
+                        if (retry <= 0) {
+                            return ErrorType.UNEXPECTED_SIGN;
+                        }
                     }
                 }
             }

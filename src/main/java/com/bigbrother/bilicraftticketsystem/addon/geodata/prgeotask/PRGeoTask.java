@@ -222,6 +222,7 @@ public class PRGeoTask {
         PRGeoWalkingPoint.ErrorType startErrorType = geoWalkingPoint.findNextSwitcher(null, startNode.getTag());
         if (startErrorType != PRGeoWalkingPoint.ErrorType.NONE && startErrorType != PRGeoWalkingPoint.ErrorType.UNEXPECTED_SIGN) {
             sendMessageAndLog(Component.text("任务失败，switcher和指定的站台tag不匹配", NamedTextColor.RED), true);
+            writeDebugLog(PRGeoWalkingPoint.LineType.NONE, startNode, null);
             return;
         }
 
@@ -316,6 +317,7 @@ public class PRGeoTask {
             PRGeoWalkingPoint.ErrorType errorType = geoWalkingPoint.findNextBCSpawn(source.getPlatformTag());
             if (!errorType.equals(PRGeoWalkingPoint.ErrorType.NONE)) {
                 sendMessageAndLog(Component.text("遍历铁轨异常结束！", NamedTextColor.RED), true);
+                writeDebugLog(PRGeoWalkingPoint.LineType.LINE_IN, source, null);
                 return;
             }
 
@@ -327,9 +329,10 @@ public class PRGeoTask {
                 geoWalkingPoint.addCoords2FeatureCollection(PRGeoWalkingPoint.LineType.LINE_IN, source, null);
             }
 
-            errorType = geoWalkingPoint.findNextRemtag(source.getTag());
+            errorType = geoWalkingPoint.findNextRemtag(source.getTag(), 4);
             if (!errorType.equals(PRGeoWalkingPoint.ErrorType.NONE)) {
                 sendMessageAndLog(Component.text("遍历铁轨异常结束！", NamedTextColor.RED), true);
+                writeDebugLog(PRGeoWalkingPoint.LineType.LINE_OUT, source, null);
                 return;
             }
             geoWalkingPoint.addCoords2FeatureCollection(PRGeoWalkingPoint.LineType.LINE_OUT, source, null);
@@ -389,6 +392,7 @@ public class PRGeoTask {
                     break;
                 case WALKING_POINT_ERROR:
                     sendMessageAndLog(Component.text("遍历铁轨异常结束！", NamedTextColor.RED), true);
+                    writeDebugLog(PRGeoWalkingPoint.LineType.MAIN_LINE_SECOND, source, target);
                     return;
             }
             geoWalkingPoint.addCoords2FeatureCollection(PRGeoWalkingPoint.LineType.MAIN_LINE_SECOND, source, target);
@@ -433,6 +437,14 @@ public class PRGeoTask {
         } else {
             logger.info(plain); // 默认
         }
+    }
+
+    private void writeDebugLog(PRGeoWalkingPoint.LineType lineType, MermaidGraph.Node start, @Nullable MermaidGraph.Node end) {
+        logger.info("结束时的变量信息：");
+        logger.info("线路类型 -> " + lineType.getType());
+        logger.info("开始节点 -> " + start.toString());
+        logger.info("结束节点 -> " + (end != null ? end.toString() : "空"));
+        logger.info("WalkingPoint坐标 -> " + geoWalkingPoint.getCoodrinates());
     }
 
     /**
