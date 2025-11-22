@@ -83,9 +83,10 @@ public class PRGeoTask {
                     return;
                 }
 
+                Set<MermaidGraph.Node> visited = new HashSet<>();
                 // 确保全部开始节点指定了坐标
                 for (PRGeoWalkingPoint.WalkingPointNode startNodeData : walkingPointNodes) {
-                    iterateMermaidGraph(startNodeData);
+                    iterateMermaidGraph(startNodeData, visited);
                 }
             } catch (Exception e) {
                 sendMessageAndLog(Component.text("遍历铁轨时发生异常：" + e, NamedTextColor.RED), true);
@@ -140,7 +141,8 @@ public class PRGeoTask {
                 }
 
                 sendMessageAndLog(Component.text("开始铁轨遍历任务", NamedTextColor.DARK_AQUA), true);
-                iterateMermaidGraph(new LinkedList<>(walkingPointNodes));
+                Set<MermaidGraph.Node> visited = new HashSet<>();
+                iterateMermaidGraph(new LinkedList<>(walkingPointNodes), visited);
 
             } catch (IOException e) {
                 sendMessageAndLog(Component.text("读取geojson时发生异常：" + e, NamedTextColor.RED), true);
@@ -192,10 +194,10 @@ public class PRGeoTask {
     }
 
     /**
-     * 从startNode节点开始遍历depth深度的所有节点
+     * 更新geojson逻辑
      */
-    private void iterateMermaidGraph(Queue<PRGeoWalkingPoint.WalkingPointNode> updateNodes) {
-        bfs(updateNodes, true);
+    private void iterateMermaidGraph(Queue<PRGeoWalkingPoint.WalkingPointNode> updateNodes, Set<MermaidGraph.Node> visited) {
+        bfs(updateNodes, true, visited);
     }
 
     /**
@@ -211,7 +213,7 @@ public class PRGeoTask {
      * <p>
      * 特殊：起点、终点、尽头式车站
      */
-    private void iterateMermaidGraph(PRGeoWalkingPoint.WalkingPointNode startNode) {
+    private void iterateMermaidGraph(PRGeoWalkingPoint.WalkingPointNode startNode, Set<MermaidGraph.Node> visited) {
         if (startNode == null) {
             sendMessageAndLog(Component.text("任务失败，站台tag不存在", NamedTextColor.RED), true);
             return;
@@ -230,16 +232,15 @@ public class PRGeoTask {
                 geoWalkingPoint.getLastLocation()
         ));
 
-        bfs(nodeQueue, false);
+        bfs(nodeQueue, false, visited);
     }
 
     /**
      * @param nodeQueue  节点队列
      * @param updateMode 是否是更新模式，更新模式：不向队列添加新节点，只处理队列中的节点
+     * @param visited    已经遍历过的节点，防止环路
      */
-    private void bfs(Queue<PRGeoWalkingPoint.WalkingPointNode> nodeQueue, boolean updateMode) {
-        Set<MermaidGraph.Node> visited = new HashSet<>();
-
+    private void bfs(Queue<PRGeoWalkingPoint.WalkingPointNode> nodeQueue, boolean updateMode, Set<MermaidGraph.Node> visited) {
         // BFS
         while (!nodeQueue.isEmpty()) {
             PRGeoWalkingPoint.WalkingPointNode source = nodeQueue.poll();
