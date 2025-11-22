@@ -41,6 +41,7 @@ public class GeoCommand implements CommandExecutor, TabCompleter, Listener {
 
     public GeoCommand(BiliCraftTicketSystem plugin) {
         this.plugin = plugin;
+        plugin.getServer().getPluginManager().registerEvents(this, plugin);
         Objects.requireNonNull(plugin.getCommand("railgeo")).setExecutor(this);
         Objects.requireNonNull(plugin.getCommand("railgeo")).setTabCompleter(this);
     }
