@@ -265,7 +265,7 @@ public class PRGeoWalkingPoint {
             }
             for (RailLookup.TrackedSign sign : signs) {
                 if (sign.getLine(1).trim().toLowerCase().startsWith("bcspawn")) {
-                    if (sign.getLine(3).trim().equals(platformTag)) {
+                    if (MermaidGraph.Node.cmpPlatformTag(platformTag, sign.getLine(3).trim())) {
                         geoTask.sendMessageAndLog(Component.text("检测到bcspawn控制牌: %s".formatted(platformTag), NamedTextColor.GREEN));
                         return ErrorType.NONE;
                     } else {

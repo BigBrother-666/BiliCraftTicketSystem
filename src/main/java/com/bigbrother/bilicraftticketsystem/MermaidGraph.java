@@ -57,6 +57,20 @@ public class MermaidGraph {
             return tag + "-" + railwayDirection;
         }
 
+        /**
+         * 比较两个platformTag是否相同
+         *
+         * @return true:相同
+         */
+        public static boolean cmpPlatformTag(String pTag1, String pTag2) {
+            String[] sp1 = pTag1.split("-");
+            String[] sp2 = pTag2.split("-");
+            if (sp1.length != 2 || sp2.length != 2) {
+                return false;
+            }
+            return sp1[0].equals(sp2[0]) && (sp1[1].startsWith(sp2[1]) || sp2[1].startsWith(sp1[1]));
+        }
+
         @Override
         public boolean equals(Object o) {
             if (!(o instanceof Node other)) {
