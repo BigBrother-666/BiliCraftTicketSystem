@@ -245,11 +245,10 @@ public class GeoDatabaseManager {
     // =================== 序列化 反序列化方法 ===================
     public String serializeLocation(Location loc) {
         return loc.getWorld().getName() + ":" +
-                loc.getX() + ":" +
-                loc.getY() + ":" +
-                loc.getZ() + ":" +
-                loc.getYaw() + ":" +
-                loc.getPitch();
+                loc.getBlockX() + ":" +
+                loc.getBlockY() + ":" +
+                loc.getBlockZ() + ":" +
+                "0.0" + ":" + "0.0";  // yaw pitch 都是 0
     }
 
     public Location deserializeLocation(String str) {
@@ -266,7 +265,11 @@ public class GeoDatabaseManager {
     }
 
     public String serializeVector(Vector vec) {
-        return vec.getBlockX() + ":" + vec.getBlockY() + ":" + vec.getBlockZ();
+        Vector clone = vec.clone();
+        clone.setX((int) (Math.signum(vec.getX()) * Math.round(Math.abs(vec.getX()))));
+        clone.setY(0);
+        clone.setZ((int) (Math.signum(vec.getZ()) * Math.round(Math.abs(vec.getZ()))));
+        return clone.getX() + ":" + clone.getY() + ":" + clone.getZ();
     }
 
     public Vector deserializeVector(String str) {
