@@ -98,21 +98,13 @@ public class TrainRoutes {
         List<PathInfo> pathInfoList = new ArrayList<>();
         Set<MermaidGraph.Node> start = new HashSet<>();
         Set<MermaidGraph.Node> end = new HashSet<>();
-        for (MermaidGraph.Node node : graph.adjacencyList.keySet()) {
-            if (node.getStationName().equals(startStation)) {
+
+        for (MermaidGraph.Node node : graph.getAllNodes()) {
+            if (node.getStationName().equals(startStation) && !node.isEndStation()) {
                 start.add(node);
             }
             if (node.getStationName().equals(endStation)) {
                 end.add(node);
-            }
-            for (MermaidGraph.Edge edge : graph.adjacencyList.get(node)) {
-                MermaidGraph.Node target = edge.getTarget();
-                if (target.getStationName().equals(startStation)) {
-                    start.add(target);
-                }
-                if (target.getStationName().equals(endStation)) {
-                    end.add(target);
-                }
             }
         }
 

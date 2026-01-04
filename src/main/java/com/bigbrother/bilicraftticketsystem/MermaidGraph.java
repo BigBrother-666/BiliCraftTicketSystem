@@ -71,6 +71,23 @@ public class MermaidGraph {
             return sp1[0].equals(sp2[0]) && (sp1[1].startsWith(sp2[1]) || sp2[1].startsWith(sp1[1]));
         }
 
+        /**
+         * @return 是否是一条线路的终点站
+         */
+        public boolean isEndStation() {
+            List<Edge> edges = TrainRoutes.graph.adjacencyList.get(this);
+            if (edges == null) {
+                return true;
+            }
+
+            for (Edge edge : edges) {
+                if (edge.target.getRailwayDirection().equals(railwayDirection)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
         @Override
         public boolean equals(Object o) {
             if (!(o instanceof Node other)) {
