@@ -2,6 +2,7 @@ package com.bigbrother.bilicraftticketsystem.commands;
 
 import com.bigbrother.bilicraftticketsystem.MermaidGraph;
 import com.bigbrother.bilicraftticketsystem.TrainRoutes;
+import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.ItemsConfig;
 import com.bigbrother.bilicraftticketsystem.config.RailwayRoutesConfig;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicket;
@@ -66,9 +67,11 @@ public class BCTicketSystemTabCompleter implements TabCompleter {
                     return List.of("add", "get");
                 } else if (args[0].equals("nbt") && commandSender.hasPermission("bcts.ticket.nbt")) {
                     return Stream.of(
+                            BCTicket.KEY_TICKET_PLUGIN,
                                     BCTicket.KEY_TICKET_NAME,
                                     BCTicket.KEY_TICKET_DISPLAY_NAME,
                                     BCTicket.KEY_TICKET_CREATION_TIME,
+                                    BCTicket.KEY_TICKET_EXPIRATION_TIME,
                                     BCTicket.KEY_TICKET_NUMBER_OF_USES,
                                     BCTicket.KEY_TICKET_MAX_NUMBER_OF_USES,
                                     BCTicket.KEY_TICKET_OWNER_UUID,
@@ -77,13 +80,12 @@ public class BCTicketSystemTabCompleter implements TabCompleter {
                                     BCTicket.KEY_TICKET_ORIGIN_PRICE,
                                     BCTicket.KEY_TICKET_TAGS,
                                     BCTicket.KEY_TICKET_START_PLATFORM_TAG,
-                                    BCTicket.KEY_TICKET_VERSION,
                                     BCTicket.KEY_TICKET_START_STATION,
                                     BCTicket.KEY_TICKET_END_STATION,
                                     BCTicket.KEY_TICKET_DISTANCE,
                                     BCTicket.KEY_TICKET_BACKGROUND_IMAGE_PATH
                             )
-                            .filter(s -> s.contains(args[1].trim()))
+                            .filter(s -> s.toLowerCase().contains(args[1].trim().toLowerCase()))
                             .collect(Collectors.toList());
                 } else if (args[0].equals("statistics") && commandSender.hasPermission("bcts.ticket.statistics")) {
                     return List.of("ticket", "bcspawn");
@@ -112,6 +114,8 @@ public class BCTicketSystemTabCompleter implements TabCompleter {
                     return completerList.stream().filter(s -> s.startsWith(args[2])).collect(Collectors.toList());
                 } else if (args[0].equals("menuitem") && commandSender.hasPermission("bcts.ticket.menuitem")) {
                     return ItemsConfig.itemsConfig.getKeys().stream().toList();
+                } else if (args[0].equals("nbt") && args[1].equals(BCTicket.KEY_TICKET_OWNER_NAME) && commandSender.hasPermission("bcts.ticket.nbt")) {
+                    return Utils.getOnlinePlayers();
                 }
             }
         }

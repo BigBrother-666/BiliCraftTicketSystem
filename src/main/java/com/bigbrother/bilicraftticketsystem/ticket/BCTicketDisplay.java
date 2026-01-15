@@ -1,6 +1,5 @@
 package com.bigbrother.bilicraftticketsystem.ticket;
 
-import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.common.map.*;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
@@ -8,25 +7,20 @@ import com.bergerkiller.bukkit.tc.Localization;
 import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.tickets.Ticket;
-import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
-import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
-import com.bigbrother.bilicraftticketsystem.config.RailwayRoutesConfig;
 import com.bigbrother.bilicraftticketsystem.database.entity.TicketbgInfo;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import org.bukkit.Bukkit;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 
 
 public class BCTicketDisplay extends MapDisplay {
@@ -73,7 +67,6 @@ public class BCTicketDisplay extends MapDisplay {
 
         renderBackground();
         renderTicket();
-        updateTicketTag();
     }
 
     @Override
@@ -94,52 +87,9 @@ public class BCTicketDisplay extends MapDisplay {
         this.getLayer().draw(bg, 0, 0);
     }
 
-    private void updateTicketTag() {
-        CommonItemStack ticket = this.getCommonMapItem();
-        CommonTagCompound ticketNbt = ticket.getCustomData();
-        if (!ticketNbt.containsKey(BCTicket.KEY_TICKET_VERSION)) {
-            return;
-        }
-        int version = ticketNbt.getValue(BCTicket.KEY_TICKET_VERSION, Integer.class, null);
-        // 版本一样，不需要更新
-        if (version == RailwayRoutesConfig.expressTicketVersion) {
-            return;
-        }
-        List<String> tags = List.of(ticketNbt.getValue(BCTicket.KEY_TICKET_TAGS, "").split(","));
-        double distance = ticketNbt.getValue(BCTicket.KEY_TICKET_DISTANCE, 0.0);
-        String startStation = ticketNbt.getValue(BCTicket.KEY_TICKET_START_STATION, String.class, "");
-        String endStation = ticketNbt.getValue(BCTicket.KEY_TICKET_END_STATION, String.class, "");
-        String startPlatformTag = ticketNbt.getValue(BCTicket.KEY_TICKET_START_PLATFORM_TAG, String.class, "");
-        List<TrainRoutes.PathInfo> pathInfoList = TrainRoutes.getPathInfoList(startStation, endStation);
-        if (!pathInfoList.isEmpty()) {
-            for (TrainRoutes.PathInfo pathInfo : pathInfoList) {
-                // 距离相同且新车票包含所有旧车票的tag 则认为是同一路线的车票
-                if (Math.abs(pathInfo.getDistance() - distance) < 1e-3 && pathInfo.getTags().containsAll(tags)) {
-                    if (!startStation.equals(endStation) && !startPlatformTag.equals(pathInfo.getStartPlatformTag())) {
-                        // 线路延长，xxx方向改变
-                        ticket.updateCustomData(tag -> tag.putValue(BCTicket.KEY_TICKET_START_PLATFORM_TAG, pathInfo.getStartPlatformTag()));
-                        startPlatformTag = pathInfo.getStartPlatformTag();
-                    }
-
-                    if (pathInfo.getTags().size() != tags.size() && startPlatformTag.equals(pathInfo.getStartPlatformTag())) {
-                        // 新增车站
-                        ticket.updateCustomData(tag -> tag.putValue(BCTicket.KEY_TICKET_TAGS, String.join(",", pathInfo.getTags())));
-                    }
-
-                    // 更新lore
-                    if (startPlatformTag.equals(pathInfo.getStartPlatformTag())) {
-                        ticket.toBukkit().lore(BCTicket.getBaseTicketInfoLore(pathInfo, ticketNbt.getValue(BCTicket.KEY_TICKET_MAX_SPEED, 4.0)));
-                        break;
-                    }
-                }
-            }
-        }
-        ticket.updateCustomData(tag -> tag.putValue(BCTicket.KEY_TICKET_VERSION, RailwayRoutesConfig.expressTicketVersion));
-    }
-
     private void renderTicket() {
         this.getLayer(1).clear();
-        ItemStack ticketItem = this.getMapItem();
+        BCTicket ticket = BCTicket.fromItemStack(this.getMapItem(), this.getOwners().get(0));
         CommonTagCompound customData = this.getCommonMapItem().getCustomData();
 
         // 获取字体颜色
@@ -156,15 +106,15 @@ public class BCTicketDisplay extends MapDisplay {
         }
 
         String displayName = customData.getValue(BCTicket.KEY_TICKET_DISPLAY_NAME, MainConfig.expressTicketName);
-        if (ticketItem == null) {
+        if (ticket == null) {
             this.getLayer(1).draw(MapFont.MINECRAFT, 5, 40, MapColorPalette.COLOR_RED, Localization.TICKET_MAP_INVALID.get());
         } else {
             this.getLayer(1).draw(mapFont, 5, 35, MapColorPalette.getColor(c), displayName);
-            if (TicketStore.isTicketExpired(ticketItem)) {
+            if (ticket.isTicketExpired()) {
                 this.getLayer(1).draw(MapFont.MINECRAFT, 5, 57, MapColorPalette.COLOR_RED, Localization.TICKET_MAP_EXPIRED.get());
             } else {
                 int maxUses = customData.getValue(BCTicket.KEY_TICKET_MAX_NUMBER_OF_USES, 0);
-                int numUses = (maxUses == 1) ? 0 : TicketStore.getNumberOfUses(ticketItem);
+                int numUses = (maxUses == 1) ? 0 :customData.getValue(BCTicket.KEY_TICKET_NUMBER_OF_USES, 0);
                 if (maxUses < 0) {
                     maxUses = -1; // Just in case, so it works properly with Localization
                 }
@@ -174,7 +124,7 @@ public class BCTicketDisplay extends MapDisplay {
 
             String ownerName = customData.getValue("ticketOwnerName", "Unknown Owner");
             ownerName = StringUtil.stripChatStyle(ownerName);
-            if (TicketStore.isTicketOwner(this.getOwners().get(0), ticketItem)) {
+            if (ticket.isTicketOwner(this.getOwners().get(0))) {
                 this.getLayer(1).draw(MapFont.MINECRAFT, 5, 74, MapColorPalette.getColor(c), ownerName);
             } else {
                 this.getLayer(1).draw(MapFont.MINECRAFT, 5, 74, MapColorPalette.COLOR_RED, ownerName);

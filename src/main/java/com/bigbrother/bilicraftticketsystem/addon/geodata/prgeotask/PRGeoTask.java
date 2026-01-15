@@ -251,8 +251,8 @@ public class PRGeoTask {
             // 保存节点起始坐标方向
             plugin.getGeoDatabaseManager().upsertGeoNodeLoc(source.getPlatformTag(), source.getLocation(), source.getDirection());
 
-            List<MermaidGraph.Edge> edges = TrainRoutes.graph.adjacencyList.get(source);
-            if (edges == null) {
+            List<MermaidGraph.Edge> edges = TrainRoutes.graph.getEdges(source);
+            if (edges == null || edges.isEmpty()) {
                 // 添加bcspawn车站节点信息
                 geoWalkingPoint.addPoint2FeatureCollection(source);
                 geoWalkingPoint.saveGeojsonFile(
@@ -371,7 +371,7 @@ public class PRGeoTask {
         // ===================== 遍历所有正线第二部分 =====================
         Location outJunctionLocation = geoWalkingPoint.getLastLocation();
         Vector outJunctionDirection = geoWalkingPoint.getLastDirection();
-        for (MermaidGraph.Edge edge : TrainRoutes.graph.adjacencyList.get(source)) {
+        for (MermaidGraph.Edge edge : TrainRoutes.graph.getEdges(source)) {
             // 重置WalkingPoint到出站道岔或bcspawn
             if (outJunctionLocation != null && outJunctionDirection != null) {
                 geoWalkingPoint.resetWalkingPoint(outJunctionLocation.getBlock(), outJunctionDirection);

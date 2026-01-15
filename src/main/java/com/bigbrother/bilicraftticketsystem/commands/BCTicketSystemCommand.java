@@ -4,12 +4,12 @@ import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.RailwayRoutesConfig;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
+import com.bigbrother.bilicraftticketsystem.ticket.BCTicket;
 import lombok.Getter;
 import net.coreprotect.CoreProtect;
 import net.coreprotect.CoreProtectAPI;
@@ -494,7 +494,7 @@ public class BCTicketSystemCommand implements CommandExecutor {
         }
         if (args.length >= 2) {
             // 验证主手物品是车票
-            if (TicketStore.isTicketItem(player.getInventory().getItemInMainHand())) {
+            if (BCTicket.isBctsTicket(player.getInventory().getItemInMainHand())) {
                 CommonItemStack mainHandTicket = CommonItemStack.of(HumanHand.getItemInMainHand(player));
                 CommonTagCompound nbt = mainHandTicket.getCustomData();
                 String cleandTagString = args[1].trim();

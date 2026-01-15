@@ -2,8 +2,6 @@ package com.bigbrother.bilicraftticketsystem.menu.impl;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
-import com.bigbrother.bilicraftticketsystem.MermaidGraph;
-import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.MenuConfig;
 import com.bigbrother.bilicraftticketsystem.menu.Menu;
@@ -129,9 +127,7 @@ public class MenuFilter implements Menu {
         if (tickets != null && !tickets.isEmpty()) {
             for (Item ticket : tickets) {
                 if (ticket instanceof TicketItem ticketItem) {
-                    for (MermaidGraph.Node node : ticketItem.getTicket().getPathInfo().getPath()) {
-                        stations.add(node.getStationName());
-                    }
+                    stations.addAll(ticketItem.getTicket().getPathInfo().getStationSequence());
                 }
             }
         }

@@ -6,8 +6,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-import static com.bigbrother.bilicraftticketsystem.config.MainConfig.pricePerKm;
-
 public class MermaidGraph {
     public static final String emptyField = "/";
 
@@ -103,6 +101,10 @@ public class MermaidGraph {
         public int hashCode() {
             return Objects.hash(stationName, railwayName, railwayDirection, tag);
         }
+    }
+
+    public List<Edge> getEdges(Node node) {
+        return adjacencyList.getOrDefault(node, new ArrayList<>());
     }
 
     /**
@@ -229,88 +231,86 @@ public class MermaidGraph {
         adjacencyList.get(src).add(new Edge(tgt, distance));
     }
 
-    // 获取所有路径
-    public void findAllPaths(Node start, Set<Node> end, List<Node> path, Set<Node> visited, List<TrainRoutes.PathInfo> pathInfoList) {
-        if (!path.isEmpty()) {
-            visited.add(start);
+    // DFS 获取所有路径
+    public void findAllPaths(
+            String endStationName,
+            List<Node> nodePath,
+            List<Edge> edgePath,
+            Set<String> visitedStations,
+            List<TrainRoutes.PathInfo> pathInfoList
+    ) {
+        Node currentNode = nodePath.get(nodePath.size() - 1);
+        if (currentNode.stationName.equals(endStationName) && nodePath.size() > 1) {
+            // 到达终点
+            pathInfoList.add(new TrainRoutes.PathInfo(new ArrayList<>(nodePath), new ArrayList<>(edgePath)));
+            return;
         }
-        path.add(start);
-        if (end.contains(start) && path.size() > 1) {
-            List<Node> outPath = new ArrayList<>();
-            Set<String> tags = new LinkedHashSet<>();
-            boolean repeat = false;
-            for (int i = 0; i < path.size(); i++) {
-                Node currNode = path.get(i);
-                // 添加tag
-                if (i != path.size() - 1) {
-                    if (!tags.add(currNode.getTag())) {
-                        repeat = true;
-                        break;
-                    }
-                }
-                // 车站名为空（只包含tag的节点 ---tag）
-                if (!currNode.isStation()) {
-                    continue;
-                }
-                // 添加path（只添加包含车站名的node，且不包含相同车站名）
-                if (outPath.stream().noneMatch(arr -> arr.getStationName().equals(currNode.getStationName())) || i == path.size() - 1) {
-                    outPath.add(currNode);
-                } else if (i != path.size() - 1 && !outPath.get(outPath.size() - 1).getStationName().equals(currNode.getStationName())) {
-                    // 路径已存在当前车站名   当前节点不是最后一个节点，且路径最后一个节点的车站名和当前车站名不同
-                    // 跳过直达车在一个车站需要多个tag的情况
-                    repeat = true;
+
+        for (Edge edge : this.getEdges(currentNode)) {
+            Node next = edge.target;
+
+            // 不允许重复经过车站  起点终点相同除外
+            if (visitedStations.contains(next.stationName) && !next.stationName.equals(endStationName)) {
+                continue;
+            }
+
+            if (next.isStation()) {
+                visitedStations.add(next.stationName);
+            }
+            nodePath.add(next);
+            edgePath.add(edge);
+
+            findAllPaths(endStationName, nodePath, edgePath, visitedStations, pathInfoList);
+
+            // 回溯
+            visitedStations.remove(next.stationName);
+            nodePath.remove(nodePath.size() - 1);
+            edgePath.remove(edgePath.size() - 1);
+        }
+    }
+
+    /**
+     * 获取某个特定路线的PathInfo
+     *
+     * @param startPlatformTag 起始站台tag
+     * @param tags             路线包含的tag
+     * @return 路线详情
+     */
+    @Nullable
+    public TrainRoutes.PathInfo getPathInfo(String startPlatformTag, List<String> tags, String endStation) {
+        Node currNode = getNodeFromPtag(startPlatformTag);
+        if (currNode == null || tags.isEmpty() || !currNode.getTag().equals(tags.get(0))) {
+            return null;
+        }
+
+        List<Node> nodePath = new ArrayList<>();
+        List<Edge> edgePath = new ArrayList<>();
+        nodePath.add(currNode);
+        tags.remove(0);
+        for (String tag : tags) {
+            boolean found = false;
+            for (Edge edge : getEdges(currNode)) {
+                if (edge.target.getTag().equals(tag)) {
+                    found = true;
+                    nodePath.add(edge.target);
+                    edgePath.add(edge);
+                    currNode = edge.target;
                     break;
                 }
             }
-            double distance = calculateTotalDistance(path);
-            if (distance > 0 && !repeat) {
-                pathInfoList.add(new TrainRoutes.PathInfo(
-                        outPath,
-                        tags,
-                        distance,
-                        calculateFare(distance),
-                        path.get(0),
-                        path.get(path.size() - 1)
-                ));
-            }
-        } else {
-            List<Edge> edges = adjacencyList.get(start);
-            if (edges != null) {
-                for (Edge edge : edges) {
-                    if (!visited.contains(edge.target)) {
-                        findAllPaths(edge.target, end, path, visited, pathInfoList);
-                    }
-                }
+            if (!found) {
+                return null;
             }
         }
-
-        // 回溯
-        visited.remove(start);
-        path.remove(path.size() - 1);
-    }
-
-    // 计算路径的总距离
-    private double calculateTotalDistance(List<Node> path) {
-        double totalDistance = 0;
-        for (int i = 0; i < path.size() - 1; i++) {
-            Node from = path.get(i);
-            Node to = path.get(i + 1);
-            List<Edge> edges = adjacencyList.get(from);
-            if (edges != null) {
-                for (Edge edge : edges) {
-                    if (edge.target.equals(to)) {
-                        totalDistance += edge.distance;
-                        break;
-                    }
-                }
+        // 添加做后一个边和节点
+        for (Edge edge : getEdges(currNode)) {
+            if (edge.target.getStationName().equals(endStation)) {
+                nodePath.add(edge.target);
+                edgePath.add(edge);
+                break;
             }
         }
-        return totalDistance;
-    }
-
-    // 计算票价
-    public double calculateFare(double distance) {
-        return Math.round(distance * pricePerKm * 100.0) / 100.0;
+        return new TrainRoutes.PathInfo(nodePath, edgePath);
     }
 }
 

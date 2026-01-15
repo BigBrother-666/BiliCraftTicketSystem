@@ -1,10 +1,10 @@
 package com.bigbrother.bilicraftticketsystem.menu;
 
+import com.bigbrother.bilicraftticketsystem.Utils;
 import lombok.Data;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
 @Data
 public class PlayerOption {
@@ -30,19 +30,11 @@ public class PlayerOption {
     }
 
     public String getStartStationString() {
-        String str = PlainTextComponentSerializer.plainText().serialize(startStation);
-        if (str.startsWith("[") && str.endsWith("]")) {
-            return str.substring(1, str.length() - 1);
-        }
-        return str;
+        return Utils.component2Str(startStation);
     }
 
     public String getEndStationString() {
-        String str = PlainTextComponentSerializer.plainText().serialize(endStation);
-        if (str.startsWith("[") && str.endsWith("]")) {
-            return str.substring(1, str.length() - 1);
-        }
-        return str;
+        return Utils.component2Str(endStation);
     }
 
     public boolean canSearch() {

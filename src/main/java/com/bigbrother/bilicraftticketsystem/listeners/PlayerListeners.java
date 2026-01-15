@@ -1,6 +1,5 @@
 package com.bigbrother.bilicraftticketsystem.listeners;
 
-import com.bergerkiller.bukkit.tc.tickets.TicketStore;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.config.RailwayRoutesConfig;
 import com.bigbrother.bilicraftticketsystem.database.entity.TicketbgInfo;
@@ -8,6 +7,7 @@ import com.bigbrother.bilicraftticketsystem.menu.impl.MenuFilter;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuLocation;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
+import com.bigbrother.bilicraftticketsystem.ticket.BCTicket;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -59,7 +59,7 @@ public class PlayerListeners implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         // 检查玩家是否与制图台交互
         InventoryView view = event.getView();
-        if (view.getTopInventory().getType() == InventoryType.CARTOGRAPHY && TicketStore.isTicketItem(event.getCurrentItem())) {
+        if (view.getTopInventory().getType() == InventoryType.CARTOGRAPHY && BCTicket.isBctsTicket(event.getCurrentItem())) {
             event.setCancelled(true);
         }
     }

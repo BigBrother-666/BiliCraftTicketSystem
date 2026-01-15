@@ -5,8 +5,8 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignActionProperties;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
-import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.addon.signactions.component.RouteBossbar;
+import com.bigbrother.bilicraftticketsystem.listeners.TrainListeners;
 
 public class CustomSignActionProperties extends SignActionProperties {
     @Override
@@ -17,7 +17,7 @@ public class CustomSignActionProperties extends SignActionProperties {
             if (info.isPowered() &&
                     !group.isUnloaded() &&
                     info.getLine(2).equals("remtag") &&
-                    group.getProperties().getTickets().contains(MainConfig.expressTicketName)) {
+                    TrainListeners.trainTicketInfo.containsKey(group)) {
                 for (MinecartMember<?> minecartMember : group) {
                     RouteBossbar bossbar = SignActionShowroute.bossbarMapping.get(minecartMember);
                     if (bossbar != null) {

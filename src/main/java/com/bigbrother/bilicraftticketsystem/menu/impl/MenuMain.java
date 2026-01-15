@@ -1,7 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.menu.impl;
 
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
-import com.bigbrother.bilicraftticketsystem.MermaidGraph;
 import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.config.MenuConfig;
@@ -29,7 +28,6 @@ import xyz.xenondevs.invui.item.impl.SimpleItem;
 import xyz.xenondevs.invui.window.Window;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
 
@@ -152,7 +150,7 @@ public class MenuMain implements Menu {
         for (Item item : menuTicketList) {
             if (item instanceof TicketItem ticketItem &&
                     ticketItem.getTicket() != null &&
-                    new HashSet<>(ticketItem.getTicket().getPathInfo().getPath().stream().map(MermaidGraph.Node::getStationName).collect(Collectors.toList())).containsAll(filter)) {
+                    new HashSet<>(ticketItem.getTicket().getPathInfo().getStationSequence()).containsAll(filter)) {
                 filteredTickets.add(item);
             }
         }
@@ -180,7 +178,7 @@ public class MenuMain implements Menu {
         }
         for (Item ticket : menuTicketList) {
             if (ticket instanceof TicketItem ticketItem) {
-                ticketItem.updateLore();
+                ticketItem.updateLore(playerOption);
                 ticketItem.notifyWindows();
             }
         }
