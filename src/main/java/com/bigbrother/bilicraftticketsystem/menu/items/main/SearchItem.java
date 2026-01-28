@@ -31,7 +31,7 @@ public class SearchItem extends AbstractItem {
         ItemStack itemStack = Utils.loadItemFromFile("search");
         MenuMain menu = MenuMain.getMenu(player);
         PlayerOption option = menu.getPlayerOption();
-        if (!option.canSearch()) {
+        if (!option.isStationNotEmpty()) {
             List<Component> lore = itemStack.lore();
             if (lore == null) {
                 lore = new ArrayList<>();
@@ -48,7 +48,7 @@ public class SearchItem extends AbstractItem {
         PlayerOption option = menu.getPlayerOption();
 
         // cooldown 1s
-        if (option.isSearchedFlag() || !option.canSearch()) {
+        if (option.isSearchedFlag() || !option.isStationNotEmpty()) {
             return;
         }
         option.setSearchedFlag(true);

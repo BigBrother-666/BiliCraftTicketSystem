@@ -28,7 +28,7 @@ import java.util.*;
 
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
 
-public class MenuTicketbg implements Menu {
+public class MenuTicketbg extends Menu {
     @Getter
     private static int selfbgMaxCnt = 0;
 
@@ -51,7 +51,6 @@ public class MenuTicketbg implements Menu {
     private static final Map<UUID, TicketbgInfo> ticketbgUsageMapping = new HashMap<>();
     private final List<BgItem> selfbgItemList;
     private final Player player;
-    private final Window window;
     private final PagedGui<@NotNull Item> gui;
     @Nullable
     private SortItem sortItem;
@@ -129,7 +128,7 @@ public class MenuTicketbg implements Menu {
                 field = SortField.UPLOAD_TIME;
             }
             // 更新自己上传的背景
-            List<TicketbgInfo> selfTickets = plugin.getTrainDatabaseManager().getAllSelfTickets(player.getUniqueId().toString(), field);
+            List<TicketbgInfo> selfTickets = plugin.getTrainDatabaseManager().getTicketbgService().getAllSelfTickets(player.getUniqueId().toString(), field);
             for (int i = 0; i < selfbgItemList.size(); i++) {
                 if (i < selfTickets.size()) {
                     selfbgItemList.get(i).setTicketbgInfo(selfTickets.get(i));
@@ -141,7 +140,7 @@ public class MenuTicketbg implements Menu {
 
             // 更新共享的背景
             List<Item> content = new ArrayList<>();
-            List<TicketbgInfo> sharedTickets = plugin.getTrainDatabaseManager().getAllSharedTickets(field);
+            List<TicketbgInfo> sharedTickets = plugin.getTrainDatabaseManager().getTicketbgService().getAllSharedTickets(field);
             for (TicketbgInfo sharedTicket : sharedTickets) {
                 content.add(new SharedbgItem(sharedTicket));
             }
@@ -159,19 +158,11 @@ public class MenuTicketbg implements Menu {
 
     @Override
     public void open() {
-        if (window.isOpen()) {
-            close();
-        }
         asyncUpdateAllTicketbg();
-        this.window.open();
+        super.open();
     }
 
-    @Override
-    public void close() {
-        Bukkit.getScheduler().runTask(plugin, window::close);
-    }
-
-    public static void clearAll() {
+    public static void reload() {
         for (Map.Entry<UUID, MenuTicketbg> entry : ticketbgMenuMapping.entrySet()) {
             entry.getValue().close();
         }

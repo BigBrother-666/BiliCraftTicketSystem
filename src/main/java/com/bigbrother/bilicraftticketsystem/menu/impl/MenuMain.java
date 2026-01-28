@@ -14,8 +14,6 @@ import lombok.Setter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
-import net.kyori.adventure.text.minimessage.MiniMessage;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -29,12 +27,9 @@ import xyz.xenondevs.invui.window.Window;
 
 import java.util.*;
 
-import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
-
-public class MenuMain implements Menu {
+public class MenuMain extends Menu {
     @Getter
     private static final Map<UUID, MenuMain> mainMenuMapping = new HashMap<>();
-    private final Window window;
     PagedGui<@NotNull Item> gui;
     private final Player player;
 
@@ -120,7 +115,7 @@ public class MenuMain implements Menu {
             }
         }
 
-        gui = guiBuilder.build();
+        this.gui = guiBuilder.build();
         this.window = Window.single()
                 .setViewer(player)
                 .setTitle(new AdventureComponentWrapper(Component.text(mainConfig.get("title", String.class, ""))))
@@ -157,7 +152,7 @@ public class MenuMain implements Menu {
 
         if (filteredTickets.isEmpty()) {
             // 无车票符合条件，显示屏障
-            Component errMsg = MiniMessage.miniMessage().deserialize(
+            Component errMsg = Utils.mmStr2Component(
                     MainConfig.message.get("filter-empty","").formatted(
                     playerOption.getStartStationString(),
                     playerOption.getEndStationString(),
@@ -186,19 +181,11 @@ public class MenuMain implements Menu {
 
     @Override
     public void open() {
-        if (window.isOpen()) {
-            close();
-        }
         filterTickets(MenuFilter.getMenu(player).getFilterStations());
-        this.window.open();
+        super.open();
     }
 
-    @Override
-    public void close() {
-        Bukkit.getScheduler().runTask(plugin, window::close);
-    }
-
-    public static void clearAll() {
+    public static void reload() {
         for (Map.Entry<UUID, MenuMain> entry : mainMenuMapping.entrySet()) {
             entry.getValue().close();
         }

@@ -2,11 +2,10 @@ package com.bigbrother.bilicraftticketsystem;
 
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
@@ -23,14 +22,22 @@ import java.util.stream.Collectors;
 import static com.bigbrother.bilicraftticketsystem.config.ItemsConfig.itemsConfig;
 
 public class Utils {
-    private static final Cache<String, TextColor> colorCache = CacheBuilder.newBuilder().maximumSize(50).build();
+    private static final MiniMessage MM = MiniMessage.miniMessage();
 
     public static File getPlayerTicketbgFolder(Player player) {
         return new File(TrainCarts.plugin.getDataFile("images"), player.getUniqueId().toString());
     }
 
-    public static Component str2Component(String s) {
+    public static Component legacyStr2Component(String s) {
         return LegacyComponentSerializer.legacyAmpersand().deserialize(s);
+    }
+
+    public static Component mmStr2Component(String s) {
+        return MM.deserialize(s);
+    }
+
+    public static String Component2MmStr(Component c) {
+        return MM.serialize(c);
     }
 
     public static String component2Str(Component component) {
@@ -42,16 +49,10 @@ public class Utils {
     }
 
     public static TextColor getRailwayColor(String railway) {
-        TextColor color = colorCache.getIfPresent(railway);
-        if (color != null) {
-            return color;
-        }
-
         for (String key : MainConfig.railwayColor.getKeys()) {
             if (railway.startsWith(key)) {
-                color = TextColor.fromHexString(MainConfig.railwayColor.get(key, ""));
+                TextColor color = TextColor.fromHexString(MainConfig.railwayColor.get(key, ""));
                 if (color != null) {
-                    colorCache.put(railway, color);
                     return color;
                 }
                 break;
@@ -105,5 +106,12 @@ public class Utils {
 
     public static List<String> getOnlinePlayers() {
         return Bukkit.getOnlinePlayers().stream().map(Player::getName).collect(Collectors.toList());
+    }
+
+    /**
+     * 速度转换 m/tick -> km/h
+     */
+    public static double mpT2Kph(double mpT) {
+        return mpT * 20 * 3.6;
     }
 }

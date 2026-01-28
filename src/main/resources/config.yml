@@ -1,11 +1,8 @@
 # 每公里价格
 price-per-km: 0.2
 
-# 跨站车车票名（不需要设置tag，speedLimit）
-express-ticket-name: express
-
-# 普通车的tag
-common-train-tag: common
+# 跨站车车票名（需要在tc插件新建，用于识别使用本车票系统的列车）
+express-ticket-name: 'express'
 
 # 可设置的最大/最小速度
 speed:
@@ -18,44 +15,99 @@ uses:
   max: 50
   discount:
     # 次数下限-次数上限-折扣
-    - 5-10-0.7
-    - 11-25-0.6
-    - 26-50-0.5
+    - '5-10-0.7'
+    - '11-25-0.6'
+    - '26-50-0.5'
 
 # 权限组的折扣，和上方的折扣叠加
 perm-discount:
   displayname-全局管理员:
-    - 1-50-0.0
+    - '1-50-0.0'
   bc-prefix-railways:
-    - 1-50-0.7
+    - '1-50-0.7'
   bc-prefix-roadways:
-    - 1-50-0.7
+    - '1-50-0.7'
+
+# 交通卡
+card:
+  # 物品名
+  name: <gold>帕拉伦国有铁路交通卡
+  # 最大储蓄金额
+  max-balance: 114514
+  # 起步价
+  base-fare: 0.5
+  # 单次最大充值金额
+  max-signle-charge: 1000
 
 # 跨站车发车后跳过的控制牌，按照skip控制牌格式（filter ignore skip）
 skip: "announce 0 10"
 
-ticket-font: 微软雅黑
+ticket-font: '微软雅黑'
 ticket-font-bold: true
 
 # 提示信息
 message:
   # 聊天栏
-  buy-success: <gold>[帕拉伦国有铁路车票系统] <green>您成功花费 <bold>%.2f银币</bold> 购买了 <bold>%s</bold>
-  buy-failure: <gold>[帕拉伦国有铁路车票系统] <red>车票购买失败：%s
-  forbidden-get-on: <gold>[帕拉伦国有铁路车票系统] <red>主手车票不正确或列车已经驶离起始站，禁止上车
-  wrong-platform: <gold>[帕拉伦国有铁路车票系统] <red>此车票不能在本站台使用，请核对车票的可使用站台和本站台上的信息是否一致
-  not-support-ticket: <gold>[帕拉伦国有铁路车票系统] <red>不支持该车票
-  expired-ticket: <gold>[帕拉伦国有铁路车票系统] <red>车票已过期
-  owner-conflict: <gold>[帕拉伦国有铁路车票系统] <red>不能使用其他玩家的车票
-  used: <gold>[帕拉伦国有铁路车票系统] <green>成功使用一张（次）%s 车票
-  check-failed: <gold>[帕拉伦国有铁路车票系统] <red>检票失败！主手没有本次列车的车票。本次列车的车票信息：
-  old-ticket: <gold>[帕拉伦国有铁路车票系统] <red>旧版车票已禁用
-  quick-buy: <gold>[帕拉伦国有铁路车票系统] <green><underlined>点击花费 <bold>%.2f银币</bold> 快速购买一张此列车的单程票
-  wiki: <gold>[帕拉伦国有铁路车票系统] <green><underlined><click:open_url:https://www.yuque.com/sasanarx/bilicraft/iunb5gkspevng8gf#>点击打开帕拉伦国有铁路wiki页面
+  ticket-buy-success: '<green>您成功花费 <bold>%.2f银币</bold> 购买了 <bold>%s</bold>'
+  ticket-buy-failure: '<red>车票购买失败：%s'
+  ticket-check-failed: '<red>检票失败！主手没有本次列车的车票。本次列车的车票信息：'
+  ticket-old: '<red>旧版车票已禁用'
+  ticket-not-support: '<red>不支持该车票'
+  ticket-expired: '<red>车票已过期'
+  ticket-owner-conflict: '<red>不能使用其他玩家的车票'
+  ticket-wrong-platform: '<red>此车票不能在本站台使用，请核对车票的可使用站台和本站台上的信息是否一致'
+  ticket-used: '<green>成功使用一张（次）%s 车票'
+
+  card-charge-success: '<green>您成功向交通卡充值了 <bold>%.2f</bold> 银币，余额 <bold>%.2f</bold> 银币'
+  card-charge-failure: '<red>充值失败：%s'
+  card-reach-max: '<yellow>交通卡存储金额已经达到最大值'
+  card-charge-reach-max: '<yellow>单次最多充值 %.2f 银币！请重新输入或点击取消按钮。'
+  card-no-path: '<yellow>本站台没有 <i><u>%s</i> 直达 <i><u>%s</i> 的路线'
+  card-no-endstation: '<red>请指定想前往的车站'
+  card-wrong-platform: '<red>不能本站台使用交通卡，请核对交通卡的可使用站台和本站台上的信息是否一致'
+  card-not-enough-balance: '<red>交通卡余额不足！本次行程需要 <yellow>%.2f 银币<red>，余额 <yellow>%.2f 银币'
+  card-used: '<green>刷卡成功，扣费 %.2f 银币，剩余 %.2f 银币'
+
+  unknown-error: '<red>发生未知错误！'
+
+  forbidden-get-on: '<red>主手车票不正确或列车已经驶离起始站，禁止上车'
+  quick-buy: '<green><underlined>点击花费 <bold>%.2f银币</bold> 快速购买一张此列车的单程票'
+  wiki: '<green><underlined><click:open_url:https://www.yuque.com/sasanarx/bilicraft/iunb5gkspevng8gf#>点击打开帕拉伦国有铁路wiki页面'
   # 车票系统内
-  filter-empty: 没有 <i><u>%s</i> 直达 <i><u>%s</i> 且途经 <i><u>%s</i> 的车票
+  filter-empty: '没有 <i><u>%s</i> 直达 <i><u>%s</i> 且途经 <i><u>%s</i> 的车票'
   # 直达车bossbar
-  express-normal: <green>%s <rainbow>======== 直达 ========＞</rainbow> %s</green>
-  express-end: <rainbow>>>>> <gold>列车已到达终点站：<red>%s站</red>，下车时，请您注意站台与列车之间的空隙</gold> <<<<</rainbow>
+  express-normal: '<green>%s <rainbow>======== 直达 ========＞</rainbow> %s</green>'
+  express-end: '<rainbow>>>>> <gold>列车已到达终点站：<red>%s站</red>，下车时，请您注意站台与列车之间的空隙</gold> <<<<</rainbow>'
+
+lore:
+  # 公共占位符：
+  # {startStationName} {startRailwayName} {startRailwayDirection} end同理
+  # {distance} {speed} {price}
+  # {PathInfoLore} {RailwayInfoLore} 必须放在单独一行
+  # ticket独有：
+  # {maxUses} {ownerName}
+  # card独有：
+  # {balance} {usePlatform}
+  ticket:
+    - '<dark_purple><b>▶ 路线'
+    - '<gold>{startStationName} ===直达===＞ {endStationName}'
+    - '<dark_purple><b>▶ 车票使用方法'
+    - '<gold>前往国铁 [{startStationName}] , 使用标有 [{startRailwayName} {startRailwayDirection}] 的发车装置发车, 主手拿本车票上车'
+    - '<dark_purple><b>▶ 路线详情（只停起始站和终到站）'
+    - '{PathInfoLore}'
+    - '<dark_purple><b>▶ 途经铁路'
+    - '{RailwayInfoLore}'
+    - '{distance} km | 最大速度 {speed} km/h'
+  card:
+    - '<dark_purple><b>▶ 交通卡信息'
+    - '<gold>余额：<italic>{balance}'
+    - '<gold>起始站：<italic>{startStationName}'
+    - '<gold>终到站：<italic>{endStationName}'
+    - '<gold>可用站台：<italic>{usePlatform}'
+  # 路线详情lore每行最多显示的车站数
+  station-name-cnt-perrow: 7
+  # 途经铁路lore每行最多显示的车站数
+  railway-name-cnt-perrow: 4
+
 
 railway-color:

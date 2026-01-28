@@ -58,6 +58,9 @@ permissions:
   bcts.ticket.delroute:
     description: "删除route权限"
     default: op
+  bcts.ticket.getcard:
+    description: "获取交通卡权限"
+    default: op
 
 libraries:
   - com.zaxxer:HikariCP:5.0.1

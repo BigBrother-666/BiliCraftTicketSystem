@@ -27,9 +27,10 @@ public class SpeedItem extends AbstractItem {
         ItemStack itemStack = Utils.loadItemFromFile("speed");
         ItemMeta itemMeta = itemStack.getItemMeta();
         List<Component> lore = new ArrayList<>();
-        lore.add(Component.text("当前选择的速度：%.1fkm/h".formatted(speed * 20 * 3.6), NamedTextColor.DARK_AQUA));
-        lore.add(Component.text("左键+%.1fkm/h，右键-%.1fkm/h".formatted(MainConfig.speedStep * 20 * 3.6, MainConfig.speedStep * 20 * 3.6), NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
-        lore.add(Component.text("最大%.1fkm/h，最小%.1fkm/h".formatted(MainConfig.maxSpeed * 20 * 3.6, MainConfig.minSpeed * 20 * 3.6), NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("当前选择的速度：%.1fkm/h".formatted(Utils.mpT2Kph(speed)), NamedTextColor.DARK_AQUA));
+        lore.add(Component.text(""));
+        lore.add(Component.text("左键+%.1fkm/h，右键-%.1fkm/h".formatted(Utils.mpT2Kph(MainConfig.speedStep), Utils.mpT2Kph(MainConfig.speedStep)), NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("最大%.1fkm/h，最小%.1fkm/h".formatted(Utils.mpT2Kph(MainConfig.maxSpeed), Utils.mpT2Kph(MainConfig.minSpeed)), NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false));
         itemMeta.lore(lore);
         itemStack.setItemMeta(itemMeta);
         return new ItemBuilder(itemStack);

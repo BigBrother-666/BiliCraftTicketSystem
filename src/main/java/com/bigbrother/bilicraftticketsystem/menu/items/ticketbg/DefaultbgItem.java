@@ -26,7 +26,7 @@ public class DefaultbgItem extends AbstractItem {
     public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent inventoryClickEvent) {
         TicketbgInfo ticketbgInfo = MenuTicketbg.getTicketbgUsageMapping().get(player.getUniqueId());
         if (ticketbgInfo != null) {
-            plugin.getTrainDatabaseManager().updateUsageTicketbg(null, player.getUniqueId().toString());
+            plugin.getTrainDatabaseManager().getTicketbgService().updateUsageTicketbg(null, player.getUniqueId().toString());
             MenuTicketbg.getTicketbgUsageMapping().remove(player.getUniqueId());
             MenuTicketbg.updateAllWindows();
             player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("设置默认背景图成功", NamedTextColor.GREEN)));

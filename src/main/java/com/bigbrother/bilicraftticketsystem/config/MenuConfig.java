@@ -13,6 +13,8 @@ public class MenuConfig {
     private static FileConfiguration mainMenuConfig;
     @Getter
     private static FileConfiguration ticketbgMenuConfig;
+    @Getter
+    private static FileConfiguration cardMenuConfig;
 
     public static void loadMenuConfig(BiliCraftTicketSystem plugin) {
         filterMenuConfig = new FileConfiguration(plugin, EnumConfig.MENU_FILTER.getFileName());
@@ -23,5 +25,7 @@ public class MenuConfig {
         mainMenuConfig.load();
         ticketbgMenuConfig = new FileConfiguration(plugin, EnumConfig.MENU_TICKETBG.getFileName());
         ticketbgMenuConfig.load();
+        cardMenuConfig = new FileConfiguration(plugin, EnumConfig.MENU_CARD.getFileName());
+        cardMenuConfig.load();
     }
 }

@@ -11,7 +11,6 @@ import lombok.Setter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -27,7 +26,7 @@ import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
 
 public class NearestLocItem extends LocationItem {
     @Getter @Setter
-    private static List<BcspawnInfo> bcspawnInfoList = new ArrayList<>();
+    public static List<BcspawnInfo> bcspawnInfoList = new ArrayList<>();
 
     private final Player viewer;
     private BcspawnInfo nearestBcspawn = null;
@@ -41,7 +40,7 @@ public class NearestLocItem extends LocationItem {
     public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent event) {
         if (nearestBcspawn != null) {
             MenuMain menu = MenuMain.getMenu(player);
-            Component name = MiniMessage.miniMessage().deserialize(MenuConfig.getLocationMenuConfig().get("content.%s.name".formatted(nearestBcspawn.getSpawnStation()), nearestBcspawn.getSpawnStation())).decoration(TextDecoration.ITALIC, false);
+            Component name = Utils.mmStr2Component(MenuConfig.getLocationMenuConfig().get("content.%s.name".formatted(nearestBcspawn.getSpawnStation()), nearestBcspawn.getSpawnStation())).decoration(TextDecoration.ITALIC, false);
             if (MenuLocation.getMenu(player).isStart()) {
                 menu.getPlayerOption().setStartStation(name);
             } else {
@@ -57,7 +56,7 @@ public class NearestLocItem extends LocationItem {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             // 获取全部bcspawn数据
             if (bcspawnInfoList.isEmpty()) {
-                bcspawnInfoList = plugin.getTrainDatabaseManager().getAllBcspawnInfo();
+                bcspawnInfoList = plugin.getTrainDatabaseManager().getBcspawnService().getAllBcspawnInfo();
             }
 
             // 计算最近的车站

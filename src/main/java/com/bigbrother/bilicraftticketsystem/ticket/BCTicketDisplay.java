@@ -15,12 +15,14 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
+import java.util.UUID;
 
 
 public class BCTicketDisplay extends MapDisplay {
@@ -41,7 +43,7 @@ public class BCTicketDisplay extends MapDisplay {
                         // 加载字体
                         Font customFont = Font.createFont(Font.TRUETYPE_FONT, fontFiles[0]);
                         customFont = customFont.deriveFont(9f); // 设置字体大小
-                        customFont.deriveFont(MainConfig.ticketFontBold ? Font.BOLD : Font.PLAIN);
+                        customFont = customFont.deriveFont(MainConfig.ticketFontBold ? Font.BOLD : Font.PLAIN);
 
                         // 注册字体到 GraphicsEnvironment
                         GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
@@ -64,6 +66,7 @@ public class BCTicketDisplay extends MapDisplay {
     public void onAttached() {
         this.setSessionMode(MapSessionMode.VIEWING);
         this.setGlobal(false);
+        this.setUpdateWithoutViewers(false);
 
         renderBackground();
         renderTicket();
@@ -74,26 +77,40 @@ public class BCTicketDisplay extends MapDisplay {
         this.renderTicket();
     }
 
+    public void updateNbt(CommonTagCompound nbt) {
+        CommonTagCompound customData = this.getCommonMapItem().getCustomData();
+        if (customData.getValue(BCCard.KEY_CARD_UUID, "").equals(nbt.getValue(BCCard.KEY_CARD_UUID, ""))) {
+            this.getCommonMapItem().setCustomData(nbt);
+        }
+    }
+
     public void renderBackground() {
         CommonTagCompound ticketNbt = this.getCommonMapItem().getCustomData();
-        TicketbgInfo ticketbgInfo = BiliCraftTicketSystem.plugin.getTrainDatabaseManager().getCurrTicketbgInfo(ticketNbt.getUUID(BCTicket.KEY_TICKET_OWNER_UUID).toString());
+        UUID bgUuid = ticketNbt.getValue(BCTicket.KEY_TICKET_OWNER_UUID, this.getOwners().get(0).getUniqueId());
+        TicketbgInfo ticketbgInfo = BiliCraftTicketSystem.plugin.getTrainDatabaseManager().getTicketbgService().getCurrentTicketbgInfo(bgUuid.toString());
         MapTexture bg;
 
         if (ticketbgInfo != null) {
             bg = loadBackgroundImage(ticketbgInfo.getFilePath());
         } else {
-            bg = loadBackgroundImage(ticketNbt.getValue(BCTicket.KEY_TICKET_BACKGROUND_IMAGE_PATH, ""));
+            bg = loadBackgroundImage(ticketNbt.getValue(BCTicket.KEY_TRANSIT_PASS_BACKGROUND_IMAGE_PATH, ""));
         }
         this.getLayer().draw(bg, 0, 0);
     }
 
-    private void renderTicket() {
+    public void renderTicket() {
+        if (this.getOwners().isEmpty()) {
+            // ???
+            return;
+        }
+        Player owner = this.getOwners().get(0);
         this.getLayer(1).clear();
-        BCTicket ticket = BCTicket.fromItemStack(this.getMapItem(), this.getOwners().get(0));
+        BCTransitPass bcTransitPass = BCTransitPassFactory.fromHeldItem(owner);
         CommonTagCompound customData = this.getCommonMapItem().getCustomData();
+        UUID bgUuid = customData.getValue(BCTicket.KEY_TICKET_OWNER_UUID, owner.getUniqueId());
 
         // 获取字体颜色
-        TicketbgInfo ticketbgInfo = BiliCraftTicketSystem.plugin.getTrainDatabaseManager().getCurrTicketbgInfo(customData.getUUID(BCTicket.KEY_TICKET_OWNER_UUID).toString());
+        TicketbgInfo ticketbgInfo = BiliCraftTicketSystem.plugin.getTrainDatabaseManager().getTicketbgService().getCurrentTicketbgInfo(bgUuid.toString());
         Color c;
         if (ticketbgInfo != null) {
             try {
@@ -105,29 +122,34 @@ public class BCTicketDisplay extends MapDisplay {
             c = Color.black;
         }
 
-        String displayName = customData.getValue(BCTicket.KEY_TICKET_DISPLAY_NAME, MainConfig.expressTicketName);
-        if (ticket == null) {
+
+        if (bcTransitPass == null) {
             this.getLayer(1).draw(MapFont.MINECRAFT, 5, 40, MapColorPalette.COLOR_RED, Localization.TICKET_MAP_INVALID.get());
         } else {
+            String displayName = bcTransitPass.getTransitPassName();
             this.getLayer(1).draw(mapFont, 5, 35, MapColorPalette.getColor(c), displayName);
-            if (ticket.isTicketExpired()) {
-                this.getLayer(1).draw(MapFont.MINECRAFT, 5, 57, MapColorPalette.COLOR_RED, Localization.TICKET_MAP_EXPIRED.get());
-            } else {
-                int maxUses = customData.getValue(BCTicket.KEY_TICKET_MAX_NUMBER_OF_USES, 0);
-                int numUses = (maxUses == 1) ? 0 :customData.getValue(BCTicket.KEY_TICKET_NUMBER_OF_USES, 0);
-                if (maxUses < 0) {
-                    maxUses = -1; // Just in case, so it works properly with Localization
+            if (bcTransitPass instanceof BCTicket ticket) {
+                if (ticket.isTicketExpired()) {
+                    this.getLayer(1).draw(MapFont.MINECRAFT, 5, 57, MapColorPalette.COLOR_RED, Localization.TICKET_MAP_EXPIRED.get());
+                } else {
+                    int maxUses = customData.getValue(BCTicket.KEY_TICKET_MAX_NUMBER_OF_USES, 0);
+                    int numUses = (maxUses == 1) ? 0 :customData.getValue(BCTicket.KEY_TICKET_NUMBER_OF_USES, 0);
+                    if (maxUses < 0) {
+                        maxUses = -1; // Just in case, so it works properly with Localization
+                    }
+                    String text = Localization.TICKET_MAP_USES.get(Integer.toString(maxUses), Integer.toString(numUses));
+                    this.getLayer(1).draw(MapFont.MINECRAFT, 5, 57, MapColorPalette.getColor(c), text);
                 }
-                String text = Localization.TICKET_MAP_USES.get(Integer.toString(maxUses), Integer.toString(numUses));
-                this.getLayer(1).draw(MapFont.MINECRAFT, 5, 57, MapColorPalette.getColor(c), text);
-            }
 
-            String ownerName = customData.getValue("ticketOwnerName", "Unknown Owner");
-            ownerName = StringUtil.stripChatStyle(ownerName);
-            if (ticket.isTicketOwner(this.getOwners().get(0))) {
-                this.getLayer(1).draw(MapFont.MINECRAFT, 5, 74, MapColorPalette.getColor(c), ownerName);
-            } else {
-                this.getLayer(1).draw(MapFont.MINECRAFT, 5, 74, MapColorPalette.COLOR_RED, ownerName);
+                String ownerName = customData.getValue(BCTicket.KEY_TICKET_OWNER_NAME, "Unknown Owner");
+                ownerName = StringUtil.stripChatStyle(ownerName);
+                if (ticket.isTicketOwner(owner)) {
+                    this.getLayer(1).draw(MapFont.MINECRAFT, 5, 74, MapColorPalette.getColor(c), ownerName);
+                } else {
+                    this.getLayer(1).draw(MapFont.MINECRAFT, 5, 74, MapColorPalette.COLOR_RED, ownerName);
+                }
+            } else if(bcTransitPass instanceof BCCard card) {
+                this.getLayer(1).draw(MapFont.MINECRAFT, 5, 57, MapColorPalette.getColor(c), "balance: %.2f".formatted(card.getBalance()));
             }
         }
     }

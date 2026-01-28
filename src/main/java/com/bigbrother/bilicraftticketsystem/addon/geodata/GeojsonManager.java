@@ -5,7 +5,6 @@ import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import org.geojson.*;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;

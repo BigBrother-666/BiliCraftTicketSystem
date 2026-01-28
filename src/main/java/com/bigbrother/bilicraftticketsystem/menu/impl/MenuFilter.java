@@ -15,8 +15,6 @@ import com.bigbrother.bilicraftticketsystem.menu.items.main.TicketItem;
 import lombok.Getter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
-import net.kyori.adventure.text.minimessage.MiniMessage;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
@@ -33,18 +31,15 @@ import xyz.xenondevs.invui.window.Window;
 
 import java.util.*;
 
-import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
 import static com.bigbrother.bilicraftticketsystem.Utils.loadItemFromFile;
 
-public class MenuFilter implements Menu {
+public class MenuFilter extends Menu {
     @Getter
     private static final Map<UUID, MenuFilter> filterMenuMapping = new HashMap<>();
     @Getter
     private Set<String> filterStations;
     @Getter
     private List<Item> filterLocItems;
-
-    private final Window window;
 
     private final ScrollGui<@NotNull Item> gui;
 
@@ -103,20 +98,6 @@ public class MenuFilter implements Menu {
         filterMenuMapping.put(player.getUniqueId(), this);
     }
 
-    @Override
-    public void open() {
-        if (window.isOpen()) {
-            close();
-            return;
-        }
-        this.window.open();
-    }
-
-    @Override
-    public void close() {
-        Bukkit.getScheduler().runTask(plugin, window::close);
-    }
-
     public void setFilterLocItems(Player player) {
         filterStations = new HashSet<>();
         filterLocItems = new ArrayList<>();
@@ -162,10 +143,10 @@ public class MenuFilter implements Menu {
                 lore = new ArrayList<>();
             }
             for (String s : item.getList("lore", String.class, Collections.emptyList())) {
-                lore.add(MiniMessage.miniMessage().deserialize(s).decoration(TextDecoration.ITALIC, false));
+                lore.add(Utils.mmStr2Component(s).decoration(TextDecoration.ITALIC, false));
             }
             itemMeta.lore(lore);
-            itemMeta.displayName(MiniMessage.miniMessage().deserialize(item.get("name", String.class, "")).decoration(TextDecoration.ITALIC, false));
+            itemMeta.displayName(Utils.mmStr2Component(item.get("name", String.class, "")).decoration(TextDecoration.ITALIC, false));
             customItem.setItemMeta(itemMeta);
 
             // 添加物品
@@ -176,7 +157,7 @@ public class MenuFilter implements Menu {
         gui.setContent(filterLocItems);
     }
 
-    public static void clearAll() {
+    public static void reload() {
         for (Map.Entry<UUID, MenuFilter> entry : filterMenuMapping.entrySet()) {
             entry.getValue().close();
         }

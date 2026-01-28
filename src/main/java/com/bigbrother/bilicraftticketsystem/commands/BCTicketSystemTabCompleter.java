@@ -5,7 +5,9 @@ import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.ItemsConfig;
 import com.bigbrother.bilicraftticketsystem.config.RailwayRoutesConfig;
+import com.bigbrother.bilicraftticketsystem.ticket.BCCard;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicket;
+import com.bigbrother.bilicraftticketsystem.ticket.BCTransitPass;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
@@ -61,29 +63,35 @@ public class BCTicketSystemTabCompleter implements TabCompleter {
                 if (commandSender.hasPermission("bcts.ticket.delroute")) {
                     completerList.add("delroute");
                 }
+                if (commandSender.hasPermission("bcts.ticket.getcard")) {
+                    completerList.add("getcard");
+                }
                 return completerList.stream().filter(s -> s.contains(args[0].trim())).collect(Collectors.toList());
             } else if (args.length == 2) {
                 if (args[0].equals("menuitem") && commandSender.hasPermission("bcts.ticket.menuitem")) {
                     return List.of("add", "get");
                 } else if (args[0].equals("nbt") && commandSender.hasPermission("bcts.ticket.nbt")) {
                     return Stream.of(
-                            BCTicket.KEY_TICKET_PLUGIN,
+                                    BCTransitPass.KEY_TRANSIT_PASS_PLUGIN,
+                                    BCTransitPass.KEY_TRANSIT_PASS_TYPE,
                                     BCTicket.KEY_TICKET_NAME,
-                                    BCTicket.KEY_TICKET_DISPLAY_NAME,
                                     BCTicket.KEY_TICKET_CREATION_TIME,
                                     BCTicket.KEY_TICKET_EXPIRATION_TIME,
                                     BCTicket.KEY_TICKET_NUMBER_OF_USES,
                                     BCTicket.KEY_TICKET_MAX_NUMBER_OF_USES,
                                     BCTicket.KEY_TICKET_OWNER_UUID,
                                     BCTicket.KEY_TICKET_OWNER_NAME,
-                                    BCTicket.KEY_TICKET_MAX_SPEED,
+                                    BCTransitPass.KEY_TRANSIT_PASS_MAX_SPEED,
                                     BCTicket.KEY_TICKET_ORIGIN_PRICE,
-                                    BCTicket.KEY_TICKET_TAGS,
-                                    BCTicket.KEY_TICKET_START_PLATFORM_TAG,
-                                    BCTicket.KEY_TICKET_START_STATION,
-                                    BCTicket.KEY_TICKET_END_STATION,
-                                    BCTicket.KEY_TICKET_DISTANCE,
-                                    BCTicket.KEY_TICKET_BACKGROUND_IMAGE_PATH
+                                    BCTicket.KEY_TRANSIT_PASS_TAGS,
+                                    BCTransitPass.KEY_TRANSIT_PASS_START_PLATFORM_TAG,
+                                    BCTransitPass.KEY_TRANSIT_PASS_START_STATION,
+                                    BCTransitPass.KEY_TRANSIT_PASS_END_STATION,
+                                    BCTransitPass.KEY_TRANSIT_PASS_BACKGROUND_IMAGE_PATH,
+                                    BCCard.KEY_CARD_BALANCE,
+                                    BCCard.KEY_CARD_START_STATION_COMPONENT,
+                                    BCCard.KEY_CARD_END_STATION_COMPONENT,
+                                    BCCard.KEY_CARD_UUID
                             )
                             .filter(s -> s.toLowerCase().contains(args[1].trim().toLowerCase()))
                             .collect(Collectors.toList());

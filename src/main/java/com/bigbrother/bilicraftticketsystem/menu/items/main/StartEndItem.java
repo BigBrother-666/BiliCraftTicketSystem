@@ -5,6 +5,7 @@ import com.bigbrother.bilicraftticketsystem.menu.impl.MenuLocation;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -34,12 +35,12 @@ public class StartEndItem extends AbstractItem {
         ItemMeta itemMeta;
         if (isStart) {
             itemMeta = startItemStack.getItemMeta();
-            itemMeta.lore(List.of(Component.text("当前选择：", NamedTextColor.DARK_AQUA).append(menu.getPlayerOption().getStartStation())));
+            itemMeta.lore(List.of(Component.text("当前选择：", NamedTextColor.DARK_AQUA).append(menu.getPlayerOption().getStartStation().decoration(TextDecoration.ITALIC, true))));
             startItemStack.setItemMeta(itemMeta);
             return new ItemBuilder(startItemStack);
         } else {
             itemMeta = endItemStack.getItemMeta();
-            itemMeta.lore(List.of(Component.text("当前选择：", NamedTextColor.DARK_AQUA).append(menu.getPlayerOption().getEndStation())));
+            itemMeta.lore(List.of(Component.text("当前选择：", NamedTextColor.DARK_AQUA).append(menu.getPlayerOption().getEndStation().decoration(TextDecoration.ITALIC, true))));
             endItemStack.setItemMeta(itemMeta);
             return new ItemBuilder(endItemStack);
         }

@@ -2,42 +2,96 @@ package com.bigbrother.bilicraftticketsystem.menu;
 
 import com.bigbrother.bilicraftticketsystem.Utils;
 import lombok.Data;
+import lombok.Getter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 
 @Data
 public class PlayerOption {
-    private Component startStation;
-    private Component endStation;
+    public static final String EMPTY_STATION = "N/A";
+    public static final String EMPTY_STATION_COMPONENT = "<red>N/A</red>";
+
+    @Getter private Component startStation;
+    @Getter private Component endStation;
+    private String startStationString;
+    private String endStationString;
+
     private double speed;
     private int uses;
     private boolean searchedFlag = false;
 
+
+    public PlayerOption(String mmStartStation, String mmEndStation) {
+        this(Utils.mmStr2Component(mmStartStation), Utils.mmStr2Component(mmEndStation));
+    }
+
+    public PlayerOption(Component startStation, Component endStation) {
+        setStartStation(startStation);
+        setEndStation(endStation);
+    }
+
     public PlayerOption() {
-        this.startStation = Component.text("未选择起始站", NamedTextColor.RED);
-        this.endStation = Component.text("未选择终到站", NamedTextColor.RED);
+        this.startStation = Component.text(EMPTY_STATION, NamedTextColor.RED);
+        this.endStation = Component.text(EMPTY_STATION, NamedTextColor.RED);
+        this.startStationString = EMPTY_STATION;
+        this.endStationString = EMPTY_STATION;
         this.speed = 4.0;
         this.uses = 1;
     }
 
-    public Component getStartStation() {
-        return startStation.decoration(TextDecoration.ITALIC, true);
+    public void setStartStation(Component startStation) {
+        if (startStation != null) {
+            this.startStation = startStation;
+            this.startStationString = Utils.component2Str(startStation);
+        } else {
+            this.startStation = Component.text(EMPTY_STATION, NamedTextColor.RED);
+            this.startStationString = EMPTY_STATION;
+        }
+
     }
 
-    public Component getEndStation() {
-        return endStation.decoration(TextDecoration.ITALIC, true);
+    public void setEndStation(Component endStation) {
+        if (endStation != null) {
+            this.endStation = endStation;
+            this.endStationString = Utils.component2Str(endStation);
+        } else {
+            this.endStation = Component.text(EMPTY_STATION, NamedTextColor.RED);
+            this.endStationString = EMPTY_STATION;
+        }
     }
 
-    public String getStartStationString() {
-        return Utils.component2Str(startStation);
+    public boolean isStationNotEmpty() {
+        return !isStartStationEmpty() && !isEndStationEmpty();
     }
 
-    public String getEndStationString() {
-        return Utils.component2Str(endStation);
+    public boolean isStartStationEmpty() {
+        return getStartStationString().equals(EMPTY_STATION);
     }
 
-    public boolean canSearch() {
-        return !getStartStationString().contains("未选择") && !getEndStationString().contains("未选择");
+    public boolean isEndStationEmpty() {
+        return getEndStationString().equals(EMPTY_STATION);
+    }
+
+    public String getClearStartStationName() {
+        if (startStationString.endsWith("站"))
+            return startStationString.substring(0, startStationString.length() - 1);
+        else
+            return startStationString;
+    }
+
+    public String getClearEndStationName() {
+        if (endStationString.endsWith("站"))
+            return endStationString.substring(0, endStationString.length() - 1);
+        else
+            return endStationString;
+    }
+
+    public String getMmStartStationName() {
+        return Utils.Component2MmStr(startStation.decoration(TextDecoration.ITALIC, TextDecoration.State.NOT_SET));
+    }
+
+    public String getMmEndStationName() {
+        return Utils.Component2MmStr(endStation.decoration(TextDecoration.ITALIC, TextDecoration.State.NOT_SET));
     }
 }

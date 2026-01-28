@@ -13,8 +13,6 @@ import lombok.Getter;
 import lombok.Setter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
-import net.kyori.adventure.text.minimessage.MiniMessage;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -34,13 +32,11 @@ import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
 import static com.bigbrother.bilicraftticketsystem.Utils.loadItemFromFile;
 
 
-public class MenuLocation implements Menu {
+public class MenuLocation extends Menu {
     @Getter
     private static final Map<UUID, MenuLocation> locationMenuMapping = new HashMap<>();
 
     private NearestLocItem nearestLocItem;
-    private final Window window;
-
     @Getter
     @Setter
     private boolean isStart;
@@ -106,10 +102,10 @@ public class MenuLocation implements Menu {
                 lore = new ArrayList<>();
             }
             for (String s : item.getList("lore", String.class, Collections.emptyList())) {
-                lore.add(MiniMessage.miniMessage().deserialize(s).decoration(TextDecoration.ITALIC, false));
+                lore.add(Utils.mmStr2Component(s).decoration(TextDecoration.ITALIC, false));
             }
             itemMeta.lore(lore);
-            itemMeta.displayName(MiniMessage.miniMessage().deserialize(item.get("name", String.class, "")).decoration(TextDecoration.ITALIC, false));
+            itemMeta.displayName(Utils.mmStr2Component(item.get("name", String.class, "")).decoration(TextDecoration.ITALIC, false));
             customItem.setItemMeta(itemMeta);
 
             // 添加物品
@@ -127,27 +123,18 @@ public class MenuLocation implements Menu {
 
     @Override
     public void open() {
-        if (window.isOpen()) {
-            close();
-            return;
-        }
-        this.window.open();
+        super.open();
         if (nearestLocItem != null) {
             nearestLocItem.calcNearestStation();
         }
     }
 
-    @Override
-    public void close() {
-        Bukkit.getScheduler().runTask(plugin, window::close);
-    }
-
-    public static void clearAll() {
+    public static void reload() {
         for (Map.Entry<UUID, MenuLocation> entry : locationMenuMapping.entrySet()) {
             entry.getValue().close();
         }
         locationMenuMapping.clear();
-        NearestLocItem.setBcspawnInfoList(plugin.getTrainDatabaseManager().getAllBcspawnInfo());
+        NearestLocItem.setBcspawnInfoList(plugin.getTrainDatabaseManager().getBcspawnService().getAllBcspawnInfo());
     }
 
     public static MenuLocation getMenu(Player player) {

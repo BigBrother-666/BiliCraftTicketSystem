@@ -2,6 +2,7 @@ package com.bigbrother.bilicraftticketsystem;
 
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -105,21 +106,23 @@ public class TrainRoutes {
         graph.findStartNodes();
     }
 
+    public static @Nullable PathInfo getShortestPathFromStartNode(MermaidGraph.Node startNode, String endStation) {
+        List<PathInfo> pathInfoList = new ArrayList<>();
+        if (startNode != null) {
+            graph.findAllPaths(endStation, new ArrayList<>(List.of(startNode)), new ArrayList<>(), new HashSet<>(), pathInfoList);
+        }
+        return pathInfoList.stream().min(PathInfo::compareTo).orElse(null);
+    }
+
     public static List<PathInfo> getPathInfoList(String startStation, String endStation) {
         if (startStation == null || endStation == null || startStation.isEmpty() || endStation.isEmpty()) {
             return new ArrayList<>();
         }
 
         List<PathInfo> pathInfoList = new ArrayList<>();
-        Set<MermaidGraph.Node> start = new HashSet<>();
+        List<MermaidGraph.Node> startNodes = graph.getSpawnableNodes(startStation);
 
-        for (MermaidGraph.Node node : graph.getAllNodes()) {
-            if (node.getStationName().equals(startStation) && !node.isEndStation()) {
-                start.add(node);
-            }
-        }
-
-        for (MermaidGraph.Node s : start) {
+        for (MermaidGraph.Node s : startNodes) {
             graph.findAllPaths(endStation, new ArrayList<>(List.of(s)), new ArrayList<>(), new HashSet<>(), pathInfoList);
         }
 
@@ -130,5 +133,127 @@ public class TrainRoutes {
         pathInfoList = pathInfoList.stream().distinct().collect(Collectors.toList());
 
         return pathInfoList;
+    }
+
+    /**
+     * 获取某个特定路线的PathInfo
+     *
+     * @param startPlatformTag 起始站台tag
+     * @param tags             路线包含的tag
+     * @return 路线详情
+     */
+    @Nullable
+    public static TrainRoutes.PathInfo getPathInfo(String startPlatformTag, List<String> tags, String endStation) {
+        MermaidGraph.Node currNode = graph.getNodeFromPtag(startPlatformTag);
+        if (currNode == null || tags.isEmpty() || !currNode.getTag().equals(tags.get(0))) {
+            return null;
+        }
+
+        List<MermaidGraph.Node> nodePath = new ArrayList<>();
+        List<MermaidGraph.Edge> edgePath = new ArrayList<>();
+        nodePath.add(currNode);
+        tags.remove(0);
+        for (String tag : tags) {
+            boolean found = false;
+            for (MermaidGraph.Edge edge : graph.getEdges(currNode)) {
+                if (edge.getTarget().getTag().equals(tag)) {
+                    found = true;
+                    nodePath.add(edge.getTarget());
+                    edgePath.add(edge);
+                    currNode = edge.getTarget();
+                    break;
+                }
+            }
+            if (!found) {
+                return null;
+            }
+        }
+        // 添加做后一个边和节点
+        for (MermaidGraph.Edge edge : graph.getEdges(currNode)) {
+            if (edge.getTarget().getStationName().equals(endStation)) {
+                nodePath.add(edge.getTarget());
+                edgePath.add(edge);
+                break;
+            }
+        }
+        return new TrainRoutes.PathInfo(nodePath, edgePath);
+    }
+
+    @Nullable
+    public static TrainRoutes.PathInfo findShortestPath(
+            String startStation,
+            String endStation
+    ) {
+        List<MermaidGraph.Node> spawnableStartNodes = graph.getSpawnableNodes(startStation);
+        if (spawnableStartNodes.isEmpty()) {
+            return null;
+        }
+
+        // 最短距离
+        Map<MermaidGraph.Node, Double> dist = new HashMap<>();
+        // 前驱节点
+        Map<MermaidGraph.Node, MermaidGraph.Node> prevNode = new HashMap<>();
+        // 到达该节点所使用的边
+        Map<MermaidGraph.Node, MermaidGraph.Edge> prevEdge = new HashMap<>();
+
+        PriorityQueue<MermaidGraph.Node> pq = new PriorityQueue<>(
+                Comparator.comparingDouble(n ->
+                        dist.getOrDefault(n, Double.POSITIVE_INFINITY))
+        );
+
+        // 多起点初始化
+        for (MermaidGraph.Node start : spawnableStartNodes) {
+            dist.put(start, 0.0);
+            pq.add(start);
+        }
+
+        while (!pq.isEmpty()) {
+            MermaidGraph.Node current = pq.poll();
+            double currentDist = dist.get(current);
+
+            // 到达终点，直接结束
+            if (current.getStationName().equals(endStation) && prevNode.containsKey(current)) {
+                return buildPath(current, prevNode, prevEdge);
+            }
+
+            for (MermaidGraph.Edge edge : graph.getEdges(current)) {
+                MermaidGraph.Node next = edge.getTarget();
+                double newDist = currentDist + edge.getDistance();
+                double oldDist = dist.getOrDefault(next, Double.POSITIVE_INFINITY);
+
+                if (newDist < oldDist) {
+                    dist.put(next, newDist);
+                    prevNode.put(next, current);
+                    prevEdge.put(next, edge);
+                    pq.add(next);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static TrainRoutes.PathInfo buildPath(
+            MermaidGraph.Node end,
+            Map<MermaidGraph.Node, MermaidGraph.Node> prevNode,
+            Map<MermaidGraph.Node, MermaidGraph.Edge> prevEdge
+    ) {
+        List<MermaidGraph.Node> nodes = new ArrayList<>();
+        List<MermaidGraph.Edge> edges = new ArrayList<>();
+
+        MermaidGraph.Node cur = end;
+
+        while (prevNode.containsKey(cur)) {
+            nodes.add(cur);
+            edges.add(prevEdge.get(cur));
+            cur = prevNode.get(cur);
+        }
+
+        nodes.add(cur); // 起点
+
+        Collections.reverse(nodes);
+        Collections.reverse(edges);
+
+        return new TrainRoutes.PathInfo(nodes, edges);
     }
 }

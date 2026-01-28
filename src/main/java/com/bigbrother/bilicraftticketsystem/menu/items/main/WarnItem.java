@@ -1,9 +1,9 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.main;
 
+import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -20,7 +20,9 @@ public class WarnItem extends AbstractItem {
 
     @Override
     public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent inventoryClickEvent) {
-        player.sendMessage(MiniMessage.miniMessage().deserialize(MainConfig.message.get("wiki", "https://www.yuque.com/sasanarx/bilicraft/iunb5gkspevng8gf#")));
+        player.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+                Utils.mmStr2Component(MainConfig.message.get("wiki", "[这里什么也没有]"))
+        ));
         MenuMain.getMenu(player).close();
     }
 }

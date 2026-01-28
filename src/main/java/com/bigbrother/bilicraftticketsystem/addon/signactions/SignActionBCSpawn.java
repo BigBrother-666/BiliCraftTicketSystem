@@ -37,7 +37,7 @@ public class SignActionBCSpawn extends SignActionSpawn {
 
         if (info.isAction(SignActionType.GROUP_ENTER)) {
             Location location = info.getSign().getLocation();
-            plugin.getTrainDatabaseManager().addBcspawnCoord(line3, location.getBlockX(), location.getBlockY(), location.getBlockZ(), location.getWorld().getName());
+            plugin.getTrainDatabaseManager().getBcspawnService().addBcspawnCoord(line3, location.getBlockX(), location.getBlockY(), location.getBlockZ(), location.getWorld().getName());
         }
 
         if (!info.isAction(SignActionType.REDSTONE_ON, SignActionType.REDSTONE_OFF)) {
@@ -58,7 +58,7 @@ public class SignActionBCSpawn extends SignActionSpawn {
                 group.getProperties().addTags(line3);
                 group.onPropertiesChanged();
                 // 发车信息记录到数据库
-                plugin.getTrainDatabaseManager().addBcspawnInfo(line3);
+                plugin.getTrainDatabaseManager().getBcspawnService().addBcspawnInfo(line3);
             }
         }
         if (info.isAction(SignActionType.REDSTONE_ON)) {

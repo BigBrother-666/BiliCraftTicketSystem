@@ -9,12 +9,10 @@ import com.bigbrother.bilicraftticketsystem.addon.signactions.*;
 import com.bigbrother.bilicraftticketsystem.commands.BCTicketSystemCommand;
 import com.bigbrother.bilicraftticketsystem.config.*;
 import com.bigbrother.bilicraftticketsystem.database.TrainDatabaseManager;
+import com.bigbrother.bilicraftticketsystem.listeners.CardListeners;
 import com.bigbrother.bilicraftticketsystem.listeners.PlayerListeners;
 import com.bigbrother.bilicraftticketsystem.listeners.TrainListeners;
-import com.bigbrother.bilicraftticketsystem.menu.impl.MenuFilter;
-import com.bigbrother.bilicraftticketsystem.menu.impl.MenuLocation;
-import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
-import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
+import com.bigbrother.bilicraftticketsystem.menu.Menu;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicketDisplay;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -72,6 +70,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         saveResource(EnumConfig.MENU_TICKETBG.getFileName(), /* replace */ false);
         saveResource(EnumConfig.ROUTE_MMD.getFileName(), /* replace */ false);
         saveResource(EnumConfig.ADDON_CONFIG.getFileName(), /* replace */ false);
+        saveResource(EnumConfig.MENU_CARD.getFileName(), /* replace */ false);
 
         // 注册指令
         this.bcTicketSystemCommand = new BCTicketSystemCommand(this);
@@ -81,7 +80,8 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         // 注册监听器
         Bukkit.getPluginManager().registerEvents(new TrainListeners(), this);
         Bukkit.getPluginManager().registerEvents(new PlayerListeners(), this);
-        Bukkit.getPluginManager().registerEvents(new SignActionShowroute(), this);
+        Bukkit.getPluginManager().registerEvents(new CardListeners(), this);
+        Bukkit.getPluginManager().registerEvents(signActionShowroute, this);
         this.getComponentLogger().info(Component.text("监听器注册成功", NamedTextColor.GOLD));
 
         // 加载经济系统
@@ -138,10 +138,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
             geoDatabaseManager = new GeoDatabaseManager(this);
             plugin.getComponentLogger().info(Component.text("数据库加载完成", NamedTextColor.GOLD));
 
-            MenuMain.clearAll();
-            MenuLocation.clearAll();
-            MenuFilter.clearAll();
-            MenuTicketbg.clearAll();
+            Menu.reloadAll();
         } catch (Exception e) {
             if (sender instanceof ConsoleCommandSender) {
                 plugin.getComponentLogger().error(Component.text("加载配置时发生错误：" + e, NamedTextColor.RED));

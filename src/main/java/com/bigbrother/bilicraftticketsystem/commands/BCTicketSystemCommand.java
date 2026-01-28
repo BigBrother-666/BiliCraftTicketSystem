@@ -9,7 +9,8 @@ import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.RailwayRoutesConfig;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
-import com.bigbrother.bilicraftticketsystem.ticket.BCTicket;
+import com.bigbrother.bilicraftticketsystem.ticket.BCCard;
+import com.bigbrother.bilicraftticketsystem.ticket.BCTransitPass;
 import lombok.Getter;
 import net.coreprotect.CoreProtect;
 import net.coreprotect.CoreProtectAPI;
@@ -91,9 +92,19 @@ public class BCTicketSystemCommand implements CommandExecutor {
                 case "bg" -> subCommandBg(player);
                 case "addroute" -> subCommandAddroute(player, args);
                 case "delroute" -> subCommandDelroute(player, args);
+                case "getcard" -> subCommandGetcard(player);
             }
         }
         return true;
+    }
+
+    private void subCommandGetcard(Player player) {
+        if (!player.hasPermission("bcts.ticket.getcard")) {
+            player.sendMessage(Component.text("你没有权限使用这条命令喵~", NamedTextColor.RED));
+            return;
+        }
+        ItemStack card = (new BCCard()).getCommonItemStack().toBukkit();
+        player.getInventory().addItem(card);
     }
 
     private void subCommandDelroute(Player player, String[] args) {
@@ -181,7 +192,7 @@ public class BCTicketSystemCommand implements CommandExecutor {
                 bgId = Integer.parseInt(args[1]);
             } catch (NumberFormatException ignored) {
             }
-            if (bgId != null && plugin.getTrainDatabaseManager().deleteTicketbgLogical(bgId) > 0) {
+            if (bgId != null && plugin.getTrainDatabaseManager().getTicketbgService().deleteTicketbgLogical(bgId) > 0) {
                 player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("车票背景图删除成功", NamedTextColor.GREEN)));
             } else {
                 player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("无法删除，背景图id不存在", NamedTextColor.YELLOW)));
@@ -218,7 +229,7 @@ public class BCTicketSystemCommand implements CommandExecutor {
                 }
 
                 // 检查上传数量是否达到最大
-                if (!isAdmin && plugin.getTrainDatabaseManager().getPlayerTicketbgCount(player.getUniqueId().toString()) >= MenuTicketbg.getSelfbgMaxCnt()) {
+                if (!isAdmin && plugin.getTrainDatabaseManager().getTicketbgService().getPlayerTicketbgCount(player.getUniqueId().toString()) >= MenuTicketbg.getSelfbgMaxCnt()) {
                     player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("最多上传 %d 个背景图，请先删除不需要的背景图再上传".formatted(MenuTicketbg.getSelfbgMaxCnt()), NamedTextColor.RED)));
                     return;
                 }
@@ -286,9 +297,9 @@ public class BCTicketSystemCommand implements CommandExecutor {
             String itemName = args[2].trim();
             String dbFilePath = savePath.replace(TrainCarts.plugin.getDataFile("images").toString(), "").substring(1);
             if (isAdmin) {
-                plugin.getTrainDatabaseManager().addTicketbgInfo("[管理员]", null, itemName, dbFilePath, fontColor);
+                plugin.getTrainDatabaseManager().getTicketbgService().addTicketbgInfo("[管理员]", null, itemName, dbFilePath, fontColor);
             } else {
-                plugin.getTrainDatabaseManager().addTicketbgInfo(player.getName(), player.getUniqueId().toString(), itemName, dbFilePath, fontColor);
+                plugin.getTrainDatabaseManager().getTicketbgService().addTicketbgInfo(player.getName(), player.getUniqueId().toString(), itemName, dbFilePath, fontColor);
             }
             return true;
 
@@ -439,7 +450,7 @@ public class BCTicketSystemCommand implements CommandExecutor {
                         dateTime.add(sdf.format(new Timestamp(parsed.getTimestamp())));
                     }
                 }
-                plugin.getTrainDatabaseManager().addBcspawnInfo(args[2].trim(), dateTime);
+                plugin.getTrainDatabaseManager().getBcspawnService().addBcspawnInfo(args[2].trim(), dateTime);
                 player.sendMessage(Component.text("成功添加 %d 条数据".formatted(cnt), NamedTextColor.GREEN));
             } else {
                 player.sendMessage(Component.text("目标方块不是按钮或石质压力板！", NamedTextColor.RED));
@@ -466,9 +477,9 @@ public class BCTicketSystemCommand implements CommandExecutor {
             return;
         }
         if (args[1].equals("ticket")) {
-            player.sendMessage(plugin.getTrainDatabaseManager().getDailyRevenue(range));
+            player.sendMessage(plugin.getTrainDatabaseManager().getTransitPassService().getDailyRevenue(range));
         } else if (args[1].equals("bcspawn")) {
-            player.sendMessage(plugin.getTrainDatabaseManager().getDailySpawn(range));
+            player.sendMessage(plugin.getTrainDatabaseManager().getBcspawnService().getDailySpawn(range));
         } else {
             player.sendMessage(Component.text("指令格式有误", NamedTextColor.RED));
             return;
@@ -493,8 +504,8 @@ public class BCTicketSystemCommand implements CommandExecutor {
             return;
         }
         if (args.length >= 2) {
-            // 验证主手物品是车票
-            if (BCTicket.isBctsTicket(player.getInventory().getItemInMainHand())) {
+            // 验证主手物品是坐车凭证
+            if (BCTransitPass.isBCTransitPass(player.getInventory().getItemInMainHand())) {
                 CommonItemStack mainHandTicket = CommonItemStack.of(HumanHand.getItemInMainHand(player));
                 CommonTagCompound nbt = mainHandTicket.getCustomData();
                 String cleandTagString = args[1].trim();

@@ -299,3 +299,17 @@ nearest:
     display-name: '{"text":"","extra":[{"text":"点击选择距离最近的车站","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"gold","bold":true}]}'
     lore:
     - '{"text":"","extra":[{"text":"定位中...","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"aqua","bold":false}]}'
+charge:
+  v: 3700
+  type: PLAYER_HEAD
+  meta:
+    ==: ItemMeta
+    meta-type: SKULL
+    display-name: '{"text":"","extra":[{"text":"交通卡充值","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"gold","bold":true}]}'
+    skull-owner:
+      ==: PlayerProfile
+      uniqueId: 04049c90-d3e9-4621-9caf-0000aaa20940
+      name: HeadDatabase
+      properties:
+        - name: textures
+          value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNGU3NGQ2NDcyZjgxMWVlN2U1ZTgwNWVhOTNkN2I0Yzc2MWM2NmE2NGU1OTM3MDJmYzgwNzNkYjM1N2YwNDY0ZCJ9fX0=

@@ -7,7 +7,6 @@ import lombok.Data;
 import lombok.Getter;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 
 
 import java.util.ArrayList;
@@ -46,17 +45,16 @@ public class RouteBossbar {
     }
 
     // 直达车bossbar构造方法
-    public RouteBossbar(String ticketDisplayName, int totalTagNum) {
+    public RouteBossbar(String startStation, String endStation, int totalTagNum) {
         this.totalTagNum = totalTagNum + 1;
-        String[] split = ticketDisplayName.split(" → ");
-        if (split.length != 2) {
+        if (startStation == null || endStation == null) {
             this.routeList = null;
             this.bossBar = null;
             this.routeId = null;
             return;
         }
-        this.expressEnd = split[1];
-        this.bossBar = BossBar.bossBar(MiniMessage.miniMessage().deserialize(MainConfig.message.get("express-normal", "").formatted(split[0], split[1])), 0.0F, BossBar.Color.PINK, BossBar.Overlay.PROGRESS);
+        this.expressEnd = startStation;
+        this.bossBar = BossBar.bossBar(Utils.mmStr2Component(MainConfig.message.get("express-normal", "").formatted(startStation, endStation)), 0.0F, BossBar.Color.PINK, BossBar.Overlay.PROGRESS);
     }
 
     public void updateStation() {
@@ -73,9 +71,9 @@ public class RouteBossbar {
 
         String title = RailwayRoutesConfig.railwayRoutes.get("%s.curr-station-title".formatted(routeId.trim()), String.class, null);
         if (title == null) {
-            bossBar.name(Utils.str2Component(getNextTitle()));
+            bossBar.name(Utils.legacyStr2Component(getNextTitle()));
         } else {
-            bossBar.name(Utils.str2Component(title.replace("{station}", routeList.get(nextStationIdx))));
+            bossBar.name(Utils.legacyStr2Component(title.replace("{station}", routeList.get(nextStationIdx))));
         }
     }
 
@@ -95,7 +93,7 @@ public class RouteBossbar {
 
     public void update() {
         nextStationIdx += 1;
-        bossBar.name(Utils.str2Component(getNextTitle()));
+        bossBar.name(Utils.legacyStr2Component(getNextTitle()));
         if (isRing()) {
             bossBar.progress((float) 1.0);
         } else {
@@ -106,7 +104,7 @@ public class RouteBossbar {
     public void updateExpress(int leftTagCount) {
         bossBar.progress(Math.max(0, 1 - (float) leftTagCount / totalTagNum));
         if (leftTagCount == 0 && expressEnd != null) {
-            bossBar.name(MiniMessage.miniMessage().deserialize(MainConfig.message.get("express-end", "").formatted(expressEnd)));
+            bossBar.name(Utils.mmStr2Component(MainConfig.message.get("express-end", "").formatted(expressEnd)));
         }
     }
 

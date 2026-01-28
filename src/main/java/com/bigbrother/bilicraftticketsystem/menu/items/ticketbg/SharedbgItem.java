@@ -87,12 +87,12 @@ public class SharedbgItem extends BgItem {
                 player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("当前正在使用此背景！", NamedTextColor.YELLOW)));
                 return;
             }
-            plugin.getTrainDatabaseManager().updateUsageTicketbg(this.getTicketbgInfo().getId(), player.getUniqueId().toString());
+            plugin.getTrainDatabaseManager().getTicketbgService().updateUsageTicketbg(this.getTicketbgInfo().getId(), player.getUniqueId().toString());
             MenuTicketbg.getTicketbgUsageMapping().put(player.getUniqueId(), this.getTicketbgInfo());
             MenuTicketbg.updateAllWindows();
             player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("设置背景图成功", NamedTextColor.GREEN)));
         } else if (clickType.isShiftClick() && player.hasPermission("bcts.ticket.deletebg")) {
-            plugin.getTrainDatabaseManager().deleteTicketbgLogical(this.getTicketbgInfo().getId());
+            plugin.getTrainDatabaseManager().getTicketbgService().deleteTicketbgLogical(this.getTicketbgInfo().getId());
             player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("删除背景图成功", NamedTextColor.GREEN)));
             MenuTicketbg.updateAllWindows();
         }

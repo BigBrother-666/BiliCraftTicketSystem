@@ -3,11 +3,9 @@ package com.bigbrother.bilicraftticketsystem.listeners;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.config.RailwayRoutesConfig;
 import com.bigbrother.bilicraftticketsystem.database.entity.TicketbgInfo;
-import com.bigbrother.bilicraftticketsystem.menu.impl.MenuFilter;
-import com.bigbrother.bilicraftticketsystem.menu.impl.MenuLocation;
-import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
-import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
-import com.bigbrother.bilicraftticketsystem.ticket.BCTicket;
+import com.bigbrother.bilicraftticketsystem.menu.Menu;
+import com.bigbrother.bilicraftticketsystem.menu.impl.*;
+import com.bigbrother.bilicraftticketsystem.ticket.BCTransitPass;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -21,6 +19,10 @@ import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.InventoryView;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,10 +37,7 @@ public class PlayerListeners implements Listener {
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         UUID uuid = event.getPlayer().getUniqueId();
-        MenuMain.getMainMenuMapping().remove(uuid);
-        MenuLocation.getLocationMenuMapping().remove(uuid);
-        MenuFilter.getFilterMenuMapping().remove(uuid);
-        MenuTicketbg.getTicketbgMenuMapping().remove(uuid);
+        Menu.clearPlayerCache(uuid);
         stepMap.remove(uuid);
         String removedRouteid = plugin.getBcTicketSystemCommand().getAddRouteMode().remove(uuid);
         if (removedRouteid != null) {
@@ -46,12 +45,14 @@ public class PlayerListeners implements Listener {
             // 添加route时退出游戏，重新加载config
             RailwayRoutesConfig.load(plugin);
         }
+
+        CardListeners.inputModePlayers.remove(uuid);
     }
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        TicketbgInfo info = plugin.getTrainDatabaseManager().getCurrTicketbgInfo(player.getUniqueId().toString());
+        TicketbgInfo info = plugin.getTrainDatabaseManager().getTicketbgService().getCurrentTicketbgInfo(player.getUniqueId().toString());
         MenuTicketbg.getTicketbgUsageMapping().put(player.getUniqueId(), info);
     }
 
@@ -59,7 +60,17 @@ public class PlayerListeners implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         // 检查玩家是否与制图台交互
         InventoryView view = event.getView();
-        if (view.getTopInventory().getType() == InventoryType.CARTOGRAPHY && BCTicket.isBctsTicket(event.getCurrentItem())) {
+        ItemStack currentItem = event.getCurrentItem();
+        if (currentItem == null) {
+            return;
+        }
+        ItemMeta itemMeta = currentItem.getItemMeta();
+        if (itemMeta == null) {
+            return;
+        }
+        PersistentDataContainer pdc = itemMeta.getPersistentDataContainer();
+        Boolean b = pdc.get(BCTransitPass.KEY_TRANSIT_PASS, PersistentDataType.BOOLEAN);
+        if (view.getTopInventory().getType() == InventoryType.CARTOGRAPHY && Boolean.TRUE.equals(b)) {
             event.setCancelled(true);
         }
     }

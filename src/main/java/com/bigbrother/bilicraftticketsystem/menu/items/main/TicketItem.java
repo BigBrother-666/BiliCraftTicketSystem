@@ -49,7 +49,7 @@ public class TicketItem extends AbstractItem {
             barrier.setItemMeta(barrierMeta);
             return new ItemBuilder(barrier);
         }
-        return new ItemBuilder(ticket.getTicket().toBukkit());
+        return new ItemBuilder(ticket.getCommonItemStack().toBukkit());
     }
 
     @Override
@@ -67,7 +67,7 @@ public class TicketItem extends AbstractItem {
 
     public void updateLore(PlayerOption playerOption) {
         if (ticket != null) {
-            ticket.refreshTicketLore(playerOption);
+            ticket.refreshTicketMeta(playerOption);
         }
     }
 }

@@ -73,17 +73,8 @@ public class MermaidGraph {
          * @return 是否是一条线路的终点站
          */
         public boolean isEndStation() {
-            List<Edge> edges = TrainRoutes.graph.adjacencyList.get(this);
-            if (edges == null) {
-                return true;
-            }
-
-            for (Edge edge : edges) {
-                if (edge.target.getRailwayDirection().equals(railwayDirection)) {
-                    return false;
-                }
-            }
-            return true;
+            // 方向和车站相同
+            return this.getRailwayDirection().startsWith(this.getClearStationName());
         }
 
         @Override
@@ -108,6 +99,19 @@ public class MermaidGraph {
     }
 
     /**
+     * 获取某站的可发车Node
+     */
+    public List<Node> getSpawnableNodes(String stationName) {
+        List<Node> ret = new ArrayList<>();
+        for (MermaidGraph.Node node : this.getAllNodes()) {
+            if (node.getStationName().equals(stationName) && !node.isEndStation()) {
+                ret.add(node);
+            }
+        }
+        return ret;
+    }
+
+    /**
      * 根据站台tag寻找节点信息
      *
      * @param platformTag 站台tag
@@ -128,6 +132,14 @@ public class MermaidGraph {
             }
         }
         return null;
+    }
+
+    public String getStationNameFromTag(String tag) {
+        List<Node> nodes = nodeTagMap.get(tag);
+        if (nodes != null && !nodes.isEmpty()) {
+            return nodes.get(0).getStationName();
+        }
+        return "";
     }
 
     /**
@@ -267,50 +279,6 @@ public class MermaidGraph {
             nodePath.remove(nodePath.size() - 1);
             edgePath.remove(edgePath.size() - 1);
         }
-    }
-
-    /**
-     * 获取某个特定路线的PathInfo
-     *
-     * @param startPlatformTag 起始站台tag
-     * @param tags             路线包含的tag
-     * @return 路线详情
-     */
-    @Nullable
-    public TrainRoutes.PathInfo getPathInfo(String startPlatformTag, List<String> tags, String endStation) {
-        Node currNode = getNodeFromPtag(startPlatformTag);
-        if (currNode == null || tags.isEmpty() || !currNode.getTag().equals(tags.get(0))) {
-            return null;
-        }
-
-        List<Node> nodePath = new ArrayList<>();
-        List<Edge> edgePath = new ArrayList<>();
-        nodePath.add(currNode);
-        tags.remove(0);
-        for (String tag : tags) {
-            boolean found = false;
-            for (Edge edge : getEdges(currNode)) {
-                if (edge.target.getTag().equals(tag)) {
-                    found = true;
-                    nodePath.add(edge.target);
-                    edgePath.add(edge);
-                    currNode = edge.target;
-                    break;
-                }
-            }
-            if (!found) {
-                return null;
-            }
-        }
-        // 添加做后一个边和节点
-        for (Edge edge : getEdges(currNode)) {
-            if (edge.target.getStationName().equals(endStation)) {
-                nodePath.add(edge.target);
-                edgePath.add(edge);
-                break;
-            }
-        }
-        return new TrainRoutes.PathInfo(nodePath, edgePath);
     }
 }
 

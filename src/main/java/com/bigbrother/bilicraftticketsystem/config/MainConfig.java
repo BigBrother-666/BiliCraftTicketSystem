@@ -15,7 +15,6 @@ public class MainConfig {
     public static double speedStep;
     public static String expressTicketName;
     public static String expressTicketBgimage;
-    public static String commonTrainTag;
     public static String ticketFont;
     public static Boolean ticketFontBold;
     public static double pricePerKm;
@@ -25,6 +24,12 @@ public class MainConfig {
     public static int maxUses;
     public static List<String> discount;
     public static String skip;
+    public static ConfigurationNode cardConfig;
+
+    public static int loreStationNameCntRow;
+    public static int loreRailwayNameCntRow;
+    public static List<String> ticketLore;
+    public static List<String> cardLore;
 
     public static void loadMainConfig(BiliCraftTicketSystem plugin) {
         FileConfiguration mainConfig = new FileConfiguration(plugin, EnumConfig.MAIN_CONFIG.getFileName());
@@ -32,7 +37,6 @@ public class MainConfig {
 
         expressTicketName = mainConfig.get("express-ticket-name", "express");
         expressTicketBgimage = mainConfig.get("express-ticket-bgimage", "");
-        commonTrainTag = mainConfig.get("common-train-tag", "common");
         ticketFont = mainConfig.get("ticket-font", "");
         ticketFontBold = mainConfig.get("ticket-font-bold", true);
         pricePerKm = mainConfig.get("price-per-km", 0.3);
@@ -53,5 +57,12 @@ public class MainConfig {
         discount = uses.getList("discount", String.class, Collections.emptyList());
 
         skip = mainConfig.get("skip", "");
+
+        cardConfig = mainConfig.getNode("card");
+        ConfigurationNode lore = mainConfig.getNode("lore");
+        loreStationNameCntRow = lore.get("station-name-cnt-perrow", 7);
+        loreRailwayNameCntRow = lore.get("railway-name-cnt-perrow", 4);
+        ticketLore = lore.getList("ticket", String.class, Collections.emptyList());
+        cardLore = lore.getList("card", String.class, Collections.emptyList());
     }
 }
