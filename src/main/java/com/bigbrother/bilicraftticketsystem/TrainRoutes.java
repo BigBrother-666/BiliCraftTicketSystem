@@ -37,6 +37,8 @@ public class TrainRoutes {
             this.distance = edges.stream().mapToDouble(MermaidGraph.Edge::getDistance).sum();
             this.price = calculateFare(distance);
             this.tags = path.stream().map(MermaidGraph.Node::getTag).collect(Collectors.toCollection(LinkedHashSet::new));
+            // 移除终点站tag
+            this.tags.remove(endStation.getTag());
             this.stationSequence = stationSequence();
         }
 
