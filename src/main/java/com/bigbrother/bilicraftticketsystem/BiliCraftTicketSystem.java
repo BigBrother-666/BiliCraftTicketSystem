@@ -13,6 +13,7 @@ import com.bigbrother.bilicraftticketsystem.listeners.CardListeners;
 import com.bigbrother.bilicraftticketsystem.listeners.PlayerListeners;
 import com.bigbrother.bilicraftticketsystem.listeners.TrainListeners;
 import com.bigbrother.bilicraftticketsystem.menu.Menu;
+import com.bigbrother.bilicraftticketsystem.ticket.BCCardInfo;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicketDisplay;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -114,7 +115,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
      */
     public void loadConfig(CommandSender sender) {
         try {
-            Bukkit.getScheduler().cancelTasks(plugin);
+//            Bukkit.getScheduler().cancelTasks(plugin);
 
             MainConfig.loadMainConfig(this);
             RailwayRoutesConfig.load(this);
@@ -139,6 +140,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
             plugin.getComponentLogger().info(Component.text("数据库加载完成", NamedTextColor.GOLD));
 
             Menu.reloadAll();
+            BCCardInfo.reloadAllCache();
         } catch (Exception e) {
             if (sender instanceof ConsoleCommandSender) {
                 plugin.getComponentLogger().error(Component.text("加载配置时发生错误：" + e, NamedTextColor.RED));
@@ -205,6 +207,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         SignAction.unregister(customSignActionProperties);
 
         Bukkit.getScheduler().cancelTasks(plugin);
+        BCCardInfo.saveAll();
 
         if (this.geoCommand != null) {
             geoCommand.getTaskMap().values().forEach(PRGeoTask::closeLoggerHandler);

@@ -9,15 +9,18 @@ import net.kyori.adventure.text.format.TextDecoration;
 
 @Data
 public class PlayerOption {
-    public static final String EMPTY_STATION = "N/A";
-    public static final String EMPTY_STATION_COMPONENT = "<red>N/A</red>";
+    public static final String NOT_AVALIABLE = "N/A";
+    public static final Component NOT_AVALIABLE_COMPONENT = Component.text(NOT_AVALIABLE, NamedTextColor.RED).decoration(TextDecoration.ITALIC, TextDecoration.State.NOT_SET);
+    public static final String NOT_AVALIABLE_MM = Utils.component2Str(NOT_AVALIABLE_COMPONENT);
 
-    @Getter private Component startStation;
-    @Getter private Component endStation;
-    private String startStationString;
-    private String endStationString;
+    @Getter
+    protected Component startStation;
+    @Getter
+    protected Component endStation;
+    protected String startStationString;
+    protected String endStationString;
 
-    private double speed;
+    protected double speed;
     private int uses;
     private boolean searchedFlag = false;
 
@@ -32,10 +35,10 @@ public class PlayerOption {
     }
 
     public PlayerOption() {
-        this.startStation = Component.text(EMPTY_STATION, NamedTextColor.RED);
-        this.endStation = Component.text(EMPTY_STATION, NamedTextColor.RED);
-        this.startStationString = EMPTY_STATION;
-        this.endStationString = EMPTY_STATION;
+        this.startStation = NOT_AVALIABLE_COMPONENT;
+        this.endStation = NOT_AVALIABLE_COMPONENT;
+        this.startStationString = NOT_AVALIABLE;
+        this.endStationString = NOT_AVALIABLE;
         this.speed = 4.0;
         this.uses = 1;
     }
@@ -45,8 +48,8 @@ public class PlayerOption {
             this.startStation = startStation;
             this.startStationString = Utils.component2Str(startStation);
         } else {
-            this.startStation = Component.text(EMPTY_STATION, NamedTextColor.RED);
-            this.startStationString = EMPTY_STATION;
+            this.startStation = NOT_AVALIABLE_COMPONENT;
+            this.startStationString = NOT_AVALIABLE;
         }
 
     }
@@ -56,8 +59,8 @@ public class PlayerOption {
             this.endStation = endStation;
             this.endStationString = Utils.component2Str(endStation);
         } else {
-            this.endStation = Component.text(EMPTY_STATION, NamedTextColor.RED);
-            this.endStationString = EMPTY_STATION;
+            this.endStation = NOT_AVALIABLE_COMPONENT;
+            this.endStationString = NOT_AVALIABLE;
         }
     }
 
@@ -66,11 +69,11 @@ public class PlayerOption {
     }
 
     public boolean isStartStationEmpty() {
-        return getStartStationString().equals(EMPTY_STATION);
+        return getStartStationString().equals(NOT_AVALIABLE);
     }
 
     public boolean isEndStationEmpty() {
-        return getEndStationString().equals(EMPTY_STATION);
+        return getEndStationString().equals(NOT_AVALIABLE);
     }
 
     public String getClearStartStationName() {

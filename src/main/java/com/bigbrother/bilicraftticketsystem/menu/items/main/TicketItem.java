@@ -49,7 +49,7 @@ public class TicketItem extends AbstractItem {
             barrier.setItemMeta(barrierMeta);
             return new ItemBuilder(barrier);
         }
-        return new ItemBuilder(ticket.getCommonItemStack().toBukkit());
+        return new ItemBuilder(ticket.getItemStack());
     }
 
     @Override

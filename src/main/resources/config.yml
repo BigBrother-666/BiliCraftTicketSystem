@@ -67,6 +67,7 @@ message:
   card-wrong-platform: '<red>不能本站台使用交通卡，请核对交通卡的可使用站台和本站台上的信息是否一致'
   card-not-enough-balance: '<red>交通卡余额不足！本次行程需要 <yellow>%.2f 银币<red>，余额 <yellow>%.2f 银币'
   card-used: '<green>刷卡成功，扣费 %.2f 银币，剩余 %.2f 银币'
+  card-missing: '<red>主手没有检测到交通卡！'
 
   unknown-error: '<red>发生未知错误！'
 

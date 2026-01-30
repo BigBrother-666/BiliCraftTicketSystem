@@ -18,8 +18,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -39,6 +37,10 @@ public class BCTicket extends BCTransitPass {
     public static final String KEY_TICKET_OWNER_NAME = "ticketOwnerName";
     public static final String KEY_TICKET_ORIGIN_PRICE = "ticketOriginPrice";
     public static final String KEY_TRANSIT_PASS_TAGS = "ticketTags";
+    public static final String KEY_TICKET_START_STATION = "startStation";
+    public static final String KEY_TICKET_END_STATION = "endStation";
+    public static final String KEY_TICKET_MAX_SPEED = "ticketMaxSpeed";
+    public static final String KEY_TICKET_START_PLATFORM_TAG = "startPlatformTag";
 
     private final Player owner;
     private int maxUses;
@@ -49,7 +51,7 @@ public class BCTicket extends BCTransitPass {
         this.pathInfo = pathInfo;
         this.maxUses = option.getUses();
         this.maxSpeed = option.getSpeed();
-        this.commonItemStack = createItem();
+        this.itemStack = createItem();
         refreshTicketMeta(true);
     }
 
@@ -58,7 +60,7 @@ public class BCTicket extends BCTransitPass {
         this.pathInfo = pathInfo;
         this.maxUses = maxUses;
         this.maxSpeed = maxSpeed;
-        this.commonItemStack = createItem();
+        this.itemStack = createItem();
         refreshTicketMeta(true);
     }
 
@@ -66,22 +68,22 @@ public class BCTicket extends BCTransitPass {
      * 引用itemstack
      */
     private BCTicket(ItemStack itemStack) {
-        this.commonItemStack = CommonItemStack.of(itemStack);
+        this.itemStack = itemStack;
+        CommonItemStack commonItemStack = CommonItemStack.of(itemStack);
 
         CommonTagCompound nbt = commonItemStack.getCustomData();
         this.owner = Bukkit.getPlayer(nbt.getValue(KEY_TICKET_OWNER_UUID, ""));
         this.maxUses = nbt.getValue(KEY_TICKET_MAX_NUMBER_OF_USES, 1);
-        this.maxSpeed = nbt.getValue(KEY_TRANSIT_PASS_MAX_SPEED, 4.0);
+        this.maxSpeed = nbt.getValue(KEY_TICKET_MAX_SPEED, 4.0);
 
         this.pathInfo = TrainRoutes.getPathInfo(
-                nbt.getValue(KEY_TRANSIT_PASS_START_PLATFORM_TAG, ""),
+                nbt.getValue(KEY_TICKET_START_PLATFORM_TAG, ""),
                 new ArrayList<>(List.of(nbt.getValue(BCTicket.KEY_TRANSIT_PASS_TAGS, "").split(","))),
-                nbt.getValue(KEY_TRANSIT_PASS_END_STATION, "")
+                nbt.getValue(KEY_TICKET_END_STATION, "")
         );
         if (pathInfo == null) {
             this.update();
         }
-        commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TRANSIT_PASS_PLUGIN, "bcts"));
         if (pathInfo != null) {
             refreshTicketMeta(false);
         }
@@ -116,7 +118,7 @@ public class BCTicket extends BCTransitPass {
             // 记录log
             Bukkit.getConsoleSender().sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("玩家 %s 成功花费 %.2f 购买了 %s".formatted(owner.getName(), r.amount, ticketName), NamedTextColor.GREEN)));
             // 写入数据库
-            plugin.getTrainDatabaseManager().getTransitPassService().addTicketInfo(owner.getName(), owner.getUniqueId().toString(), r.amount, commonItemStack.getCustomData());
+            plugin.getTrainDatabaseManager().getTransitPassService().addTicketInfo(owner.getName(), owner.getUniqueId().toString(), r.amount, CommonItemStack.of(itemStack).getCustomData());
         } else {
             owner.sendMessage(BiliCraftTicketSystem.PREFIX.append(
                     Utils.mmStr2Component(message.get("ticket-buy-failure", "车票购买失败：%s").formatted(r.errorMessage)).decoration(TextDecoration.ITALIC, false)
@@ -125,17 +127,16 @@ public class BCTicket extends BCTransitPass {
     }
 
     public void give() {
-        commonItemStack.updateCustomData(this::updateNbt);
-        ItemStack itemStack = commonItemStack.toBukkit();
+        CommonItemStack.of(itemStack).updateCustomData(this::updateNbt);
         List<Component> lore = itemStack.lore();
         if (lore != null && lore.size() > 2) {
             lore.remove(lore.size() - 1);
             lore.remove(lore.size() - 1);
         }
         ItemStack newTicket = itemStack.clone();
-        ItemMeta itemMeta = newTicket.getItemMeta();
-        itemMeta.lore(lore);
-        newTicket.setItemMeta(itemMeta);
+        newTicket.editMeta(itemMeta -> {
+            itemMeta.lore(lore);
+        });
         if (!owner.getInventory().addItem(newTicket).isEmpty()) {
             // 背包满 车票丢到地上
             owner.getWorld().dropItemNaturally(owner.getLocation(), newTicket);
@@ -163,6 +164,8 @@ public class BCTicket extends BCTransitPass {
 
     @Override
     public void useTransitPass(Player usedPlayer) {
+        CommonItemStack commonItemStack = CommonItemStack.of(itemStack);
+
         commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TICKET_NUMBER_OF_USES, tag.getValue(KEY_TICKET_NUMBER_OF_USES, 0) + 1));
         // 检查是否达到最大次数
         CommonTagCompound nbt = commonItemStack.getCustomData();
@@ -175,7 +178,7 @@ public class BCTicket extends BCTransitPass {
                 Utils.mmStr2Component(message.get("ticket-used", "成功使用一张（次）%s 车票").formatted(this.getTransitPassName()))
         ));
 
-        plugin.getTrainDatabaseManager().getTransitPassService().addTransitPassUsage(
+        plugin.getTrainDatabaseManager().getTransitPassService().addTicketUsage(
                 usedPlayer.getUniqueId().toString(),
                 usedPlayer.getName(),
                 getPrice(),
@@ -186,6 +189,8 @@ public class BCTicket extends BCTransitPass {
 
     @Override
     public boolean verify(Player usedPlayer, MinecartGroup group) {
+        CommonItemStack commonItemStack = CommonItemStack.of(itemStack);
+
         // 其他玩家的车票
         if (!isTicketOwner(usedPlayer)) {
             usedPlayer.sendMessage(BiliCraftTicketSystem.PREFIX.append(
@@ -214,7 +219,7 @@ public class BCTicket extends BCTransitPass {
         Set<String> ticketTags = pathInfo.getTags();
 
         // 验证站台是否正确
-        if (!BCTransitPass.verifyPlatform(commonItemStack.getCustomData().getValue(KEY_TRANSIT_PASS_START_PLATFORM_TAG, ""), trainTags)) {
+        if (!BCTransitPass.verifyPlatform(commonItemStack.getCustomData().getValue(KEY_TICKET_START_PLATFORM_TAG, ""), trainTags)) {
             usedPlayer.sendMessage(BiliCraftTicketSystem.PREFIX.append(
                     Utils.mmStr2Component(message.get("ticket-wrong-platform", "此车票不能在本站台使用，请核对车票的可使用站台和本站台上的信息是否一致"))
             ));
@@ -247,10 +252,6 @@ public class BCTicket extends BCTransitPass {
             return;
         }
         // 更新lore
-        ItemStack itemStack = commonItemStack.toBukkit();
-        ItemMeta itemMeta = itemStack.getItemMeta();
-        // pdc验证字段
-        itemMeta.getPersistentDataContainer().set(KEY_TRANSIT_PASS, PersistentDataType.BOOLEAN, true);
         Map<String, Object> placeholder = new HashMap<>();
         placeholder.put("maxUses", maxUses);
         placeholder.put("ownerName", owner.getName());
@@ -259,9 +260,10 @@ public class BCTicket extends BCTransitPass {
             lore.add(Component.text("===============================", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false));
             lore.add(Component.text("售价：%.2f银币       左键点击购买".formatted(this.getPrice()), NamedTextColor.DARK_PURPLE));
         }
-        itemMeta.lore(lore);
-        itemMeta.displayName(Component.text(getTicketName(false), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false).decoration(TextDecoration.BOLD, true));
-        itemStack.setItemMeta(itemMeta);
+        itemStack.editMeta(itemMeta -> {
+            itemMeta.lore(lore);
+            itemMeta.displayName(Component.text(getTicketName(false), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false).decoration(TextDecoration.BOLD, true));
+        });
     }
 
     private String getTicketName(boolean trim) {
@@ -283,12 +285,11 @@ public class BCTicket extends BCTransitPass {
     /**
      * 创建新的车票item
      */
-    private CommonItemStack createItem() {
+    private ItemStack createItem() {
         ItemStack mapItem = MapDisplay.createMapItem(BCTicketDisplay.class);
         mapItem.addItemFlags(ItemFlag.HIDE_ITEM_SPECIFICS);
-        mapItem.getItemMeta().displayName(Utils.mmStr2Component(MainConfig.cardConfig.get("name", "<gold>帕拉伦国有铁路交通卡")));
         return CommonItemStack.of(mapItem)
-                .updateCustomData(this::updateNbt);
+                .updateCustomData(this::updateNbt).toBukkit();
     }
 
     private void updateNbt(CommonTagCompound tag) {
@@ -300,12 +301,12 @@ public class BCTicket extends BCTransitPass {
         tag.putValue(KEY_TICKET_MAX_NUMBER_OF_USES, maxUses);
         tag.putUUID(KEY_TICKET_OWNER_UUID, owner.getUniqueId());
         tag.putValue(KEY_TICKET_OWNER_NAME, owner.getName());
-        tag.putValue(KEY_TRANSIT_PASS_MAX_SPEED, maxSpeed);
+        tag.putValue(KEY_TICKET_MAX_SPEED, maxSpeed);
         tag.putValue(KEY_TICKET_ORIGIN_PRICE, this.pathInfo.getPrice());
         tag.putValue(KEY_TRANSIT_PASS_TAGS, String.join(",", this.pathInfo.getTags()));
-        tag.putValue(KEY_TRANSIT_PASS_START_PLATFORM_TAG, pathInfo.getStartPlatformTag());
-        tag.putValue(KEY_TRANSIT_PASS_START_STATION, pathInfo.getStartStation().getStationName());
-        tag.putValue(KEY_TRANSIT_PASS_END_STATION, pathInfo.getEndStation().getStationName());
+        tag.putValue(KEY_TICKET_START_PLATFORM_TAG, pathInfo.getStartPlatformTag());
+        tag.putValue(KEY_TICKET_START_STATION, pathInfo.getStartStation().getStationName());
+        tag.putValue(KEY_TICKET_END_STATION, pathInfo.getEndStation().getStationName());
         tag.putValue(KEY_TRANSIT_PASS_BACKGROUND_IMAGE_PATH, MainConfig.expressTicketBgimage);
     }
 
@@ -337,15 +338,29 @@ public class BCTicket extends BCTransitPass {
         return totalPrice;
     }
 
+    @Override
+    public String getTransitPassName() {
+        if (pathInfo != null) {
+            return "%s → %s".formatted(pathInfo.getStartStation().getClearStationName(), pathInfo.getEndStation().getClearStationName());
+        } else {
+            CommonTagCompound nbt = CommonItemStack.of(itemStack).getCustomData();
+            return "%s → %s".formatted(
+                    nbt.getValue(KEY_TICKET_START_STATION, "Unknown"),
+                    nbt.getValue(KEY_TICKET_END_STATION, "Unknown")
+            );
+        }
+    }
+
     /**
      * 如果铁路有变化，更新车票信息
      */
     public void update() {
+        CommonItemStack commonItemStack = CommonItemStack.of(itemStack);
         CommonTagCompound nbt = commonItemStack.getCustomData();
         List<String> tags = List.of(nbt.getValue(KEY_TRANSIT_PASS_TAGS, "").split(","));
-        String startStation = nbt.getValue(KEY_TRANSIT_PASS_START_STATION, String.class, TrainRoutes.graph.getStationNameFromTag(tags.get(0)));
-        String endStation = nbt.getValue(KEY_TRANSIT_PASS_END_STATION, String.class, TrainRoutes.graph.getStationNameFromTag(tags.get(tags.size() - 1)));
-        String startPlatformTag = nbt.getValue(KEY_TRANSIT_PASS_START_PLATFORM_TAG, String.class, "");
+        String startStation = nbt.getValue(KEY_TICKET_START_STATION, String.class, TrainRoutes.graph.getStationNameFromTag(tags.get(0)));
+        String endStation = nbt.getValue(KEY_TICKET_END_STATION, String.class, TrainRoutes.graph.getStationNameFromTag(tags.get(tags.size() - 1)));
+        String startPlatformTag = nbt.getValue(KEY_TICKET_START_PLATFORM_TAG, String.class, "");
         List<TrainRoutes.PathInfo> pathInfoList = TrainRoutes.getPathInfoList(startStation, endStation);
         if (!pathInfoList.isEmpty()) {
             boolean updated = false;
@@ -354,7 +369,7 @@ public class BCTicket extends BCTransitPass {
                 if (path.getTags().containsAll(tags)) {
                     if (!startStation.equals(endStation) && !startPlatformTag.equals(path.getStartPlatformTag())) {
                         // 线路延长，xxx方向改变
-                        commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TRANSIT_PASS_START_PLATFORM_TAG, path.getStartPlatformTag()));
+                        commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TICKET_START_PLATFORM_TAG, path.getStartPlatformTag()));
                         startPlatformTag = path.getStartPlatformTag();
                     }
 
@@ -373,8 +388,10 @@ public class BCTicket extends BCTransitPass {
             if (!updated) {
                 // 保底
                 this.pathInfo = pathInfoList.get(0);
-                this.commonItemStack.updateCustomData(this::updateNbt);
+                commonItemStack.updateCustomData(this::updateNbt);
             }
+            // pdc验证字段
+            initPdc();
         } else {
             // 标记为过期车票
             commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TICKET_EXPIRATION_TIME, 0));
@@ -382,20 +399,25 @@ public class BCTicket extends BCTransitPass {
     }
 
     public static boolean isBctsTicket(ItemStack itemStack) {
+        return isBctsTicket(CommonItemStack.of(itemStack));
+    }
+
+    public static boolean isBctsTicket(CommonItemStack itemStack) {
         if (itemStack == null) {
             return false;
         }
-        CommonTagCompound nbt = CommonItemStack.of(itemStack).getCustomData();
+        CommonTagCompound nbt = itemStack.getCustomData();
         return nbt != null && (nbt.getValue(KEY_TRANSIT_PASS_TYPE, "").equals(PassType.TICKET.getId()) || nbt.getValue(KEY_TICKET_NAME, "").equals(MainConfig.expressTicketName));
     }
 
     public boolean isTicketOwner(Player player) {
-        CommonTagCompound nbt = commonItemStack.getCustomData();
+        CommonTagCompound nbt = CommonItemStack.of(itemStack).getCustomData();
         return !nbt.containsKey(KEY_TICKET_OWNER_UUID) || nbt.getUUID(KEY_TICKET_OWNER_UUID).equals(player.getUniqueId());
     }
 
     public boolean isTicketExpired() {
-        if (commonItemStack == null) {
+        CommonItemStack commonItemStack = CommonItemStack.of(itemStack);
+        if (itemStack == null) {
             return true;
         } else {
             CommonTagCompound nbt = commonItemStack.getCustomData();

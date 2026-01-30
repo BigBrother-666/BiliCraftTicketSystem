@@ -103,8 +103,7 @@ public class BCTicketSystemCommand implements CommandExecutor {
             player.sendMessage(Component.text("你没有权限使用这条命令喵~", NamedTextColor.RED));
             return;
         }
-        ItemStack card = (new BCCard()).getCommonItemStack().toBukkit();
-        player.getInventory().addItem(card);
+        player.getInventory().addItem((new BCCard()).getItemStack());
     }
 
     private void subCommandDelroute(Player player, String[] args) {

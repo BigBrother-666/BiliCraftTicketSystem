@@ -10,7 +10,6 @@ import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.listeners.TrainListeners;
-import com.bigbrother.bilicraftticketsystem.menu.PlayerOption;
 import lombok.Getter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -20,8 +19,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -32,38 +29,32 @@ import static com.bigbrother.bilicraftticketsystem.config.MainConfig.message;
 
 @Getter
 public class BCCard extends BCTransitPass {
-    public static final String KEY_CARD_BALANCE = "cardBalance";
-    public static final String KEY_CARD_START_STATION_COMPONENT = "startStationComponent";
-    public static final String KEY_CARD_END_STATION_COMPONENT = "endStationComponent";
     public static final String KEY_CARD_UUID = "cardUniqueID";
 
-    private double balance;
-    private final PlayerOption stationInfo;
+    private final BCCardInfo cardInfo;
 
     /**
      * 创建0余额的交通卡
      */
     public BCCard() {
-        this.commonItemStack = createItem();
-        this.balance = 0.0;
         this.maxSpeed = 4.0;
-        this.stationInfo = new PlayerOption();
-        refreshCard(true);
+        this.itemStack = createItem();
+        this.itemStack.editMeta(itemMeta -> {
+            itemMeta.displayName(Utils.mmStr2Component(MainConfig.cardConfig.get("name", "<gold>帕拉伦国有铁路交通卡")));
+        });
+        this.cardInfo = new BCCardInfo(CommonItemStack.of(itemStack).getCustomData().getValue(KEY_CARD_UUID, UUID.randomUUID().toString()));
+        refreshLore();
         // pdc验证字段
-        commonItemStack.toBukkit().getItemMeta().getPersistentDataContainer().set(KEY_TRANSIT_PASS, PersistentDataType.BOOLEAN, true);
+        initPdc();
     }
 
-    private BCCard(ItemStack card) {
-        this.commonItemStack = CommonItemStack.of(card);
-        this.balance = this.commonItemStack.getCustomData().getValue(KEY_CARD_BALANCE, 0.0);
-        this.maxSpeed = this.commonItemStack.getCustomData().getValue(KEY_TRANSIT_PASS_MAX_SPEED, 4.0);
-        CommonTagCompound nbt = this.commonItemStack.getCustomData();
-        this.stationInfo = new PlayerOption(
-                nbt.getValue(KEY_CARD_START_STATION_COMPONENT, PlayerOption.EMPTY_STATION_COMPONENT),
-                nbt.getValue(KEY_CARD_END_STATION_COMPONENT, PlayerOption.EMPTY_STATION_COMPONENT)
-        );
-
-        refreshCard(true);
+    private BCCard(ItemStack card) throws IllegalArgumentException {
+        this.itemStack = card;
+        CommonTagCompound nbt = CommonItemStack.of(itemStack).getCustomData();
+        this.cardInfo = BCCardInfo.load(nbt.getValue(KEY_CARD_UUID, UUID.randomUUID().toString()));
+        if (cardInfo != null) {
+            this.maxSpeed = this.cardInfo.getSpeed();
+        }
     }
 
     @Nullable
@@ -76,12 +67,13 @@ public class BCCard extends BCTransitPass {
 
     @Nullable
     public static BCCard fromHeldItem(Player player) {
-        BCTicketDisplay display = MapDisplay.getHeldDisplay(player, BCTicketDisplay.class);
-        if (display == null || !isBctsCard(display.getMapItem())) {
+        ItemStack mainHand = player.getInventory().getItemInMainHand();
+        BCCard card = fromItemStack(mainHand);
+        if (card == null) {
+            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Utils.mmStr2Component(message.get("card-missing", "<red>主手没有检测到交通卡！"))));
             return null;
         }
-        display.update();
-        return new BCCard(display.getMapItem());
+        return card;
     }
 
     public static @Nullable BCCard findCardFromInventory(Player player) {
@@ -93,58 +85,38 @@ public class BCCard extends BCTransitPass {
         return null;
     }
 
-    public void setCommonItemStack(CommonItemStack itemStack) {
-        this.commonItemStack = itemStack;
-    }
-
     /**
      * 计算pathInfo并更新NBT
      */
     private void calcPathAndUpdateNbt() {
-        if (this.stationInfo.isStationNotEmpty()) {
-            String startStation = this.stationInfo.getStartStationString();
-            String endStation = this.stationInfo.getEndStationString();
+        if (this.cardInfo.isStationNotEmpty()) {
+            String startStation = this.cardInfo.getStartStationString();
+            String endStation = this.cardInfo.getEndStationString();
             this.pathInfo = TrainRoutes.findShortestPath(startStation, endStation);
         }
-        this.commonItemStack.updateCustomData(this::updateNbt);
-    }
-
-    public void setBalance(double balance) {
-        this.balance = balance;
-        this.commonItemStack.updateCustomData(tag -> tag.putValue(KEY_CARD_BALANCE, this.balance));
     }
 
     public void addBalance(double balance) {
-        this.balance += balance;
-        this.commonItemStack.updateCustomData(tag -> tag.putValue(KEY_CARD_BALANCE, this.balance));
+        this.cardInfo.addBalance(balance);
+        refreshCard();
     }
 
     public void setMaxSpeed(double maxSpeed) {
         this.maxSpeed = maxSpeed;
-        this.commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TRANSIT_PASS_MAX_SPEED, this.maxSpeed));
+        this.cardInfo.setSpeed(maxSpeed);
+        refreshCard();
     }
 
     public void setStartStation(Component startStation) {
-        this.stationInfo.setStartStation(startStation);
-        this.commonItemStack.updateCustomData((tag) -> {
-            tag.putValue(KEY_TRANSIT_PASS_START_STATION, this.stationInfo.getStartStationString());
-            tag.putValue(KEY_CARD_START_STATION_COMPONENT, this.stationInfo.getMmStartStationName());
-        });
+        this.pathInfo = null;
+        this.cardInfo.setStartStation(startStation);
+        refreshCard();
     }
 
     public void setEndStation(Component endStation) {
-        this.stationInfo.setEndStation(endStation);
-        this.commonItemStack.updateCustomData((tag) -> {
-            tag.putValue(KEY_TRANSIT_PASS_END_STATION, this.stationInfo.getEndStationString());
-            tag.putValue(KEY_CARD_END_STATION_COMPONENT, this.stationInfo.getMmEndStationName());
-        });
-    }
-
-    public UUID getCardUuid() {
-        if (!commonItemStack.getCustomData().containsKey(KEY_CARD_UUID)) {
-            commonItemStack.updateCustomData(tag -> tag.putValue(KEY_CARD_UUID, UUID.randomUUID().toString()));
-        }
-        return UUID.fromString(commonItemStack.getCustomData().getValue(KEY_CARD_UUID, UUID.randomUUID().toString()));
+        this.pathInfo = null;
+        this.cardInfo.setEndStation(endStation);
+        refreshCard();
     }
 
     @Override
@@ -169,7 +141,7 @@ public class BCCard extends BCTransitPass {
         Collection<String> trainTags = group.getProperties().getTags();
 
         // 1. 计算Path
-        if (stationInfo.isStationNotEmpty()) {
+        if (cardInfo.isStationNotEmpty()) {
             // 指定了起点和终点
             // 路线在选择车站后就应该计算完成，这种情况不应该发生
             if (pathInfo == null) {
@@ -180,12 +152,12 @@ public class BCCard extends BCTransitPass {
                 sendNoPathMsg(usedPlayer);
                 return false;
             }
-        } else if (!stationInfo.isEndStationEmpty()) {
+        } else if (!cardInfo.isEndStationEmpty()) {
             // 只指定了终点
             // 获取当前pTag并计算路径
             MermaidGraph.Node startNode = BCTransitPass.getTrainStartNode(trainTags);
             if (startNode != null) {
-                this.pathInfo = TrainRoutes.getShortestPathFromStartNode(startNode, stationInfo.getEndStationString());
+                this.pathInfo = TrainRoutes.getShortestPathFromStartNode(startNode, cardInfo.getEndStationString());
             }
 
             if (pathInfo == null) {
@@ -205,14 +177,14 @@ public class BCCard extends BCTransitPass {
         // 2. 验证
         // 余额充足？
         double price = getPrice();
-        if (this.balance < price) {
+        if (this.cardInfo.getBalance() < price) {
             usedPlayer.sendMessage(BiliCraftTicketSystem.PREFIX.append(
-                    Utils.mmStr2Component(message.get("card-not-enough-balance", "<red>交通卡余额不足！本次行程需要 <yellow>%.2f 银币<red>，余额 <yellow>%.2f 银币").formatted(price, this.balance)))
+                    Utils.mmStr2Component(message.get("card-not-enough-balance", "<red>交通卡余额不足！本次行程需要 <yellow>%.2f 银币<red>，余额 <yellow>%.2f 银币").formatted(price, this.cardInfo.getBalance())))
             );
             return false;
         }
         // 验证站台是否正确
-        if (!BCTransitPass.verifyPlatform(commonItemStack.getCustomData().getValue(KEY_TRANSIT_PASS_START_PLATFORM_TAG, ""), trainTags)) {
+        if (pathInfo == null || !BCTransitPass.verifyPlatform(pathInfo.getStartPlatformTag(), trainTags)) {
             usedPlayer.sendMessage(BiliCraftTicketSystem.PREFIX.append(
                     Utils.mmStr2Component(message.get("card-wrong-platform", "不能本站台使用交通卡，请核对交通卡的可使用站台和本站台上的信息是否一致")))
             );
@@ -236,10 +208,9 @@ public class BCCard extends BCTransitPass {
         double price = getPrice();
         // 扣费
         this.addBalance(-price);
-        this.refreshCard(false);
 
         usedPlayer.sendMessage(BiliCraftTicketSystem.PREFIX.append(
-                Utils.mmStr2Component(message.get("card-used", "刷卡成功，扣费 %.2f 银币，剩余 %.2f 银币").formatted(price, this.balance))
+                Utils.mmStr2Component(message.get("card-used", "刷卡成功，扣费 %.2f 银币，剩余 %.2f 银币").formatted(price, this.cardInfo.getBalance()))
         ));
 
         // 聊天栏展示路线详情
@@ -252,7 +223,7 @@ public class BCCard extends BCTransitPass {
         usedPlayer.sendMessage(Component.text("=============================", NamedTextColor.DARK_AQUA));
 
         // 记录
-        plugin.getTrainDatabaseManager().getTransitPassService().addTransitPassUsage(
+        plugin.getTrainDatabaseManager().getTransitPassService().addCardUsage(
                 usedPlayer.getUniqueId().toString(),
                 usedPlayer.getName(),
                 pathInfo.getStartStation().getStationName(),
@@ -260,7 +231,8 @@ public class BCCard extends BCTransitPass {
                 pathInfo.getEndStation().getStationName(),
                 maxSpeed,
                 price,
-                PassType.CARD.getId()
+                PassType.CARD.getId(),
+                cardInfo.getCardUuid()
         );
     }
 
@@ -270,45 +242,46 @@ public class BCCard extends BCTransitPass {
     }
 
     /**
-     * 刷新交通卡lore
+     * 刷新交通卡
      */
-    public void refreshCard(boolean calcPath) {
-        if (calcPath) {
-            calcPathAndUpdateNbt();
-        }
+    public void refreshCard() {
+        calcPathAndUpdateNbt();
+        refreshDisplay();
+        refreshLore();
+    }
 
-        ItemStack itemStack = commonItemStack.toBukkit();
-        ItemMeta itemMeta = itemStack.getItemMeta();
-
+    private void refreshLore() {
         // 展示当前的设置
         Map<String, Object> placeholder = new HashMap<>();
-        String mmStartStationName = stationInfo.getMmStartStationName();
-        String mmEndStationName = stationInfo.getMmEndStationName();
-        placeholder.put("balance", "%.2f".formatted(balance));
-        placeholder.put("startStationName", stationInfo.isStartStationEmpty() ? null : mmStartStationName);
-        placeholder.put("endStationName", stationInfo.isEndStationEmpty() ? null : mmEndStationName);
-        if (stationInfo.isStartStationEmpty() && !stationInfo.isEndStationEmpty()) {
+        String mmStartStationName = cardInfo.getMmStartStationName();
+        String mmEndStationName = cardInfo.getMmEndStationName();
+        placeholder.put("balance", "%.2f".formatted(this.cardInfo.getBalance()));
+        placeholder.put("startStationName", cardInfo.getMmStartStationName());
+        placeholder.put("endStationName", cardInfo.getMmEndStationName());
+        if (cardInfo.isStartStationEmpty() && !cardInfo.isEndStationEmpty()) {
             placeholder.put("usePlatform", "<dark_green>任意国铁站台");
-            if (calcPath) {
-                pathInfo = null;
-            }
-        } else if (stationInfo.isStationNotEmpty()) {
+        } else if (cardInfo.isStationNotEmpty()) {
             if (pathInfo != null) {
                 MermaidGraph.Node startNode = pathInfo.getStartStation();
                 placeholder.put("usePlatform", "<dark_green>[%s<dark_green>] 标有 [<blue>%s %s</blue><dark_green>] 的站台".formatted(mmStartStationName, startNode.getRailwayName(), startNode.getRailwayDirection()));
             } else {
                 placeholder.put("usePlatform", "<red>暂无 %s <red>到 %s <red>的直达车".formatted(mmStartStationName, mmEndStationName));
             }
-        } else {
-            if (calcPath) {
-                pathInfo = null;
-            }
         }
 
         List<Component> lore = parseConfigLore(MainConfig.cardLore, placeholder);
 
-        itemMeta.lore(lore);
-        itemStack.setItemMeta(itemMeta);
+        itemStack.editMeta(itemMeta -> {
+            itemMeta.lore(lore);
+        });
+    }
+
+    private void refreshDisplay() {
+        for (MapDisplay display : MapDisplay.getAllDisplays(this.itemStack)) {
+            if (display instanceof BCTicketDisplay d) {
+                d.renderTicket();
+            }
+        }
     }
 
     /**
@@ -321,10 +294,10 @@ public class BCCard extends BCTransitPass {
 
     @Override
     public String getTransitPassName() {
-        if (stationInfo.isStartStationEmpty() && !stationInfo.isEndStationEmpty()) {
-            return "%s → %s".formatted("ANY", stationInfo.getClearEndStationName());
+        if (cardInfo.isStartStationEmpty() && !cardInfo.isEndStationEmpty()) {
+            return "%s → %s".formatted("ANY", cardInfo.getClearEndStationName());
         }
-        return "%s → %s".formatted(stationInfo.getClearStartStationName(), stationInfo.getClearEndStationName());
+        return "%s → %s".formatted(cardInfo.getClearStartStationName(), cardInfo.getClearEndStationName());
     }
 
     /**
@@ -346,8 +319,8 @@ public class BCCard extends BCTransitPass {
 
         double maxBalance = cardConfig.get("max-balance", Double.MAX_VALUE);
         boolean reachMax = false;
-        if (this.balance + chargeNum > cardConfig.get("max-balance", Double.MAX_VALUE)) {
-            chargeNum = maxBalance - this.balance;
+        if (this.cardInfo.getBalance() + chargeNum > cardConfig.get("max-balance", Double.MAX_VALUE)) {
+            chargeNum = maxBalance - this.cardInfo.getBalance();
             reachMax = true;
         }
 
@@ -356,7 +329,7 @@ public class BCCard extends BCTransitPass {
         if (r.transactionSuccess()) {
             addBalance(r.amount);
             player.sendMessage(BiliCraftTicketSystem.PREFIX.append(
-                    Utils.mmStr2Component(message.get("card-charge-success", "您成功向交通卡充值了 %.2f 银币，余额 %.2f 银币").formatted(r.amount, balance)).decoration(TextDecoration.ITALIC, false))
+                    Utils.mmStr2Component(message.get("card-charge-success", "您成功向交通卡充值了 %.2f 银币，余额 %.2f 银币").formatted(r.amount, this.cardInfo.getBalance())).decoration(TextDecoration.ITALIC, false))
             );
             if (reachMax) {
                 player.sendMessage(BiliCraftTicketSystem.PREFIX.append(
@@ -373,45 +346,39 @@ public class BCCard extends BCTransitPass {
         return false;
     }
 
-    private CommonItemStack createItem() {
+    private ItemStack createItem() {
         ItemStack mapItem = MapDisplay.createMapItem(BCTicketDisplay.class);
         mapItem.addItemFlags(ItemFlag.HIDE_ITEM_SPECIFICS);
-
         return CommonItemStack.of(mapItem)
-                .updateCustomData(this::updateNbt)
-                .setCustomNameMessage(MainConfig.expressTicketName);
+                .updateCustomData(this::initNbt)
+                .setCustomNameMessage(MainConfig.expressTicketName).toBukkit();
     }
 
-    private void updateNbt(CommonTagCompound tag) {
+    private void initNbt(CommonTagCompound tag) {
         tag.putValue(KEY_TRANSIT_PASS_TYPE, PassType.CARD.getId());
         tag.putValue(KEY_TRANSIT_PASS_PLUGIN, "bcts");
-        tag.putValue(KEY_CARD_BALANCE, balance);
-        tag.putValue(KEY_TRANSIT_PASS_MAX_SPEED, maxSpeed);
+        tag.putValue(KEY_TRANSIT_PASS_BACKGROUND_IMAGE_PATH, MainConfig.expressTicketBgimage);
+
         if (!tag.containsKey(KEY_CARD_UUID)) {
             tag.putValue(KEY_CARD_UUID, UUID.randomUUID().toString());
-        }
-
-        if (pathInfo != null) {
-            tag.putValue(KEY_TRANSIT_PASS_START_PLATFORM_TAG, pathInfo.getStartPlatformTag());
-            tag.putValue(KEY_TRANSIT_PASS_START_STATION, pathInfo.getStartStation().getStationName());
-            tag.putValue(KEY_TRANSIT_PASS_END_STATION, pathInfo.getEndStation().getStationName());
-            tag.putValue(KEY_TRANSIT_PASS_BACKGROUND_IMAGE_PATH, MainConfig.expressTicketBgimage);
-        } else {
-            tag.putValue(KEY_TRANSIT_PASS_START_PLATFORM_TAG, PlayerOption.EMPTY_STATION);
         }
     }
 
     private void sendNoPathMsg(Player player) {
         player.sendMessage(BiliCraftTicketSystem.PREFIX.append(
-                Utils.mmStr2Component(message.get("card-no-path", "本站台没有 <i><u>%s</i> 直达 <i><u>%s</i> 的路线").formatted(stationInfo.getStartStationString(), stationInfo.getEndStationString())).decoration(TextDecoration.ITALIC, false))
+                Utils.mmStr2Component(message.get("card-no-path", "本站台没有 <i><u>%s</i> 直达 <i><u>%s</i> 的路线").formatted(cardInfo.getStartStationString(), cardInfo.getEndStationString())).decoration(TextDecoration.ITALIC, false))
         );
     }
 
     public static boolean isBctsCard(ItemStack itemStack) {
+        return isBctsCard(CommonItemStack.of(itemStack));
+    }
+
+    public static boolean isBctsCard(CommonItemStack itemStack) {
         if (itemStack == null) {
             return false;
         }
-        CommonTagCompound nbt = CommonItemStack.of(itemStack).getCustomData();
-        return nbt != null && nbt.getValue(KEY_TRANSIT_PASS_TYPE, "").equals(PassType.CARD.getId());
+        CommonTagCompound nbt = itemStack.getCustomData();
+        return nbt != null && nbt.getValue(KEY_TRANSIT_PASS_TYPE, "").equals(PassType.CARD.getId()) && nbt.containsKey(KEY_CARD_UUID);
     }
 }

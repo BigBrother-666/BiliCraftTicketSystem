@@ -9,7 +9,6 @@ import com.bigbrother.bilicraftticketsystem.menu.items.card.CardLocationItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.card.CardNearestLocItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.common.ScrollDownItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.common.ScrollUpItem;
-import com.bigbrother.bilicraftticketsystem.ticket.BCCard;
 import lombok.Getter;
 import lombok.Setter;
 import net.kyori.adventure.text.Component;
@@ -37,11 +36,9 @@ public class MenuLocationCard extends Menu {
     @Getter
     @Setter
     private boolean isStart;
-    private final BCCard card;
 
-    private MenuLocationCard(Player player, boolean isStart, BCCard card) {
+    private MenuLocationCard(Player player, boolean isStart) {
         this.isStart = isStart;
-        this.card = card;
 
         FileConfiguration locationConfig = MenuConfig.getLocationMenuConfig();
 
@@ -69,7 +66,7 @@ public class MenuLocationCard extends Menu {
                         guiBuilder.addIngredient(split[0].charAt(0), new ScrollDownItem());
                         break;
                     case "nearest":
-                        nearestLocItem = new CardNearestLocItem(player, this.card, this);
+                        nearestLocItem = new CardNearestLocItem(player,this);
                         guiBuilder.addIngredient(split[0].charAt(0), nearestLocItem);
                         break;
                     default:
@@ -108,7 +105,7 @@ public class MenuLocationCard extends Menu {
             customItem.setItemMeta(itemMeta);
 
             // 添加物品
-            guiBuilder.addContent(new CardLocationItem(customItem, this.card, this));
+            guiBuilder.addContent(new CardLocationItem(customItem, this));
         }
 
         this.window = Window.single()
@@ -126,7 +123,7 @@ public class MenuLocationCard extends Menu {
         }
     }
 
-    public static MenuLocationCard getMenu(Player player, Boolean isStart, BCCard card) {
-        return new MenuLocationCard(player, isStart, card);
+    public static MenuLocationCard getMenu(Player player, Boolean isStart) {
+        return new MenuLocationCard(player, isStart);
     }
 }

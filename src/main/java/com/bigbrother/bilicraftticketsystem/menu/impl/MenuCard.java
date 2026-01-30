@@ -7,8 +7,6 @@ import com.bigbrother.bilicraftticketsystem.menu.Menu;
 import com.bigbrother.bilicraftticketsystem.menu.items.card.CardSpeedItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.card.CardStartEndItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.card.ChargeItem;
-import com.bigbrother.bilicraftticketsystem.ticket.BCCard;
-import lombok.Getter;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -23,16 +21,7 @@ import java.util.Collections;
 public class MenuCard extends Menu {
     private final Gui gui;
 
-    @Getter
-    private final BCCard card;
-
     public MenuCard(Player viewer) {
-        this(BCCard.fromHeldItem(viewer), viewer);
-    }
-
-    public MenuCard(BCCard card, Player viewer) {
-        this.card = card;
-
         FileConfiguration cardConfig = MenuConfig.getCardMenuConfig();
 
         Gui.Builder.Normal guiBuilder = Gui.normal().setStructure(cardConfig.getList("structure", String.class, Collections.emptyList()).toArray(new String[0]));
@@ -49,16 +38,16 @@ public class MenuCard extends Menu {
                 }
                 switch (itemName) {
                     case "start":
-                        guiBuilder.addIngredient(split[0].charAt(0), new CardStartEndItem(true, card));
+                        guiBuilder.addIngredient(split[0].charAt(0), new CardStartEndItem(true));
                         break;
                     case "end":
-                        guiBuilder.addIngredient(split[0].charAt(0), new CardStartEndItem(false, card));
+                        guiBuilder.addIngredient(split[0].charAt(0), new CardStartEndItem(false));
                         break;
                     case "speed":
-                        guiBuilder.addIngredient(split[0].charAt(0), new CardSpeedItem(card));
+                        guiBuilder.addIngredient(split[0].charAt(0), new CardSpeedItem());
                         break;
                     case "charge":
-                        guiBuilder.addIngredient(split[0].charAt(0), new ChargeItem(card));
+                        guiBuilder.addIngredient(split[0].charAt(0), new ChargeItem());
                         break;
                     default:
                         try {
@@ -82,7 +71,7 @@ public class MenuCard extends Menu {
      * 获取公交卡菜单对象
      * 注意：从缓存中取时，需要更新commonItemStack，因为BKCommonLib每次更新地图都会新建一个commonItemStack
      */
-    public static MenuCard getMenu(BCCard c, Player player) {
-        return new MenuCard(c, player);
+    public static MenuCard getMenu(Player player) {
+        return new MenuCard(player);
     }
 }

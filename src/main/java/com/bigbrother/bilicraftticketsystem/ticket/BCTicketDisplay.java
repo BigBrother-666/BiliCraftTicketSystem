@@ -77,13 +77,6 @@ public class BCTicketDisplay extends MapDisplay {
         this.renderTicket();
     }
 
-    public void updateNbt(CommonTagCompound nbt) {
-        CommonTagCompound customData = this.getCommonMapItem().getCustomData();
-        if (customData.getValue(BCCard.KEY_CARD_UUID, "").equals(nbt.getValue(BCCard.KEY_CARD_UUID, ""))) {
-            this.getCommonMapItem().setCustomData(nbt);
-        }
-    }
-
     public void renderBackground() {
         CommonTagCompound ticketNbt = this.getCommonMapItem().getCustomData();
         UUID bgUuid = ticketNbt.getValue(BCTicket.KEY_TICKET_OWNER_UUID, this.getOwners().get(0).getUniqueId());
@@ -105,7 +98,7 @@ public class BCTicketDisplay extends MapDisplay {
         }
         Player owner = this.getOwners().get(0);
         this.getLayer(1).clear();
-        BCTransitPass bcTransitPass = BCTransitPassFactory.fromHeldItem(owner);
+        BCTransitPass bcTransitPass = BCTransitPassFactory.fromItemStack(this.getMapItem());
         CommonTagCompound customData = this.getCommonMapItem().getCustomData();
         UUID bgUuid = customData.getValue(BCTicket.KEY_TICKET_OWNER_UUID, owner.getUniqueId());
 
@@ -149,7 +142,7 @@ public class BCTicketDisplay extends MapDisplay {
                     this.getLayer(1).draw(MapFont.MINECRAFT, 5, 74, MapColorPalette.COLOR_RED, ownerName);
                 }
             } else if(bcTransitPass instanceof BCCard card) {
-                this.getLayer(1).draw(MapFont.MINECRAFT, 5, 57, MapColorPalette.getColor(c), "balance: %.2f".formatted(card.getBalance()));
+                this.getLayer(1).draw(MapFont.MINECRAFT, 5, 57, MapColorPalette.getColor(c), "balance: %.2f".formatted(card.getCardInfo().getBalance()));
             }
         }
     }

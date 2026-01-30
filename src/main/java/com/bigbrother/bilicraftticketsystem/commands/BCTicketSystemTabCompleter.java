@@ -74,6 +74,7 @@ public class BCTicketSystemTabCompleter implements TabCompleter {
                     return Stream.of(
                                     BCTransitPass.KEY_TRANSIT_PASS_PLUGIN,
                                     BCTransitPass.KEY_TRANSIT_PASS_TYPE,
+                                    BCTransitPass.KEY_TRANSIT_PASS_BACKGROUND_IMAGE_PATH,
                                     BCTicket.KEY_TICKET_NAME,
                                     BCTicket.KEY_TICKET_CREATION_TIME,
                                     BCTicket.KEY_TICKET_EXPIRATION_TIME,
@@ -81,16 +82,12 @@ public class BCTicketSystemTabCompleter implements TabCompleter {
                                     BCTicket.KEY_TICKET_MAX_NUMBER_OF_USES,
                                     BCTicket.KEY_TICKET_OWNER_UUID,
                                     BCTicket.KEY_TICKET_OWNER_NAME,
-                                    BCTransitPass.KEY_TRANSIT_PASS_MAX_SPEED,
+                                    BCTicket.KEY_TICKET_MAX_SPEED,
                                     BCTicket.KEY_TICKET_ORIGIN_PRICE,
                                     BCTicket.KEY_TRANSIT_PASS_TAGS,
-                                    BCTransitPass.KEY_TRANSIT_PASS_START_PLATFORM_TAG,
-                                    BCTransitPass.KEY_TRANSIT_PASS_START_STATION,
-                                    BCTransitPass.KEY_TRANSIT_PASS_END_STATION,
-                                    BCTransitPass.KEY_TRANSIT_PASS_BACKGROUND_IMAGE_PATH,
-                                    BCCard.KEY_CARD_BALANCE,
-                                    BCCard.KEY_CARD_START_STATION_COMPONENT,
-                                    BCCard.KEY_CARD_END_STATION_COMPONENT,
+                                    BCTicket.KEY_TICKET_START_PLATFORM_TAG,
+                                    BCTicket.KEY_TICKET_START_STATION,
+                                    BCTicket.KEY_TICKET_END_STATION,
                                     BCCard.KEY_CARD_UUID
                             )
                             .filter(s -> s.toLowerCase().contains(args[1].trim().toLowerCase()))

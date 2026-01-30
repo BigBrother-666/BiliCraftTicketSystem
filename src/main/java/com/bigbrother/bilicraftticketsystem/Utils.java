@@ -77,7 +77,7 @@ public class Utils {
             Map<String, Object> itemData = itemsConfig.getNode(path).getValues();
             return ItemStack.deserialize(itemData);
         }
-        return new ItemStack(Material.AIR);
+        return new ItemStack(Material.RAIL);
     }
 
     public static boolean deleteTicketbg(String fileName) {

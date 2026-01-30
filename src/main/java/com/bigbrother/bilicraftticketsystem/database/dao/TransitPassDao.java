@@ -51,6 +51,8 @@ public class TransitPassDao extends BaseDao {
 
     public void updatePlayerNameByUuid(String playerUuid, String newName) {
         super.updatePlayerNameByUuid(playerUuid, newName, TrainDatabaseConstants.TICKET_TABLE_NAME);
+        super.updatePlayerNameByUuid(playerUuid, newName, TrainDatabaseConstants.TRANSIT_PASS_USAGE_TABLE_NAME);
+        super.updatePlayerNameByUuid(playerUuid, newName, TrainDatabaseConstants.TICKET_BG_TABLE_NAME);
     }
 
     public List<DailyRevenueRow> findDailyRevenueWithinDays(int n) {
@@ -107,10 +109,10 @@ public class TransitPassDao extends BaseDao {
     }
 
     public void insertTransitPassUsage(String playerUuid, String playerName, String boardingTime, String startStation,
-                                       String startPlatformTag, String endStation, Double maxSpeed, Double price, String passType) {
+                                       String startPlatformTag, String endStation, Double maxSpeed, Double price, String passType, String cardUuid) {
         String sql = "INSERT INTO " + TrainDatabaseConstants.TRANSIT_PASS_USAGE_TABLE_NAME
-                + " (`player_uuid`, `player_name`, `boarding_time`, `start_station`, `start_platform_tag`, `end_station`, `max_speed`, `price`, `pass_type`)"
-                + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + " (`player_uuid`, `player_name`, `boarding_time`, `start_station`, `start_platform_tag`, `end_station`, `max_speed`, `price`, `pass_type`, `card_uuid`)"
+                + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection connection = dataSource.getConnection(); PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             if (playerUuid == null) {
                 preparedStatement.setNull(1, Types.VARCHAR);
@@ -133,6 +135,7 @@ public class TransitPassDao extends BaseDao {
                 preparedStatement.setDouble(8, price);
             }
             preparedStatement.setString(9, passType);
+            preparedStatement.setString(10, cardUuid);
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
             logSQLException(e);

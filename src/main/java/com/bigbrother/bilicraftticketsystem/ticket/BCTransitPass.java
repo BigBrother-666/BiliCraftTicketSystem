@@ -1,7 +1,5 @@
 package com.bigbrother.bilicraftticketsystem.ticket;
 
-import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
-import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
@@ -21,6 +19,8 @@ import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -31,15 +31,11 @@ public abstract class BCTransitPass {
 
     public static final String KEY_TRANSIT_PASS_TYPE = "transitPassType";
     public static final String KEY_TRANSIT_PASS_PLUGIN = "plugin";
-
-    public static final String KEY_TRANSIT_PASS_START_STATION = "startStation";
-    public static final String KEY_TRANSIT_PASS_END_STATION = "endStation";
-    public static final String KEY_TRANSIT_PASS_MAX_SPEED = "ticketMaxSpeed";
-    public static final String KEY_TRANSIT_PASS_START_PLATFORM_TAG = "startPlatformTag";
     public static final String KEY_TRANSIT_PASS_BACKGROUND_IMAGE_PATH = "backgroundImagePath";
 
+
     @Getter
-    protected CommonItemStack commonItemStack;
+    protected ItemStack itemStack;
     @Getter
     protected TrainRoutes.PathInfo pathInfo;
     @Getter
@@ -76,21 +72,18 @@ public abstract class BCTransitPass {
      */
     public abstract double getPrice();
 
-    public double getSpeedKph() {
-        return Utils.mpT2Kph(maxSpeed);
+    protected void initPdc() {
+        ItemMeta itemMeta = this.itemStack.getItemMeta();
+        if (itemMeta != null && !itemMeta.getPersistentDataContainer().has(KEY_TRANSIT_PASS)) {
+            itemStack.editMeta(meta -> meta.getPersistentDataContainer().set(KEY_TRANSIT_PASS, PersistentDataType.BOOLEAN, true));
+        }
     }
 
     // 返回 起始站 → 终到站 字符串
-    public String getTransitPassName() {
-        if (pathInfo != null) {
-            return "%s → %s".formatted(pathInfo.getStartStation().getClearStationName(), pathInfo.getEndStation().getClearStationName());
-        } else {
-            CommonTagCompound nbt = commonItemStack.getCustomData();
-            return "%s → %s".formatted(
-                    nbt.getValue(KEY_TRANSIT_PASS_START_STATION, "Unknown"),
-                    nbt.getValue(KEY_TRANSIT_PASS_END_STATION, "Unknown")
-            );
-        }
+    public abstract String getTransitPassName();
+
+    public double getSpeedKph() {
+        return Utils.mpT2Kph(maxSpeed);
     }
 
     /**
@@ -229,7 +222,7 @@ public abstract class BCTransitPass {
     }
 
     public static boolean verifyPlatform(String pTag, Collection<String> trainTags) {
-        if (pTag.equals(PlayerOption.EMPTY_STATION)) {
+        if (pTag.equals(PlayerOption.NOT_AVALIABLE)) {
             return true;
         }
 

@@ -13,6 +13,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.*;
 
@@ -24,18 +25,17 @@ public class CardListeners implements Listener {
     @EventHandler
     public void onPlayerRightClick(PlayerInteractEvent event) {
         Action action = event.getAction();
-        if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK && event.getHand() != EquipmentSlot.HAND) {
-            return;
-        }
+        ItemStack mainHand = event.getPlayer().getInventory().getItemInMainHand();
+        if (event.getHand() == EquipmentSlot.HAND && BCCard.isBctsCard(mainHand) && (action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK)) {
+            Player player = event.getPlayer();
+            BCCard card = BCCard.fromHeldItem(player);
 
-        Player player = event.getPlayer();
-        BCCard card = BCCard.fromHeldItem(player);
-
-        if (card != null) {
-            MenuCard.getMenu(card, player).open();
-            event.setCancelled(true);
-            event.setUseItemInHand(Event.Result.DENY);
-            event.setUseInteractedBlock(Event.Result.DENY);
+            if (card != null) {
+                MenuCard.getMenu(player).open();
+                event.setCancelled(true);
+                event.setUseItemInHand(Event.Result.DENY);
+                event.setUseInteractedBlock(Event.Result.DENY);
+            }
         }
     }
 
@@ -52,9 +52,13 @@ public class CardListeners implements Listener {
             if (card != null) {
                 try {
                     double chargeNum = Double.parseDouble(chatStr);
+                    if (chargeNum <= 0) {
+                        player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("充值金额必须>0！请重新输入或点击取消按钮。")));
+                        return;
+                    }
                     if (!card.charge(chargeNum, player)) {
                         inputModePlayers.remove(player.getUniqueId());
-                        MenuCard.getMenu(card, player).open();
+                        MenuCard.getMenu(player).open();
                     }
                 } catch (NumberFormatException e) {
                     player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("不是有效的数字！请重新输入或点击取消按钮。")));

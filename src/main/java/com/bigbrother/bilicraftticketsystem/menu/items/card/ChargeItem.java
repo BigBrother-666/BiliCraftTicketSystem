@@ -4,6 +4,7 @@ import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.listeners.CardListeners;
+import com.bigbrother.bilicraftticketsystem.menu.PlayerOption;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuCard;
 import com.bigbrother.bilicraftticketsystem.ticket.BCCard;
 import net.kyori.adventure.audience.Audience;
@@ -22,25 +23,31 @@ import xyz.xenondevs.invui.item.ItemProvider;
 import xyz.xenondevs.invui.item.builder.ItemBuilder;
 import xyz.xenondevs.invui.item.impl.AbstractItem;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class ChargeItem extends AbstractItem {
     private final double maxCharge;
-    private final BCCard card;
 
-    public ChargeItem(BCCard card) {
-        this.card = card;
+    public ChargeItem() {
         this.maxCharge = MainConfig.cardConfig.get("max-signle-charge", 1000);
     }
 
     @Override
     public ItemProvider getItemProvider(Player viewer) {
+        BCCard card = BCCard.fromHeldItem(viewer);
+
         ItemStack itemStack = Utils.loadItemFromFile("charge");
         ItemMeta itemMeta = itemStack.getItemMeta();
-        itemMeta.lore(List.of(
-                Component.text("当前余额：%.2f".formatted(card.getBalance()), NamedTextColor.DARK_AQUA))
-        );
+        if (card != null) {
+            itemMeta.lore(List.of(
+                    Component.text("当前余额：%.2f".formatted(card.getCardInfo().getBalance()), NamedTextColor.DARK_AQUA))
+            );
+        } else {
+            itemMeta.lore(List.of(
+                    Component.text("当前余额：%s".formatted(PlayerOption.NOT_AVALIABLE), NamedTextColor.DARK_AQUA))
+            );
+        }
+
         itemStack.setItemMeta(itemMeta);
         return new ItemBuilder(itemStack);
     }
@@ -61,7 +68,7 @@ public class ChargeItem extends AbstractItem {
         if (audience instanceof Player player && CardListeners.inputModePlayers.contains(player.getUniqueId())) {
             CardListeners.inputModePlayers.remove(player.getUniqueId());
             audience.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("已取消充值", NamedTextColor.YELLOW)));
-            MenuCard.getMenu(card, player).open();
+            MenuCard.getMenu(player).open();
         }
     }
 }

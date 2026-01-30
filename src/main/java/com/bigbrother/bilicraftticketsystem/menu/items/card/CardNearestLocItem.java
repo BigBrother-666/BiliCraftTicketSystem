@@ -26,25 +26,28 @@ import static com.bigbrother.bilicraftticketsystem.menu.items.location.NearestLo
 public class CardNearestLocItem extends CardLocationItem {
     private final Player viewer;
     private BcspawnInfo nearestBcspawn = null;
-    private final BCCard card;
 
-    public CardNearestLocItem(Player viewer, BCCard card, MenuLocationCard fromMenu) {
-        super(Utils.loadItemFromFile("nearest"), card, fromMenu);
+    public CardNearestLocItem(Player viewer, MenuLocationCard fromMenu) {
+        super(Utils.loadItemFromFile("nearest"), fromMenu);
         this.viewer = viewer;
-        this.card = card;
     }
 
     @Override
     public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent event) {
+        BCCard card = BCCard.fromHeldItem(player);
+        if (card == null) {
+            player.closeInventory();
+            return;
+        }
+
         if (nearestBcspawn != null) {
-            MenuCard menu = MenuCard.getMenu(card, player);
+            MenuCard menu = MenuCard.getMenu(player);
             Component name = Utils.mmStr2Component(MenuConfig.getLocationMenuConfig().get("content.%s.name".formatted(nearestBcspawn.getSpawnStation()), nearestBcspawn.getSpawnStation())).decoration(TextDecoration.ITALIC, false);
             if (fromMenu.isStart()) {
                 card.setStartStation(name);
             } else {
                 card.setEndStation(name);
             }
-            card.refreshCard(true);
             menu.open();
         }
     }

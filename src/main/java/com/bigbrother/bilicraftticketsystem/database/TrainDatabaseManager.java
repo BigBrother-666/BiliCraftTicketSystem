@@ -3,9 +3,11 @@ package com.bigbrother.bilicraftticketsystem.database;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.database.dao.BcspawnCoordDao;
 import com.bigbrother.bilicraftticketsystem.database.dao.BcspawnRecordDao;
+import com.bigbrother.bilicraftticketsystem.database.dao.CardInfoDao;
 import com.bigbrother.bilicraftticketsystem.database.dao.TransitPassDao;
 import com.bigbrother.bilicraftticketsystem.database.dao.TicketbgDao;
 import com.bigbrother.bilicraftticketsystem.database.service.BcspawnService;
+import com.bigbrother.bilicraftticketsystem.database.service.CardInfoService;
 import com.bigbrother.bilicraftticketsystem.database.service.TransitPassService;
 import com.bigbrother.bilicraftticketsystem.database.service.TicketbgService;
 import com.zaxxer.hikari.HikariConfig;
@@ -25,6 +27,7 @@ public class TrainDatabaseManager {
     private final BiliCraftTicketSystem plugin;
     private final TicketbgDao ticketbgDao;
     private final TransitPassDao transitPassDao;
+    private final CardInfoDao cardInfoDao;
     private final BcspawnCoordDao bcspawnCoordDao;
     private final BcspawnRecordDao bcspawnRecordDao;
     @Getter
@@ -33,6 +36,8 @@ public class TrainDatabaseManager {
     private final TransitPassService transitPassService;
     @Getter
     private final BcspawnService bcspawnService;
+    @Getter
+    private final CardInfoService cardInfoService;
 
     public TrainDatabaseManager(BiliCraftTicketSystem plugin) {
         this.plugin = plugin;
@@ -50,10 +55,12 @@ public class TrainDatabaseManager {
         this.transitPassDao = new TransitPassDao(plugin, ds);
         this.bcspawnCoordDao = new BcspawnCoordDao(plugin, ds);
         this.bcspawnRecordDao = new BcspawnRecordDao(plugin, ds);
+        this.cardInfoDao = new CardInfoDao(plugin, ds);
 
         this.ticketbgService = new TicketbgService(plugin, ticketbgDao);
         this.transitPassService = new TransitPassService(plugin, transitPassDao);
         this.bcspawnService = new BcspawnService(plugin, bcspawnCoordDao, bcspawnRecordDao);
+        this.cardInfoService = new CardInfoService(plugin, cardInfoDao);
     }
 
     private void createTables() {
@@ -134,9 +141,23 @@ public class TrainDatabaseManager {
                                 end_station VARCHAR(100),
                                 max_speed REAL,
                                 price REAL,
-                                pass_type VARCHAR(16)
+                                pass_type VARCHAR(16),
+                                card_uuid VARCHAR(36)
                     );
                     """.formatted(TrainDatabaseConstants.TRANSIT_PASS_USAGE_TABLE_NAME));
+
+            statement.execute("""
+                    CREATE TABLE IF NOT EXISTS %s (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                card_uuid VARCHAR(36) UNIQUE,
+                                start_station VARCHAR(100),
+                                mm_start_station VARCHAR(100),
+                                end_station VARCHAR(100),
+                                mm_end_station VARCHAR(100),
+                                max_speed REAL,
+                                balance REAL
+                    );
+                    """.formatted(TrainDatabaseConstants.CARD_INFO_TABLE_NAME));
         } catch (SQLException e) {
             plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
         }

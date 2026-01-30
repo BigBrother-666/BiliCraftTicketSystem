@@ -26,7 +26,7 @@ public final class PlaceholderParser {
             matcher.appendReplacement(
                     sb,
                     value == null
-                            ? PlayerOption.EMPTY_STATION_COMPONENT
+                            ? PlayerOption.NOT_AVALIABLE_MM
 //                            ? matcher.group(0)
                             : Matcher.quoteReplacement(value.toString())
             );

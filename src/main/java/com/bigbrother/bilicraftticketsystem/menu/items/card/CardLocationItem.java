@@ -16,16 +16,14 @@ import xyz.xenondevs.invui.item.impl.AbstractItem;
 
 public class CardLocationItem extends AbstractItem {
     protected final ItemStack itemStack;
-    private final BCCard card;
     protected final MenuLocationCard fromMenu;
 
-    public CardLocationItem(ItemStack itemStack, BCCard card, MenuLocationCard fromMenu) {
+    public CardLocationItem(ItemStack itemStack, MenuLocationCard fromMenu) {
         this.fromMenu = fromMenu;
         ItemMeta itemMeta = itemStack.getItemMeta();
         itemMeta.addItemFlags(ItemFlag.HIDE_ITEM_SPECIFICS);
         itemStack.setItemMeta(itemMeta);
         this.itemStack = itemStack;
-        this.card = card;
     }
 
     @Override
@@ -35,13 +33,19 @@ public class CardLocationItem extends AbstractItem {
 
     @Override
     public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent inventoryClickEvent) {
-        MenuCard menu = MenuCard.getMenu(card, player);
+        BCCard card = BCCard.fromHeldItem(player);
+        if (card == null) {
+            player.closeInventory();
+            return;
+        }
+
+        MenuCard menu = MenuCard.getMenu(player);
         if (fromMenu.isStart()) {
             card.setStartStation(itemStack.getItemMeta().displayName());
         } else {
             card.setEndStation(itemStack.getItemMeta().displayName());
         }
-        card.refreshCard(true);
+//        card.refreshCard(true);
         menu.open();
     }
 }

@@ -5,7 +5,6 @@ import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.Utils;
 import com.bigbrother.bilicraftticketsystem.database.dao.TransitPassDao;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicket;
-import com.bigbrother.bilicraftticketsystem.ticket.BCTransitPass;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.HoverEvent;
 import org.bukkit.Bukkit;
@@ -29,10 +28,10 @@ public class TransitPassService {
                 transitPassDao.updatePlayerNameByUuid(uuid, playerName);
             }
             String purchaseTime = nowAsString();
-            String startStation = ticketNbt.getValue(BCTicket.KEY_TRANSIT_PASS_START_STATION, "Unknown");
-            String endStation = ticketNbt.getValue(BCTicket.KEY_TRANSIT_PASS_END_STATION, "Unknown");
+            String startStation = ticketNbt.getValue(BCTicket.KEY_TICKET_START_STATION, "Unknown");
+            String endStation = ticketNbt.getValue(BCTicket.KEY_TICKET_END_STATION, "Unknown");
             Integer maxUses = ticketNbt.getValue(BCTicket.KEY_TICKET_MAX_NUMBER_OF_USES, Integer.class, null);
-            Float maxSpeed = ticketNbt.getValue(BCTicket.KEY_TRANSIT_PASS_MAX_SPEED, Float.class, null);
+            Float maxSpeed = ticketNbt.getValue(BCTicket.KEY_TICKET_MAX_SPEED, Float.class, null);
             transitPassDao.insertTicket(uuid, playerName, purchaseTime, startStation, endStation, maxUses, maxSpeed, price);
         });
     }
@@ -72,22 +71,26 @@ public class TransitPassService {
         return result;
     }
 
-    public void addTransitPassUsage(String playerUuid, String playerName, Double price, String passType, CommonTagCompound ticketNbt) {
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> transitPassDao.insertTransitPassUsage(
-                playerUuid,
-                playerName,
-                nowAsString(),
-                ticketNbt.getValue(BCTransitPass.KEY_TRANSIT_PASS_START_STATION, null),
-                ticketNbt.getValue(BCTransitPass.KEY_TRANSIT_PASS_START_PLATFORM_TAG, null),
-                ticketNbt.getValue(BCTransitPass.KEY_TRANSIT_PASS_END_STATION, null),
-                ticketNbt.getValue(BCTransitPass.KEY_TRANSIT_PASS_MAX_SPEED, null),
-                price,
-                passType
-        ));
+    public void addTicketUsage(String playerUuid, String playerName, Double price, String passType, CommonTagCompound ticketNbt) {
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            transitPassDao.updatePlayerNameByUuid(playerUuid, playerName);
+            transitPassDao.insertTransitPassUsage(
+                    playerUuid,
+                    playerName,
+                    nowAsString(),
+                    ticketNbt.getValue(BCTicket.KEY_TICKET_START_STATION, null),
+                    ticketNbt.getValue(BCTicket.KEY_TICKET_START_PLATFORM_TAG, null),
+                    ticketNbt.getValue(BCTicket.KEY_TICKET_END_STATION, null),
+                    ticketNbt.getValue(BCTicket.KEY_TICKET_MAX_SPEED, null),
+                    price,
+                    passType,
+                    null
+            );
+        });
     }
 
-    public void addTransitPassUsage(String playerUuid, String playerName, String startStation, String startPlatformTag,
-                                    String endStation, Double maxSpeed, Double price, String passType) {
+    public void addCardUsage(String playerUuid, String playerName, String startStation, String startPlatformTag,
+                             String endStation, Double maxSpeed, Double price, String passType, String cardUuid) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> transitPassDao.insertTransitPassUsage(
                 playerUuid,
                 playerName,
@@ -97,7 +100,8 @@ public class TransitPassService {
                 endStation,
                 maxSpeed,
                 price,
-                passType
+                passType,
+                cardUuid
         ));
     }
 

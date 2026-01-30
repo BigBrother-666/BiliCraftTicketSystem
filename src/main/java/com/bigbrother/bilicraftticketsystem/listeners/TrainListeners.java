@@ -22,6 +22,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.*;
 
@@ -145,8 +146,8 @@ public class TrainListeners implements Listener {
         if (cloned == null) {
             return;
         }
-        CommonItemStack commonTicket = cloned.getCommonItemStack();
-        List<Component> ticketLore = commonTicket.toBukkit().getItemMeta().lore();
+        ItemStack ticket = cloned.getItemStack();
+        List<Component> ticketLore = ticket.getItemMeta().lore();
 
         // 发送车票信息
         if (ticketLore != null) {
@@ -156,7 +157,7 @@ public class TrainListeners implements Listener {
         }
 
         // 单程票价值 < 0 不显示快速购票
-        if (commonTicket.getCustomData().getValue(BCTicket.KEY_TICKET_ORIGIN_PRICE, -1.0) < 0) {
+        if (CommonItemStack.of(ticket).getCustomData().getValue(BCTicket.KEY_TICKET_ORIGIN_PRICE, -1.0) < 0) {
             return;
         }
 

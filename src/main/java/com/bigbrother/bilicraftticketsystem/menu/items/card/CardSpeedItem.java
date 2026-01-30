@@ -20,23 +20,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CardSpeedItem extends AbstractItem {
-    private double speed;
-    private final BCCard card;
-
-    public CardSpeedItem(BCCard card) {
-        this.card = card;
-        this.speed = card.getMaxSpeed();
-    }
+    private double speed = 4.0;
 
     @Override
-    public ItemProvider getItemProvider() {
+    public ItemProvider getItemProvider(Player player) {
+        BCCard card = BCCard.fromHeldItem(player);
+        if (card != null) {
+            this.speed = card.getMaxSpeed();
+        }
+
         ItemStack itemStack = Utils.loadItemFromFile("speed");
         ItemMeta itemMeta = itemStack.getItemMeta();
         List<Component> lore = new ArrayList<>();
         lore.add(Component.text("当前选择的速度：%.1fkm/h".formatted(Utils.mpT2Kph(speed)), NamedTextColor.DARK_AQUA));
         lore.add(Component.text(""));
-        lore.add(Component.text("左键+%.1fkm/h，右键-%.1fkm/h".formatted(Utils.mpT2Kph(MainConfig.speedStep), Utils.mpT2Kph(MainConfig.speedStep)), NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false));
-        lore.add(Component.text("最大%.1fkm/h，最小%.1fkm/h".formatted(Utils.mpT2Kph(MainConfig.maxSpeed), Utils.mpT2Kph(MainConfig.minSpeed)), NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("左键+%.1fkm/h，右键-%.1fkm/h".formatted(Utils.mpT2Kph(MainConfig.speedStep), Utils.mpT2Kph(MainConfig.speedStep)), NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("最大%.1fkm/h，最小%.1fkm/h".formatted(Utils.mpT2Kph(MainConfig.maxSpeed), Utils.mpT2Kph(MainConfig.minSpeed)), NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false));
         itemMeta.lore(lore);
         itemStack.setItemMeta(itemMeta);
         return new ItemBuilder(itemStack);
@@ -44,6 +43,12 @@ public class CardSpeedItem extends AbstractItem {
 
     @Override
     public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent inventoryClickEvent) {
+        BCCard card = BCCard.fromHeldItem(player);
+        if (card == null) {
+            player.closeInventory();
+            return;
+        }
+
         if (clickType.isLeftClick()) {
             double targetSpeed = speed + MainConfig.speedStep;
             targetSpeed = Math.min(MainConfig.maxSpeed, targetSpeed);
@@ -54,7 +59,6 @@ public class CardSpeedItem extends AbstractItem {
             speed = targetSpeed;
         }
         card.setMaxSpeed(speed);
-        card.refreshCard(false);
         notifyWindows();
     }
 }
