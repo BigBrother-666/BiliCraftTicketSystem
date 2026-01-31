@@ -248,6 +248,8 @@ public class BCTicket extends BCTransitPass {
     }
 
     public void refreshTicketMeta(boolean addPrice) {
+        initPdc();
+
         if (isTicketExpired()) {
             return;
         }
@@ -390,8 +392,6 @@ public class BCTicket extends BCTransitPass {
                 this.pathInfo = pathInfoList.get(0);
                 commonItemStack.updateCustomData(this::updateNbt);
             }
-            // pdc验证字段
-            initPdc();
         } else {
             // 标记为过期车票
             commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TICKET_EXPIRATION_TIME, 0));

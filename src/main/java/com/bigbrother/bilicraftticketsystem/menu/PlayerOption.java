@@ -11,7 +11,7 @@ import net.kyori.adventure.text.format.TextDecoration;
 public class PlayerOption {
     public static final String NOT_AVALIABLE = "N/A";
     public static final Component NOT_AVALIABLE_COMPONENT = Component.text(NOT_AVALIABLE, NamedTextColor.RED).decoration(TextDecoration.ITALIC, TextDecoration.State.NOT_SET);
-    public static final String NOT_AVALIABLE_MM = Utils.component2Str(NOT_AVALIABLE_COMPONENT);
+    public static final String NOT_AVALIABLE_MM = Utils.component2MmStr(NOT_AVALIABLE_COMPONENT);
 
     @Getter
     protected Component startStation;
@@ -91,10 +91,10 @@ public class PlayerOption {
     }
 
     public String getMmStartStationName() {
-        return Utils.Component2MmStr(startStation.decoration(TextDecoration.ITALIC, TextDecoration.State.NOT_SET));
+        return Utils.component2MmStr(startStation.decoration(TextDecoration.ITALIC, TextDecoration.State.NOT_SET));
     }
 
     public String getMmEndStationName() {
-        return Utils.Component2MmStr(endStation.decoration(TextDecoration.ITALIC, TextDecoration.State.NOT_SET));
+        return Utils.component2MmStr(endStation.decoration(TextDecoration.ITALIC, TextDecoration.State.NOT_SET));
     }
 }

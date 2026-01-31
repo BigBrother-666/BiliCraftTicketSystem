@@ -26,6 +26,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
+@Getter
 public abstract class BCTransitPass {
     public static final NamespacedKey KEY_TRANSIT_PASS = new NamespacedKey(BiliCraftTicketSystem.plugin, "BCTransitPass");
 
@@ -34,11 +35,8 @@ public abstract class BCTransitPass {
     public static final String KEY_TRANSIT_PASS_BACKGROUND_IMAGE_PATH = "backgroundImagePath";
 
 
-    @Getter
     protected ItemStack itemStack;
-    @Getter
     protected TrainRoutes.PathInfo pathInfo;
-    @Getter
     protected double maxSpeed;
 
     /**
@@ -83,7 +81,7 @@ public abstract class BCTransitPass {
     public abstract String getTransitPassName();
 
     public double getSpeedKph() {
-        return Utils.mpT2Kph(maxSpeed);
+        return Utils.mpt2Kph(maxSpeed);
     }
 
     /**
@@ -116,8 +114,10 @@ public abstract class BCTransitPass {
 
     /**
      * 获取路线详情lore
+     *
+     * @param cntPerRow 每行最多显示的车站数量，<=0不限制
      */
-    public List<Component> getPathInfoLore() {
+    public List<Component> getPathInfoLore(int cntPerRow) {
         List<Component> lore = new ArrayList<>();
         List<MermaidGraph.Node> path = pathInfo.getPath();
         Component join = Component.text("");
@@ -138,16 +138,16 @@ public abstract class BCTransitPass {
                 lore.add(join);
                 break;
             }
-            if (cnt % MainConfig.loreStationNameCntRow != 0) {
-                // 经过站
-                join = join.append(Component.text(stationName, NamedTextColor.GRAY)
-                        .append(Component.text("→", Utils.getRailwayColor(railwayName)))
-                        .decoration(TextDecoration.ITALIC, true));
-            } else if (cnt == 0) {
+            if (cnt == 0) {
                 // 起始站
                 join = join.append(Component.text(stationName, NamedTextColor.GOLD)
                         .append(Component.text("→", Utils.getRailwayColor(railwayName)))
                         .decoration(TextDecoration.ITALIC, false));
+            } else if (cntPerRow <= 0 || cnt % cntPerRow != 0) {
+                // 经过站
+                join = join.append(Component.text(stationName, NamedTextColor.GRAY)
+                        .append(Component.text("→", Utils.getRailwayColor(railwayName)))
+                        .decoration(TextDecoration.ITALIC, true));
             } else {
                 lore.add(join);
                 // 开始新的一行
@@ -163,8 +163,10 @@ public abstract class BCTransitPass {
 
     /**
      * 获取途经铁路lore
+     *
+     * @param cntPerRow 每行最多显示的车站数量，<=0不限制
      */
-    public List<Component> getRailwayInfoLore() {
+    public List<Component> getRailwayInfoLore(int cntPerRow) {
         List<Component> lore = new ArrayList<>();
         List<String> railways = new ArrayList<>();
 
@@ -183,7 +185,7 @@ public abstract class BCTransitPass {
 
         Component stationsLore = Component.text("");
         for (int i = 0; i < railways.size(); i++) {
-            if (i != 0 && i % MainConfig.loreRailwayNameCntRow == 0) {
+            if (i != 0 && cntPerRow > 0 && i % cntPerRow == 0) {
                 lore.add(stationsLore);
                 stationsLore = Component.text("");
             }
@@ -211,8 +213,8 @@ public abstract class BCTransitPass {
             initPlaceholders.putIfAbsent("endRailwayDirection", end.getRailwayDirection());
             initPlaceholders.putIfAbsent("endRailwayName", end.getRailwayName());
 
-            initPlaceholders.putIfAbsent("PathInfoLore", getPathInfoLore());
-            initPlaceholders.putIfAbsent("RailwayInfoLore", getRailwayInfoLore());
+            initPlaceholders.putIfAbsent("PathInfoLore", getPathInfoLore(MainConfig.loreStationNameCntRow));
+            initPlaceholders.putIfAbsent("RailwayInfoLore", getRailwayInfoLore(MainConfig.loreRailwayNameCntRow));
 
             initPlaceholders.putIfAbsent("distance", "%.2f".formatted(pathInfo.getDistance()));
             initPlaceholders.putIfAbsent("speed", "%.2f".formatted(this.getSpeedKph()));

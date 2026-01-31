@@ -212,7 +212,7 @@ public class TransitPassDao extends BaseDao {
 
     public record PurchaseRecordRow(String playerName, String purchaseTime, String startStation, String endStation, Integer maxUses, Double maxSpeed, double price) {
         public double getSpeedKph() {
-            return Utils.mpT2Kph(maxSpeed);
+            return Utils.mpt2Kph(maxSpeed);
         }
     }
 
@@ -222,7 +222,7 @@ public class TransitPassDao extends BaseDao {
     public record UsageRecordRow(String playerName, String playerUuid, String boardingTime, String startStation,
                                  String startPlatformTag, String endStation, Double maxSpeed, Double price, String passType) {
         public double getSpeedKph() {
-            return Utils.mpT2Kph(maxSpeed);
+            return Utils.mpt2Kph(maxSpeed);
         }
     }
 }

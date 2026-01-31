@@ -36,7 +36,7 @@ public class Utils {
         return MM.deserialize(s);
     }
 
-    public static String Component2MmStr(Component c) {
+    public static String component2MmStr(Component c) {
         return MM.serialize(c);
     }
 
@@ -111,7 +111,7 @@ public class Utils {
     /**
      * 速度转换 m/tick -> km/h
      */
-    public static double mpT2Kph(double mpT) {
+    public static double mpt2Kph(double mpT) {
         return mpT * 20 * 3.6;
     }
 }

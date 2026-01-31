@@ -31,7 +31,7 @@ perm-discount:
 # 交通卡
 card:
   # 物品名
-  name: <gold>帕拉伦国有铁路交通卡
+  name: <gold><!italic>帕拉伦国有铁路交通卡
   # 最大储蓄金额
   max-balance: 114514
   # 起步价

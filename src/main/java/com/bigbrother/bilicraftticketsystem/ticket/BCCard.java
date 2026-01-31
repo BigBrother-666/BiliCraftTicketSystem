@@ -216,7 +216,7 @@ public class BCCard extends BCTransitPass {
         // 聊天栏展示路线详情
         usedPlayer.sendMessage(Component.text("=============================", NamedTextColor.DARK_AQUA));
         usedPlayer.sendMessage(Component.text("本次列车路线：", NamedTextColor.DARK_AQUA));
-        for (Component component : this.getPathInfoLore()) {
+        for (Component component : this.getPathInfoLore(-1)) {
             usedPlayer.sendMessage(component);
         }
         usedPlayer.sendMessage(Component.text("%.2fkm | %.2fkm/h".formatted(pathInfo.getDistance(), getSpeedKph()), NamedTextColor.DARK_AQUA));
