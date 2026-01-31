@@ -1,0 +1,5 @@
+name: BCTSGuardPlugin
+version: '${project.version}'
+main: com.bigbrother.bctsguardplugin.BCTSGuardPlugin
+api-version: '1.20'
+authors: [ BigBrother ]

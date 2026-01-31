@@ -1,0 +1,13 @@
+title: <#FF8C00>帕拉伦国有铁路交通卡
+
+structure:
+  - "# # # # # # # # #"
+  - "# a # b # c # d #"
+  - "# # # # # # # # #"
+
+mapping:
+  - "# ORANGE_STAINED_GLASS_PANE"
+  - "a item-start"
+  - "b item-end"
+  - "c item-speed"
+  - "d item-charge"
