@@ -4,6 +4,8 @@
 
 在TrainCarts车票系统的基础上开发的适用于BiliCraft国铁模式的车票系统。玩家可以持票/不持票上车，持票上车会根据车票的tag直达终点站，不持票上车则每站都会停车（站站乐）。
 
+同时生成的BctsGuard插件可以防止玩家使用制图台复制车票/交通卡，两个插件不可以同时安装在一个服务器，没有铁路系统的服务器只需安装BctsGuard插件。
+
 ## 2. 路径查找
 
 `routes.mmd`使用Mermaid抽象车站之间的关系为有向图，每行的格式为`车站名-铁路名-方向-本站tag==>|距离|下一站的车站名-铁路名-方向-本站tag`，最终构成一个完整的有向图。
@@ -27,6 +29,7 @@
 | ticket deletebg \<图片id>                           | bcts.ticket.deletebg      | 指令删除任意背景图 / gui删除任意共享的背景图                                                                        |
 | ticket adminuploadbg \<图片链接> \<自定义背景图名> \[车票字体颜色] | bcts.ticket.adminuploadbg | 以管理员身份上传背景图片（没有个数限制）                                                                             |
 | ticket reload                                     | bcts.ticket.reload        | 重载所有配置文件                                                                                         |
+| ticket getcard                                    | bcts.ticket.getcard       | 获取一张交通卡，第一次拿在主手会自动初始化                                                                            |
 | ticket item \<add/get> <自定义物品名>                   | bcts.ticket.menuitem      | 将手中的物品保存到配置文件（menuitems.yml）或获取自定义物品，以便编辑菜单界面使用。使用时，在mapping列表填写item-自定义物品名，所有功能按钮的物品名已经预定义，详见下表 |
 | ticket nbt \<key> \[value]                        | bcts.ticket.nbt           | 查看/设置车票的nbt，已经定义的nbt信息如下表所示                                                                      |
 | ticket statistics \<ticket/bcspawn> \<days>       | bcts.ticket.statistics    | 查看车票/发车的统计信息                                                                                     |
@@ -146,6 +149,7 @@
 将列车实时位置等信息通过websocket传输到前端显示（待开发）。
 
 ### 9.3 指令
+
 以下所有指令需要`bcts.railgeo`权限
 
 | 指令                                         | 功能                                                                                                                                           |
@@ -171,4 +175,3 @@
 ### 9.5 标准车站格式
 
 铁轨遍历的车站必须遵循bc国铁标准车站格式，否则可能会出现错误，参考：https://www.yuque.com/sasanarx/bilicraft/svg7gi7htsm2prdc#q1uFT ，同时也是本车票系统建议的控制牌摆放方式。
-
