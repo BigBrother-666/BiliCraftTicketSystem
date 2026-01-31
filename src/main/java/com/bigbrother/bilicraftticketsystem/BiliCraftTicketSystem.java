@@ -30,19 +30,15 @@ import java.io.File;
 import java.util.List;
 
 @Slf4j
+@Getter
 public final class BiliCraftTicketSystem extends JavaPlugin {
     public static BiliCraftTicketSystem plugin;
     public static final Component PREFIX = Component.text("[帕拉伦国有铁路车票系统] ", NamedTextColor.GOLD);
-    @Getter
     private Economy econ = null;
-    @Getter
     private TrainDatabaseManager trainDatabaseManager;
-    @Getter
     private GeoDatabaseManager geoDatabaseManager;
-    @Getter
     private BCTicketSystemCommand bcTicketSystemCommand;
     private GeoCommand geoCommand;
-    @Getter
     private final File geodataDir = new File(this.getDataFolder(), "geojson");
 
     // 控制牌
@@ -206,11 +202,11 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         SignAction.unregister(customSignActionSpawn);
         SignAction.unregister(customSignActionProperties);
 
-        Bukkit.getScheduler().cancelTasks(plugin);
         BCCardInfo.saveAll();
-
         if (this.geoCommand != null) {
             geoCommand.getTaskMap().values().forEach(PRGeoTask::closeLoggerHandler);
         }
+
+        Bukkit.getScheduler().cancelTasks(plugin);
     }
 }

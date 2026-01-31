@@ -21,7 +21,7 @@ public class CardInfoService {
     }
 
     public void update(CardInfo cardInfo) {
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> cardInfoDao.updateByCardUuid(cardInfo));
+        cardInfoDao.updateByCardUuid(cardInfo);
     }
 
     public CardInfo getByCardUuid(String cardUuid) {
