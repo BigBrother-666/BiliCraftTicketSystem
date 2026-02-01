@@ -53,7 +53,7 @@ public class RouteBossbar {
             this.routeId = null;
             return;
         }
-        this.expressEnd = startStation;
+        this.expressEnd = endStation;
         this.bossBar = BossBar.bossBar(Utils.mmStr2Component(MainConfig.message.get("express-normal", "").formatted(startStation, endStation)), 0.0F, BossBar.Color.PINK, BossBar.Overlay.PROGRESS);
     }
 

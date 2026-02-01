@@ -83,7 +83,7 @@ message:
   filter-empty: '没有 <i><u>%s</i> 直达 <i><u>%s</i> 且途经 <i><u>%s</i> 的车票'
   # 直达车bossbar
   express-normal: '<green>%s <rainbow>======== 直达 ========＞</rainbow> %s</green>'
-  express-end: '<rainbow>>>>> <gold>列车已到达终点站：<red>%s站</red>，下车时，请您注意站台与列车之间的空隙</gold> <<<<</rainbow>'
+  express-end: '<rainbow>>>>> <gold>列车已到达终点站：<red>%s</red>，下车时，请您注意站台与列车之间的空隙</gold> <<<<</rainbow>'
 
 lore:
   # 公共占位符：
