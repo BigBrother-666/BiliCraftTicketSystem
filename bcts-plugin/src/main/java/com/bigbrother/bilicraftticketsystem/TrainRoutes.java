@@ -109,11 +109,7 @@ public class TrainRoutes {
     }
 
     public static @Nullable PathInfo getShortestPathFromStartNode(MermaidGraph.Node startNode, String endStation) {
-        List<PathInfo> pathInfoList = new ArrayList<>();
-        if (startNode != null) {
-            graph.findAllPaths(endStation, new ArrayList<>(List.of(startNode)), new ArrayList<>(), new HashSet<>(), pathInfoList);
-        }
-        return pathInfoList.stream().min(PathInfo::compareTo).orElse(null);
+        return findShortestPath(List.of(startNode), endStation);
     }
 
     public static List<PathInfo> getPathInfoList(String startStation, String endStation) {
@@ -190,20 +186,20 @@ public class TrainRoutes {
             return null;
         }
 
-        // 最短距离
-        Map<MermaidGraph.Node, Double> dist = new HashMap<>();
-        // 前驱节点
-        Map<MermaidGraph.Node, MermaidGraph.Node> prevNode = new HashMap<>();
-        // 到达该节点所使用的边
-        Map<MermaidGraph.Node, MermaidGraph.Edge> prevEdge = new HashMap<>();
-
-        PriorityQueue<MermaidGraph.Node> pq = new PriorityQueue<>(
-                Comparator.comparingDouble(n ->
-                        dist.getOrDefault(n, Double.POSITIVE_INFINITY))
-        );
-
-        // 多起点初始化
+        PathInfo ret = null;
         for (MermaidGraph.Node start : startNodes) {
+            // 最短距离
+            Map<MermaidGraph.Node, Double> dist = new HashMap<>();
+            // 前驱节点
+            Map<MermaidGraph.Node, MermaidGraph.Node> prevNode = new HashMap<>();
+            // 到达该节点所使用的边
+            Map<MermaidGraph.Node, MermaidGraph.Edge> prevEdge = new HashMap<>();
+
+            PriorityQueue<MermaidGraph.Node> pq = new PriorityQueue<>(
+                    Comparator.comparingDouble(n ->
+                            dist.getOrDefault(n, Double.POSITIVE_INFINITY))
+            );
+
             dist.put(start, 0.0);
             pq.add(start);
 
@@ -213,7 +209,12 @@ public class TrainRoutes {
 
                 // 到达终点，直接结束
                 if (current.getStationName().equals(endStation) && prevNode.containsKey(current)) {
-                    return buildPath(current, prevNode, prevEdge);
+                    PathInfo shortest = buildPath(current, prevNode, prevEdge);
+                    if (ret == null) {
+                        ret = shortest;
+                    } else {
+                        ret = ret.getDistance() > shortest.getDistance() ? shortest : ret;
+                    }
                 }
 
                 for (MermaidGraph.Edge edge : graph.getEdges(current)) {
@@ -229,11 +230,9 @@ public class TrainRoutes {
                     }
                 }
             }
-
-            dist.clear();
         }
 
-        return null;
+        return ret;
     }
 
     @Nullable
