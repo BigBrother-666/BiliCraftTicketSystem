@@ -102,6 +102,17 @@ public class CardInfoDao extends BaseDao {
         return 0;
     }
 
+    public int deleteByCardUuid(String cardUuid) {
+        String sql = "DELETE FROM " + TrainDatabaseConstants.CARD_INFO_TABLE_NAME + " WHERE card_uuid = ?";
+        try (Connection connection = dataSource.getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, cardUuid);
+            return stmt.executeUpdate();
+        } catch (SQLException e) {
+            logSQLException(e);
+        }
+        return 0;
+    }
+
     private CardInfo mapToCardInfo(ResultSet rs) throws SQLException {
         return new CardInfo(
                 rs.getInt("id"),

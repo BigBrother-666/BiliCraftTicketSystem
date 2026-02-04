@@ -1,9 +1,9 @@
 package com.bigbrother.bilicraftticketsystem.database.service;
 
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
-import com.bigbrother.bilicraftticketsystem.MermaidGraph;
-import com.bigbrother.bilicraftticketsystem.TrainRoutes;
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.route.MermaidGraph;
+import com.bigbrother.bilicraftticketsystem.route.TrainRoutes;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.database.dao.BcspawnCoordDao;
 import com.bigbrother.bilicraftticketsystem.database.dao.BcspawnRecordDao;
 import com.bigbrother.bilicraftticketsystem.database.entity.BcspawnInfo;
@@ -55,9 +55,8 @@ public class BcspawnService {
         return coordDao.findAll();
     }
 
-    public void addBcspawnInfo(String startPlatformTag, List<String> dateTime) {
+    public void addBcspawnInfo(MermaidGraph.Node bcSpawnNode, List<String> dateTime) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            MermaidGraph.Node bcSpawnNode = TrainRoutes.graph.getNodeFromPtag(startPlatformTag);
             if (bcSpawnNode == null) {
                 return;
             }
@@ -78,21 +77,21 @@ public class BcspawnService {
     }
 
     public void addBcspawnInfo(String startPlatformTag, String dateTime) {
-        addBcspawnInfo(startPlatformTag, List.of(dateTime));
+        addBcspawnInfo(TrainRoutes.graph.getNodeFromPtag(startPlatformTag), List.of(dateTime));
     }
 
     public void addBcspawnInfo(String startPlatformTag) {
         List<String> noDate = new ArrayList<>();
         noDate.add(null);
-        addBcspawnInfo(startPlatformTag, noDate);
+        addBcspawnInfo(TrainRoutes.graph.getNodeFromPtag(startPlatformTag), noDate);
     }
 
     public Component getDailySpawn(int days) {
-        Component header = Utils.legacyStr2Component("%-20s &7|&6 %-15s".formatted("&6date", "spawn count&6"));
+        Component header = CommonUtils.legacyStr2Component("%-20s &7|&6 %-15s".formatted("&6date", "spawn count&6"));
         List<BcspawnRecordDao.DailySpawnRow> rows = recordDao.findDailySpawnWithinDays(days);
         Component result = header;
         for (BcspawnRecordDao.DailySpawnRow row : rows) {
-            Component line = Utils.legacyStr2Component("\n%-15s &7|&6 %-15s".formatted(row.day(), row.dailySpawn()));
+            Component line = CommonUtils.legacyStr2Component("\n%-15s &7|&6 %-15s".formatted(row.day(), row.dailySpawn()));
             line = line.hoverEvent(HoverEvent.showText(getSpawnRecordsByDate(row.day())));
             result = result.append(line);
         }
@@ -100,14 +99,14 @@ public class BcspawnService {
     }
 
     public Component getSpawnRecordsByDate(String date) {
-        Component header = Utils.legacyStr2Component("%-20s &7|&6 %-15s &7|&6 %-15s &7|&6 %-15s".formatted("&6spawn time", "station", "railway", "direction&6"));
+        Component header = CommonUtils.legacyStr2Component("%-20s &7|&6 %-15s &7|&6 %-15s &7|&6 %-15s".formatted("&6spawn time", "station", "railway", "direction&6"));
         List<BcspawnRecordDao.BcspawnRecordRow> rows = recordDao.findRecordsByDate(date);
         Component result = header;
         for (BcspawnRecordDao.BcspawnRecordRow row : rows) {
-            result = result.append(Utils.legacyStr2Component("\n%-20s &7|&6 ".formatted(row.spawnTime())))
-                    .append(Utils.legacyStr2Component("%-15s &7|&6 ".formatted(row.spawnStation())))
-                    .append(Utils.legacyStr2Component("%-15s &7|&6 ".formatted(row.spawnRailway())))
-                    .append(Utils.legacyStr2Component("%-15s".formatted(row.spawnDirection())));
+            result = result.append(CommonUtils.legacyStr2Component("\n%-20s &7|&6 ".formatted(row.spawnTime())))
+                    .append(CommonUtils.legacyStr2Component("%-15s &7|&6 ".formatted(row.spawnStation())))
+                    .append(CommonUtils.legacyStr2Component("%-15s &7|&6 ".formatted(row.spawnRailway())))
+                    .append(CommonUtils.legacyStr2Component("%-15s".formatted(row.spawnDirection())));
         }
         return result;
     }

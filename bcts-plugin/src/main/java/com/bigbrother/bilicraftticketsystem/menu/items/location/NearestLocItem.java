@@ -1,6 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.location;
 
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.config.MenuConfig;
 import com.bigbrother.bilicraftticketsystem.database.entity.BcspawnInfo;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuFilter;
@@ -32,7 +32,7 @@ public class NearestLocItem extends LocationItem {
     private BcspawnInfo nearestBcspawn = null;
 
     public NearestLocItem(Player viewer) {
-        super(Utils.loadItemFromFile("nearest"));
+        super(CommonUtils.loadItemFromFile("nearest"));
         this.viewer = viewer;
     }
 
@@ -40,7 +40,7 @@ public class NearestLocItem extends LocationItem {
     public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent event) {
         if (nearestBcspawn != null) {
             MenuMain menu = MenuMain.getMenu(player);
-            Component name = Utils.mmStr2Component(MenuConfig.getLocationMenuConfig().get("content.%s.name".formatted(nearestBcspawn.getSpawnStation()), nearestBcspawn.getSpawnStation())).decoration(TextDecoration.ITALIC, false);
+            Component name = CommonUtils.mmStr2Component(MenuConfig.getLocationMenuConfig().get("content.%s.name".formatted(nearestBcspawn.getSpawnStation()), nearestBcspawn.getSpawnStation())).decoration(TextDecoration.ITALIC, false);
             if (MenuLocation.getMenu(player).isStart()) {
                 menu.getPlayerOption().setStartStation(name);
             } else {

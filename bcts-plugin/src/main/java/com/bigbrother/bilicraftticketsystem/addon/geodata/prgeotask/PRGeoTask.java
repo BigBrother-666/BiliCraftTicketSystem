@@ -1,8 +1,8 @@
 package com.bigbrother.bilicraftticketsystem.addon.geodata.prgeotask;
 
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
-import com.bigbrother.bilicraftticketsystem.MermaidGraph;
-import com.bigbrother.bilicraftticketsystem.TrainRoutes;
+import com.bigbrother.bilicraftticketsystem.route.MermaidGraph;
+import com.bigbrother.bilicraftticketsystem.route.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.addon.geodata.GeojsonManager;
 import com.bigbrother.bilicraftticketsystem.addon.geodata.entity.GeoManualLine;
 import com.bigbrother.bilicraftticketsystem.addon.geodata.entity.GeoNodeLoc;

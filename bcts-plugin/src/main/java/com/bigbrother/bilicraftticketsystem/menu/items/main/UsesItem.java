@@ -1,6 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.main;
 
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
 import net.kyori.adventure.text.Component;
@@ -24,7 +24,7 @@ public class UsesItem extends AbstractItem {
 
     @Override
     public ItemProvider getItemProvider() {
-        ItemStack itemStack = Utils.loadItemFromFile("uses");
+        ItemStack itemStack = CommonUtils.loadItemFromFile("uses");
         ItemMeta itemMeta = itemStack.getItemMeta();
         List<Component> lore = new ArrayList<>();
         lore.add(Component.text("当前选择的使用次数：%d次".formatted(uses), NamedTextColor.DARK_AQUA));

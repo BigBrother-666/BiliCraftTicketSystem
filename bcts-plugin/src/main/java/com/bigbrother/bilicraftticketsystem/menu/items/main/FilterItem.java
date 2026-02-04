@@ -1,6 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.main;
 
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuFilter;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
 import net.kyori.adventure.text.Component;
@@ -23,7 +23,7 @@ import java.util.Set;
 public class FilterItem extends AbstractItem {
     @Override
     public ItemProvider getItemProvider(Player player) {
-        ItemStack itemStack = Utils.loadItemFromFile("filter");
+        ItemStack itemStack = CommonUtils.loadItemFromFile("filter");
         List<Item> tickets = MenuMain.getMenu(player).getMenuTicketList();
         List<Component> lore = itemStack.lore();
         if (lore == null) {

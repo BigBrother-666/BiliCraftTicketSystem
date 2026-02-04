@@ -1,6 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.card;
 
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.menu.PlayerOption;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuLocationCard;
 import com.bigbrother.bilicraftticketsystem.menu.items.common.CoolDownItem;
@@ -26,8 +26,8 @@ public class CardStartEndItem extends CoolDownItem {
 
     public CardStartEndItem(boolean isStart) {
         this.isStart = isStart;
-        this.startItemStack = Utils.loadItemFromFile("start");
-        this.endItemStack = Utils.loadItemFromFile("end");
+        this.startItemStack = CommonUtils.loadItemFromFile("start");
+        this.endItemStack = CommonUtils.loadItemFromFile("end");
     }
 
     @Override

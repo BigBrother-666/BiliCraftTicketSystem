@@ -2,7 +2,7 @@ package com.bigbrother.bilicraftticketsystem.menu.impl;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.config.MenuConfig;
 import com.bigbrother.bilicraftticketsystem.menu.Menu;
 import com.bigbrother.bilicraftticketsystem.menu.PlayerOption;
@@ -31,7 +31,7 @@ import xyz.xenondevs.invui.window.Window;
 
 import java.util.*;
 
-import static com.bigbrother.bilicraftticketsystem.Utils.loadItemFromFile;
+import static com.bigbrother.bilicraftticketsystem.utils.CommonUtils.loadItemFromFile;
 
 public class MenuFilter extends Menu {
     @Getter
@@ -81,7 +81,7 @@ public class MenuFilter extends Menu {
                         try {
                             guiBuilder.addIngredient(split[0].charAt(0), new SimpleItem(new ItemBuilder(Material.valueOf(itemName))));
                         } catch (IllegalArgumentException e) {
-                            guiBuilder.addIngredient(split[0].charAt(0), new ItemBuilder(Utils.loadItemFromFile(itemName)));
+                            guiBuilder.addIngredient(split[0].charAt(0), new ItemBuilder(CommonUtils.loadItemFromFile(itemName)));
                         }
                 }
             }
@@ -143,10 +143,10 @@ public class MenuFilter extends Menu {
                 lore = new ArrayList<>();
             }
             for (String s : item.getList("lore", String.class, Collections.emptyList())) {
-                lore.add(Utils.mmStr2Component(s).decoration(TextDecoration.ITALIC, false));
+                lore.add(CommonUtils.mmStr2Component(s).decoration(TextDecoration.ITALIC, false));
             }
             itemMeta.lore(lore);
-            itemMeta.displayName(Utils.mmStr2Component(item.get("name", String.class, "")).decoration(TextDecoration.ITALIC, false));
+            itemMeta.displayName(CommonUtils.mmStr2Component(item.get("name", String.class, "")).decoration(TextDecoration.ITALIC, false));
             customItem.setItemMeta(itemMeta);
 
             // 添加物品

@@ -8,7 +8,7 @@ import com.bergerkiller.bukkit.tc.events.seat.MemberBeforeSeatEnterEvent;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.ticket.BCCard;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicket;
@@ -126,7 +126,7 @@ public class TrainListeners implements Listener {
         if (trainHintRecord.containsKey(group)) {
             if (!trainHintRecord.get(group).add(player.getUniqueId())) {
                 player.sendMessage(BiliCraftTicketSystem.PREFIX.append(
-                        Utils.mmStr2Component(message.get("forbidden-get-on", "")).decoration(TextDecoration.ITALIC, false)
+                        CommonUtils.mmStr2Component(message.get("forbidden-get-on", "")).decoration(TextDecoration.ITALIC, false)
                 ));
                 return;
             }
@@ -137,7 +137,7 @@ public class TrainListeners implements Listener {
 
         // 检票失败提示
         player.sendMessage(BiliCraftTicketSystem.PREFIX.append(
-                Utils.mmStr2Component(message.get("ticket-check-failed", "")).decoration(TextDecoration.ITALIC, false)
+                CommonUtils.mmStr2Component(message.get("ticket-check-failed", "")).decoration(TextDecoration.ITALIC, false)
         ));
 
         // 获取单程票
@@ -162,7 +162,7 @@ public class TrainListeners implements Listener {
 
         double discountPrice = cloned.getPrice();
         // 发送购买按钮
-        player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Utils.mmStr2Component(message.get("quick-buy", "").formatted(discountPrice)))
+        player.sendMessage(BiliCraftTicketSystem.PREFIX.append(CommonUtils.mmStr2Component(message.get("quick-buy", "").formatted(discountPrice)))
                 .decoration(TextDecoration.ITALIC, false)
                 .clickEvent(ClickEvent.callback(audience -> cloned.purchase())));
     }

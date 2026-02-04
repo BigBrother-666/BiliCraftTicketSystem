@@ -1,6 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.main;
 
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
 import net.kyori.adventure.text.Component;
@@ -24,13 +24,13 @@ public class SpeedItem extends AbstractItem {
 
     @Override
     public ItemProvider getItemProvider() {
-        ItemStack itemStack = Utils.loadItemFromFile("speed");
+        ItemStack itemStack = CommonUtils.loadItemFromFile("speed");
         ItemMeta itemMeta = itemStack.getItemMeta();
         List<Component> lore = new ArrayList<>();
-        lore.add(Component.text("当前选择的速度：%.1fkm/h".formatted(Utils.mpt2Kph(speed)), NamedTextColor.DARK_AQUA));
+        lore.add(Component.text("当前选择的速度：%.1fkm/h".formatted(CommonUtils.mpt2Kph(speed)), NamedTextColor.DARK_AQUA));
         lore.add(Component.text(""));
-        lore.add(Component.text("左键+%.1fkm/h，右键-%.1fkm/h".formatted(Utils.mpt2Kph(MainConfig.speedStep), Utils.mpt2Kph(MainConfig.speedStep)), NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false));
-        lore.add(Component.text("最大%.1fkm/h，最小%.1fkm/h".formatted(Utils.mpt2Kph(MainConfig.maxSpeed), Utils.mpt2Kph(MainConfig.minSpeed)), NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("左键+%.1fkm/h，右键-%.1fkm/h".formatted(CommonUtils.mpt2Kph(MainConfig.speedStep), CommonUtils.mpt2Kph(MainConfig.speedStep)), NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("最大%.1fkm/h，最小%.1fkm/h".formatted(CommonUtils.mpt2Kph(MainConfig.maxSpeed), CommonUtils.mpt2Kph(MainConfig.minSpeed)), NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false));
         itemMeta.lore(lore);
         itemStack.setItemMeta(itemMeta);
         return new ItemBuilder(itemStack);

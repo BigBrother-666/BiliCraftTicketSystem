@@ -1,4 +1,4 @@
-package com.bigbrother.bilicraftticketsystem;
+package com.bigbrother.bilicraftticketsystem.route;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

@@ -1,7 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.ticketbg;
 
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.database.entity.TicketbgInfo;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
 import net.kyori.adventure.text.Component;
@@ -39,9 +39,9 @@ public class SharedbgItem extends BgItem {
 
         ItemStack itemStack;
         if (isUseCurrTicketbg(viewer)) {
-            itemStack = Utils.loadItemFromFile("usedbg");
+            itemStack = CommonUtils.loadItemFromFile("usedbg");
         } else {
-            itemStack = Utils.loadItemFromFile("sharedbg");
+            itemStack = CommonUtils.loadItemFromFile("sharedbg");
         }
 
         // 添加信息

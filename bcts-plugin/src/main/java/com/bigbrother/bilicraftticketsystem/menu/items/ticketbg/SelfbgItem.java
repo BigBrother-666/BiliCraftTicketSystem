@@ -1,7 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.ticketbg;
 
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.database.entity.TicketbgInfo;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
 import lombok.Setter;
@@ -41,9 +41,9 @@ public class SelfbgItem extends BgItem {
 
         ItemStack itemStack;
         if (isUseCurrTicketbg(viewer)) {
-            itemStack = Utils.loadItemFromFile("usedbg");
+            itemStack = CommonUtils.loadItemFromFile("usedbg");
         } else {
-            itemStack = Utils.loadItemFromFile("selfbg");
+            itemStack = CommonUtils.loadItemFromFile("selfbg");
         }
 
         // 添加信息

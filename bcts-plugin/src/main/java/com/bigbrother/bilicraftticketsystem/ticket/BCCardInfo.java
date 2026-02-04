@@ -52,12 +52,14 @@ public class BCCardInfo extends PlayerOption {
     }
 
     public static @Nullable BCCardInfo load(String cardUuid) {
-        if (cache.containsKey(cardUuid)) {
+        if (hasCard(cardUuid)) {
             return cache.get(cardUuid);
         }
         CardInfo cardInfo = plugin.getTrainDatabaseManager().getCardInfoService().getByCardUuid(cardUuid);
         if (cardInfo != null) {
-            return new BCCardInfo(cardInfo);
+            BCCardInfo info = new BCCardInfo(cardInfo);
+            cache.put(cardUuid, info);
+            return info;
         }
         return null;
     }
@@ -113,5 +115,9 @@ public class BCCardInfo extends PlayerOption {
         saveAll();
         clearCache();
         plugin.getTrainDatabaseManager().getCardInfoService().getAll().forEach(cardInfo -> cache.put(cardInfo.getCardUuid(), new BCCardInfo(cardInfo)));
+    }
+
+    public static boolean hasCard(String cardUuid) {
+        return cache.containsKey(cardUuid);
     }
 }

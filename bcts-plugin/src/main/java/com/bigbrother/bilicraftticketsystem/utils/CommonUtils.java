@@ -1,4 +1,4 @@
-package com.bigbrother.bilicraftticketsystem;
+package com.bigbrother.bilicraftticketsystem.utils;
 
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
@@ -21,12 +21,8 @@ import java.util.stream.Collectors;
 
 import static com.bigbrother.bilicraftticketsystem.config.ItemsConfig.itemsConfig;
 
-public class Utils {
+public class CommonUtils {
     private static final MiniMessage MM = MiniMessage.miniMessage();
-
-    public static File getPlayerTicketbgFolder(Player player) {
-        return new File(TrainCarts.plugin.getDataFile("images"), player.getUniqueId().toString());
-    }
 
     public static Component legacyStr2Component(String s) {
         return LegacyComponentSerializer.legacyAmpersand().deserialize(s);

@@ -1,6 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.addon.signactions.component;
 
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.config.RailwayRoutesConfig;
 import lombok.Data;
@@ -54,7 +54,7 @@ public class RouteBossbar {
             return;
         }
         this.expressEnd = endStation;
-        this.bossBar = BossBar.bossBar(Utils.mmStr2Component(MainConfig.message.get("express-normal", "").formatted(startStation, endStation)), 0.0F, BossBar.Color.PINK, BossBar.Overlay.PROGRESS);
+        this.bossBar = BossBar.bossBar(CommonUtils.mmStr2Component(MainConfig.message.get("express-normal", "").formatted(startStation, endStation)), 0.0F, BossBar.Color.PINK, BossBar.Overlay.PROGRESS);
     }
 
     public void updateStation() {
@@ -71,9 +71,9 @@ public class RouteBossbar {
 
         String title = RailwayRoutesConfig.railwayRoutes.get("%s.curr-station-title".formatted(routeId.trim()), String.class, null);
         if (title == null) {
-            bossBar.name(Utils.legacyStr2Component(getNextTitle()));
+            bossBar.name(CommonUtils.legacyStr2Component(getNextTitle()));
         } else {
-            bossBar.name(Utils.legacyStr2Component(title.replace("{station}", routeList.get(nextStationIdx))));
+            bossBar.name(CommonUtils.legacyStr2Component(title.replace("{station}", routeList.get(nextStationIdx))));
         }
     }
 
@@ -93,7 +93,7 @@ public class RouteBossbar {
 
     public void update() {
         nextStationIdx += 1;
-        bossBar.name(Utils.legacyStr2Component(getNextTitle()));
+        bossBar.name(CommonUtils.legacyStr2Component(getNextTitle()));
         if (isRing()) {
             bossBar.progress((float) 1.0);
         } else {
@@ -104,7 +104,7 @@ public class RouteBossbar {
     public void updateExpress(int leftTagCount) {
         bossBar.progress(Math.max(0, 1 - (float) leftTagCount / totalTagNum));
         if (leftTagCount == 0 && expressEnd != null) {
-            bossBar.name(Utils.mmStr2Component(MainConfig.message.get("express-end", "").formatted(expressEnd)));
+            bossBar.name(CommonUtils.mmStr2Component(MainConfig.message.get("express-end", "").formatted(expressEnd)));
         }
     }
 

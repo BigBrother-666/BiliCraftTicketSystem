@@ -1,7 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.database.dao;
 
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.database.TrainDatabaseConstants;
 
 import javax.sql.DataSource;
@@ -212,7 +212,7 @@ public class TransitPassDao extends BaseDao {
 
     public record PurchaseRecordRow(String playerName, String purchaseTime, String startStation, String endStation, Integer maxUses, Double maxSpeed, double price) {
         public double getSpeedKph() {
-            return Utils.mpt2Kph(maxSpeed);
+            return CommonUtils.mpt2Kph(maxSpeed);
         }
     }
 
@@ -222,7 +222,7 @@ public class TransitPassDao extends BaseDao {
     public record UsageRecordRow(String playerName, String playerUuid, String boardingTime, String startStation,
                                  String startPlatformTag, String endStation, Double maxSpeed, Double price, String passType) {
         public double getSpeedKph() {
-            return Utils.mpt2Kph(maxSpeed);
+            return CommonUtils.mpt2Kph(maxSpeed);
         }
     }
 }

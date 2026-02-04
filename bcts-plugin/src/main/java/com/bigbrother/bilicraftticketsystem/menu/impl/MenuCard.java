@@ -1,7 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.menu.impl;
 
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.config.MenuConfig;
 import com.bigbrother.bilicraftticketsystem.menu.Menu;
 import com.bigbrother.bilicraftticketsystem.menu.items.card.CardSpeedItem;
@@ -53,7 +53,7 @@ public class MenuCard extends Menu {
                         try {
                             guiBuilder.addIngredient(split[0].charAt(0), new SimpleItem(new ItemBuilder(Material.valueOf(itemName))));
                         } catch (IllegalArgumentException e) {
-                            guiBuilder.addIngredient(split[0].charAt(0), new ItemBuilder(Utils.loadItemFromFile(itemName)));
+                            guiBuilder.addIngredient(split[0].charAt(0), new ItemBuilder(CommonUtils.loadItemFromFile(itemName)));
                         }
                 }
             }

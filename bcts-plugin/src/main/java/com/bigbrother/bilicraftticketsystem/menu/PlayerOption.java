@@ -1,6 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.menu;
 
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import lombok.Data;
 import lombok.Getter;
 import net.kyori.adventure.text.Component;
@@ -11,7 +11,7 @@ import net.kyori.adventure.text.format.TextDecoration;
 public class PlayerOption {
     public static final String NOT_AVALIABLE = "N/A";
     public static final Component NOT_AVALIABLE_COMPONENT = Component.text(NOT_AVALIABLE, NamedTextColor.RED).decoration(TextDecoration.ITALIC, TextDecoration.State.NOT_SET);
-    public static final String NOT_AVALIABLE_MM = Utils.component2MmStr(NOT_AVALIABLE_COMPONENT);
+    public static final String NOT_AVALIABLE_MM = CommonUtils.component2MmStr(NOT_AVALIABLE_COMPONENT);
 
     @Getter
     protected Component startStation;
@@ -26,7 +26,7 @@ public class PlayerOption {
 
 
     public PlayerOption(String mmStartStation, String mmEndStation) {
-        this(Utils.mmStr2Component(mmStartStation), Utils.mmStr2Component(mmEndStation));
+        this(CommonUtils.mmStr2Component(mmStartStation), CommonUtils.mmStr2Component(mmEndStation));
     }
 
     public PlayerOption(Component startStation, Component endStation) {
@@ -46,7 +46,7 @@ public class PlayerOption {
     public void setStartStation(Component startStation) {
         if (startStation != null) {
             this.startStation = startStation;
-            this.startStationString = Utils.component2Str(startStation);
+            this.startStationString = CommonUtils.component2Str(startStation);
         } else {
             this.startStation = NOT_AVALIABLE_COMPONENT;
             this.startStationString = NOT_AVALIABLE;
@@ -57,7 +57,7 @@ public class PlayerOption {
     public void setEndStation(Component endStation) {
         if (endStation != null) {
             this.endStation = endStation;
-            this.endStationString = Utils.component2Str(endStation);
+            this.endStationString = CommonUtils.component2Str(endStation);
         } else {
             this.endStation = NOT_AVALIABLE_COMPONENT;
             this.endStationString = NOT_AVALIABLE;
@@ -91,10 +91,10 @@ public class PlayerOption {
     }
 
     public String getMmStartStationName() {
-        return Utils.component2MmStr(startStation.decoration(TextDecoration.ITALIC, TextDecoration.State.NOT_SET));
+        return CommonUtils.component2MmStr(startStation.decoration(TextDecoration.ITALIC, TextDecoration.State.NOT_SET));
     }
 
     public String getMmEndStationName() {
-        return Utils.component2MmStr(endStation.decoration(TextDecoration.ITALIC, TextDecoration.State.NOT_SET));
+        return CommonUtils.component2MmStr(endStation.decoration(TextDecoration.ITALIC, TextDecoration.State.NOT_SET));
     }
 }

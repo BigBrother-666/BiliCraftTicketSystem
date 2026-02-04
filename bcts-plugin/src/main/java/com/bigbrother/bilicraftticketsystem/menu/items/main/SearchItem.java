@@ -1,7 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.main;
 
-import com.bigbrother.bilicraftticketsystem.TrainRoutes;
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.route.TrainRoutes;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuFilter;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
 import com.bigbrother.bilicraftticketsystem.menu.PlayerOption;
@@ -28,7 +28,7 @@ import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
 public class SearchItem extends AbstractItem {
     @Override
     public ItemProvider getItemProvider(Player player) {
-        ItemStack itemStack = Utils.loadItemFromFile("search");
+        ItemStack itemStack = CommonUtils.loadItemFromFile("search");
         MenuMain menu = MenuMain.getMenu(player);
         PlayerOption option = menu.getPlayerOption();
         if (!option.isStationNotEmpty()) {

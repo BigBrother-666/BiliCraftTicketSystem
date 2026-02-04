@@ -1,7 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.ticketbg;
 
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.database.entity.TicketbgInfo;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
 import net.kyori.adventure.text.Component;
@@ -19,7 +19,7 @@ import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
 public class DefaultbgItem extends AbstractItem {
     @Override
     public ItemProvider getItemProvider(Player viewer) {
-        return new ItemBuilder(Utils.loadItemFromFile("defaultbg"));
+        return new ItemBuilder(CommonUtils.loadItemFromFile("defaultbg"));
     }
 
     @Override

@@ -5,9 +5,9 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
 import com.bigbrother.bctsguardplugin.GuardListeners;
-import com.bigbrother.bilicraftticketsystem.MermaidGraph;
-import com.bigbrother.bilicraftticketsystem.TrainRoutes;
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.route.MermaidGraph;
+import com.bigbrother.bilicraftticketsystem.route.TrainRoutes;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.addon.signactions.SignActionShowroute;
 import com.bigbrother.bilicraftticketsystem.addon.signactions.component.RouteBossbar;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
@@ -81,7 +81,7 @@ public abstract class BCTransitPass {
     public abstract String getTransitPassName();
 
     public double getSpeedKph() {
-        return Utils.mpt2Kph(maxSpeed);
+        return CommonUtils.mpt2Kph(maxSpeed);
     }
 
     /**
@@ -141,19 +141,19 @@ public abstract class BCTransitPass {
             if (cnt == 0) {
                 // 起始站
                 join = join.append(Component.text(stationName, NamedTextColor.GOLD)
-                        .append(Component.text("→", Utils.getRailwayColor(railwayName)))
+                        .append(Component.text("→", CommonUtils.getRailwayColor(railwayName)))
                         .decoration(TextDecoration.ITALIC, false));
             } else if (cntPerRow <= 0 || cnt % cntPerRow != 0) {
                 // 经过站
                 join = join.append(Component.text(stationName, NamedTextColor.GRAY)
-                        .append(Component.text("→", Utils.getRailwayColor(railwayName)))
+                        .append(Component.text("→", CommonUtils.getRailwayColor(railwayName)))
                         .decoration(TextDecoration.ITALIC, true));
             } else {
                 lore.add(join);
                 // 开始新的一行
                 join = Component.text("");
                 join = join.append(Component.text(stationName, NamedTextColor.GRAY)
-                        .append(Component.text("→", Utils.getRailwayColor(railwayName)))
+                        .append(Component.text("→", CommonUtils.getRailwayColor(railwayName)))
                         .decoration(TextDecoration.ITALIC, true));
             }
             cnt += 1;
@@ -190,9 +190,9 @@ public abstract class BCTransitPass {
                 stationsLore = Component.text("");
             }
             if (i == railways.size() - 1) {
-                stationsLore = stationsLore.append(Component.text(railways.get(i), Utils.getRailwayColor(railways.get(i))));
+                stationsLore = stationsLore.append(Component.text(railways.get(i), CommonUtils.getRailwayColor(railways.get(i))));
             } else {
-                stationsLore = stationsLore.append(Component.text(railways.get(i) + "→", Utils.getRailwayColor(railways.get(i))));
+                stationsLore = stationsLore.append(Component.text(railways.get(i) + "→", CommonUtils.getRailwayColor(railways.get(i))));
             }
         }
         lore.add(stationsLore);

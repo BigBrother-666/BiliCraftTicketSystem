@@ -6,8 +6,8 @@ import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
-import com.bigbrother.bilicraftticketsystem.TrainRoutes;
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.route.TrainRoutes;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.listeners.TrainListeners;
 import com.bigbrother.bilicraftticketsystem.menu.PlayerOption;
@@ -37,7 +37,7 @@ public class BCTicket extends BCTransitPass {
     public static final String KEY_TICKET_OWNER_UUID = "ticketOwner";
     public static final String KEY_TICKET_OWNER_NAME = "ticketOwnerName";
     public static final String KEY_TICKET_ORIGIN_PRICE = "ticketOriginPrice";
-    public static final String KEY_TRANSIT_PASS_TAGS = "ticketTags";
+    public static final String KEY_TICKET_TAGS = "ticketTags";
     public static final String KEY_TICKET_START_STATION = "startStation";
     public static final String KEY_TICKET_END_STATION = "endStation";
     public static final String KEY_TICKET_MAX_SPEED = "ticketMaxSpeed";
@@ -79,7 +79,7 @@ public class BCTicket extends BCTransitPass {
 
         this.pathInfo = TrainRoutes.getPathInfo(
                 nbt.getValue(KEY_TICKET_START_PLATFORM_TAG, ""),
-                new ArrayList<>(List.of(nbt.getValue(BCTicket.KEY_TRANSIT_PASS_TAGS, "").split(","))),
+                new ArrayList<>(List.of(nbt.getValue(BCTicket.KEY_TICKET_TAGS, "").split(","))),
                 nbt.getValue(KEY_TICKET_END_STATION, "")
         );
         if (pathInfo == null) {
@@ -113,7 +113,7 @@ public class BCTicket extends BCTransitPass {
 
         if (r.transactionSuccess()) {
             owner.sendMessage(BiliCraftTicketSystem.PREFIX.append(
-                    Utils.mmStr2Component(message.get("ticket-buy-success", "您成功花费 %.2f 购买了 %s").formatted(r.amount, ticketName)).decoration(TextDecoration.ITALIC, false)
+                    CommonUtils.mmStr2Component(message.get("ticket-buy-success", "您成功花费 %.2f 购买了 %s").formatted(r.amount, ticketName)).decoration(TextDecoration.ITALIC, false)
             ));
             this.give();
             // 记录log
@@ -122,7 +122,7 @@ public class BCTicket extends BCTransitPass {
             plugin.getTrainDatabaseManager().getTransitPassService().addTicketInfo(owner.getName(), owner.getUniqueId().toString(), r.amount, CommonItemStack.of(itemStack).getCustomData());
         } else {
             owner.sendMessage(BiliCraftTicketSystem.PREFIX.append(
-                    Utils.mmStr2Component(message.get("ticket-buy-failure", "车票购买失败：%s").formatted(r.errorMessage)).decoration(TextDecoration.ITALIC, false)
+                    CommonUtils.mmStr2Component(message.get("ticket-buy-failure", "车票购买失败：%s").formatted(r.errorMessage)).decoration(TextDecoration.ITALIC, false)
             ));
         }
     }
@@ -135,9 +135,7 @@ public class BCTicket extends BCTransitPass {
             lore.remove(lore.size() - 1);
         }
         ItemStack newTicket = itemStack.clone();
-        newTicket.editMeta(itemMeta -> {
-            itemMeta.lore(lore);
-        });
+        newTicket.editMeta(itemMeta -> itemMeta.lore(lore));
         if (!owner.getInventory().addItem(newTicket).isEmpty()) {
             // 背包满 车票丢到地上
             owner.getWorld().dropItemNaturally(owner.getLocation(), newTicket);
@@ -176,7 +174,7 @@ public class BCTicket extends BCTransitPass {
         HumanHand.setItemInMainHand(usedPlayer, commonItemStack.toBukkit());
 
         usedPlayer.sendMessage(BiliCraftTicketSystem.PREFIX.append(
-                Utils.mmStr2Component(message.get("ticket-used", "成功使用一张（次）%s 车票").formatted(this.getTransitPassName()))
+                CommonUtils.mmStr2Component(message.get("ticket-used", "成功使用一张（次）%s 车票").formatted(this.getTransitPassName()))
         ));
 
         plugin.getTrainDatabaseManager().getTransitPassService().addTicketUsage(
@@ -195,7 +193,7 @@ public class BCTicket extends BCTransitPass {
         // 其他玩家的车票
         if (!isTicketOwner(usedPlayer)) {
             usedPlayer.sendMessage(BiliCraftTicketSystem.PREFIX.append(
-                    Utils.mmStr2Component(message.get("ticket-owner-conflict", "不能使用其他玩家的车票"))
+                    CommonUtils.mmStr2Component(message.get("ticket-owner-conflict", "不能使用其他玩家的车票"))
             ));
             return false;
         }
@@ -203,7 +201,7 @@ public class BCTicket extends BCTransitPass {
         // 过期的车票
         if (isTicketExpired()) {
             usedPlayer.sendMessage(BiliCraftTicketSystem.PREFIX.append(
-                    Utils.mmStr2Component(message.get("ticket-expired", "车票已过期"))
+                    CommonUtils.mmStr2Component(message.get("ticket-expired", "车票已过期"))
             ));
             return false;
         }
@@ -211,7 +209,7 @@ public class BCTicket extends BCTransitPass {
         // 旧版本车票
         if (commonItemStack.getCustomData().getValue(KEY_TRANSIT_PASS_PLUGIN, "").equals("TrainCarts")) {
             usedPlayer.sendMessage(BiliCraftTicketSystem.PREFIX.append(
-                    Utils.mmStr2Component(message.get("ticket-old", "旧版车票已禁用"))
+                    CommonUtils.mmStr2Component(message.get("ticket-old", "旧版车票已禁用"))
             ));
             return false;
         }
@@ -222,7 +220,7 @@ public class BCTicket extends BCTransitPass {
         // 验证站台是否正确
         if (!BCTransitPass.verifyPlatform(commonItemStack.getCustomData().getValue(KEY_TICKET_START_PLATFORM_TAG, ""), trainTags)) {
             usedPlayer.sendMessage(BiliCraftTicketSystem.PREFIX.append(
-                    Utils.mmStr2Component(message.get("ticket-wrong-platform", "此车票不能在本站台使用，请核对车票的可使用站台和本站台上的信息是否一致"))
+                    CommonUtils.mmStr2Component(message.get("ticket-wrong-platform", "此车票不能在本站台使用，请核对车票的可使用站台和本站台上的信息是否一致"))
             ));
             return false;
         }
@@ -310,7 +308,7 @@ public class BCTicket extends BCTransitPass {
         tag.putValue(KEY_TICKET_OWNER_NAME, owner.getName());
         tag.putValue(KEY_TICKET_MAX_SPEED, maxSpeed);
         tag.putValue(KEY_TICKET_ORIGIN_PRICE, this.pathInfo.getPrice());
-        tag.putValue(KEY_TRANSIT_PASS_TAGS, String.join(",", this.pathInfo.getTags()));
+        tag.putValue(KEY_TICKET_TAGS, String.join(",", this.pathInfo.getTags()));
         tag.putValue(KEY_TICKET_START_PLATFORM_TAG, pathInfo.getStartPlatformTag());
         tag.putValue(KEY_TICKET_START_STATION, pathInfo.getStartStation().getStationName());
         tag.putValue(KEY_TICKET_END_STATION, pathInfo.getEndStation().getStationName());
@@ -364,7 +362,7 @@ public class BCTicket extends BCTransitPass {
     public void update() {
         CommonItemStack commonItemStack = CommonItemStack.of(itemStack);
         CommonTagCompound nbt = commonItemStack.getCustomData();
-        List<String> tags = List.of(nbt.getValue(KEY_TRANSIT_PASS_TAGS, "").split(","));
+        List<String> tags = List.of(nbt.getValue(KEY_TICKET_TAGS, "").split(","));
         String startStation = nbt.getValue(KEY_TICKET_START_STATION, String.class, TrainRoutes.graph.getStationNameFromTag(tags.get(0)));
         String endStation = nbt.getValue(KEY_TICKET_END_STATION, String.class, TrainRoutes.graph.getStationNameFromTag(tags.get(tags.size() - 1)));
         String startPlatformTag = nbt.getValue(KEY_TICKET_START_PLATFORM_TAG, String.class, "");
@@ -382,7 +380,7 @@ public class BCTicket extends BCTransitPass {
 
                     if (path.getTags().size() != tags.size() && startPlatformTag.equals(path.getStartPlatformTag())) {
                         // 新增车站
-                        commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TRANSIT_PASS_TAGS, String.join(",", path.getTags())));
+                        commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TICKET_TAGS, String.join(",", path.getTags())));
                     }
 
                     commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TRANSIT_PASS_PLUGIN, "bcts"));

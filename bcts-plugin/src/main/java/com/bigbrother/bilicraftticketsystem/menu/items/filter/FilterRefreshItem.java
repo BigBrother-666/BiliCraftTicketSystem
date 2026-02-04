@@ -1,6 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.filter;
 
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuFilter;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
 import org.bukkit.entity.Player;
@@ -17,7 +17,7 @@ import java.util.HashSet;
 public class FilterRefreshItem extends AbstractItem {
     @Override
     public ItemProvider getItemProvider() {
-        return new ItemBuilder(Utils.loadItemFromFile("refresh"));
+        return new ItemBuilder(CommonUtils.loadItemFromFile("refresh"));
     }
 
     @Override

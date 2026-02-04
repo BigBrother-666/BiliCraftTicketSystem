@@ -1,6 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.ticketbg;
 
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
 import lombok.Getter;
 import lombok.Setter;
@@ -29,7 +29,7 @@ public class SortItem extends BgItem {
 
     @Override
     public ItemProvider getItemProvider(Player viewer) {
-        ItemStack itemStack = Utils.loadItemFromFile("sort");
+        ItemStack itemStack = CommonUtils.loadItemFromFile("sort");
         ItemMeta itemMeta = itemStack.getItemMeta();
         List<Component> lore = itemMeta.lore();
         if (lore == null) {

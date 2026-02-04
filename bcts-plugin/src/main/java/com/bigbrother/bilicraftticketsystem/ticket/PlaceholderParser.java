@@ -1,6 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.ticket;
 
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.menu.PlayerOption;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -64,7 +64,7 @@ public final class PlaceholderParser {
 
             // 普通文本占位符
             String parsed = PlaceholderParser.apply(line, placeholders);
-            result.add(Utils.mmStr2Component(parsed).decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE));
+            result.add(CommonUtils.mmStr2Component(parsed).decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE));
         }
 
         return result;

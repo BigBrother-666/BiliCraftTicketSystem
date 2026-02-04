@@ -2,7 +2,7 @@ package com.bigbrother.bilicraftticketsystem.database.service;
 
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.database.dao.TransitPassDao;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicket;
 import net.kyori.adventure.text.Component;
@@ -37,13 +37,13 @@ public class TransitPassService {
     }
 
     public Component getDailyRevenue(int days) {
-        Component header = Utils.legacyStr2Component("%-20s &7|&6 %-15s".formatted("&6date", "revenue&6"));
+        Component header = CommonUtils.legacyStr2Component("%-20s &7|&6 %-15s".formatted("&6date", "revenue&6"));
         List<TransitPassDao.DailyRevenueRow> rows = transitPassDao.findDailyRevenueWithinDays(days);
 
         Component result = header;
         for (TransitPassDao.DailyRevenueRow row : rows) {
             String revenue = "%.2f".formatted(row.dailyRevenue());
-            Component line = Utils.legacyStr2Component("\n%-15s &7|&6 %-15s".formatted(row.day(), revenue));
+            Component line = CommonUtils.legacyStr2Component("\n%-15s &7|&6 %-15s".formatted(row.day(), revenue));
             Component hover = getPurchaseRecordsByDate(row.day());
             line = line.hoverEvent(HoverEvent.showText(hover));
             result = result.append(line);
@@ -53,20 +53,20 @@ public class TransitPassService {
     }
 
     public Component getPurchaseRecordsByDate(String date) {
-        Component header = Utils.legacyStr2Component("%-25s &7|&6 %-25s &7|&6 %-10s &7|&6 %-10s &7|&6 %-12s &7|&6 %-12s &7|&6 %-9s".formatted("&6player name", "purchase time", "start", "end", "max uses", "max speed", "price&6"));
+        Component header = CommonUtils.legacyStr2Component("%-25s &7|&6 %-25s &7|&6 %-10s &7|&6 %-10s &7|&6 %-12s &7|&6 %-12s &7|&6 %-9s".formatted("&6player name", "purchase time", "start", "end", "max uses", "max speed", "price&6"));
         List<TransitPassDao.PurchaseRecordRow> rows = transitPassDao.findPurchaseRecordsByDate(date);
         Component result = header;
         for (TransitPassDao.PurchaseRecordRow row : rows) {
             String maxUses = row.maxUses() == null ? "-" : row.maxUses().toString();
             String maxSpeed = row.maxSpeed() == null ? "-" : "%.2fkm/h".formatted(row.getSpeedKph());
             String price = "%.2f".formatted(row.price());
-            result = result.append(Utils.legacyStr2Component("\n%-20s &7|&6 ".formatted(row.playerName())))
-                    .append(Utils.legacyStr2Component("%-20s &7|&6 ".formatted(row.purchaseTime())))
-                    .append(Utils.legacyStr2Component("%-8s &7|&6 ".formatted(row.startStation())))
-                    .append(Utils.legacyStr2Component("%-8s &7|&6 ".formatted(row.endStation())))
-                    .append(Utils.legacyStr2Component("%-8s &7|&6 ".formatted(maxUses)))
-                    .append(Utils.legacyStr2Component("%-8s &7|&6 ".formatted(maxSpeed)))
-                    .append(Utils.legacyStr2Component("%-8s".formatted(price)));
+            result = result.append(CommonUtils.legacyStr2Component("\n%-20s &7|&6 ".formatted(row.playerName())))
+                    .append(CommonUtils.legacyStr2Component("%-20s &7|&6 ".formatted(row.purchaseTime())))
+                    .append(CommonUtils.legacyStr2Component("%-8s &7|&6 ".formatted(row.startStation())))
+                    .append(CommonUtils.legacyStr2Component("%-8s &7|&6 ".formatted(row.endStation())))
+                    .append(CommonUtils.legacyStr2Component("%-8s &7|&6 ".formatted(maxUses)))
+                    .append(CommonUtils.legacyStr2Component("%-8s &7|&6 ".formatted(maxSpeed)))
+                    .append(CommonUtils.legacyStr2Component("%-8s".formatted(price)));
         }
         return result;
     }
@@ -106,27 +106,28 @@ public class TransitPassService {
     }
 
     public Component getDailyTransitPassUsage(int days) {
-        Component header = Utils.legacyStr2Component("%-20s &7|&6 %-15s".formatted("&6date", "usage count&6"));
+        Component header = CommonUtils.legacyStr2Component("%-20s &7|&6 %-15s".formatted("&6date", "usage count&6"));
         List<TransitPassDao.DailyUsageRow> rows = transitPassDao.findDailyUsageWithinDays(days);
         Component result = header;
         for (TransitPassDao.DailyUsageRow row : rows) {
-            Component line = Utils.legacyStr2Component("\n%-15s &7|&6 %-15s".formatted(row.day(), row.usageCount()));
+            Component line = CommonUtils.legacyStr2Component("\n%-15s &7|&6 %-15s".formatted(row.day(), row.usageCount()));
             line = line.hoverEvent(HoverEvent.showText(getTransitPassUsageRecordsByDate(row.day())));
             result = result.append(line);
         }
         return result;
     }
 
-    public Component getTransitPassUsageRecordsByDate(String date) {
-        Component header = Utils.legacyStr2Component(
-                "%-18s &7|&6 %-25s &7|&6 %-12s &7|&6 %-14s &7|&6 %-12s &7|&6 %-10s &7|&6 %-8s".formatted(
+    private Component getTransitPassUsageRecordsByDate(String date) {
+        Component header = CommonUtils.legacyStr2Component(
+                "%-26s &7|&6 %-25s &7|&6 %-18s &7|&6 %-18s &7|&6 %-18s &7|&6 %-12s &7|&6 %-10s &7|&6 %-8s".formatted(
                         "&6player",
                         "boarding time",
                         "start",
                         "start tag",
                         "end",
                         "max speed",
-                        "price&6"
+                        "price",
+                        "type"
                 )
         );
         List<TransitPassDao.UsageRecordRow> rows = transitPassDao.findUsageRecordsByDate(date);
@@ -134,16 +135,14 @@ public class TransitPassService {
         for (TransitPassDao.UsageRecordRow row : rows) {
             String maxSpeed = row.maxSpeed() == null ? "-" : "%.2fkm/h".formatted(row.getSpeedKph());
             String price = row.price() == null ? "-" : "%.2f".formatted(row.price());
-            result = result.append(Utils.legacyStr2Component("\n%-16s &7|&6 ".formatted(row.playerName())))
-                    .append(Utils.legacyStr2Component("%-23s &7|&6 ".formatted(row.boardingTime())))
-                    .append(Utils.legacyStr2Component("%-10s &7|&6 ".formatted(row.startStation())))
-                    .append(Utils.legacyStr2Component("%-12s &7|&6 ".formatted(row.startPlatformTag())))
-                    .append(Utils.legacyStr2Component("%-10s &7|&6 ".formatted(row.endStation())))
-                    .append(Utils.legacyStr2Component("%-8s &7|&6 ".formatted(maxSpeed)))
-                    .append(Utils.legacyStr2Component("%-6s".formatted(price)));
-            if (row.passType() != null) {
-                result = result.append(Utils.legacyStr2Component(" &7|&6 %s".formatted(row.passType())));
-            }
+            result = result.append(CommonUtils.legacyStr2Component("\n%-16s &7|&6 ".formatted(row.playerName())))
+                    .append(CommonUtils.legacyStr2Component("%-20s &7|&6 ".formatted(row.boardingTime())))
+                    .append(CommonUtils.legacyStr2Component("%-8s &7|&6 ".formatted(row.startStation())))
+                    .append(CommonUtils.legacyStr2Component("%-8s &7|&6 ".formatted(row.startPlatformTag())))
+                    .append(CommonUtils.legacyStr2Component("%-8s &7|&6 ".formatted(row.endStation())))
+                    .append(CommonUtils.legacyStr2Component("%-5s &7|&6 ".formatted(maxSpeed)))
+                    .append(CommonUtils.legacyStr2Component("%-5s &7|&6".formatted(price)))
+                    .append(CommonUtils.legacyStr2Component("%-3s".formatted(row.passType())));
         }
         return result;
     }

@@ -1,7 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.database.service;
 
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.database.dao.TicketbgDao;
 import com.bigbrother.bilicraftticketsystem.database.entity.FullTicketbgInfo;
 import com.bigbrother.bilicraftticketsystem.database.entity.TicketbgInfo;
@@ -87,7 +87,7 @@ public class TicketbgService {
         FullTicketbgInfo info = ticketbgDao.findById(bgId);
         if (info != null && info.isDeleted() && info.getUsageCount() <= 0) {
             ticketbgDao.deleteTicketbg(bgId);
-            Utils.deleteTicketbg(info.getFilePath());
+            CommonUtils.deleteTicketbg(info.getFilePath());
         }
     }
 }

@@ -1,6 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.common;
 
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import xyz.xenondevs.invui.gui.ScrollGui;
 import xyz.xenondevs.invui.item.ItemProvider;
 import xyz.xenondevs.invui.item.builder.ItemBuilder;
@@ -13,7 +13,7 @@ public class ScrollUpItem extends ScrollItem {
 
     @Override
     public ItemProvider getItemProvider(ScrollGui<?> gui) {
-        ItemBuilder builder = new ItemBuilder(Utils.loadItemFromFile("scrollup"));
+        ItemBuilder builder = new ItemBuilder(CommonUtils.loadItemFromFile("scrollup"));
         if (!gui.canScroll(-1))
             builder.addLoreLines("已经滚动到顶部");
 

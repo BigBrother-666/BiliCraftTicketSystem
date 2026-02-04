@@ -8,7 +8,7 @@ import com.bergerkiller.bukkit.tc.TCConfig;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.tickets.Ticket;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.database.entity.TicketbgInfo;
 import net.kyori.adventure.text.Component;
@@ -110,7 +110,7 @@ public class BCTicketDisplay extends MapDisplay {
         Color c;
         if (ticketbgInfo != null) {
             try {
-                c = Utils.hexToColor(ticketbgInfo.getFontColor());
+                c = CommonUtils.hexToColor(ticketbgInfo.getFontColor());
             } catch (IllegalArgumentException e) {
                 c = Color.black;
             }

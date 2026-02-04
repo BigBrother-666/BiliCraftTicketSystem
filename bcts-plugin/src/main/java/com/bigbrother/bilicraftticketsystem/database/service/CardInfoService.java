@@ -31,4 +31,8 @@ public class CardInfoService {
     public List<CardInfo> getAll() {
         return cardInfoDao.findAll();
     }
+
+    public int deleteByCardUuid(String cardUuid) {
+        return cardInfoDao.deleteByCardUuid(cardUuid);
+    }
 }

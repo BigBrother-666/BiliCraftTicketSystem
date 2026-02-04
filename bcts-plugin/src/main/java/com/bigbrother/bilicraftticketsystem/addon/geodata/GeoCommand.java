@@ -1,8 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.addon.geodata;
 
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
-import com.bigbrother.bilicraftticketsystem.MermaidGraph;
-import com.bigbrother.bilicraftticketsystem.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.addon.geodata.prgeotask.PRGeoTask;
 import com.bigbrother.bilicraftticketsystem.addon.geodata.prgeotask.PRGeoWalkingPoint;
 import lombok.Getter;
@@ -10,24 +8,17 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.util.Vector;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.incendo.cloud.annotations.*;
 
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-public class GeoCommand implements CommandExecutor, TabCompleter, Listener {
+public class GeoCommand implements Listener {
     @Getter
     private final Map<UUID, PRGeoTask> taskMap = new HashMap<>();
     private final BiliCraftTicketSystem plugin;
@@ -41,104 +32,87 @@ public class GeoCommand implements CommandExecutor, TabCompleter, Listener {
 
     public GeoCommand(BiliCraftTicketSystem plugin) {
         this.plugin = plugin;
-        plugin.getServer().getPluginManager().registerEvents(this, plugin);
-        Objects.requireNonNull(plugin.getCommand("railgeo")).setExecutor(this);
-        Objects.requireNonNull(plugin.getCommand("railgeo")).setTabCompleter(this);
     }
 
-    @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if (!sender.hasPermission("bcts.railgeo")) {
-            sender.sendMessage(Component.text("你没有权限使用这条命令喵~", NamedTextColor.RED));
-            return false;
-        }
-
-        if (sender instanceof Player player) {
-            if (args.length == 0) {
-                return false;
-            } else {
-                // 初始化
-                taskMap.putIfAbsent(player.getUniqueId(), new PRGeoTask(plugin, player));
-                PRGeoTask geoTask = taskMap.get(player.getUniqueId());
-                switch (args[0]) {
-                    case "start":
-                        // 开始全网遍历
-                        geoTask.setLessLog(args.length > 1 && args[1].equalsIgnoreCase("--less-log"));
-                        geoTask.startFullPathFinding();
-                        break;
-                    case "stop":
-                        // 手动停止当前任务
-                        geoTask.stopPathFindingTask();
-                        taskMap.remove(player.getUniqueId());
-                        break;
-                    case "setStartPos":
-                        // 第一次遍历前，添加开始节点
-                        plugin.getGeoDatabaseManager().upsertGeoNodeLoc(args[1].trim(), player.getLocation(), player.getLocation().getDirection());
-                        player.sendMessage(Component.text("成功设置节点 [%s] 的起点".formatted(args[1].trim()), NamedTextColor.GREEN));
-                        break;
-                    case "update":
-                        // 更新没遍历的节点
-                        geoTask.setLessLog(args.length > 1 && args[1].equalsIgnoreCase("--less-log"));
-                        geoTask.startUpdatePathFinding();
-                        break;
-                    case "setLine":
-                        // 手动指定节点的线路
-                        if (args.length > 2) {
-                            PRGeoWalkingPoint.LineType lineType = PRGeoWalkingPoint.LineType.fromType(args[2].trim());
-                            if (!lineType.equals(PRGeoWalkingPoint.LineType.LINE_IN) && !lineType.equals(PRGeoWalkingPoint.LineType.LINE_OUT)) {
-                                player.sendMessage(Component.text("不支持的线路类型！", NamedTextColor.RED));
-                                return false;
-                            }
-                            this.startAddLineManually(args[1].trim(), lineType, player);
-                        } else {
-                            player.sendMessage(Component.text("指令格式错误！", NamedTextColor.RED));
-                        }
-                        break;
-                    case "delManualNode":
-                        if (args.length > 1) {
-                            int deleted = plugin.getGeoDatabaseManager().deleteGeoManualLine(args[1].trim());
-                            player.sendMessage(Component.text("成功删除节点 [%s] %s 条手动指定的线路".formatted(args[1].trim(), deleted), NamedTextColor.GREEN));
-                        } else {
-                            player.sendMessage(Component.text("指令格式错误！", NamedTextColor.RED));
-                        }
-                        break;
-                    default:
-                        player.sendMessage(Component.text("指令格式错误！", NamedTextColor.RED));
-                }
-            }
-        }
-
-        return true;
+    @CommandDescription("铁轨全网遍历")
+    @Command("railgeo start")
+    @Permission("bcts.railgeo")
+    public void start(
+            Player player,
+            @Flag(value = "less-log", description = "减少日志输出")
+            boolean lessLog
+    ) {
+        PRGeoTask geoTask = initTask(player);
+        geoTask.setLessLog(lessLog);
+        geoTask.startFullPathFinding();
     }
 
-    @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        List<String> completerList = new ArrayList<>();
-        if (args.length == 1) {
-            return Stream.of("setStartPos", "start", "stop", "update", "setLine", "delManualNode").filter(s -> s.startsWith(args[0])).collect(Collectors.toList());
-        } else if (args.length == 2) {
-            if (args[0].equalsIgnoreCase("setStartPos")) {
-                completerList.addAll(TrainRoutes.graph.startNodes.stream().map(MermaidGraph.Node::getPlatformTag).toList());
-            } else if (args[0].equalsIgnoreCase("start") || args[0].equalsIgnoreCase("update")) {
-                completerList.add("--less-log");
-            } else if (args[0].equalsIgnoreCase("setLine") || args[0].equalsIgnoreCase("delManualNode")) {
-                for (Map.Entry<String, List<MermaidGraph.Node>> entry : TrainRoutes.graph.nodeTagMap.entrySet()) {
-                    for (MermaidGraph.Node node : entry.getValue()) {
-                        if (node.isStation()) {
-                            completerList.add(node.getPlatformTag());
-                        }
-                    }
-                }
-            }
-            return completerList.stream().filter(s -> s.startsWith(args[1])).collect(Collectors.toList());
-        } else if (args.length == 3) {
-            if (args[0].equalsIgnoreCase("setLine")) {
-                completerList.add(PRGeoWalkingPoint.LineType.LINE_IN.getType());
-                completerList.add(PRGeoWalkingPoint.LineType.LINE_OUT.getType());
-            }
-            return completerList.stream().filter(s -> s.startsWith(args[2])).collect(Collectors.toList());
+    @CommandDescription("手动停止当前遍历任务")
+    @Command("railgeo stop")
+    @Permission("bcts.railgeo")
+    public void stop(
+            Player player
+    ) {
+        PRGeoTask geoTask = initTask(player);
+        geoTask.stopPathFindingTask();
+        taskMap.remove(player.getUniqueId());
+    }
+
+    @CommandDescription("添加遍历开始节点坐标，以玩家位置的铁轨为开始坐标，面朝方向为开始方向")
+    @Command("railgeo setStartPos <platformTag>")
+    @Permission("bcts.railgeo")
+    public void setStartPos(
+            Player player,
+            @Argument(value = "platformTag", description = "当前所在的站台tag", suggestions = "startPlatformTag")
+            String pTag
+    ) {
+        plugin.getGeoDatabaseManager().upsertGeoNodeLoc(pTag, player.getLocation(), player.getLocation().getDirection());
+        player.sendMessage(Component.text("成功设置节点 [%s] 的起点".formatted(pTag), NamedTextColor.GREEN));
+    }
+
+    @CommandDescription("更新新的节点（新建铁路/车站后）")
+    @Command("railgeo update")
+    @Permission("bcts.railgeo")
+    public void update(
+            Player player,
+            @Flag(value = "less-log", description = "减少日志输出") boolean lessLog
+    ) {
+        PRGeoTask geoTask = initTask(player);
+        geoTask.setLessLog(lessLog);
+        geoTask.startUpdatePathFinding();
+    }
+
+    @CommandDescription("手动指定某节点的进站/出站线路")
+    @Command("railgeo setLine <platformTag> <lineType>")
+    @Permission("bcts.railgeo")
+    public void setLine(
+            Player player,
+            @Argument(value = "platformTag", description = "当前所在的站台tag", suggestions = "platformTag")
+            String pTag,
+            @Argument(value = "lineType", description = "线路类型", parserName = "lineType")
+            PRGeoWalkingPoint.LineType lineType
+    ) {
+        if (!lineType.equals(PRGeoWalkingPoint.LineType.LINE_IN) && !lineType.equals(PRGeoWalkingPoint.LineType.LINE_OUT)) {
+            player.sendMessage(Component.text("不支持的线路类型！仅支持 %s, %s".formatted(PRGeoWalkingPoint.LineType.LINE_IN.getType(), PRGeoWalkingPoint.LineType.LINE_OUT.getType()), NamedTextColor.RED));
         }
-        return List.of();
+        this.startAddLineManually(pTag, lineType, player);
+    }
+
+    @CommandDescription("删除手动指定某节点的进站/出站线路")
+    @Command("railgeo delManualNode <platformTag>")
+    @Permission("bcts.railgeo")
+    public void delManualNode(
+            Player player,
+            @Argument(value = "platformTag", description = "当前所在的站台tag", suggestions = "platformTag")
+            String pTag
+    ) {
+        int deleted = plugin.getGeoDatabaseManager().deleteGeoManualLine(pTag);
+        player.sendMessage(Component.text("成功删除节点 [%s] %s 条手动指定的线路".formatted(pTag, deleted), NamedTextColor.GREEN));
+    }
+
+    private PRGeoTask initTask(Player player) {
+        taskMap.putIfAbsent(player.getUniqueId(), new PRGeoTask(plugin, player));
+        return taskMap.get(player.getUniqueId());
     }
 
     public void startAddLineManually(String platformTag, PRGeoWalkingPoint.LineType lineType, Player sender) {

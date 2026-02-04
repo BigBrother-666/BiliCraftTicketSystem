@@ -1,6 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.filter;
 
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuFilter;
 import lombok.Getter;
 import lombok.Setter;
@@ -34,7 +34,7 @@ public class FilterLocItem extends AbstractItem {
     @Override
     public ItemProvider getItemProvider() {
         if (selected) {
-            ItemStack selectedItem = Utils.loadItemFromFile("selected");
+            ItemStack selectedItem = CommonUtils.loadItemFromFile("selected");
             ItemMeta itemMeta = selectedItem.getItemMeta();
             itemMeta.displayName(flagItem.getItemMeta().displayName());
             List<Component> lore = flagItem.lore();
@@ -58,12 +58,12 @@ public class FilterLocItem extends AbstractItem {
         if (clickType.isLeftClick() && !selected) {
             // 左键，加入筛选
             this.selected = true;
-            MenuFilter.getMenu(player).getFilterStations().add(Utils.component2Str(flagItem.displayName()));
+            MenuFilter.getMenu(player).getFilterStations().add(CommonUtils.component2Str(flagItem.displayName()));
             notifyWindows();
         } else if (clickType.isRightClick() && selected) {
             //右键取消
             this.selected = false;
-            MenuFilter.getMenu(player).getFilterStations().remove(Utils.component2Str(flagItem.displayName()));
+            MenuFilter.getMenu(player).getFilterStations().remove(CommonUtils.component2Str(flagItem.displayName()));
             notifyWindows();
         }
     }

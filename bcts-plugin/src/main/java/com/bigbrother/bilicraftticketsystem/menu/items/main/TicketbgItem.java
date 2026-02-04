@@ -1,6 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.main;
 
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
@@ -13,7 +13,7 @@ import xyz.xenondevs.invui.item.impl.AbstractItem;
 public class TicketbgItem extends AbstractItem {
     @Override
     public ItemProvider getItemProvider(Player viewer) {
-        return new ItemBuilder(Utils.loadItemFromFile("ticketbg"));
+        return new ItemBuilder(CommonUtils.loadItemFromFile("ticketbg"));
     }
 
     @Override

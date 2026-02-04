@@ -1,6 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.common;
 
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
@@ -14,7 +14,7 @@ import xyz.xenondevs.invui.item.impl.AbstractItem;
 public class BackToMainItem extends AbstractItem {
     @Override
     public ItemProvider getItemProvider(Player player) {
-        ItemStack itemStack = Utils.loadItemFromFile("back");
+        ItemStack itemStack = CommonUtils.loadItemFromFile("back");
         return new ItemBuilder(itemStack);
     }
 

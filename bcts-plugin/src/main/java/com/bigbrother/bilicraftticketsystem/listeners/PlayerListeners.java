@@ -1,12 +1,10 @@
 package com.bigbrother.bilicraftticketsystem.listeners;
 
-import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.config.RailwayRoutesConfig;
 import com.bigbrother.bilicraftticketsystem.database.entity.TicketbgInfo;
 import com.bigbrother.bilicraftticketsystem.menu.Menu;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
-import com.bigbrother.bilicraftticketsystem.ticket.BCCard;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -14,11 +12,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.inventory.ItemStack;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,7 +31,7 @@ public class PlayerListeners implements Listener {
         UUID uuid = event.getPlayer().getUniqueId();
         Menu.clearPlayerCache(uuid);
         stepMap.remove(uuid);
-        String removedRouteid = plugin.getBcTicketSystemCommand().getAddRouteMode().remove(uuid);
+        String removedRouteid = plugin.getRouteCommand().getAddRouteMode().remove(uuid);
         if (removedRouteid != null) {
             RailwayRoutesConfig.railwayRoutes.remove(removedRouteid);
             // 添加route时退出游戏，重新加载config
@@ -57,7 +53,7 @@ public class PlayerListeners implements Listener {
     public void onPlayerChat(AsyncPlayerChatEvent chatEvent) {
         Player player = chatEvent.getPlayer();
         UUID uuid = player.getUniqueId();
-        if (plugin.getBcTicketSystemCommand().getAddRouteMode().containsKey(uuid)) {
+        if (plugin.getRouteCommand().getAddRouteMode().containsKey(uuid)) {
             chatEvent.setCancelled(true);
             if (!stepMap.containsKey(uuid)) {
                 stepMap.put(uuid, 0);
@@ -65,7 +61,7 @@ public class PlayerListeners implements Listener {
 
             // step
             Integer step = stepMap.get(uuid);
-            String routeid = plugin.getBcTicketSystemCommand().getAddRouteMode().get(uuid);
+            String routeid = plugin.getRouteCommand().getAddRouteMode().get(uuid);
             String chatStr = chatEvent.getMessage();
             switch (step) {
                 case 0:
@@ -126,7 +122,7 @@ public class PlayerListeners implements Listener {
                     RailwayRoutesConfig.save();
                     RailwayRoutesConfig.load(plugin);
                     stepMap.remove(uuid);
-                    plugin.getBcTicketSystemCommand().getAddRouteMode().remove(uuid);
+                    plugin.getRouteCommand().getAddRouteMode().remove(uuid);
                     player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("线路 %s 添加成功。".formatted(routeid), NamedTextColor.GREEN)));
                     break;
                 default:

@@ -1,7 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.card;
 
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.listeners.CardListeners;
 import com.bigbrother.bilicraftticketsystem.menu.PlayerOption;
@@ -36,7 +36,7 @@ public class ChargeItem extends AbstractItem {
     public ItemProvider getItemProvider(Player viewer) {
         BCCard card = BCCard.fromHeldItem(viewer);
 
-        ItemStack itemStack = Utils.loadItemFromFile("charge");
+        ItemStack itemStack = CommonUtils.loadItemFromFile("charge");
         ItemMeta itemMeta = itemStack.getItemMeta();
         if (card != null) {
             itemMeta.lore(List.of(

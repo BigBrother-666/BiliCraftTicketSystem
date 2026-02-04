@@ -7,25 +7,35 @@ import com.bigbrother.bilicraftticketsystem.addon.geodata.GeoCommand;
 import com.bigbrother.bilicraftticketsystem.addon.geodata.GeoDatabaseManager;
 import com.bigbrother.bilicraftticketsystem.addon.geodata.prgeotask.PRGeoTask;
 import com.bigbrother.bilicraftticketsystem.addon.signactions.*;
-import com.bigbrother.bilicraftticketsystem.commands.BCTicketSystemCommand;
+import com.bigbrother.bilicraftticketsystem.commands.*;
+import com.bigbrother.bilicraftticketsystem.commands.argument.CommandParsers;
+import com.bigbrother.bilicraftticketsystem.commands.argument.CommandSuggestions;
 import com.bigbrother.bilicraftticketsystem.config.*;
 import com.bigbrother.bilicraftticketsystem.database.TrainDatabaseManager;
 import com.bigbrother.bilicraftticketsystem.listeners.CardListeners;
 import com.bigbrother.bilicraftticketsystem.listeners.PlayerListeners;
 import com.bigbrother.bilicraftticketsystem.listeners.TrainListeners;
 import com.bigbrother.bilicraftticketsystem.menu.Menu;
+import com.bigbrother.bilicraftticketsystem.route.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.ticket.BCCardInfo;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicketDisplay;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import net.coreprotect.CoreProtect;
+import net.coreprotect.CoreProtectAPI;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.checkerframework.checker.units.qual.C;
+import org.incendo.cloud.annotations.AnnotationParser;
+import org.incendo.cloud.execution.ExecutionCoordinator;
+import org.incendo.cloud.paper.LegacyPaperCommandManager;
 
 import java.io.File;
 import java.util.List;
@@ -38,8 +48,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     private Economy econ = null;
     private TrainDatabaseManager trainDatabaseManager;
     private GeoDatabaseManager geoDatabaseManager;
-    private BCTicketSystemCommand bcTicketSystemCommand;
-    private GeoCommand geoCommand;
+
     private final File geodataDir = new File(this.getDataFolder(), "geojson");
 
     // 控制牌
@@ -50,56 +59,29 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     private final CustomSignActionSpawn customSignActionSpawn = new CustomSignActionSpawn();
     private final CustomSignActionProperties customSignActionProperties = new CustomSignActionProperties();
 
+    // Command
+    private final AdminCommand adminCommand = new AdminCommand(this);
+    private final RouteCommand routeCommand = new RouteCommand(this);
+    private final TicketbgCommand ticketbgCommand = new TicketbgCommand(this);
+    private final TransitPassCommand transitPassCommand = new TransitPassCommand(this);
+    private final CardCommand cardCommand = new CardCommand(this);
+    private final GeoCommand geoCommand = new GeoCommand(this);
+
+
     @Override
     public void onEnable() {
         printLogo();
-
         plugin = this;
-        // Plugin startup logic
         // 生成配置文件
-        this.getComponentLogger().info(Component.text("拷贝配置文件...", NamedTextColor.GOLD));
-
-        saveResource(EnumConfig.MAIN_CONFIG.getFileName(), /* replace */ false);
-        saveResource(EnumConfig.RAILWAY_ROUTES_CONFIG.getFileName(), /* replace */ false);
-        saveResource(EnumConfig.MENU_MAIN.getFileName(), /* replace */ false);
-        saveResource(EnumConfig.MENU_LOCATION.getFileName(), /* replace */ false);
-        saveResource(EnumConfig.MENU_FILTER.getFileName(), /* replace */ false);
-        saveResource(EnumConfig.MENU_ITEMS.getFileName(), /* replace */ false);
-        saveResource(EnumConfig.MENU_TICKETBG.getFileName(), /* replace */ false);
-        saveResource(EnumConfig.ROUTE_MMD.getFileName(), /* replace */ false);
-        saveResource(EnumConfig.ADDON_CONFIG.getFileName(), /* replace */ false);
-        saveResource(EnumConfig.MENU_CARD.getFileName(), /* replace */ false);
-
+        copyResources();
         // 注册指令
-        this.bcTicketSystemCommand = new BCTicketSystemCommand(this);
-        this.geoCommand = new GeoCommand(this);
-        this.getComponentLogger().info(Component.text("指令注册成功", NamedTextColor.GOLD));
-
+        initCommands();
         // 注册监听器
-        Bukkit.getPluginManager().registerEvents(new TrainListeners(), this);
-        Bukkit.getPluginManager().registerEvents(new PlayerListeners(), this);
-        Bukkit.getPluginManager().registerEvents(new CardListeners(), this);
-        Bukkit.getPluginManager().registerEvents(new GuardListeners(), this);
-        Bukkit.getPluginManager().registerEvents(signActionShowroute, this);
-        this.getComponentLogger().info(Component.text("监听器注册成功", NamedTextColor.GOLD));
-
+        initListeners();
         // 加载经济系统
-        if (!setupEconomy()) {
-            this.getComponentLogger().error(Component.text("Vault初始化失败！", NamedTextColor.RED));
-            getServer().getPluginManager().disablePlugin(this);
-            return;
-        }
-        this.getComponentLogger().info(Component.text("Vault初始化成功", NamedTextColor.GOLD));
-
+        setupEconomy();
         // 注册控制牌
-        SignAction.register(customSignActionAnnounce, true);
-        SignAction.register(signActionBCSpawn);
-        SignAction.register(customSignActionStation, true);
-        SignAction.register(signActionShowroute);
-        SignAction.register(customSignActionSpawn, true);
-        SignAction.register(customSignActionProperties, true);
-        this.getComponentLogger().info(Component.text("控制牌注册成功", NamedTextColor.GOLD));
-
+        initSignActions();
         // 加载配置文件
         this.getComponentLogger().info(Component.text("开始异步读取配置文件...", NamedTextColor.GOLD));
         Bukkit.getScheduler().runTaskAsynchronously(this, sender -> loadConfig(Bukkit.getConsoleSender()));
@@ -113,8 +95,6 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
      */
     public void loadConfig(CommandSender sender) {
         try {
-//            Bukkit.getScheduler().cancelTasks(plugin);
-
             MainConfig.loadMainConfig(this);
             RailwayRoutesConfig.load(this);
             plugin.getComponentLogger().info(Component.text("成功加载主配置", NamedTextColor.GOLD));
@@ -157,21 +137,79 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         }
     }
 
+    private void copyResources() {
+        this.getComponentLogger().info(Component.text("拷贝配置文件...", NamedTextColor.GOLD));
+        saveResource(EnumConfig.MAIN_CONFIG.getFileName(), /* replace */ false);
+        saveResource(EnumConfig.RAILWAY_ROUTES_CONFIG.getFileName(), /* replace */ false);
+        saveResource(EnumConfig.MENU_MAIN.getFileName(), /* replace */ false);
+        saveResource(EnumConfig.MENU_LOCATION.getFileName(), /* replace */ false);
+        saveResource(EnumConfig.MENU_FILTER.getFileName(), /* replace */ false);
+        saveResource(EnumConfig.MENU_ITEMS.getFileName(), /* replace */ false);
+        saveResource(EnumConfig.MENU_TICKETBG.getFileName(), /* replace */ false);
+        saveResource(EnumConfig.ROUTE_MMD.getFileName(), /* replace */ false);
+        saveResource(EnumConfig.ADDON_CONFIG.getFileName(), /* replace */ false);
+        saveResource(EnumConfig.MENU_CARD.getFileName(), /* replace */ false);
+    }
+
+    private void initCommands() {
+        LegacyPaperCommandManager<CommandSender> commandManager = LegacyPaperCommandManager.createNative(
+                this,
+                ExecutionCoordinator.simpleCoordinator()
+        );
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        AnnotationParser<C> annotationParser = new AnnotationParser(commandManager, CommandSender.class);
+        annotationParser.parse(new CommandSuggestions(), new CommandParsers());
+        annotationParser.parse(adminCommand, routeCommand, ticketbgCommand, transitPassCommand, geoCommand, cardCommand);
+        this.getComponentLogger().info(Component.text("指令注册成功", NamedTextColor.GOLD));
+    }
+
+    private void initListeners() {
+        Bukkit.getPluginManager().registerEvents(new TrainListeners(), this);
+        Bukkit.getPluginManager().registerEvents(new PlayerListeners(), this);
+        Bukkit.getPluginManager().registerEvents(new CardListeners(), this);
+        Bukkit.getPluginManager().registerEvents(new GuardListeners(), this);
+        Bukkit.getPluginManager().registerEvents(signActionShowroute, this);
+        Bukkit.getPluginManager().registerEvents(geoCommand, this);
+        this.getComponentLogger().info(Component.text("监听器注册成功", NamedTextColor.GOLD));
+    }
+
+    private void initSignActions() {
+        SignAction.register(customSignActionAnnounce, true);
+        SignAction.register(signActionBCSpawn);
+        SignAction.register(customSignActionStation, true);
+        SignAction.register(signActionShowroute);
+        SignAction.register(customSignActionSpawn, true);
+        SignAction.register(customSignActionProperties, true);
+        this.getComponentLogger().info(Component.text("控制牌注册成功", NamedTextColor.GOLD));
+    }
+
     /**
      * 加载经济插件
-     *
-     * @return 是否成功
      */
-    private boolean setupEconomy() {
-        if (getServer().getPluginManager().getPlugin("Vault") == null) {
-            return false;
+    private void setupEconomy() {
+        Plugin vaultPlugin = getServer().getPluginManager().getPlugin("Vault");
+        if (vaultPlugin != null) {
+            RegisteredServiceProvider<Economy> rsp = getServer().getServicesManager().getRegistration(Economy.class);
+            if (rsp != null) {
+                econ = rsp.getProvider();
+            }
+            this.getComponentLogger().info(Component.text("Vault初始化成功", NamedTextColor.GOLD));
+            return;
         }
-        RegisteredServiceProvider<Economy> rsp = getServer().getServicesManager().getRegistration(Economy.class);
-        if (rsp == null) {
-            return false;
+        this.getComponentLogger().error(Component.text("Vault初始化失败！", NamedTextColor.RED));
+        getServer().getPluginManager().disablePlugin(this);
+    }
+
+    public CoreProtectAPI getCoreProtectAPI() {
+        Plugin pl = plugin.getServer().getPluginManager().getPlugin("CoreProtect");
+        if (!(pl instanceof CoreProtect)) {
+            return null;
         }
-        econ = rsp.getProvider();
-        return true;
+        CoreProtectAPI coreProtect = ((CoreProtect) pl).getAPI();
+        if (!coreProtect.isEnabled()) {
+            return null;
+        }
+        return coreProtect;
     }
 
     private void printLogo() {

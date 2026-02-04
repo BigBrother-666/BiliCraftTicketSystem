@@ -1,7 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.addon.geodata;
 
-import com.bigbrother.bilicraftticketsystem.MermaidGraph;
-import com.bigbrother.bilicraftticketsystem.TrainRoutes;
+import com.bigbrother.bilicraftticketsystem.route.MermaidGraph;
+import com.bigbrother.bilicraftticketsystem.route.TrainRoutes;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import org.geojson.*;

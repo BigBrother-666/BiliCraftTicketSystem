@@ -1,7 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.menu.impl;
 
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
-import com.bigbrother.bilicraftticketsystem.Utils;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.config.MenuConfig;
 import com.bigbrother.bilicraftticketsystem.menu.Menu;
@@ -109,7 +109,7 @@ public class MenuMain extends Menu {
                         try {
                             guiBuilder.addIngredient(split[0].charAt(0), new SimpleItem(new ItemBuilder(Material.valueOf(itemName))));
                         } catch (IllegalArgumentException e) {
-                            guiBuilder.addIngredient(split[0].charAt(0), new ItemBuilder(Utils.loadItemFromFile(itemName)));
+                            guiBuilder.addIngredient(split[0].charAt(0), new ItemBuilder(CommonUtils.loadItemFromFile(itemName)));
                         }
                 }
             }
@@ -152,7 +152,7 @@ public class MenuMain extends Menu {
 
         if (filteredTickets.isEmpty()) {
             // 无车票符合条件，显示屏障
-            Component errMsg = Utils.mmStr2Component(
+            Component errMsg = CommonUtils.mmStr2Component(
                     MainConfig.message.get("filter-empty","").formatted(
                     playerOption.getStartStationString(),
                     playerOption.getEndStationString(),
