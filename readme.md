@@ -18,7 +18,7 @@
 在使用车票前会判断乘客是否在正确的站台。本系统为每个车站的每个站台都定义了一个独特的“站台tag”，格式为：`本站tag-方向`，`本站tag`和`方向`和`routes.mmd`中的相同（只是位置反了）。
 发车时，列车应被赋予这个tag，来和玩家手中车票的“站台tag”比较，进而判断玩家所在站台是否正确。
 
-## 4. 指令
+## 4. 车票系统指令
 
 | 指令/功能                                             | 权限                        | 说明                                                                                               |
 |---------------------------------------------------|---------------------------|--------------------------------------------------------------------------------------------------|
@@ -29,11 +29,12 @@
 | ticket deletebg \<图片id>                           | bcts.ticket.deletebg      | 指令删除任意背景图 / gui删除任意共享的背景图                                                                        |
 | ticket adminuploadbg \<图片链接> \<自定义背景图名> \[车票字体颜色] | bcts.ticket.adminuploadbg | 以管理员身份上传背景图片（没有个数限制）                                                                             |
 | ticket reload                                     | bcts.ticket.reload        | 重载所有配置文件                                                                                         |
-| ticket getcard                                    | bcts.ticket.getcard       | 获取一张交通卡，第一次拿在主手会自动初始化                                                                            |
+| ticket card give \<player> \[cardUUID]            | bcts.ticket.getcard       | 给予一名玩家一张未开卡或已存在的交通卡                                                                              |
+| ticket card delete \<cardUUID>                    | bcts.ticket.delcard       | 删除指定UUID的交通卡                                                                                     |
 | ticket item \<add/get> <自定义物品名>                   | bcts.ticket.menuitem      | 将手中的物品保存到配置文件（menuitems.yml）或获取自定义物品，以便编辑菜单界面使用。使用时，在mapping列表填写item-自定义物品名，所有功能按钮的物品名已经预定义，详见下表 |
 | ticket nbt \<key> \[value]                        | bcts.ticket.nbt           | 查看/设置车票的nbt，已经定义的nbt信息如下表所示                                                                      |
-| ticket statistics \<ticket/bcspawn> \<days>       | bcts.ticket.statistics    | 查看车票/发车的统计信息                                                                                     |
-| ticket co add \<站台tag>                            | bcts.ticket.co            | 从co数据库导入发车信息(需要指针对准按钮/压力板)                                                                       |
+| ticket statistics \<type> \<days>                 | bcts.ticket.statistics    | 查看统计信息                                                                                           |
+| ticket co add \<站台tag>                            | bcts.ticket.co            | 从co数据库导入发车信息(需要指针对准按钮)                                                                           |
 | 建立bcspawn控制牌                                      | bcts.buildsign.bcspawn    |                                                                                                  |
 | 建立showroute控制牌                                    | bcts.buildsign.showroute  |                                                                                                  |
 
@@ -53,16 +54,16 @@
 | 界面            | 物品名                       | 功能           |
 |---------------|---------------------------|--------------|
 | 主界面           | content                   | 显示车票的格子      |
-| 主界面           | item-start                | 起始站选择按钮      |
-| 主界面           | item-end                  | 终到站选择按钮      |
-| 主界面           | item-speed                | 速度调整按钮       |
 | 主界面           | item-uses                 | 使用次数调整按钮     |
 | 主界面           | item-search               | 搜索车票按钮       |
 | 主界面           | item-warn                 | 注意事项按钮       |
-| 主界面/设置车票背景界面  | item-prevpage             | 上一页按钮        |
-| 主界面/设置车票背景界面  | item-nextpage             | 下一页按钮        |
 | 主界面           | item-filter               | 筛选按钮         |
 | 主界面           | item-ticketbgInfo         | 设置车票背景按钮     |
+| 主界面/设置车票背景界面  | item-prevpage             | 上一页按钮        |
+| 主界面/设置车票背景界面  | item-nextpage             | 下一页按钮        |
+| 主界面/交通卡界面     | item-start                | 起始站选择按钮      |
+| 主界面/交通卡界面     | item-end                  | 终到站选择按钮      |
+| 主界面/交通卡界面     | item-speed                | 速度调整按钮       |
 | 车站选择界面/车站筛选界面 | content                   | 显示车站的格子      |
 | 车站选择界面/车站筛选界面 | item-scrollup             | 滚动条向上滚动      |
 | 车站选择界面/车站筛选界面 | item-scrolldown           | 滚动条向下滚动      |
@@ -73,30 +74,40 @@
 | 设置车票背景界面      | item-usedbg               | 当前使用的背景      |
 | 设置车票背景界面      | item-defaultbg            | 恢复默认背景图按钮    |
 | 设置车票背景界面      | item-sort                 | 排序按钮         |
+| 交通卡界面         | item-charge               | 充值按钮         |
 | 所有            | bukkit物品枚举名或item-其他自定义物品名 | 无功能，仅用于装饰    |
 
 此外，自定义物品`selected`被预定义为筛选界面车站选择后显示的物品。
 
-## 7. 车票nbt定义
+## 7. 乘车凭证nbt定义
 
-| nbt                   | 说明                                        |
+| 通用nbt                                  | 说明                |
+|----------------------------------------|-------------------|
+| transitPassType                        | 凭证类型，ticket或card  |
+| plugin                                 | 固定为bcts           |
+| backgroundImagePath                    | 车票默认背景图片文件名       |
+| bc-transit-pass（使用PDC，命名空间：bcts-guard） | 固定为true，用于乘车凭证防复制 |
+
+| 车票nbt                 | 说明                                        |
 |-----------------------|-------------------------------------------|
 | ticketName            | 车票名，应为traincarts ticket.yml中存在的车票名        |
-| ticketDisplayName     | 显示在地图上的车票名，默认值为ticketName                 |
 | ticketCreationTime    | 车票购买时的时间戳                                 |
+| ticketExpirationTime  | 车票过期时间（ms）                                |
 | ticketNumberOfUses    | 车票已经使用的次数                                 |
 | ticketMaxNumberOfUses | 车票最大使用次数，应该小于config.yml中的uses.max，负数为无限使用 |
 | ticketOwner           | 车票购买者的uuid                                |
 | ticketOwnerName       | 车票购买者的名字                                  |
-| ticketMaxSpeed        | 使用此车票上车后，列车的最大速度                          |
 | ticketOriginPrice     | 此车票单次票的价格                                 |
-| ticketItemName        | 车票物品名                                     |
 | ticketTags            | 车票的tags，使用英文逗号分隔的tag                      |
-| startPlatformTag      | 可使用站台的tag                                 |
 | startStation          | 起始站中文名                                    |
 | endStation            | 终到站中文名                                    |
-| distance              | 两站间距                                      |
-| backgroundImagePath   | 车票背景图片文件名                                 |
+| ticketMaxSpeed        | 使用此车票上车后，列车的最大速度                          |
+| startPlatformTag      | 可使用站台的tag                                 |
+
+| 交通卡nbt       | 说明      |
+|--------------|---------|
+| cardUniqueID | 交通卡唯一标识 |
+| cardInitFlag | 是否已经开卡  |
 
 ## 8. 控制牌新增/修改
 
@@ -148,7 +159,7 @@
 
 将列车实时位置等信息通过websocket传输到前端显示（待开发）。
 
-### 9.3 指令
+### 9.3 GEO模块指令
 
 以下所有指令需要`bcts.railgeo`权限
 
