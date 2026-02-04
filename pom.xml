@@ -26,6 +26,10 @@
         <invui.version>1.44</invui.version>
         <geojson.version>1.14</geojson.version>
         <lombok.version>1.18.30</lombok.version>
+        <cloud.core.version>2.0.0</cloud.core.version>
+        <cloud.annotations.version>2.0.0</cloud.annotations.version>
+        <cloud.minecraft.extras.version>2.0.0-beta.10</cloud.minecraft.extras.version>
+        <cloud.paper.version>2.0.0-beta.10</cloud.paper.version>
     </properties>
 
     <repositories>

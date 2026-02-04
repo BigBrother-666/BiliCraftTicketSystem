@@ -155,5 +155,31 @@
             <version>${lombok.version}</version>
             <scope>provided</scope>
         </dependency>
+
+<!--        cloud command-->
+        <dependency>
+            <groupId>org.incendo</groupId>
+            <artifactId>cloud-core</artifactId>
+            <version>${cloud.core.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.incendo</groupId>
+            <artifactId>cloud-annotations</artifactId>
+            <version>${cloud.annotations.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.incendo</groupId>
+            <artifactId>cloud-paper</artifactId>
+            <version>${cloud.paper.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.incendo</groupId>
+            <artifactId>cloud-minecraft-extras</artifactId>
+            <version>${cloud.minecraft.extras.version}</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 </project>

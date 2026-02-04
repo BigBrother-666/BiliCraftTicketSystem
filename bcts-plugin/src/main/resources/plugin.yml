@@ -7,14 +7,6 @@ depend: [ Train_Carts, BKCommonLib, Vault ]
 softdepend:
   - CoreProtect
 
-commands:
-  ticket:
-    description: 帕拉伦国有铁路车票系统指令
-    aliases: [ ticket ]
-  railgeo:
-    description: 帕拉伦国有铁路铁路地理数据指令
-    aliases: [ railgeo ]
-
 permissions:
   bcts.ticket.open:
     description: "使用车票系统权限"
@@ -63,4 +55,8 @@ permissions:
     default: op
 
 libraries:
-  - com.zaxxer:HikariCP:5.0.1
+  - com.zaxxer:HikariCP:${hikari.version}
+  - org.incendo:cloud-core:${cloud.core.version}
+  - org.incendo:cloud-annotations:${cloud.annotations.version}
+  - org.incendo:cloud-paper:${cloud.paper.version}
+  - org.incendo:cloud-minecraft-extras:${cloud.minecraft.extras.version}
