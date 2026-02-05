@@ -118,6 +118,15 @@ public class BCCardInfo extends PlayerOption {
     }
 
     public static boolean hasCard(String cardUuid) {
-        return cache.containsKey(cardUuid);
+        if (cache.containsKey(cardUuid)) {
+            return true;
+        }
+        CardInfo cardInfo = plugin.getTrainDatabaseManager().getCardInfoService().getByCardUuid(cardUuid);
+        if (cardInfo != null) {
+            cache.put(cardUuid, new BCCardInfo(cardInfo));
+            return true;
+        } else {
+            return false;
+        }
     }
 }

@@ -437,7 +437,7 @@ public class BCCard extends BCTransitPass {
             return false;
         }
         CommonTagCompound nbt = itemStack.getCustomData();
-        return nbt != null && nbt.getValue(KEY_TRANSIT_PASS_TYPE, "").equals(PassType.CARD.getId());
+        return nbt != null && nbt.getValue(KEY_TRANSIT_PASS_TYPE, "").equals(PassType.CARD.getId()) && BCCardInfo.hasCard(nbt.getValue(KEY_CARD_UUID, ""));
     }
 
     public static BCTicketDisplay getMapDisplay(ItemStack itemStack) {
