@@ -19,7 +19,7 @@
     </properties>
 
     <build>
-        <finalName>BctsGuard-${parent.version}</finalName>
+        <finalName>BctsGuard-${project.parent.version}</finalName>
         <defaultGoal>clean package</defaultGoal>
         <plugins>
             <plugin>
