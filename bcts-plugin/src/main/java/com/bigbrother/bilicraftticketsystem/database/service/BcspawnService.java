@@ -30,7 +30,7 @@ public class BcspawnService {
     public void addBcspawnCoord(String startPlatformTag, int x, int y, int z, String world) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             MermaidGraph.Node bcSpawnNode = TrainRoutes.graph.getNodeFromPtag(startPlatformTag);
-            if (bcSpawnNode == null) {
+            if (bcSpawnNode == null || !bcSpawnNode.isStation()) {
                 return;
             }
 
@@ -57,7 +57,7 @@ public class BcspawnService {
 
     public void addBcspawnInfo(MermaidGraph.Node bcSpawnNode, List<String> dateTime) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            if (bcSpawnNode == null) {
+            if (bcSpawnNode == null || !bcSpawnNode.isStation()) {
                 return;
             }
 
