@@ -48,7 +48,11 @@ public class MermaidGraph {
          * @return 去掉“站”字的车站名
          */
         public String getClearStationName() {
-            return stationName.substring(0, stationName.length() - 1);
+            if (stationName.endsWith("站")) {
+                return stationName.substring(0, stationName.length() - 1);
+            } else {
+                return "";
+            }
         }
 
         public @Nullable String getPlatformTag() {
@@ -74,7 +78,7 @@ public class MermaidGraph {
          */
         public boolean isEndStation() {
             // 方向和车站相同
-            return this.getRailwayDirection().startsWith(this.getClearStationName());
+            return this.isStation() && this.getRailwayDirection().startsWith(this.getClearStationName());
         }
 
         @Override
