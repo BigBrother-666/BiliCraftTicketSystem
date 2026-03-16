@@ -307,7 +307,7 @@ public class BCTicket extends BCTransitPass {
         tag.putUUID(KEY_TICKET_OWNER_UUID, owner.getUniqueId());
         tag.putValue(KEY_TICKET_OWNER_NAME, owner.getName());
         tag.putValue(KEY_TICKET_MAX_SPEED, maxSpeed);
-        tag.putValue(KEY_TICKET_ORIGIN_PRICE, this.pathInfo.getPrice());
+        tag.putValue(KEY_TICKET_ORIGIN_PRICE, calculateFare(pathInfo.getDistance()));
         tag.putValue(KEY_TICKET_TAGS, String.join(",", this.pathInfo.getTags()));
         tag.putValue(KEY_TICKET_START_PLATFORM_TAG, pathInfo.getStartPlatformTag());
         tag.putValue(KEY_TICKET_START_STATION, pathInfo.getStartStation().getStationName());
@@ -317,7 +317,7 @@ public class BCTicket extends BCTransitPass {
 
     @Override
     public double getPrice() {
-        double totalPrice = pathInfo.getPrice() * maxUses;
+        double totalPrice = calculateFare(pathInfo.getDistance()) * maxUses;
 
         for (String s : MainConfig.discount) {
             String[] split = s.split("-");

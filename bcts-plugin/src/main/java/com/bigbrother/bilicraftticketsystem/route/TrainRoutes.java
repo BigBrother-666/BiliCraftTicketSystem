@@ -10,8 +10,6 @@ import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.bigbrother.bilicraftticketsystem.config.MainConfig.pricePerKm;
-
 public class TrainRoutes {
     public static MermaidGraph graph;
 
@@ -20,7 +18,6 @@ public class TrainRoutes {
         private final List<MermaidGraph.Node> path;
         private final Set<String> tags;
         private final double distance;
-        private final double price;
         private final MermaidGraph.Node startStation;
         private final MermaidGraph.Node endStation;
         private final List<String> stationSequence;
@@ -35,7 +32,6 @@ public class TrainRoutes {
             this.startStation = path.get(0);
             this.endStation = path.get(path.size() - 1);
             this.distance = edges.stream().mapToDouble(MermaidGraph.Edge::getDistance).sum();
-            this.price = calculateFare(distance);
             this.tags = path.stream().map(MermaidGraph.Node::getTag).collect(Collectors.toCollection(LinkedHashSet::new));
             // 移除终点站tag
             this.tags.remove(endStation.getTag());
@@ -80,11 +76,6 @@ public class TrainRoutes {
 
         public String getStartPlatform() {
             return startStation.getStationName() + "-" + startStation.getRailwayDirection();
-        }
-
-        // 计算票价
-        private double calculateFare(double distance) {
-            return Math.round(distance * pricePerKm * 100.0) / 100.0;
         }
     }
 

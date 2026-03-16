@@ -335,7 +335,7 @@ public class BCCard extends BCTransitPass {
      */
     @Override
     public double getPrice() {
-        return cardConfig.get("base-fare", 0.0) + pathInfo.getPrice();
+        return cardConfig.get("base-fare", 0.0) + calculateFare(pathInfo.getDistance());
     }
 
     @Override

@@ -28,6 +28,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import static com.bigbrother.bilicraftticketsystem.config.MainConfig.pricePerKm;
+
 @Getter
 public abstract class BCTransitPass {
     public static final String KEY_TRANSIT_PASS_TYPE = "transitPassType";
@@ -266,5 +268,10 @@ public abstract class BCTransitPass {
 
     public static boolean isNewPRTrain(MinecartGroup group) {
         return group.getProperties().getTickets().contains(MainConfig.expressTicketName);
+    }
+
+    // 计算票价
+    protected double calculateFare(double distance) {
+        return Math.round(distance * pricePerKm * 100.0) / 100.0;
     }
 }
