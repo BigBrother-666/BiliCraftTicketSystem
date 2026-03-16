@@ -210,7 +210,7 @@ public class PRGeoWalkingPoint {
                         geoTask.sendMessageAndLog(Component.text("寻找 %s switcher途中检测到 %s bcspawn控制牌".formatted(nextTag, sign.getLine(3)), NamedTextColor.YELLOW));
                         return ErrorType.WALKING_POINT_ERROR;
                     }
-                } else if (sign.getLine(1).trim().toLowerCase().startsWith("station") && coordCnt > 100) {
+                } else if (sign.getLine(1).trim().toLowerCase().startsWith("station") && coordCnt > 150) {
                     geoTask.sendMessageAndLog(Component.text("寻找 %s switcher途中检测到station控制牌（终点站）".formatted(nextTag), NamedTextColor.YELLOW));
                     return ErrorType.UNEXPECTED_SIGN;
                 } else if (sign.getLine(2).trim().toLowerCase().startsWith("remtag") && sign.getLine(3).trim().equals(nextTag)) {
@@ -454,7 +454,7 @@ public class PRGeoWalkingPoint {
         Map<String, Object> props = new HashMap<>();
         props.put("line_type", lineType.getType());
         // wtf????
-        if (start.getRailwayName().isEmpty()) {
+        if (start.getRailwayName().isEmpty() || (lineType.equals(LineType.MAIN_LINE_SECOND) && start.isEndStation())) {
             props.put("line_color", "#a9a9a9");
         } else {
             props.put("line_color", MainConfig.railwayColor.get(start.getRailwayName(), "#a9a9a9"));

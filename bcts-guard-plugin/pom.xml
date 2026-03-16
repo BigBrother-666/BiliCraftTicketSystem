@@ -7,7 +7,7 @@
     <parent>
         <groupId>com.bigbrother</groupId>
         <artifactId>BiliCraftTicketSystem</artifactId>
-        <version>1.8.3</version>
+        <version>1.8.4</version>
     </parent>
 
     <artifactId>bcts-guard-plugin</artifactId>
@@ -19,7 +19,7 @@
     </properties>
 
     <build>
-        <finalName>BctsGuard-${parent.version}</finalName>
+        <finalName>BctsGuard-${project.parent.version}</finalName>
         <defaultGoal>clean package</defaultGoal>
         <plugins>
             <plugin>

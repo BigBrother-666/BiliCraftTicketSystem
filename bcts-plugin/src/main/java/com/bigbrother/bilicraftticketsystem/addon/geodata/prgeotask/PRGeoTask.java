@@ -90,6 +90,7 @@ public class PRGeoTask {
                 }
             } catch (Exception e) {
                 sendMessageAndLog(Component.text("遍历铁轨时发生异常：" + e, NamedTextColor.RED), true);
+                e.printStackTrace();
             } finally {
                 stopPathFindingTask();
             }

@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.bigbrother</groupId>
         <artifactId>BiliCraftTicketSystem</artifactId>
-        <version>1.8.3</version>
+        <version>1.8.4</version>
     </parent>
 
     <artifactId>bcts-plugin</artifactId>
@@ -18,7 +18,7 @@
     </properties>
 
     <build>
-        <finalName>${parent.artifactId}-${parent.version}</finalName>
+        <finalName>${project.parent.artifactId}-${project.parent.version}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
