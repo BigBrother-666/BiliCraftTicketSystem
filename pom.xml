@@ -30,6 +30,7 @@
         <cloud.annotations.version>2.0.0</cloud.annotations.version>
         <cloud.minecraft.extras.version>2.0.0-beta.10</cloud.minecraft.extras.version>
         <cloud.paper.version>2.0.0-beta.10</cloud.paper.version>
+        <junit.version>5.10.2</junit.version>
     </properties>
 
     <repositories>

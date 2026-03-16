@@ -4,9 +4,7 @@ import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -81,21 +79,32 @@ public class TrainRoutes {
 
     // 从文件中读取图
     public static void readGraphFromFile(String filename) throws IOException {
+        try (FileInputStream fis = new FileInputStream(filename)) {
+            readGraphFromFile(fis);
+        }
+    }
+
+    public static void readGraphFromFile(InputStream stream) throws IOException {
         graph = new MermaidGraph();
-        BufferedReader br = new BufferedReader(new FileReader(filename));
-        String line;
-        while ((line = br.readLine()) != null) {
-            String[] parts = line.split("\\|");
-            if (parts.length == 3) {
-                String source = parts[0].replace("-->", "")
-                        .replace("==>", "")
-                        .replace("-.->", "").trim();
-                double distance = Double.parseDouble(parts[1].trim());
-                String target = parts[2].replace(";", "").trim();
-                graph.addEdge(source, target, distance);
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(stream))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] parts = line.split("\\|");
+                if (parts.length == 3) {
+                    String source = parts[0]
+                            .replace("-->", "")
+                            .replace("==>", "")
+                            .replace("-.->", "")
+                            .trim();
+                    double distance = Double.parseDouble(parts[1].trim());
+                    String target = parts[2]
+                            .replace(";", "")
+                            .trim();
+
+                    graph.addEdge(source, target, distance);
+                }
             }
         }
-        br.close();
         graph.findStartNodes();
     }
 
@@ -173,7 +182,7 @@ public class TrainRoutes {
             List<MermaidGraph.Node> startNodes,
             String endStation
     ) {
-        if (startNodes.isEmpty()) {
+        if (startNodes.isEmpty() || endStation == null || endStation.isEmpty()) {
             return null;
         }
 
