@@ -6,7 +6,8 @@ import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
-import com.bigbrother.bilicraftticketsystem.route.TrainRoutes;
+import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRouteEngine;
+import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRoutePath;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.listeners.TrainListeners;
@@ -37,17 +38,17 @@ public class BCTicket extends BCTransitPass {
     public static final String KEY_TICKET_OWNER_UUID = "ticketOwner";
     public static final String KEY_TICKET_OWNER_NAME = "ticketOwnerName";
     public static final String KEY_TICKET_ORIGIN_PRICE = "ticketOriginPrice";
-    public static final String KEY_TICKET_TAGS = "ticketTags";
     public static final String KEY_TICKET_START_STATION = "startStation";
     public static final String KEY_TICKET_END_STATION = "endStation";
+    public static final String KEY_TICKET_START_LINE_ID = "startLineId";
     public static final String KEY_TICKET_MAX_SPEED = "ticketMaxSpeed";
-    public static final String KEY_TICKET_START_PLATFORM_TAG = "startPlatformTag";
+    public static final String KEY_TICKET_DISTANCE = "ticketDistance";
 
     private final Player owner;
     private int maxUses;
 
 
-    public BCTicket(PlayerOption option, TrainRoutes.PathInfo pathInfo, Player owner) {
+    public BCTicket(PlayerOption option, GeoRoutePath pathInfo, Player owner) {
         this.owner = owner;
         this.pathInfo = pathInfo;
         this.maxUses = option.getUses();
@@ -56,7 +57,7 @@ public class BCTicket extends BCTransitPass {
         refreshTicketMeta(true);
     }
 
-    public BCTicket(int maxUses, double maxSpeed, TrainRoutes.PathInfo pathInfo, Player owner) {
+    public BCTicket(int maxUses, double maxSpeed, GeoRoutePath pathInfo, Player owner) {
         this.owner = owner;
         this.pathInfo = pathInfo;
         this.maxUses = maxUses;
@@ -77,15 +78,22 @@ public class BCTicket extends BCTransitPass {
         this.maxUses = nbt.getValue(KEY_TICKET_MAX_NUMBER_OF_USES, 1);
         this.maxSpeed = nbt.getValue(KEY_TICKET_MAX_SPEED, 4.0);
 
-        this.pathInfo = TrainRoutes.getPathInfo(
-                nbt.getValue(KEY_TICKET_START_PLATFORM_TAG, ""),
-                new ArrayList<>(List.of(nbt.getValue(BCTicket.KEY_TICKET_TAGS, "").split(","))),
-                nbt.getValue(KEY_TICKET_END_STATION, "")
-        );
-        if (pathInfo == null) {
-            this.update();
+        // 新模型：NBT 只存起点站名 / 终点站名 / 购买时距离，上车时按最新图重新寻路，
+        // 在多条候选里挑距离与购买时最接近的一条。
+        String startStation = nbt.getValue(KEY_TICKET_START_STATION, "");
+        String endStation = nbt.getValue(KEY_TICKET_END_STATION, "");
+        double distance = nbt.getValue(KEY_TICKET_DISTANCE, -1.0);
+        if (startStation.isEmpty() || endStation.isEmpty() || distance < 0) {
+            // 旧格式 NBT 车票（无新字段）直接作废
+            this.pathInfo = null;
+            commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TICKET_EXPIRATION_TIME, 0));
+            return;
         }
-        if (pathInfo != null) {
+        this.pathInfo = GeoRouteEngine.findClosestByDistance(startStation, endStation, distance);
+        if (pathInfo == null) {
+            // 找不到路线，标记为过期
+            commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TICKET_EXPIRATION_TIME, 0));
+        } else {
             refreshTicketMeta(false);
         }
     }
@@ -109,7 +117,7 @@ public class BCTicket extends BCTransitPass {
 
     public void purchase() {
         EconomyResponse r = plugin.getEcon().withdrawPlayer(owner, this.getPrice());
-        String ticketName = getTicketName(true);
+        String ticketName = getTicketName();
 
         if (r.transactionSuccess()) {
             owner.sendMessage(BiliCraftTicketSystem.PREFIX.append(
@@ -119,7 +127,7 @@ public class BCTicket extends BCTransitPass {
             // 记录log
             Bukkit.getConsoleSender().sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("玩家 %s 成功花费 %.2f 购买了 %s".formatted(owner.getName(), r.amount, ticketName), NamedTextColor.GREEN)));
             // 写入数据库
-            plugin.getTrainDatabaseManager().getTransitPassService().addTicketInfo(owner.getName(), owner.getUniqueId().toString(), r.amount, CommonItemStack.of(itemStack).getCustomData());
+            plugin.getTrainDatabaseManager().getRevenueService().recordTicketPurchase(owner.getName(), owner.getUniqueId().toString(), r.amount, CommonItemStack.of(itemStack).getCustomData());
         } else {
             owner.sendMessage(BiliCraftTicketSystem.PREFIX.append(
                     CommonUtils.mmStr2Component(message.get("ticket-buy-failure", "车票购买失败：%s").formatted(r.errorMessage)).decoration(TextDecoration.ITALIC, false)
@@ -198,8 +206,8 @@ public class BCTicket extends BCTransitPass {
             return false;
         }
 
-        // 过期的车票
-        if (isTicketExpired()) {
+        // 过期 / 失效的车票
+        if (isTicketExpired() || pathInfo == null) {
             usedPlayer.sendMessage(BiliCraftTicketSystem.PREFIX.append(
                     CommonUtils.mmStr2Component(message.get("ticket-expired", "车票已过期"))
             ));
@@ -214,23 +222,31 @@ public class BCTicket extends BCTransitPass {
             return false;
         }
 
-        Collection<String> trainTags = group.getProperties().getTags();
-        Set<String> ticketTags = pathInfo.getTags();
-
-        // 验证站台是否正确
-        if (!BCTransitPass.verifyPlatform(commonItemStack.getCustomData().getValue(KEY_TICKET_START_PLATFORM_TAG, ""), trainTags)) {
+        // 验证站台是否正确：列车的起点站名 + 所属营运线 lineId 须与车票路径的起点站名 + 营运线一致。
+        // （发车牌与站台牌位于不同铁轨方块，无法用节点 id 对齐，故改用 站名 + lineId 比对。）
+        String trainStation = BCTransitPass.getTrainStartStationName(group);
+        String trainLineId = BCTransitPass.getTrainLineId(group);
+        String ticketLineId = pathInfo.getStartLineId();
+        if (!trainStation.equals(pathInfo.getStartStationName())
+                || !trainLineId.equals(ticketLineId == null ? "" : ticketLineId)) {
             usedPlayer.sendMessage(BiliCraftTicketSystem.PREFIX.append(
                     CommonUtils.mmStr2Component(message.get("ticket-wrong-platform", "此车票不能在本站台使用，请核对车票的可使用站台和本站台上的信息是否一致"))
             ));
             return false;
         }
 
-        // 列车为初始车（不需要比对tag） 或 主手车票tag和原始列车tag一致，可以上车
+        // 列车为初始车（不需要比对路线） 或 已应用的车票与本车票为同一行程（同起终点）才能上车
         BCTransitPass bcTransitPass = TrainListeners.trainTicketInfo.get(group);
-        if (bcTransitPass != null) {
-            trainTags = bcTransitPass.getPathInfo().getTags();
+        if (BCTransitPass.isNewPRTrain(group)) {
+            return true;
         }
-        return BCTransitPass.isNewPRTrain(group) || ticketTags.size() == trainTags.size() && ticketTags.containsAll(trainTags);
+        if (bcTransitPass != null && bcTransitPass.getPathInfo() != null) {
+            GeoRoutePath trainPath = bcTransitPass.getPathInfo();
+            return trainPath.getStartStationName() != null
+                    && trainPath.getStartStationName().equals(pathInfo.getStartStationName())
+                    && Objects.equals(trainPath.getEndStationName(), pathInfo.getEndStationName());
+        }
+        return true;
     }
 
     @Override
@@ -267,23 +283,18 @@ public class BCTicket extends BCTransitPass {
         }
         itemStack.editMeta(itemMeta -> {
             itemMeta.lore(lore);
-            itemMeta.displayName(Component.text(getTicketName(false), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false).decoration(TextDecoration.BOLD, true));
+            itemMeta.displayName(Component.text(getTicketName(), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false).decoration(TextDecoration.BOLD, true));
         });
     }
 
-    private String getTicketName(boolean trim) {
-        if (trim) {
-            if (maxUses == 1) {
-                return "%s → %s 单次票".formatted(pathInfo.getStartStation().getClearStationName(), pathInfo.getEndStation().getClearStationName());
-            } else {
-                return "%s → %s %d次票".formatted(pathInfo.getStartStation().getClearStationName(), pathInfo.getEndStation().getClearStationName(), maxUses);
-            }
+    private String getTicketName() {
+        // 新模型站名已是干净站名，trim 参数保留兼容调用方
+        String start = pathInfo.getStartStationName();
+        String end = pathInfo.getEndStationName();
+        if (maxUses == 1) {
+            return "%s → %s 单次票".formatted(start, end);
         } else {
-            if (maxUses == 1) {
-                return "%s → %s 单次票".formatted(pathInfo.getStartStation().getStationName(), pathInfo.getEndStation().getStationName());
-            } else {
-                return "%s → %s %d次票".formatted(pathInfo.getStartStation().getStationName(), pathInfo.getEndStation().getStationName(), maxUses);
-            }
+            return "%s → %s %d次票".formatted(start, end, maxUses);
         }
     }
 
@@ -308,10 +319,12 @@ public class BCTicket extends BCTransitPass {
         tag.putValue(KEY_TICKET_OWNER_NAME, owner.getName());
         tag.putValue(KEY_TICKET_MAX_SPEED, maxSpeed);
         tag.putValue(KEY_TICKET_ORIGIN_PRICE, calculateFare(pathInfo.getDistance()));
-        tag.putValue(KEY_TICKET_TAGS, String.join(",", this.pathInfo.getTags()));
-        tag.putValue(KEY_TICKET_START_PLATFORM_TAG, pathInfo.getStartPlatformTag());
-        tag.putValue(KEY_TICKET_START_STATION, pathInfo.getStartStation().getStationName());
-        tag.putValue(KEY_TICKET_END_STATION, pathInfo.getEndStation().getStationName());
+        // 新模型：只存起点站名 / 终点站名 / 购买时距离，上车按最新图重新寻路选最接近的一条
+        tag.putValue(KEY_TICKET_START_STATION, pathInfo.getStartStationName());
+        tag.putValue(KEY_TICKET_END_STATION, pathInfo.getEndStationName());
+        tag.putValue(KEY_TICKET_DISTANCE, pathInfo.getDistance());
+        // 起点所属营运线 id：上车时与列车 lineId 比对（同站可能有多条线路始发，据此区分）
+        tag.putValue(KEY_TICKET_START_LINE_ID, pathInfo.getStartLineId() == null ? "" : pathInfo.getStartLineId());
         tag.putValue(KEY_TRANSIT_PASS_BACKGROUND_IMAGE_PATH, MainConfig.expressTicketBgimage);
     }
 
@@ -346,7 +359,7 @@ public class BCTicket extends BCTransitPass {
     @Override
     public String getTransitPassName() {
         if (pathInfo != null) {
-            return "%s → %s".formatted(pathInfo.getStartStation().getClearStationName(), pathInfo.getEndStation().getClearStationName());
+            return "%s → %s".formatted(pathInfo.getStartStationName(), pathInfo.getEndStationName());
         } else {
             CommonTagCompound nbt = CommonItemStack.of(itemStack).getCustomData();
             return "%s → %s".formatted(
@@ -357,44 +370,27 @@ public class BCTicket extends BCTransitPass {
     }
 
     /**
-     * 如果铁路有变化，更新车票信息
+     * 如果铁路有变化，更新车票信息：按 NBT 中存的起终点站名重新寻路，取距离最接近原距离的一条。
      */
     public void update() {
         CommonItemStack commonItemStack = CommonItemStack.of(itemStack);
         CommonTagCompound nbt = commonItemStack.getCustomData();
-        List<String> tags = List.of(nbt.getValue(KEY_TICKET_TAGS, "").split(","));
-        String startStation = nbt.getValue(KEY_TICKET_START_STATION, String.class, TrainRoutes.graph.getStationNameFromTag(tags.get(0)));
-        String endStation = nbt.getValue(KEY_TICKET_END_STATION, String.class, TrainRoutes.graph.getStationNameFromTag(tags.get(tags.size() - 1)));
-        String startPlatformTag = nbt.getValue(KEY_TICKET_START_PLATFORM_TAG, String.class, "");
-        List<TrainRoutes.PathInfo> pathInfoList = TrainRoutes.getPathInfoList(startStation, endStation);
-        if (!pathInfoList.isEmpty()) {
-            boolean updated = false;
-            for (TrainRoutes.PathInfo path : pathInfoList) {
-                // 新车票包含所有旧车票的tag 则认为是同一路线的车票
-                if (path.getTags().containsAll(tags)) {
-                    if (!startStation.equals(endStation) && !startPlatformTag.equals(path.getStartPlatformTag())) {
-                        // 线路延长，xxx方向改变
-                        commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TICKET_START_PLATFORM_TAG, path.getStartPlatformTag()));
-                        startPlatformTag = path.getStartPlatformTag();
-                    }
-
-                    if (path.getTags().size() != tags.size() && startPlatformTag.equals(path.getStartPlatformTag())) {
-                        // 新增车站
-                        commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TICKET_TAGS, String.join(",", path.getTags())));
-                    }
-
-                    commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TRANSIT_PASS_PLUGIN, "bcts"));
-                    commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TRANSIT_PASS_TYPE, PassType.TICKET.getId()));
-                    this.pathInfo = path;
-                    updated = true;
-                    break;
-                }
-            }
-            if (!updated) {
-                // 保底
-                this.pathInfo = pathInfoList.get(0);
-                commonItemStack.updateCustomData(this::updateNbt);
-            }
+        String startStation = nbt.getValue(KEY_TICKET_START_STATION, "");
+        String endStation = nbt.getValue(KEY_TICKET_END_STATION, "");
+        double distance = nbt.getValue(KEY_TICKET_DISTANCE, -1.0);
+        if (startStation.isEmpty() || endStation.isEmpty() || distance < 0) {
+            // 旧格式车票直接作废
+            commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TICKET_EXPIRATION_TIME, 0));
+            return;
+        }
+        GeoRoutePath path = GeoRouteEngine.findClosestByDistance(startStation, endStation, distance);
+        if (path != null) {
+            this.pathInfo = path;
+            commonItemStack.updateCustomData(tag -> {
+                tag.putValue(KEY_TRANSIT_PASS_PLUGIN, "bcts");
+                tag.putValue(KEY_TRANSIT_PASS_TYPE, PassType.TICKET.getId());
+                tag.putValue(KEY_TICKET_DISTANCE, path.getDistance());
+            });
         } else {
             // 标记为过期车票
             commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TICKET_EXPIRATION_TIME, 0));

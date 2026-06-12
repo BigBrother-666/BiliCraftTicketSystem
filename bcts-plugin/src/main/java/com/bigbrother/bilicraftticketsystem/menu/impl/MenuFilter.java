@@ -1,6 +1,5 @@
 package com.bigbrother.bilicraftticketsystem.menu.impl;
 
-import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.config.MenuConfig;
@@ -12,9 +11,8 @@ import com.bigbrother.bilicraftticketsystem.menu.items.common.BackToMainItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.filter.FilterLocItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.filter.FilterRefreshItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.main.TicketItem;
+import com.bigbrother.bilicraftticketsystem.menu.station.StationProvider;
 import lombok.Getter;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
@@ -30,8 +28,6 @@ import xyz.xenondevs.invui.item.impl.SimpleItem;
 import xyz.xenondevs.invui.window.Window;
 
 import java.util.*;
-
-import static com.bigbrother.bilicraftticketsystem.utils.CommonUtils.loadItemFromFile;
 
 public class MenuFilter extends Menu {
     @Getter
@@ -91,7 +87,7 @@ public class MenuFilter extends Menu {
 
         this.window = Window.single()
                 .setViewer(player)
-                .setTitle(new AdventureComponentWrapper(Component.text(filterConfig.get("title", String.class, ""))))
+                .setTitle(new AdventureComponentWrapper(CommonUtils.mmStr2Component(filterConfig.get("title", String.class, ""))))
                 .setGui(gui)
                 .build();
 
@@ -108,7 +104,7 @@ public class MenuFilter extends Menu {
         if (tickets != null && !tickets.isEmpty()) {
             for (Item ticket : tickets) {
                 if (ticket instanceof TicketItem ticketItem) {
-                    stations.addAll(ticketItem.getTicket().getPathInfo().getStationSequence());
+                    stations.addAll(ticketItem.getTicket().getPathInfo().stationSequence());
                 }
             }
         }
@@ -118,38 +114,16 @@ public class MenuFilter extends Menu {
         stations.remove(playerOption.getStartStationString());
         stations.remove(playerOption.getEndStationString());
 
-        // 添加物品
-        ConfigurationNode contents = MenuConfig.getLocationMenuConfig().getNode("content");
-        for (Map.Entry<String, Object> entry : contents.getValues().entrySet()) {
-            if (!stations.contains(entry.getKey())) {
+        // 添加物品（车站图标实时来自 geojson 路由图，过滤出当前车票途经的中间站）
+        for (StationProvider.StationEntry entry : StationProvider.listStations()) {
+            if (!stations.contains(entry.name())) {
                 continue;
             }
-            ConfigurationNode item = contents.getNode(entry.getKey());
-            if (item == null) {
-                continue;
-            }
-            // 设置物品信息
-            String material = item.get("material", "");
-            ItemStack customItem;
-            if (material.startsWith("item-")) {
-                customItem = loadItemFromFile(material.replaceFirst("item-", "").trim());
-            } else {
-                customItem = new ItemStack(Material.valueOf(item.get("material", "").trim()));
-            }
+            ItemStack customItem = StationProvider.buildIcon(entry);
             ItemMeta itemMeta = customItem.getItemMeta();
             itemMeta.addItemFlags(ItemFlag.HIDE_ITEM_SPECIFICS);
-            List<Component> lore = itemMeta.lore();
-            if (lore == null) {
-                lore = new ArrayList<>();
-            }
-            for (String s : item.getList("lore", String.class, Collections.emptyList())) {
-                lore.add(CommonUtils.mmStr2Component(s).decoration(TextDecoration.ITALIC, false));
-            }
-            itemMeta.lore(lore);
-            itemMeta.displayName(CommonUtils.mmStr2Component(item.get("name", String.class, "")).decoration(TextDecoration.ITALIC, false));
             customItem.setItemMeta(itemMeta);
 
-            // 添加物品
             FilterLocItem filterLocItem = new FilterLocItem(customItem);
             filterLocItems.add(filterLocItem);
         }

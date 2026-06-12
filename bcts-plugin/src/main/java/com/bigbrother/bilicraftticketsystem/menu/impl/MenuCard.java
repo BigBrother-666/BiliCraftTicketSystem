@@ -7,7 +7,6 @@ import com.bigbrother.bilicraftticketsystem.menu.Menu;
 import com.bigbrother.bilicraftticketsystem.menu.items.card.CardSpeedItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.card.CardStartEndItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.card.ChargeItem;
-import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import xyz.xenondevs.inventoryaccess.component.AdventureComponentWrapper;
@@ -62,7 +61,7 @@ public class MenuCard extends Menu {
         gui = guiBuilder.build();
         this.window = Window.single()
                 .setViewer(viewer)
-                .setTitle(new AdventureComponentWrapper(Component.text(cardConfig.get("title", String.class, ""))))
+                .setTitle(new AdventureComponentWrapper(CommonUtils.mmStr2Component(cardConfig.get("title", String.class, ""))))
                 .setGui(gui)
                 .build();
     }

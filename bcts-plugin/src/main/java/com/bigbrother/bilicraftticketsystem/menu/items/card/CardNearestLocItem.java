@@ -1,14 +1,13 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.card;
 
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
-import com.bigbrother.bilicraftticketsystem.config.MenuConfig;
 import com.bigbrother.bilicraftticketsystem.database.entity.BcspawnInfo;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuCard;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuLocationCard;
+import com.bigbrother.bilicraftticketsystem.menu.station.StationProvider;
 import com.bigbrother.bilicraftticketsystem.ticket.BCCard;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -42,7 +41,7 @@ public class CardNearestLocItem extends CardLocationItem {
 
         if (nearestBcspawn != null) {
             MenuCard menu = MenuCard.getMenu(player);
-            Component name = CommonUtils.mmStr2Component(MenuConfig.getLocationMenuConfig().get("content.%s.name".formatted(nearestBcspawn.getSpawnStation()), nearestBcspawn.getSpawnStation())).decoration(TextDecoration.ITALIC, false);
+            Component name = StationProvider.stationNameComponent(nearestBcspawn.getSpawnStation());
             if (fromMenu.isStart()) {
                 card.setStartStation(name);
             } else {

@@ -1,7 +1,10 @@
 package com.bigbrother.bilicraftticketsystem.ticket;
 
+import lombok.Getter;
+
 import java.util.Optional;
 
+@Getter
 public enum PassType {
     NONE("none"),
     TICKET("ticket"),
@@ -11,10 +14,6 @@ public enum PassType {
 
     PassType(String id) {
         this.id = id;
-    }
-
-    public String getId() {
-        return id;
     }
 
     public static Optional<PassType> fromId(String id) {

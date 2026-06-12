@@ -1,6 +1,5 @@
 package com.bigbrother.bilicraftticketsystem.menu.impl;
 
-import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.config.MenuConfig;
@@ -9,14 +8,11 @@ import com.bigbrother.bilicraftticketsystem.menu.items.location.LocationItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.common.ScrollDownItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.common.ScrollUpItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.location.NearestLocItem;
+import com.bigbrother.bilicraftticketsystem.menu.station.StationProvider;
 import lombok.Getter;
 import lombok.Setter;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import xyz.xenondevs.inventoryaccess.component.AdventureComponentWrapper;
 import xyz.xenondevs.invui.gui.ScrollGui;
@@ -29,7 +25,6 @@ import xyz.xenondevs.invui.window.Window;
 import java.util.*;
 
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
-import static com.bigbrother.bilicraftticketsystem.utils.CommonUtils.loadItemFromFile;
 
 
 public class MenuLocation extends Menu {
@@ -83,38 +78,14 @@ public class MenuLocation extends Menu {
             }
         }
 
-        // 添加物品
-        ConfigurationNode contents = locationConfig.getNode("content");
-        for (Map.Entry<String, Object> entry : contents.getValues().entrySet()) {
-            ConfigurationNode item = contents.getNode(entry.getKey());
-
-            // 设置物品信息
-            String material = item.get("material", "");
-            ItemStack customItem;
-            if (material.startsWith("item-")) {
-                customItem = loadItemFromFile(material.replaceFirst("item-", "").trim());
-            } else {
-                customItem = new ItemStack(Material.valueOf(material.trim()));
-            }
-            ItemMeta itemMeta = customItem.getItemMeta();
-            List<Component> lore = itemMeta.lore();
-            if (lore == null) {
-                lore = new ArrayList<>();
-            }
-            for (String s : item.getList("lore", String.class, Collections.emptyList())) {
-                lore.add(CommonUtils.mmStr2Component(s).decoration(TextDecoration.ITALIC, false));
-            }
-            itemMeta.lore(lore);
-            itemMeta.displayName(CommonUtils.mmStr2Component(item.get("name", String.class, "")).decoration(TextDecoration.ITALIC, false));
-            customItem.setItemMeta(itemMeta);
-
-            // 添加物品
-            guiBuilder.addContent(new LocationItem(customItem));
+        // 添加物品（车站列表实时来自 geojson 路由图）
+        for (StationProvider.StationEntry entry : StationProvider.listStations()) {
+            guiBuilder.addContent(new LocationItem(StationProvider.buildIcon(entry)));
         }
 
         this.window = Window.single()
                 .setViewer(player)
-                .setTitle(new AdventureComponentWrapper(Component.text(locationConfig.get("title", String.class, ""))))
+                .setTitle(new AdventureComponentWrapper(CommonUtils.mmStr2Component(locationConfig.get("title", String.class, ""))))
                 .setGui(guiBuilder.build())
                 .build();
 

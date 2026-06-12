@@ -3,28 +3,30 @@ package com.bigbrother.bilicraftticketsystem.ticket;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
-import com.bergerkiller.bukkit.tc.properties.standard.type.SignSkipOptions;
 import com.bigbrother.bctsguardplugin.GuardListeners;
-import com.bigbrother.bilicraftticketsystem.route.MermaidGraph;
-import com.bigbrother.bilicraftticketsystem.route.TrainRoutes;
+import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
+import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
+import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRoutePath;
+import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteNavigator;
+import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcStartNodeProperty;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
-import com.bigbrother.bilicraftticketsystem.addon.signactions.SignActionShowroute;
-import com.bigbrother.bilicraftticketsystem.addon.signactions.component.RouteBossbar;
+import com.bigbrother.bilicraftticketsystem.signactions.component.BossbarManager;
+import com.bigbrother.bilicraftticketsystem.signactions.component.ExpressRouteBossbar;
+import com.bigbrother.bilicraftticketsystem.signactions.component.RouteBossbarBase;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
-import com.bigbrother.bilicraftticketsystem.menu.PlayerOption;
+import com.bigbrother.bilicraftticketsystem.utils.PlaceholderParser;
 import lombok.Getter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -38,7 +40,10 @@ public abstract class BCTransitPass {
 
 
     protected ItemStack itemStack;
-    protected TrainRoutes.PathInfo pathInfo;
+    /**
+     * 本次行程的路径（geojson 路由引擎产出）。
+     */
+    protected GeoRoutePath pathInfo;
     protected double maxSpeed;
 
     /**
@@ -93,69 +98,62 @@ public abstract class BCTransitPass {
         TrainProperties trainProperties = group.getProperties();
         trainProperties.clearTickets();
 
-        // 设置skip
-        String[] split = MainConfig.skip.split(" ");
-        if (split.length == 3) {
-            trainProperties.setSkipOptions(SignSkipOptions.create(Integer.parseInt(split[1]), Integer.parseInt(split[2]), split[0]));
-        }
-
-        // 设置speed tag
+        // 设置speed
         trainProperties.setSpeedLimit(maxSpeed);
-        trainProperties.setTags(pathInfo.getTags().toArray(new String[0]));
+        // 写入导航序列（替代旧的 setTags：bcswitcher 据此按当前 lineId 选向）
+        BcRouteNavigator.setRoute(group, pathInfo.switcherLineIds());
         trainProperties.getHolder().onPropertiesChanged();
 
-        // 所有车厢显示bossbar
+        // 所有车厢显示直达车bossbar
         for (MinecartMember<?> minecartMember : group) {
-            RouteBossbar bossbar = SignActionShowroute.bossbarMapping.getOrDefault(minecartMember, null);
-            if ((bossbar == null || bossbar.getRouteId() != null)) {
-                bossbar = new RouteBossbar(pathInfo.getStartStation().getStationName(), pathInfo.getEndStation().getStationName(), pathInfo.getTags().size());
-                SignActionShowroute.bossbarMapping.put(minecartMember, bossbar);
+            RouteBossbarBase bossbar = BossbarManager.get(minecartMember);
+            if (!(bossbar instanceof ExpressRouteBossbar)) {
+                ExpressRouteBossbar express = new ExpressRouteBossbar(
+                        pathInfo.getStartStationName(), pathInfo.getEndStationName());
+                BossbarManager.put(minecartMember, express);
+                express.refreshProgress(0, pathInfo.switcherLineIds().size());
             }
         }
     }
 
     /**
-     * 获取路线详情lore
+     * 获取路线详情lore（只显示车站节点，箭头按该段所属 lineId 上色）。
      *
      * @param cntPerRow 每行最多显示的车站数量，<=0不限制
      */
     public List<Component> getPathInfoLore(int cntPerRow) {
         List<Component> lore = new ArrayList<>();
-        List<MermaidGraph.Node> path = pathInfo.getPath();
+        List<GeoRoutePath.StationStep> steps = pathInfo.stationSteps();
         Component join = Component.text("");
         int cnt = 0;
-        for (int i = 0; i < path.size(); i++) {
-            MermaidGraph.Node node = path.get(i);
-            if (!node.isStation()) {
-                continue;
-            }
+        for (int i = 0; i < steps.size(); i++) {
+            GeoRoutePath.StationStep step = steps.get(i);
+            String stationName = step.stationName();
 
-            String stationName = node.getStationName();
-            String railwayName = node.getRailwayName() + node.getRailwayDirection();
-
-            if (i == path.size() - 1) {
+            if (i == steps.size() - 1) {
                 // 终到站
                 join = join.append(Component.text(stationName, NamedTextColor.GOLD)
                         .decoration(TextDecoration.ITALIC, false));
                 lore.add(join);
                 break;
             }
+            TextColor arrowColor = lineColor(step.departLineId());
             if (cnt == 0) {
                 // 起始站
                 join = join.append(Component.text(stationName, NamedTextColor.GOLD)
-                        .append(Component.text("→", CommonUtils.getRailwayColor(railwayName)))
+                        .append(Component.text("→", arrowColor))
                         .decoration(TextDecoration.ITALIC, false));
             } else if (cntPerRow <= 0 || cnt % cntPerRow != 0) {
                 // 经过站
                 join = join.append(Component.text(stationName, NamedTextColor.GRAY)
-                        .append(Component.text("→", CommonUtils.getRailwayColor(railwayName)))
+                        .append(Component.text("→", arrowColor))
                         .decoration(TextDecoration.ITALIC, true));
             } else {
                 lore.add(join);
                 // 开始新的一行
                 join = Component.text("");
                 join = join.append(Component.text(stationName, NamedTextColor.GRAY)
-                        .append(Component.text("→", CommonUtils.getRailwayColor(railwayName)))
+                        .append(Component.text("→", arrowColor))
                         .decoration(TextDecoration.ITALIC, true));
             }
             cnt += 1;
@@ -164,37 +162,36 @@ public abstract class BCTransitPass {
     }
 
     /**
-     * 获取途经铁路lore
+     * 获取途经线路lore（按经过顺序列出沿途 lineId 对应的线路名，相邻去重）。
      *
-     * @param cntPerRow 每行最多显示的车站数量，<=0不限制
+     * @param cntPerRow 每行最多显示的线路数量，<=0不限制
      */
     public List<Component> getRailwayInfoLore(int cntPerRow) {
         List<Component> lore = new ArrayList<>();
-        List<String> railways = new ArrayList<>();
+        List<String> lineIds = new ArrayList<>();
 
-        for (MermaidGraph.Node node : pathInfo.getPath()) {
-            if (!node.isStation()) {
+        for (String lineId : pathInfo.getLineIdSequence()) {
+            if (lineId == null || lineId.isEmpty() || LineInfo.isSpecialId(lineId)) {
                 continue;
             }
-
-            String railwayName = node.getRailwayName() + node.getRailwayDirection();
-            if (!railways.isEmpty() && !railways.get(railways.size() - 1).equals(railwayName)) {
-                railways.add(railwayName);
-            } else if (railways.isEmpty()) {
-                railways.add(railwayName);
+            // 相邻去重
+            if (lineIds.isEmpty() || !lineIds.get(lineIds.size() - 1).equals(lineId)) {
+                lineIds.add(lineId);
             }
         }
 
         Component stationsLore = Component.text("");
-        for (int i = 0; i < railways.size(); i++) {
+        for (int i = 0; i < lineIds.size(); i++) {
             if (i != 0 && cntPerRow > 0 && i % cntPerRow == 0) {
                 lore.add(stationsLore);
                 stationsLore = Component.text("");
             }
-            if (i == railways.size() - 1) {
-                stationsLore = stationsLore.append(Component.text(railways.get(i), CommonUtils.getRailwayColor(railways.get(i))));
+            String lineName = lineName(lineIds.get(i));
+            TextColor color = lineColor(lineIds.get(i));
+            if (i == lineIds.size() - 1) {
+                stationsLore = stationsLore.append(Component.text(lineName, color));
             } else {
-                stationsLore = stationsLore.append(Component.text(railways.get(i) + "→", CommonUtils.getRailwayColor(railways.get(i))));
+                stationsLore = stationsLore.append(Component.text(lineName + "→", color));
             }
         }
         lore.add(stationsLore);
@@ -202,18 +199,30 @@ public abstract class BCTransitPass {
         return lore;
     }
 
+    /**
+     * 线路 id → 显示色（取 {@link LineConfig#getColor}，无效时回退金色）。
+     */
+    protected static TextColor lineColor(String lineId) {
+        if (lineId == null) {
+            return NamedTextColor.GOLD;
+        }
+        TextColor color = TextColor.fromHexString(LineConfig.getColor(lineId));
+        return color == null ? NamedTextColor.GOLD : color;
+    }
+
+    /**
+     * 线路 id → 线路名（取 {@link LineConfig} 的 lineName，缺省回退 lineId 本身）。
+     */
+    protected static String lineName(String lineId) {
+        LineInfo info = LineConfig.get(lineId);
+        return info == null || info.getLineName() == null ? lineId : info.getLineName();
+    }
+
     public List<Component> parseConfigLore(List<String> originLore, @NotNull Map<String, Object> initPlaceholders) {
         if (pathInfo != null) {
-            MermaidGraph.Node start = pathInfo.getStartStation();
-            MermaidGraph.Node end = pathInfo.getEndStation();
-
-            initPlaceholders.putIfAbsent("startStationName", start.getStationName());
-            initPlaceholders.putIfAbsent("startRailwayDirection", start.getRailwayDirection());
-            initPlaceholders.putIfAbsent("startRailwayName", start.getRailwayName());
-
-            initPlaceholders.putIfAbsent("endStationName", end.getStationName());
-            initPlaceholders.putIfAbsent("endRailwayDirection", end.getRailwayDirection());
-            initPlaceholders.putIfAbsent("endRailwayName", end.getRailwayName());
+            initPlaceholders.putIfAbsent("startStationName", pathInfo.getStartStationName());
+            initPlaceholders.putIfAbsent("startRailwayName", lineName(pathInfo.getStartLineId()));
+            initPlaceholders.putIfAbsent("endStationName", pathInfo.getEndStationName());
 
             initPlaceholders.putIfAbsent("PathInfoLore", getPathInfoLore(MainConfig.loreStationNameCntRow));
             initPlaceholders.putIfAbsent("RailwayInfoLore", getRailwayInfoLore(MainConfig.loreRailwayNameCntRow));
@@ -225,49 +234,43 @@ public abstract class BCTransitPass {
         return PlaceholderParser.parse(originLore, initPlaceholders);
     }
 
-    public static boolean verifyPlatform(String pTag, Collection<String> trainTags) {
-        if (pTag.equals(PlayerOption.NOT_AVALIABLE)) {
-            return true;
-        }
-
-        MermaidGraph.Node expectStartNode = TrainRoutes.graph.getNodeFromPtag(pTag);
-        if (expectStartNode != null) {
-            MermaidGraph.Node trainSpawnNode = getTrainStartNode(trainTags);
-
-            if (trainSpawnNode != null) {
-                // 找到
-                return expectStartNode.getTag().equals(trainSpawnNode.getTag()) &&
-                        expectStartNode.getRailwayDirection().startsWith(trainSpawnNode.getRailwayDirection());
-            }
-        }
-        return true;
-    }
-
-    public static @Nullable String getTrainStartPtag(Collection<String> trainTags) {
-        MermaidGraph.Node trainSpawnNode = getTrainStartNode(trainTags);
-        if (trainSpawnNode != null) {
-            return trainSpawnNode.getPlatformTag();
-        }
-        return null;
-    }
-
-    public static @Nullable MermaidGraph.Node getTrainStartNode(Collection<String> trainTags) {
-        for (String trainTag : trainTags) {
-            MermaidGraph.Node trainSpawnNode = TrainRoutes.graph.getNodeFromPtag(trainTag);
-            if (trainSpawnNode != null) {
-                // 找到
-                return trainSpawnNode;
-            }
-        }
-        return null;
-    }
-
     public static boolean isBCTransitPass(ItemStack itemStack) {
         return BCTicket.isBctsTicket(itemStack) || BCCard.isBctsCard(itemStack);
     }
 
     public static boolean isNewPRTrain(MinecartGroup group) {
         return group.getProperties().getTickets().contains(MainConfig.expressTicketName);
+    }
+
+    /**
+     * 列车上车起点车站名（新模型：bcspawn 发车时记录到列车属性，替代旧的「读 tag 解析站台」）。
+     *
+     * @param group 列车
+     * @return 起点车站名；未记录返回空串
+     */
+    public static String getTrainStartStationName(MinecartGroup group) {
+        return BcStartNodeProperty.read(group);
+    }
+
+    /**
+     * 列车所属营运线路 id：取列车 tag 中第一个在 routes.yml 中存在且非特殊（非 default / contact）的 lineId。
+     * <p>
+     * bcspawn 发车时把线路 id 作为 tag 加到列车上（{@code addTags(lineId)}），故据此识别列车所属线路。
+     *
+     * @param group 列车
+     * @return 营运线路 id；找不到返回空串
+     */
+    public static String getTrainLineId(MinecartGroup group) {
+        if (group == null) {
+            return "";
+        }
+        for (String tag : group.getProperties().getTags()) {
+            LineInfo info = LineConfig.get(tag);
+            if (info != null && !info.isSpecial()) {
+                return tag;
+            }
+        }
+        return "";
     }
 
     // 计算票价

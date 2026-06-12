@@ -175,19 +175,19 @@ public class TrainListeners implements Listener {
     }
 
     // 判断是初始车（没人上过车）
-    private boolean isInitTrain(MinecartGroup group) {
+    public static boolean isInitTrain(MinecartGroup group) {
         // 不管是普通车还是快速车，上车后tc的ticket属性都会清除
         return group.getProperties().getTickets().contains(MainConfig.expressTicketName);
     }
 
     // 判断是普通车
-    private boolean isCommonTrain(MinecartGroup group) {
+    public static boolean isCommonTrain(MinecartGroup group) {
         // trainTicketInfo没有不一定就是普通车，还有可能是初始车
         return !trainTicketInfo.containsKey(group) && !isInitTrain(group);
     }
 
     // 判断是快速车
-    private boolean isExpressTrain(MinecartGroup group) {
+    public static boolean isExpressTrain(MinecartGroup group) {
         return !isCommonTrain(group);
     }
 }

@@ -1,7 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.card;
 
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
-import com.bigbrother.bilicraftticketsystem.menu.PlayerOption;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuLocationCard;
 import com.bigbrother.bilicraftticketsystem.menu.items.common.CoolDownItem;
 import com.bigbrother.bilicraftticketsystem.ticket.BCCard;
@@ -37,7 +36,7 @@ public class CardStartEndItem extends CoolDownItem {
         if (isStart) {
             itemMeta = startItemStack.getItemMeta();
             itemMeta.lore(List.of(
-                    Component.text("当前选择：", NamedTextColor.DARK_AQUA).append(card != null ? card.getCardInfo().getStartStation().decoration(TextDecoration.ITALIC, true) : PlayerOption.NOT_AVALIABLE_COMPONENT),
+                    Component.text("当前选择：", NamedTextColor.DARK_AQUA).append(card != null ? card.getCardInfo().getStartStation().decoration(TextDecoration.ITALIC, true) : CommonUtils.NOT_AVAILABLE_COMPONENT),
                     Component.text(""),
                     Component.text("左键选择起始站，右键清除选择", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false)
             ));
@@ -46,7 +45,7 @@ public class CardStartEndItem extends CoolDownItem {
         } else {
             itemMeta = endItemStack.getItemMeta();
             itemMeta.lore(List.of(
-                    Component.text("当前选择：", NamedTextColor.DARK_AQUA).append(card != null ? card.getCardInfo().getEndStation().decoration(TextDecoration.ITALIC, true) : PlayerOption.NOT_AVALIABLE_COMPONENT),
+                    Component.text("当前选择：", NamedTextColor.DARK_AQUA).append(card != null ? card.getCardInfo().getEndStation().decoration(TextDecoration.ITALIC, true) : CommonUtils.NOT_AVAILABLE_COMPONENT),
                     Component.text(""),
                     Component.text("左键选择终到站，右键清除选择", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false)
             ));

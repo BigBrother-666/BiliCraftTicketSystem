@@ -1,16 +1,15 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.location;
 
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
-import com.bigbrother.bilicraftticketsystem.config.MenuConfig;
 import com.bigbrother.bilicraftticketsystem.database.entity.BcspawnInfo;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuFilter;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuLocation;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
+import com.bigbrother.bilicraftticketsystem.menu.station.StationProvider;
 import lombok.Getter;
 import lombok.Setter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -40,7 +39,7 @@ public class NearestLocItem extends LocationItem {
     public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent event) {
         if (nearestBcspawn != null) {
             MenuMain menu = MenuMain.getMenu(player);
-            Component name = CommonUtils.mmStr2Component(MenuConfig.getLocationMenuConfig().get("content.%s.name".formatted(nearestBcspawn.getSpawnStation()), nearestBcspawn.getSpawnStation())).decoration(TextDecoration.ITALIC, false);
+            Component name = StationProvider.stationNameComponent(nearestBcspawn.getSpawnStation());
             if (MenuLocation.getMenu(player).isStart()) {
                 menu.getPlayerOption().setStartStation(name);
             } else {

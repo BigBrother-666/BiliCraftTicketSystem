@@ -5,8 +5,8 @@ import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -23,13 +23,27 @@ import static com.bigbrother.bilicraftticketsystem.config.ItemsConfig.itemsConfi
 
 public class CommonUtils {
     private static final MiniMessage MM = MiniMessage.miniMessage();
+    public static final String NOT_AVAILABLE = "N/A";
+    public static final Component NOT_AVAILABLE_COMPONENT = Component.text(NOT_AVAILABLE, NamedTextColor.RED).decoration(TextDecoration.ITALIC, TextDecoration.State.NOT_SET);
+    public static final String NOT_AVAILABLE_MM = component2MmStr(NOT_AVAILABLE_COMPONENT);
 
-    public static Component legacyStr2Component(String s) {
-        return LegacyComponentSerializer.legacyAmpersand().deserialize(s);
+    public static MiniMessage miniMessage() {
+        return MM;
     }
 
+    /**
+     * 解析含 legacy &amp; 代码的配置文本。等价于 {@link #mmStr2Component(String)}，
+     * 二者都同时支持 MiniMessage 与 &amp; 代码（见 {@link PlaceholderParser#toComponent(String)}）。
+     */
+    public static Component legacyStr2Component(String s) {
+        return PlaceholderParser.toComponent(s);
+    }
+
+    /**
+     * 解析配置文本为 Component，同时支持 MiniMessage 标签与 legacy &amp; 颜色代码。
+     */
     public static Component mmStr2Component(String s) {
-        return MM.deserialize(s);
+        return PlaceholderParser.toComponent(s);
     }
 
     public static String component2MmStr(Component c) {

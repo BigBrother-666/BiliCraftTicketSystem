@@ -3,17 +3,25 @@ package com.bigbrother.bilicraftticketsystem.commands;
 import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.commands.argument.StatisticsType;
-import com.bigbrother.bilicraftticketsystem.route.MermaidGraph;
+import com.bigbrother.bilicraftticketsystem.database.OldDatabaseMigrator;
+import com.bigbrother.bilicraftticketsystem.listeners.TrainListeners;
+import com.bigbrother.bilicraftticketsystem.route.geograph.GeoNode;
+import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRoutePath;
+import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteNavigator;
+import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteProperty;
+import com.bigbrother.bilicraftticketsystem.route.geograph.nav.SwitchTrace;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTransitPass;
-import net.coreprotect.CoreProtectAPI;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
@@ -25,8 +33,6 @@ import org.incendo.cloud.annotations.Permission;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
-import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
 
@@ -53,6 +59,34 @@ public class AdminCommand {
             plugin.getComponentLogger().info(Component.text("配置文件重载中...", NamedTextColor.GOLD));
         }
         Bukkit.getScheduler().runTaskAsynchronously(plugin, sender -> plugin.loadConfig(commandSender));
+    }
+
+    @CommandDescription("从旧数据库 data.db 迁移交通卡与车票背景数据到新库 bcts.db（跳过已存在，可重复执行）")
+    @Command("ticket migrate-olddb")
+    @Permission("bcts.ticket.migrate")
+    public void migrateOldDb(
+            CommandSender sender
+    ) {
+        OldDatabaseMigrator migrator = new OldDatabaseMigrator(plugin, plugin.getTrainDatabaseManager().getDs());
+        if (!migrator.oldDatabaseExists()) {
+            sender.sendMessage(Component.text("未找到旧数据库 data.db，无需迁移", NamedTextColor.RED));
+            return;
+        }
+        sender.sendMessage(Component.text("开始从 data.db 迁移数据...", NamedTextColor.AQUA));
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            OldDatabaseMigrator.Result result = migrator.migrate();
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (result.failed) {
+                    sender.sendMessage(Component.text("迁移过程出错，请查看控制台日志", NamedTextColor.RED));
+                    return;
+                }
+                sender.sendMessage(Component.text(
+                        "迁移完成：card_info %d 条，ticketbg_info %d 条，ticketbg_usage_info %d 条".formatted(
+                                result.cardInfo, result.ticketbgInfo, result.ticketbgUsage), NamedTextColor.GREEN));
+                // 刷新交通卡缓存，使迁入的卡立即可用
+                com.bigbrother.bilicraftticketsystem.ticket.BCCardInfo.reloadAllCache();
+            });
+        });
     }
 
     @CommandDescription("添加菜单物品")
@@ -151,39 +185,101 @@ public class AdminCommand {
         sender.sendMessage(Component.text(String.join(", ", fontNames), NamedTextColor.GREEN));
     }
 
-    @CommandDescription("从CoreProtect数据库导入发车信息，指针对准发车按钮输入此指令")
-    @Command("ticket co add <platformTag>")
-    @Permission("bcts.ticket.co")
-    public void co(
-            Player player,
-            @Argument(value = "platformTag", description = "当前所在的站台tag", parserName = "platformTag")
-            MermaidGraph.Node platformTag
+    @CommandDescription("调试：输出当前所坐列车的信息（车型 / 线路 / 起点站 / 路线 / 导航）")
+    @Command("ticket traininfo")
+    @Permission("bcts.ticket.traininfo")
+    public void trainInfo(
+            Player player
     ) {
-        CoreProtectAPI coreProtectAPI = plugin.getCoreProtectAPI();
-        if (coreProtectAPI == null) {
-            player.sendMessage(Component.text("未检测到CoreProtect插件！", NamedTextColor.RED));
+        MinecartMember<?> member = MinecartMemberStore.getFromEntity(player.getVehicle());
+        if (member == null || member.getGroup() == null) {
+            player.sendMessage(Component.text("你当前没有坐在列车上", NamedTextColor.RED));
             return;
         }
+        MinecartGroup group = member.getGroup();
+        TrainProperties props = group.getProperties();
 
-        Block targetBlock = player.getTargetBlockExact(5);
-        if (targetBlock != null && (targetBlock.getType().toString().toUpperCase().endsWith("BUTTON"))) {
-            int cnt = 0;
-            java.util.List<String[]> resultList = coreProtectAPI.blockLookup(targetBlock, (int) (System.currentTimeMillis() / 1000L));
-            List<String> dateTime = new ArrayList<>();
-            for (String[] s : resultList) {
-                CoreProtectAPI.ParseResult parsed = coreProtectAPI.parseResult(s);
-                if (parsed.getActionId() == 2) {
-                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                    sdf.setTimeZone(TimeZone.getDefault());
-                    cnt += 1;
-                    dateTime.add(sdf.format(new Timestamp(parsed.getTimestamp())));
-                }
-            }
-            plugin.getTrainDatabaseManager().getBcspawnService().addBcspawnInfo(platformTag, dateTime);
-            player.sendMessage(Component.text("成功添加 %d 条数据".formatted(cnt), NamedTextColor.GREEN));
+        // 车型
+        String type;
+        if (TrainListeners.isCommonTrain(group)) {
+            type = "普通车";
+        } else if (TrainListeners.isInitTrain(group)) {
+            type = "初始车（已发车，尚无人持凭证上车）";
         } else {
-            player.sendMessage(Component.text("目标方块不是按钮！", NamedTextColor.RED));
+            type = "快速车（直达车）";
         }
+
+        player.sendMessage(Component.text("========= 列车调试信息 =========", NamedTextColor.AQUA));
+        player.sendMessage(Component.text("车型：", NamedTextColor.GRAY).append(Component.text(type, NamedTextColor.WHITE)));
+        player.sendMessage(Component.text("车厢数：", NamedTextColor.GRAY).append(Component.text(String.valueOf(group.size()), NamedTextColor.WHITE)));
+        player.sendMessage(Component.text("速度上限：", NamedTextColor.GRAY).append(Component.text("%.2f b/t（%.2f km/h）".formatted(props.getSpeedLimit(), CommonUtils.mpt2Kph(props.getSpeedLimit())), NamedTextColor.WHITE)));
+
+        // 列车 tag / 营运线 / 起点站（新模型 verify 依据）
+        player.sendMessage(Component.text("Tags：", NamedTextColor.GRAY).append(Component.text(
+                props.getTags().isEmpty() ? "(无)" : String.join(", ", props.getTags()), NamedTextColor.WHITE)));
+        String lineId = BCTransitPass.getTrainLineId(group);
+        player.sendMessage(Component.text("营运线 lineId：", NamedTextColor.GRAY).append(Component.text(
+                lineId.isEmpty() ? "(无)" : lineId, NamedTextColor.WHITE)));
+        String startStation = BCTransitPass.getTrainStartStationName(group);
+        player.sendMessage(Component.text("起点站：", NamedTextColor.GRAY).append(Component.text(
+                startStation.isEmpty() ? "(未记录)" : startStation, NamedTextColor.WHITE)));
+
+        // 已应用的凭证路线（仅快速车有）
+        BCTransitPass pass = TrainListeners.trainTicketInfo.get(group);
+        if (pass != null && pass.getPathInfo() != null) {
+            GeoRoutePath path = pass.getPathInfo();
+            player.sendMessage(Component.text("行程：", NamedTextColor.GRAY).append(Component.text(
+                    "%s → %s（%.2f km）".formatted(path.getStartStationName(), path.getEndStationName(), path.getDistance()), NamedTextColor.GOLD)));
+            player.sendMessage(Component.text("途经车站：", NamedTextColor.GRAY).append(Component.text(
+                    String.join(" → ", path.stationSequence()), NamedTextColor.WHITE)));
+            // 规划路线的完整节点序列（站台 / 道岔 + 该节点驶出段 lineId），用于对照实际经过的物理道岔
+            player.sendMessage(Component.text("规划节点序列（节点 | 驶出段lineId）：", NamedTextColor.GRAY));
+            List<GeoNode> nodes = path.getNodes();
+            List<String> seq = path.getLineIdSequence();
+            for (int i = 0; i < nodes.size(); i++) {
+                GeoNode n = nodes.get(i);
+                String kind = n.isStation() ? ("站台 " + n.getName()) : "道岔";
+                String depart = i < seq.size() ? seq.get(i) : "(终点)";
+                NamedTextColor c = n.isStation() ? NamedTextColor.AQUA : NamedTextColor.WHITE;
+                player.sendMessage(Component.text("  %2d. ".formatted(i), NamedTextColor.DARK_GRAY)
+                        .append(Component.text(kind, c))
+                        .append(Component.text(" @" + n.getId(), NamedTextColor.DARK_GRAY))
+                        .append(Component.text(" → " + depart, NamedTextColor.GOLD)));
+            }
+            player.sendMessage(Component.text("导航序列（各道岔应选）：", NamedTextColor.GRAY).append(Component.text(
+                    path.switcherLineIds().toString(), NamedTextColor.WHITE)));
+        } else {
+            player.sendMessage(Component.text("行程：", NamedTextColor.GRAY).append(Component.text("(无已应用凭证路线)", NamedTextColor.WHITE)));
+        }
+
+        // 列车实际携带的导航序列（来自 train property，可能与上面凭证的不同——比如手动改过）
+        List<String> liveRoute = props.get(BcRouteProperty.INSTANCE);
+        player.sendMessage(Component.text("列车实际导航序列：", NamedTextColor.GRAY).append(Component.text(
+                liveRoute == null || liveRoute.isEmpty() ? "(无)" : liveRoute.toString(), NamedTextColor.WHITE)));
+
+        // 导航序列与进度
+        int[] progress = BcRouteNavigator.progress(group);
+        player.sendMessage(Component.text("导航进度：", NamedTextColor.GRAY).append(Component.text(
+                "%d / %d 个道岔".formatted(progress[0], progress[1]), NamedTextColor.WHITE)));
+        String current = BcRouteNavigator.currentLineId(group);
+        player.sendMessage(Component.text("下一道岔应选线路：", NamedTextColor.GRAY).append(Component.text(
+                current == null ? "(无 / 已走完)" : current, NamedTextColor.WHITE)));
+        player.sendMessage(Component.text("==============================", NamedTextColor.AQUA));
+    }
+
+    @CommandDescription("调试：开关道岔选向追踪（开启后列车每经过 bcswitcher 打印选向到控制台）")
+    @Command("ticket switchtrace <state>")
+    @Permission("bcts.ticket.traininfo")
+    public void switchTrace(
+            CommandSender sender,
+            @Argument(value = "state", description = "on / off", suggestions = "switchTraceState")
+            String state
+    ) {
+        boolean on = state.equalsIgnoreCase("on") || state.equalsIgnoreCase("true") || state.equals("1");
+        SwitchTrace.setEnabled(on);
+        sender.sendMessage(Component.text(
+                "道岔选向追踪已" + (on ? "开启（每辆列车经过 bcswitcher 会打印到控制台）" : "关闭"),
+                on ? NamedTextColor.GREEN : NamedTextColor.GRAY));
     }
 
     @CommandDescription("查询n天内的某类型的统计信息")
@@ -203,7 +299,7 @@ public class AdminCommand {
                 sender.sendMessage(plugin.getTrainDatabaseManager().getBcspawnService().getDailySpawn(days));
                 break;
             case TICKET_REVENUE:
-                sender.sendMessage(plugin.getTrainDatabaseManager().getTransitPassService().getDailyRevenue(days));
+                sender.sendMessage(plugin.getTrainDatabaseManager().getRevenueService().getDailyRevenue(days));
                 break;
             case TRANSIT_PASS_USAGE:
                 sender.sendMessage(plugin.getTrainDatabaseManager().getTransitPassService().getDailyTransitPassUsage(days));

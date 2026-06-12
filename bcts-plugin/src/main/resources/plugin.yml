@@ -4,8 +4,6 @@ author: BigBrother
 main: com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem
 api-version: '1.20'
 depend: [ Train_Carts, BKCommonLib, Vault ]
-softdepend:
-  - CoreProtect
 
 permissions:
   bcts.ticket.open:
@@ -35,20 +33,20 @@ permissions:
   bcts.ticket.statistics:
     description: "查看统计数据权限"
     default: op
-  bcts.ticket.co:
-    description: "co数据导入权限"
+  bcts.ticket.migrate:
+    description: "从旧数据库迁移数据权限"
+    default: op
+  bcts.ticket.traininfo:
+    description: "查看当前所坐列车调试信息权限"
     default: op
   bcts.buildsign.bcspawn:
     description: "放置bcspawn控制牌权限"
     default: op
-  bcts.buildsign.showroute:
-    description: "放置showroute控制牌权限"
+  bcts.buildsign.platform:
+    description: "放置platform站台控制牌权限"
     default: op
-  bcts.ticket.addroute:
-    description: "添加route权限"
-    default: op
-  bcts.ticket.delroute:
-    description: "删除route权限"
+  bcts.buildsign.bcswitcher:
+    description: "放置bcswitcher道岔控制牌权限"
     default: op
   bcts.ticket.getcard:
     description: "获取交通卡权限"

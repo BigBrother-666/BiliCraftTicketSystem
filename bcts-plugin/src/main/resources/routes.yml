@@ -1,0 +1,39 @@
+# 线路配置文件
+# 每个顶层键是一个线路 id（bcswitcher / bcspawn 控制牌中 "方向@线路id" 的线路id）。
+# 特殊 id：
+#   contact —— 联络线（区间间的连接线，地图上以中性色显示）
+#   default —— 到发线（车站进出站股道，不属于任何营运线路）
+# 普通线路含完整 bossbar / 进出站提示信息。
+
+# 联络线
+contact:
+  line-name: "联络线"
+  line-color: "#868686"
+
+# 正线
+default:
+  line-name: "正线"
+
+# 线路id
+pr-cw:
+  # 线路基本信息
+  line-name: "环线（顺时针方向）" # 线路名称
+  line-color: "#AA0000"        # 线路标志色
+  # bossbar设置
+  bossbar-stations:  # 车站列表
+    - "Station A"
+    - "Station B"
+    - "Station C"
+    - "Station A"
+  bossbar-arrival-notice: "&6列车已到达 &c{curr_station}站"  # 到站bossbar提示
+  bossbar-color: "RED"                                     # bossbar颜色
+  # 普通车进出站提示
+  # announce 文字同时支持 MiniMessage 标签（如 <red>）与 & 颜色代码，可混用
+  # 可用占位符：{curr_station} 当前站、{next_station} 下一站、{line_name} 线路名
+  notice-arrival: # 进站提示，支持announce, sound...
+    - "sound:noteblock.xxxx,0.56,0.5"
+    - "announce:列车即将到达 &c{curr_station}站"
+  notice-departure: # 出站提示
+    - "sound:noteblock.xxxx,0.8,0.5"
+    - "announce:欢迎乘坐&6{line_name}"
+    - "announce:下一站: &c{next_station}"

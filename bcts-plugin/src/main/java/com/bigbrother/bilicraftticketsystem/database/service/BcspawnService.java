@@ -1,12 +1,11 @@
 package com.bigbrother.bilicraftticketsystem.database.service;
 
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
-import com.bigbrother.bilicraftticketsystem.route.MermaidGraph;
-import com.bigbrother.bilicraftticketsystem.route.TrainRoutes;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
-import com.bigbrother.bilicraftticketsystem.database.dao.BcspawnCoordDao;
 import com.bigbrother.bilicraftticketsystem.database.dao.BcspawnRecordDao;
 import com.bigbrother.bilicraftticketsystem.database.entity.BcspawnInfo;
+import com.bigbrother.bilicraftticketsystem.route.geograph.GeoNode;
+import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRouteEngine;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.HoverEvent;
 import org.bukkit.Bukkit;
@@ -18,72 +17,57 @@ import java.util.List;
 
 public class BcspawnService {
     private final BiliCraftTicketSystem plugin;
-    private final BcspawnCoordDao coordDao;
     private final BcspawnRecordDao recordDao;
 
-    public BcspawnService(BiliCraftTicketSystem plugin, BcspawnCoordDao coordDao, BcspawnRecordDao recordDao) {
+    public BcspawnService(BiliCraftTicketSystem plugin, BcspawnRecordDao recordDao) {
         this.plugin = plugin;
-        this.coordDao = coordDao;
         this.recordDao = recordDao;
     }
 
-    public void addBcspawnCoord(String startPlatformTag, int x, int y, int z, String world) {
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            MermaidGraph.Node bcSpawnNode = TrainRoutes.graph.getNodeFromPtag(startPlatformTag);
-            if (bcSpawnNode == null || !bcSpawnNode.isStation()) {
-                return;
-            }
-
-            String station = bcSpawnNode.getStationName();
-            String railway = bcSpawnNode.getRailwayName();
-            String direction = bcSpawnNode.getRailwayDirection();
-
-            if (station == null || railway == null) {
-                return;
-            }
-
-            BcspawnInfo bcspawnInfo = coordDao.findByLocation(station, railway, direction);
-            if (bcspawnInfo == null) {
-                coordDao.insertCoord(station, direction, railway, bcSpawnNode.getTag(), x, y, z, world);
-            } else if (!(bcspawnInfo.getCoordX() == x && bcspawnInfo.getCoordY() == y && bcspawnInfo.getCoordY() == z)) {
-                coordDao.updateCoord(station, direction, railway, x, y, z, world);
-            }
-        });
-    }
-
+    /**
+     * 获取全部车站坐标点，供"最近车站"功能按距离检索。
+     * <p>
+     * 数据来源为 geojson 路由图的车站节点（每个站台节点一项），不再依赖数据库坐标表。
+     * 一个站名可能对应多个站台节点，各自独立参与最近距离计算。
+     *
+     * @return 车站坐标点列表
+     */
     public List<BcspawnInfo> getAllBcspawnInfo() {
-        return coordDao.findAll();
+        List<BcspawnInfo> result = new ArrayList<>();
+        for (GeoNode node : GeoRouteEngine.allStationNodes()) {
+            String world = node.getWorld();
+            if (world == null) {
+                continue;
+            }
+            result.add(new BcspawnInfo(
+                    node.getName(),
+                    "",
+                    "",
+                    "",
+                    (int) Math.round(node.getX()),
+                    (int) Math.round(node.getY()),
+                    (int) Math.round(node.getZ()),
+                    world
+            ));
+        }
+        return result;
     }
 
-    public void addBcspawnInfo(MermaidGraph.Node bcSpawnNode, List<String> dateTime) {
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            if (bcSpawnNode == null || !bcSpawnNode.isStation()) {
-                return;
-            }
-
-            String station = bcSpawnNode.getStationName();
-            String railway = bcSpawnNode.getRailwayName();
-            String direction = bcSpawnNode.getRailwayDirection();
-
-            if (station == null || railway == null) {
-                return;
-            }
-
-            for (String d : dateTime) {
-                String spawnTime = d != null ? d : nowAsString();
-                recordDao.insertRecord(spawnTime, station, direction, railway);
-            }
-        });
-    }
-
-    public void addBcspawnInfo(String startPlatformTag, String dateTime) {
-        addBcspawnInfo(TrainRoutes.graph.getNodeFromPtag(startPlatformTag), List.of(dateTime));
-    }
-
-    public void addBcspawnInfo(String startPlatformTag) {
-        List<String> noDate = new ArrayList<>();
-        noDate.add(null);
-        addBcspawnInfo(TrainRoutes.graph.getNodeFromPtag(startPlatformTag), noDate);
+    /**
+     * 记录一次发车事件（新 bcspawn 控制牌使用）。
+     * <p>
+     * 新控制牌直接在牌面携带车站名与线路 id，无需再经图解析。
+     * 线路 id 暂存入 spawn_railway 列，方向列留空（数据库 schema 的进一步调整见 Phase 6）。
+     *
+     * @param station 当前车站名
+     * @param lineId  线路 id
+     */
+    public void recordSpawn(String station, String lineId) {
+        if (station == null || station.isEmpty()) {
+            return;
+        }
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () ->
+                recordDao.insertRecord(nowAsString(), station, "", lineId));
     }
 
     public Component getDailySpawn(int days) {

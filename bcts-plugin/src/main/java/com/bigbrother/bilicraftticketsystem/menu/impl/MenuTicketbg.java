@@ -10,7 +10,6 @@ import com.bigbrother.bilicraftticketsystem.menu.items.common.NextpageItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.common.PrevpageItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.ticketbg.*;
 import lombok.Getter;
-import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -112,7 +111,7 @@ public class MenuTicketbg extends Menu {
         gui = guiBuilder.build();
         this.window = Window.single()
                 .setViewer(player)
-                .setTitle(new AdventureComponentWrapper(Component.text(ticketbgConfig.get("title", String.class, ""))))
+                .setTitle(new AdventureComponentWrapper(CommonUtils.mmStr2Component(ticketbgConfig.get("title", String.class, ""))))
                 .setGui(gui)
                 .build();
 

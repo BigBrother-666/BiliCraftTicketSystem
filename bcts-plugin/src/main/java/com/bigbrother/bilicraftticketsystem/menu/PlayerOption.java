@@ -4,15 +4,10 @@ import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import lombok.Data;
 import lombok.Getter;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 
 @Data
 public class PlayerOption {
-    public static final String NOT_AVALIABLE = "N/A";
-    public static final Component NOT_AVALIABLE_COMPONENT = Component.text(NOT_AVALIABLE, NamedTextColor.RED).decoration(TextDecoration.ITALIC, TextDecoration.State.NOT_SET);
-    public static final String NOT_AVALIABLE_MM = CommonUtils.component2MmStr(NOT_AVALIABLE_COMPONENT);
-
     @Getter
     protected Component startStation;
     @Getter
@@ -35,10 +30,10 @@ public class PlayerOption {
     }
 
     public PlayerOption() {
-        this.startStation = NOT_AVALIABLE_COMPONENT;
-        this.endStation = NOT_AVALIABLE_COMPONENT;
-        this.startStationString = NOT_AVALIABLE;
-        this.endStationString = NOT_AVALIABLE;
+        this.startStation = CommonUtils.NOT_AVAILABLE_COMPONENT;
+        this.endStation = CommonUtils.NOT_AVAILABLE_COMPONENT;
+        this.startStationString = CommonUtils.NOT_AVAILABLE;
+        this.endStationString = CommonUtils.NOT_AVAILABLE;
         this.speed = 4.0;
         this.uses = 1;
     }
@@ -48,8 +43,8 @@ public class PlayerOption {
             this.startStation = startStation;
             this.startStationString = CommonUtils.component2Str(startStation);
         } else {
-            this.startStation = NOT_AVALIABLE_COMPONENT;
-            this.startStationString = NOT_AVALIABLE;
+            this.startStation = CommonUtils.NOT_AVAILABLE_COMPONENT;
+            this.startStationString = CommonUtils.NOT_AVAILABLE;
         }
 
     }
@@ -59,8 +54,8 @@ public class PlayerOption {
             this.endStation = endStation;
             this.endStationString = CommonUtils.component2Str(endStation);
         } else {
-            this.endStation = NOT_AVALIABLE_COMPONENT;
-            this.endStationString = NOT_AVALIABLE;
+            this.endStation = CommonUtils.NOT_AVAILABLE_COMPONENT;
+            this.endStationString = CommonUtils.NOT_AVAILABLE;
         }
     }
 
@@ -69,11 +64,11 @@ public class PlayerOption {
     }
 
     public boolean isStartStationEmpty() {
-        return getStartStationString().equals(NOT_AVALIABLE);
+        return getStartStationString().equals(CommonUtils.NOT_AVAILABLE);
     }
 
     public boolean isEndStationEmpty() {
-        return getEndStationString().equals(NOT_AVALIABLE);
+        return getEndStationString().equals(CommonUtils.NOT_AVAILABLE);
     }
 
     public String getClearStartStationName() {

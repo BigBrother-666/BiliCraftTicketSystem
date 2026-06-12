@@ -4,7 +4,6 @@ import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.listeners.CardListeners;
-import com.bigbrother.bilicraftticketsystem.menu.PlayerOption;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuCard;
 import com.bigbrother.bilicraftticketsystem.ticket.BCCard;
 import net.kyori.adventure.audience.Audience;
@@ -44,7 +43,7 @@ public class ChargeItem extends AbstractItem {
             );
         } else {
             itemMeta.lore(List.of(
-                    Component.text("当前余额：%s".formatted(PlayerOption.NOT_AVALIABLE), NamedTextColor.DARK_AQUA))
+                    Component.text("当前余额：%s".formatted(CommonUtils.NOT_AVAILABLE), NamedTextColor.DARK_AQUA))
             );
         }
 

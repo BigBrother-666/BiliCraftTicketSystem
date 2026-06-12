@@ -133,12 +133,6 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>net.coreprotect</groupId>
-            <artifactId>coreprotect</artifactId>
-            <version>${coreprotect.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <groupId>xyz.xenondevs.invui</groupId>
             <artifactId>invui</artifactId>
             <version>${invui.version}</version>

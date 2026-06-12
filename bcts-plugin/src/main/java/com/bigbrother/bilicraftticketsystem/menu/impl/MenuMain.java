@@ -118,7 +118,7 @@ public class MenuMain extends Menu {
         this.gui = guiBuilder.build();
         this.window = Window.single()
                 .setViewer(player)
-                .setTitle(new AdventureComponentWrapper(Component.text(mainConfig.get("title", String.class, ""))))
+                .setTitle(new AdventureComponentWrapper(CommonUtils.mmStr2Component(mainConfig.get("title", String.class, ""))))
                 .setGui(gui)
                 .build();
 
@@ -145,7 +145,7 @@ public class MenuMain extends Menu {
         for (Item item : menuTicketList) {
             if (item instanceof TicketItem ticketItem &&
                     ticketItem.getTicket() != null &&
-                    new HashSet<>(ticketItem.getTicket().getPathInfo().getStationSequence()).containsAll(filter)) {
+                    new HashSet<>(ticketItem.getTicket().getPathInfo().stationSequence()).containsAll(filter)) {
                 filteredTickets.add(item);
             }
         }

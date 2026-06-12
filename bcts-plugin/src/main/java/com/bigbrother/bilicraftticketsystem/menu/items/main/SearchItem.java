@@ -1,6 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.main;
 
-import com.bigbrother.bilicraftticketsystem.route.TrainRoutes;
+import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRouteEngine;
+import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRoutePath;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuFilter;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
@@ -57,13 +58,13 @@ public class SearchItem extends AbstractItem {
         // 异步计算路径并显示结果
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             List<Item> tickets = new ArrayList<>();
-            List<TrainRoutes.PathInfo> pathInfoList = TrainRoutes.getPathInfoList(option.getStartStationString(), option.getEndStationString());
+            List<GeoRoutePath> pathInfoList = GeoRouteEngine.findByStation(option.getStartStationString(), option.getEndStationString());
             if (pathInfoList.isEmpty()) {
                 menu.setTickets(tickets);
                 return;
             } else {
                 // 显示车票
-                for (TrainRoutes.PathInfo pathInfo : pathInfoList) {
+                for (GeoRoutePath pathInfo : pathInfoList) {
                     BCTicket ticket = new BCTicket(option, pathInfo, player);
                     tickets.add(new TicketItem(ticket));
                 }

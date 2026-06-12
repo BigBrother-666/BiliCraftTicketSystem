@@ -6,8 +6,8 @@ import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bigbrother.bctsguardplugin.GuardListeners;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
-import com.bigbrother.bilicraftticketsystem.route.MermaidGraph;
-import com.bigbrother.bilicraftticketsystem.route.TrainRoutes;
+import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRouteEngine;
+import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRoutePath;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.listeners.TrainListeners;
@@ -135,13 +135,16 @@ public class BCCard extends BCTransitPass {
     }
 
     /**
-     * 计算pathInfo并更新NBT
+     * 计算pathInfo并更新NBT。
+     * <p>
+     * 指定了起终点时按站名寻路取最短；图未变即原路径。
      */
     private void calcPathAndUpdateNbt() {
         if (this.cardInfo.isStationNotEmpty()) {
             String startStation = this.cardInfo.getStartStationString();
             String endStation = this.cardInfo.getEndStationString();
-            this.pathInfo = TrainRoutes.findShortestPath(startStation, endStation);
+            List<GeoRoutePath> paths = GeoRouteEngine.findByStation(startStation, endStation);
+            this.pathInfo = paths.isEmpty() ? null : paths.get(0);
         }
     }
 
@@ -173,7 +176,7 @@ public class BCCard extends BCTransitPass {
         if (!BCTransitPass.isNewPRTrain(group)) {
             // 已经是快速车，获取快速车对应的凭证
             BCTransitPass bcTransitPass = TrainListeners.trainTicketInfo.get(group);
-            TrainRoutes.PathInfo trainPathInfo = bcTransitPass.getPathInfo();
+            GeoRoutePath trainPathInfo = bcTransitPass == null ? null : bcTransitPass.getPathInfo();
             if (trainPathInfo != null) {
                 this.pathInfo = trainPathInfo;
                 this.maxSpeed = bcTransitPass.maxSpeed;
@@ -186,8 +189,6 @@ public class BCCard extends BCTransitPass {
             return false;
         }
 
-
-        Collection<String> trainTags = group.getProperties().getTags();
 
         // 1. 计算Path
         if (cardInfo.isStationNotEmpty()) {
@@ -202,11 +203,11 @@ public class BCCard extends BCTransitPass {
                 return false;
             }
         } else if (!cardInfo.isEndStationEmpty()) {
-            // 只指定了终点
-            // 获取当前pTag并计算路径
-            MermaidGraph.Node startNode = BCTransitPass.getTrainStartNode(trainTags);
-            if (startNode != null) {
-                this.pathInfo = TrainRoutes.getShortestPathFromStartNode(startNode, cardInfo.getEndStationString());
+            // 只指定了终点：以列车记录的起点车站名为起点，寻路到终点站（任意站台上车）
+            String startStation = BCTransitPass.getTrainStartStationName(group);
+            if (!startStation.isEmpty()) {
+                List<GeoRoutePath> paths = GeoRouteEngine.findByStation(startStation, cardInfo.getEndStationString());
+                this.pathInfo = paths.isEmpty() ? null : paths.get(0);
             }
 
             if (pathInfo == null) {
@@ -232,12 +233,22 @@ public class BCCard extends BCTransitPass {
             );
             return false;
         }
-        // 验证站台是否正确
-        if (pathInfo == null || !BCTransitPass.verifyPlatform(pathInfo.getStartPlatformTag(), trainTags)) {
-            usedPlayer.sendMessage(BiliCraftTicketSystem.PREFIX.append(
-                    CommonUtils.mmStr2Component(message.get("card-wrong-platform", "不能本站台使用交通卡，请核对交通卡的可使用站台和本站台上的信息是否一致")))
-            );
+        // 验证站台是否正确：指定了起点时，列车起点节点须与所选路径起点一致
+        if (pathInfo == null) {
+            sendNoPathMsg(usedPlayer);
             return false;
+        }
+        if (cardInfo.isStationNotEmpty()) {
+            String trainStation = BCTransitPass.getTrainStartStationName(group);
+            String trainLineId = BCTransitPass.getTrainLineId(group);
+            String pathLineId = pathInfo.getStartLineId();
+            if (!trainStation.equals(pathInfo.getStartStationName())
+                    || !trainLineId.equals(pathLineId == null ? "" : pathLineId)) {
+                usedPlayer.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+                        CommonUtils.mmStr2Component(message.get("card-wrong-platform", "不能本站台使用交通卡，请核对交通卡的可使用站台和本站台上的信息是否一致")))
+                );
+                return false;
+            }
         }
 
         // 使用交通卡不需要比对tag
@@ -275,9 +286,9 @@ public class BCCard extends BCTransitPass {
         plugin.getTrainDatabaseManager().getTransitPassService().addCardUsage(
                 usedPlayer.getUniqueId().toString(),
                 usedPlayer.getName(),
-                pathInfo.getStartStation().getStationName(),
-                pathInfo.getStartPlatformTag(),
-                pathInfo.getEndStation().getStationName(),
+                pathInfo.getStartStationName(),
+                pathInfo.getStartNode().getId(),
+                pathInfo.getEndStationName(),
                 maxSpeed,
                 price,
                 PassType.CARD.getId(),
@@ -311,8 +322,9 @@ public class BCCard extends BCTransitPass {
             placeholder.put("usePlatform", "<dark_green>任意国铁站台");
         } else if (cardInfo.isStationNotEmpty()) {
             if (pathInfo != null) {
-                MermaidGraph.Node startNode = pathInfo.getStartStation();
-                placeholder.put("usePlatform", "<dark_green>[%s<dark_green>] 标有 [<blue>%s %s</blue><dark_green>] 的站台".formatted(mmStartStationName, startNode.getRailwayName(), startNode.getRailwayDirection()));
+                // 起点站 + 起点驶出段所属线路名（替代旧的 railwayName/direction）
+                String startLineId = pathInfo.getLineIdSequence().isEmpty() ? null : pathInfo.getLineIdSequence().get(0);
+                placeholder.put("usePlatform", "<dark_green>[%s<dark_green>] 标有 [<blue>%s</blue><dark_green>] 的站台".formatted(mmStartStationName, lineName(startLineId)));
             } else {
                 placeholder.put("usePlatform", "<red>暂无 %s <red>到 %s <red>的直达车".formatted(mmStartStationName, mmEndStationName));
             }
@@ -384,6 +396,9 @@ public class BCCard extends BCTransitPass {
             }
             // 记录log
             Bukkit.getConsoleSender().sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("玩家 %s 成功向交通卡充值了 %.2f ".formatted(player.getName(), r.amount), NamedTextColor.GREEN)));
+            // 记录充值收入
+            plugin.getTrainDatabaseManager().getRevenueService().recordCardCharge(
+                    player.getUniqueId().toString(), player.getName(), r.amount, this.cardInfo.getCardUuid());
         } else {
             player.sendMessage(BiliCraftTicketSystem.PREFIX.append(
                     CommonUtils.mmStr2Component(message.get("card-charge-failure", "充值失败：%s").formatted(r.errorMessage)).decoration(TextDecoration.ITALIC, false))

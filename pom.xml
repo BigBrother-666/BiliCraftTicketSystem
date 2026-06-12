@@ -22,7 +22,6 @@
         <traincarts.version>1.21.1-v1</traincarts.version>
         <vault.version>1.7</vault.version>
         <hikari.version>5.0.1</hikari.version>
-        <coreprotect.version>22.2</coreprotect.version>
         <invui.version>1.44</invui.version>
         <geojson.version>1.14</geojson.version>
         <lombok.version>1.18.30</lombok.version>
@@ -50,10 +49,6 @@
         <repository>
             <id>jitpack.io</id>
             <url>https://jitpack.io</url>
-        </repository>
-        <repository>
-            <id>playpro-repo</id>
-            <url>https://maven.playpro.com</url>
         </repository>
         <repository>
             <id>xenondevs</id>

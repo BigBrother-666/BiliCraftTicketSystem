@@ -15,4 +15,6 @@ mapping:
   - "u item-scrollup"
   - "d item-scrolldown"
 
-content:
+# 车站列表不再手动配置：自动来自 geojson 路由图的全部车站。
+# 图标统一使用 menuitems.yml 的 station 项（缺失时回退 RAIL），
+# 显示名为站名（按所属线路标志色上色），lore 为该站经过的线路。

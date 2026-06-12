@@ -1,28 +1,31 @@
 package com.bigbrother.bilicraftticketsystem;
 
+import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bigbrother.bctsguardplugin.GuardListeners;
-import com.bigbrother.bilicraftticketsystem.addon.AddonConfig;
-import com.bigbrother.bilicraftticketsystem.addon.geodata.GeoCommand;
-import com.bigbrother.bilicraftticketsystem.addon.geodata.GeoDatabaseManager;
-import com.bigbrother.bilicraftticketsystem.addon.geodata.prgeotask.PRGeoTask;
-import com.bigbrother.bilicraftticketsystem.addon.signactions.*;
+import com.bigbrother.bilicraftticketsystem.route.geodata.GeoCommand;
+import com.bigbrother.bilicraftticketsystem.route.geodata.GeoDatabaseManager;
+import com.bigbrother.bilicraftticketsystem.signactions.*;
+import com.bigbrother.bilicraftticketsystem.signactions.component.BossbarManager;
 import com.bigbrother.bilicraftticketsystem.commands.*;
 import com.bigbrother.bilicraftticketsystem.commands.argument.CommandParsers;
 import com.bigbrother.bilicraftticketsystem.commands.argument.CommandSuggestions;
 import com.bigbrother.bilicraftticketsystem.config.*;
+import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.database.TrainDatabaseManager;
 import com.bigbrother.bilicraftticketsystem.listeners.CardListeners;
+import com.bigbrother.bilicraftticketsystem.listeners.ExpressSkipListener;
 import com.bigbrother.bilicraftticketsystem.listeners.PlayerListeners;
 import com.bigbrother.bilicraftticketsystem.listeners.TrainListeners;
 import com.bigbrother.bilicraftticketsystem.menu.Menu;
-import com.bigbrother.bilicraftticketsystem.route.TrainRoutes;
+import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRouteEngine;
+import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteIndexProperty;
+import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteProperty;
+import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcStartNodeProperty;
 import com.bigbrother.bilicraftticketsystem.ticket.BCCardInfo;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicketDisplay;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.coreprotect.CoreProtect;
-import net.coreprotect.CoreProtectAPI;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.milkbowl.vault.economy.Economy;
@@ -54,14 +57,12 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     // 控制牌
     private final CustomSignActionAnnounce customSignActionAnnounce = new CustomSignActionAnnounce();
     private final SignActionBCSpawn signActionBCSpawn = new SignActionBCSpawn();
-    private final CustomSignActionStation customSignActionStation = new CustomSignActionStation();
-    private final SignActionShowroute signActionShowroute = new SignActionShowroute();
     private final CustomSignActionSpawn customSignActionSpawn = new CustomSignActionSpawn();
-    private final CustomSignActionProperties customSignActionProperties = new CustomSignActionProperties();
+    private final SignActionPlatform signActionPlatform = new SignActionPlatform();
+    private final SignActionBcswitcher signActionBcswitcher = new SignActionBcswitcher();
 
     // Command
     private final AdminCommand adminCommand = new AdminCommand(this);
-    private final RouteCommand routeCommand = new RouteCommand(this);
     private final TicketbgCommand ticketbgCommand = new TicketbgCommand(this);
     private final TransitPassCommand transitPassCommand = new TransitPassCommand(this);
     private final CardCommand cardCommand = new CardCommand(this);
@@ -96,19 +97,23 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     public void loadConfig(CommandSender sender) {
         try {
             MainConfig.loadMainConfig(this);
-            RailwayRoutesConfig.load(this);
+            LineConfig.load(this);
             plugin.getComponentLogger().info(Component.text("成功加载主配置", NamedTextColor.GOLD));
 
             ItemsConfig.loadItemsConfig(this);
             MenuConfig.loadMenuConfig(this);
             plugin.getComponentLogger().info(Component.text("成功加载GUI配置", NamedTextColor.GOLD));
 
-            AddonConfig.loadAddonConfig(this);
+            RailwayMapConfig.loadRailwayMapConfig(this);
             plugin.getComponentLogger().info(Component.text("成功加载额外功能", NamedTextColor.GOLD));
 
             BCTicketDisplay.loadFont();
-            TrainRoutes.readGraphFromFile(this.getDataFolder().getPath() + File.separator + "routes.mmd");
-            plugin.getComponentLogger().info(Component.text("mermaid路径解析成功", NamedTextColor.GOLD));
+
+            // geojson 路由图
+            GeoRouteEngine.load(this.geodataDir, this.getLogger());
+            plugin.getComponentLogger().info(Component.text("geojson路由图加载完成", NamedTextColor.GOLD));
+            // 清空"最近车站"坐标缓存，使其按新图重新载入
+            com.bigbrother.bilicraftticketsystem.menu.items.location.NearestLocItem.setBcspawnInfoList(new java.util.ArrayList<>());
 
             if (trainDatabaseManager != null) {
                 trainDatabaseManager.getDs().close();
@@ -140,15 +145,14 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     private void copyResources() {
         this.getComponentLogger().info(Component.text("拷贝配置文件...", NamedTextColor.GOLD));
         saveResource(EnumConfig.MAIN_CONFIG.getFileName(), /* replace */ false);
-        saveResource(EnumConfig.RAILWAY_ROUTES_CONFIG.getFileName(), /* replace */ false);
         saveResource(EnumConfig.MENU_MAIN.getFileName(), /* replace */ false);
         saveResource(EnumConfig.MENU_LOCATION.getFileName(), /* replace */ false);
         saveResource(EnumConfig.MENU_FILTER.getFileName(), /* replace */ false);
         saveResource(EnumConfig.MENU_ITEMS.getFileName(), /* replace */ false);
         saveResource(EnumConfig.MENU_TICKETBG.getFileName(), /* replace */ false);
-        saveResource(EnumConfig.ROUTE_MMD.getFileName(), /* replace */ false);
         saveResource(EnumConfig.ADDON_CONFIG.getFileName(), /* replace */ false);
         saveResource(EnumConfig.MENU_CARD.getFileName(), /* replace */ false);
+        saveResource(EnumConfig.ROUTES_CONFIG.getFileName(), /* replace */ false);
     }
 
     private void initCommands() {
@@ -159,28 +163,33 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         @SuppressWarnings({"unchecked", "rawtypes"})
         AnnotationParser<C> annotationParser = new AnnotationParser(commandManager, CommandSender.class);
         annotationParser.parse(new CommandSuggestions(), new CommandParsers());
-        annotationParser.parse(adminCommand, routeCommand, ticketbgCommand, transitPassCommand, geoCommand, cardCommand);
+        annotationParser.parse(adminCommand, ticketbgCommand, transitPassCommand, geoCommand, cardCommand);
         this.getComponentLogger().info(Component.text("指令注册成功", NamedTextColor.GOLD));
     }
 
     private void initListeners() {
         Bukkit.getPluginManager().registerEvents(new TrainListeners(), this);
+        Bukkit.getPluginManager().registerEvents(new ExpressSkipListener(), this);
         Bukkit.getPluginManager().registerEvents(new PlayerListeners(), this);
         Bukkit.getPluginManager().registerEvents(new CardListeners(), this);
         Bukkit.getPluginManager().registerEvents(new GuardListeners(), this);
-        Bukkit.getPluginManager().registerEvents(signActionShowroute, this);
-        Bukkit.getPluginManager().registerEvents(geoCommand, this);
+        Bukkit.getPluginManager().registerEvents(new BossbarManager(), this);
         this.getComponentLogger().info(Component.text("监听器注册成功", NamedTextColor.GOLD));
     }
 
     private void initSignActions() {
         SignAction.register(customSignActionAnnounce, true);
         SignAction.register(signActionBCSpawn);
-        SignAction.register(customSignActionStation, true);
-        SignAction.register(signActionShowroute);
         SignAction.register(customSignActionSpawn, true);
-        SignAction.register(customSignActionProperties, true);
+        SignAction.register(signActionPlatform, true);
+        SignAction.register(signActionBcswitcher, true);
         this.getComponentLogger().info(Component.text("控制牌注册成功", NamedTextColor.GOLD));
+
+        // 注册列车导航属性（TC 自动随存档持久化，重启/重载后恢复）
+        TrainCarts.plugin.getPropertyRegistry().register(BcRouteProperty.INSTANCE);
+        TrainCarts.plugin.getPropertyRegistry().register(BcRouteIndexProperty.INSTANCE);
+        TrainCarts.plugin.getPropertyRegistry().register(BcStartNodeProperty.INSTANCE);
+        this.getComponentLogger().info(Component.text("列车导航属性注册成功", NamedTextColor.GOLD));
     }
 
     /**
@@ -198,18 +207,6 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         }
         this.getComponentLogger().error(Component.text("Vault初始化失败！", NamedTextColor.RED));
         getServer().getPluginManager().disablePlugin(this);
-    }
-
-    public CoreProtectAPI getCoreProtectAPI() {
-        Plugin pl = plugin.getServer().getPluginManager().getPlugin("CoreProtect");
-        if (!(pl instanceof CoreProtect)) {
-            return null;
-        }
-        CoreProtectAPI coreProtect = ((CoreProtect) pl).getAPI();
-        if (!coreProtect.isEnabled()) {
-            return null;
-        }
-        return coreProtect;
     }
 
     private void printLogo() {
@@ -237,15 +234,11 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         // Plugin shutdown logic
         SignAction.unregister(customSignActionAnnounce);
         SignAction.unregister(signActionBCSpawn);
-        SignAction.unregister(customSignActionStation);
-        SignAction.unregister(signActionShowroute);
         SignAction.unregister(customSignActionSpawn);
-        SignAction.unregister(customSignActionProperties);
+        SignAction.unregister(signActionPlatform);
+        SignAction.unregister(signActionBcswitcher);
 
         BCCardInfo.saveAll();
-        if (this.geoCommand != null) {
-            geoCommand.getTaskMap().values().forEach(PRGeoTask::closeLoggerHandler);
-        }
 
         Bukkit.getScheduler().cancelTasks(plugin);
     }

@@ -22,55 +22,6 @@ public class TransitPassService {
         this.transitPassDao = transitPassDao;
     }
 
-    public void addTicketInfo(String playerName, String uuid, double price, CommonTagCompound ticketNbt) {
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            if (uuid != null) {
-                transitPassDao.updatePlayerNameByUuid(uuid, playerName);
-            }
-            String purchaseTime = nowAsString();
-            String startStation = ticketNbt.getValue(BCTicket.KEY_TICKET_START_STATION, "Unknown");
-            String endStation = ticketNbt.getValue(BCTicket.KEY_TICKET_END_STATION, "Unknown");
-            Integer maxUses = ticketNbt.getValue(BCTicket.KEY_TICKET_MAX_NUMBER_OF_USES, Integer.class, null);
-            Float maxSpeed = ticketNbt.getValue(BCTicket.KEY_TICKET_MAX_SPEED, Float.class, null);
-            transitPassDao.insertTicket(uuid, playerName, purchaseTime, startStation, endStation, maxUses, maxSpeed, price);
-        });
-    }
-
-    public Component getDailyRevenue(int days) {
-        Component header = CommonUtils.legacyStr2Component("%-20s &7|&6 %-15s".formatted("&6date", "revenue&6"));
-        List<TransitPassDao.DailyRevenueRow> rows = transitPassDao.findDailyRevenueWithinDays(days);
-
-        Component result = header;
-        for (TransitPassDao.DailyRevenueRow row : rows) {
-            String revenue = "%.2f".formatted(row.dailyRevenue());
-            Component line = CommonUtils.legacyStr2Component("\n%-15s &7|&6 %-15s".formatted(row.day(), revenue));
-            Component hover = getPurchaseRecordsByDate(row.day());
-            line = line.hoverEvent(HoverEvent.showText(hover));
-            result = result.append(line);
-        }
-
-        return result;
-    }
-
-    public Component getPurchaseRecordsByDate(String date) {
-        Component header = CommonUtils.legacyStr2Component("%-25s &7|&6 %-25s &7|&6 %-10s &7|&6 %-10s &7|&6 %-12s &7|&6 %-12s &7|&6 %-9s".formatted("&6player name", "purchase time", "start", "end", "max uses", "max speed", "price&6"));
-        List<TransitPassDao.PurchaseRecordRow> rows = transitPassDao.findPurchaseRecordsByDate(date);
-        Component result = header;
-        for (TransitPassDao.PurchaseRecordRow row : rows) {
-            String maxUses = row.maxUses() == null ? "-" : row.maxUses().toString();
-            String maxSpeed = row.maxSpeed() == null ? "-" : "%.2fkm/h".formatted(row.getSpeedKph());
-            String price = "%.2f".formatted(row.price());
-            result = result.append(CommonUtils.legacyStr2Component("\n%-20s &7|&6 ".formatted(row.playerName())))
-                    .append(CommonUtils.legacyStr2Component("%-20s &7|&6 ".formatted(row.purchaseTime())))
-                    .append(CommonUtils.legacyStr2Component("%-8s &7|&6 ".formatted(row.startStation())))
-                    .append(CommonUtils.legacyStr2Component("%-8s &7|&6 ".formatted(row.endStation())))
-                    .append(CommonUtils.legacyStr2Component("%-8s &7|&6 ".formatted(maxUses)))
-                    .append(CommonUtils.legacyStr2Component("%-8s &7|&6 ".formatted(maxSpeed)))
-                    .append(CommonUtils.legacyStr2Component("%-8s".formatted(price)));
-        }
-        return result;
-    }
-
     public void addTicketUsage(String playerUuid, String playerName, Double price, String passType, CommonTagCompound ticketNbt) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             transitPassDao.updatePlayerNameByUuid(playerUuid, playerName);
@@ -79,7 +30,7 @@ public class TransitPassService {
                     playerName,
                     nowAsString(),
                     ticketNbt.getValue(BCTicket.KEY_TICKET_START_STATION, null),
-                    ticketNbt.getValue(BCTicket.KEY_TICKET_START_PLATFORM_TAG, null),
+                    null,
                     ticketNbt.getValue(BCTicket.KEY_TICKET_END_STATION, null),
                     ticketNbt.getValue(BCTicket.KEY_TICKET_MAX_SPEED, null),
                     price,
@@ -89,14 +40,14 @@ public class TransitPassService {
         });
     }
 
-    public void addCardUsage(String playerUuid, String playerName, String startStation, String startPlatformTag,
+    public void addCardUsage(String playerUuid, String playerName, String startStation, String startNodeId,
                              String endStation, Double maxSpeed, Double price, String passType, String cardUuid) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> transitPassDao.insertTransitPassUsage(
                 playerUuid,
                 playerName,
                 nowAsString(),
                 startStation,
-                startPlatformTag,
+                startNodeId,
                 endStation,
                 maxSpeed,
                 price,
@@ -123,7 +74,7 @@ public class TransitPassService {
                         "&6player",
                         "boarding time",
                         "start",
-                        "start tag",
+                        "start node",
                         "end",
                         "max speed",
                         "price",
@@ -138,7 +89,7 @@ public class TransitPassService {
             result = result.append(CommonUtils.legacyStr2Component("\n%-16s &7|&6 ".formatted(row.playerName())))
                     .append(CommonUtils.legacyStr2Component("%-20s &7|&6 ".formatted(row.boardingTime())))
                     .append(CommonUtils.legacyStr2Component("%-8s &7|&6 ".formatted(row.startStation())))
-                    .append(CommonUtils.legacyStr2Component("%-8s &7|&6 ".formatted(row.startPlatformTag())))
+                    .append(CommonUtils.legacyStr2Component("%-8s &7|&6 ".formatted(row.startNodeId())))
                     .append(CommonUtils.legacyStr2Component("%-8s &7|&6 ".formatted(row.endStation())))
                     .append(CommonUtils.legacyStr2Component("%-5s &7|&6 ".formatted(maxSpeed)))
                     .append(CommonUtils.legacyStr2Component("%-5s &7|&6".formatted(price)))

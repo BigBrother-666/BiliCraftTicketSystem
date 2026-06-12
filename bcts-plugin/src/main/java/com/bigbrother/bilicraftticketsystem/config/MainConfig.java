@@ -22,13 +22,31 @@ public class MainConfig {
     public static ConfigurationNode railwayColor;
     public static int maxUses;
     public static List<String> discount;
-    public static String skip;
+    public static List<String> expressSkipSigns;
     public static ConfigurationNode cardConfig;
 
     public static int loreStationNameCntRow;
     public static int loreRailwayNameCntRow;
     public static List<String> ticketLore;
     public static List<String> cardLore;
+
+    /**
+     * 普通车 bossbar 滚动站名带样式：已过站颜色（{@code #RRGGBB} 或 legacy &-code）。
+     */
+    public static String bossbarPassedColor;
+    /**
+     * 普通车 bossbar 滚动站名带样式：未过站颜色（{@code #RRGGBB} 或 legacy &-code）；
+     * 留空则回退到该线路的标志色（line-color）。
+     */
+    public static String bossbarNotPassedColor;
+    /**
+     * 普通车 bossbar 滚动站名带：已过站最大显示个数。
+     */
+    public static int bossbarPassedNum;
+    /**
+     * 普通车 bossbar 滚动站名带：未过站最大显示个数。
+     */
+    public static int bossbarNotPassedNum;
 
     public static void loadMainConfig(BiliCraftTicketSystem plugin) {
         FileConfiguration mainConfig = new FileConfiguration(plugin, EnumConfig.MAIN_CONFIG.getFileName());
@@ -55,7 +73,7 @@ public class MainConfig {
         maxUses = uses.get("max", 50);
         discount = uses.getList("discount", String.class, Collections.emptyList());
 
-        skip = mainConfig.get("skip", "");
+        expressSkipSigns = mainConfig.getList("express-skip-signs", String.class, Collections.emptyList());
 
         cardConfig = mainConfig.getNode("card");
         ConfigurationNode lore = mainConfig.getNode("lore");
@@ -63,5 +81,11 @@ public class MainConfig {
         loreRailwayNameCntRow = lore.get("railway-name-cnt-perrow", 4);
         ticketLore = lore.getList("ticket", String.class, Collections.emptyList());
         cardLore = lore.getList("card", String.class, Collections.emptyList());
+
+        ConfigurationNode bossbar = mainConfig.getNode("bossbar");
+        bossbarPassedColor = bossbar.get("passed-color", "&7");
+        bossbarNotPassedColor = bossbar.get("not-passed-color", String.class, null);
+        bossbarPassedNum = bossbar.get("passed-num", 2);
+        bossbarNotPassedNum = bossbar.get("not-passed-num", 3);
     }
 }
