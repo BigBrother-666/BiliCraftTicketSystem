@@ -26,7 +26,12 @@ pr-cw:
     - "Station B"
     - "Station C"
     - "Station A"
-  bossbar-arrival-notice: "&6列车已到达 &c{curr_station}站"  # 到站bossbar提示（选填）
+  # 到站bossbar提示（选填）
+  # 可用占位符：
+  # 当前站 {curr_station}
+  # 线路名 {line_name}
+  # 线路16进制颜色（MiniMessage格式） {line_color}
+  bossbar-arrival-notice: "&6列车已到达 {line_color}{curr_station}站"
   bossbar-color: "RED"                                     # bossbar颜色（选填）
   # 普通车进出站提示
   # announce 文字同时支持 MiniMessage 标签（如 <red>）与 & 颜色代码，可混用

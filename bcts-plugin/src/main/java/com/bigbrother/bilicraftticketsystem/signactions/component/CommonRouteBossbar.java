@@ -1,6 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.signactions.component;
 
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
+import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import com.bigbrother.bilicraftticketsystem.signactions.SignActionPlatform;
 import com.bigbrother.bilicraftticketsystem.utils.PlaceholderParser;
@@ -105,10 +106,12 @@ public class CommonRouteBossbar extends RouteBossbarBase {
         if (arrivalNotice == null || arrivalNotice.isEmpty()) {
             bossBar.name(buildScrollTitle());
         } else {
+            LineInfo lineInfo = LineConfig.get(lineId);
             // 走统一占位符解析（同时支持 MiniMessage 与 & 代码），便于以后扩展更多占位符
             Map<String, Object> placeholders = new HashMap<>();
             placeholders.put("curr_station", stations.get(nextStationIdx));
             placeholders.put("line_name", lineName);
+            placeholders.put("line_color", lineInfo == null ? "<#FFFFFF>" : "<%s>".formatted(lineInfo.getLineColor()));
             List<Component> parsed = PlaceholderParser.parse(List.of(arrivalNotice), placeholders);
             bossBar.name(parsed.isEmpty() ? buildScrollTitle() : parsed.get(0));
         }
