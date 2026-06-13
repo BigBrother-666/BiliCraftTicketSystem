@@ -180,6 +180,14 @@ public class BCCard extends BCTransitPass {
             if (trainPathInfo != null) {
                 this.pathInfo = trainPathInfo;
                 this.maxSpeed = bcTransitPass.maxSpeed;
+                // 余额充足？
+                double price = getPrice();
+                if (this.cardInfo.getBalance() < price) {
+                    usedPlayer.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+                            CommonUtils.mmStr2Component(message.get("card-not-enough-balance", "<red>交通卡余额不足！本次行程需要 <yellow>%.2f 银币<red>，余额 <yellow>%.2f 银币").formatted(price, this.cardInfo.getBalance())))
+                    );
+                    return false;
+                }
                 return true;
             }
             // ???
@@ -251,7 +259,6 @@ public class BCCard extends BCTransitPass {
             }
         }
 
-        // 使用交通卡不需要比对tag
         return true;
     }
 
