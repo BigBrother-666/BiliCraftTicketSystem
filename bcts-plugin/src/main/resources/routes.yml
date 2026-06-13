@@ -16,24 +16,29 @@ default:
 
 # 线路id
 pr-cw:
-  # 线路基本信息
+  # 线路基本信息（必填）
+  railway-system: "paralon-railway" # 属于哪个铁路系统（必填）
   line-name: "环线（顺时针方向）" # 线路名称
   line-color: "#AA0000"        # 线路标志色
   # bossbar设置
-  bossbar-stations:  # 车站列表
+  bossbar-stations: # 车站列表（必填）
     - "Station A"
     - "Station B"
     - "Station C"
     - "Station A"
-  bossbar-arrival-notice: "&6列车已到达 &c{curr_station}站"  # 到站bossbar提示
-  bossbar-color: "RED"                                     # bossbar颜色
+  bossbar-arrival-notice: "&6列车已到达 &c{curr_station}站"  # 到站bossbar提示（选填）
+  bossbar-color: "RED"                                     # bossbar颜色（选填）
   # 普通车进出站提示
   # announce 文字同时支持 MiniMessage 标签（如 <red>）与 & 颜色代码，可混用
-  # 可用占位符：{curr_station} 当前站、{next_station} 下一站、{line_name} 线路名
-  notice-arrival: # 进站提示，支持announce, sound...
+  # 可用占位符：
+  # 当前站 {curr_station}
+  # 下一站 {next_station}
+  # 线路名 {line_name}
+  # 线路16进制颜色（MiniMessage格式） {line_color}
+  notice-arrival: # 进站提示，支持announce, sound...（选填）
     - "sound:noteblock.xxxx,0.56,0.5"
-    - "announce:列车即将到达 &c{curr_station}站"
-  notice-departure: # 出站提示
+    - "announce:列车即将到达 {line_color}{curr_station}站"
+  notice-departure: # 出站提示（选填）
     - "sound:noteblock.xxxx,0.8,0.5"
-    - "announce:欢迎乘坐&6{line_name}"
-    - "announce:下一站: &c{next_station}"
+    - "announce:欢迎乘坐{line_color}{line_name}"
+    - "announce:下一站: {line_color}{next_station}"

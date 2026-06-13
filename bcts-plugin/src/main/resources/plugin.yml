@@ -51,6 +51,12 @@ permissions:
   bcts.ticket.getcard:
     description: "获取交通卡权限"
     default: op
+  bcts.ticket.editroute:
+    description: "游戏内新建/修改线路配置权限"
+    default: op
+  bcts.ticket.editsystem:
+    description: "游戏内新建/修改铁路系统配置权限"
+    default: op
 
 libraries:
   - com.zaxxer:HikariCP:${hikari.version}

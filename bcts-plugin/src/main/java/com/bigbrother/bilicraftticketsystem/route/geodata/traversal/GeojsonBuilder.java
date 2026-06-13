@@ -17,8 +17,8 @@ import java.util.Map;
  * <p>
  * 产出符合 CLAUDE.md 规定的属性：
  * <ul>
- *   <li>Point：id（必须）、name（仅 station）、lineIds、prev、next、type。</li>
- *   <li>LineString：id、from、to、lineId、color、length、layer。</li>
+ *   <li>Point：id（必须）、name（仅 station）、lineIds、railwaySystemIds（仅 station）、prev、next、type。</li>
+ *   <li>LineString：id、from、to、lineId、railwaySystemId（联络线省略）、color、length、layer。</li>
  * </ul>
  * prev / next 由所有区间的 from -> to 关系推算。该类为纯转换逻辑，不依赖 Bukkit / TC，
  * 便于单元测试。
@@ -73,6 +73,10 @@ public class GeojsonBuilder {
             props.put("name", node.getStationName());
         }
         props.put("lineIds", new ArrayList<>(node.getLineIds()));
+        if (node.isStation()) {
+            // 车站节点附带铁路系统 id 数组（可能被多系统线路经过）
+            props.put("railwaySystemIds", new ArrayList<>(node.getRailwaySystemIds()));
+        }
         props.put("prev", prevMap.getOrDefault(node.getId(), new ArrayList<>()));
         props.put("next", nextMap.getOrDefault(node.getId(), new ArrayList<>()));
         feature.setProperties(props);
@@ -94,6 +98,10 @@ public class GeojsonBuilder {
         props.put("from", edge.getFromNodeId());
         props.put("to", edge.getToNodeId());
         props.put("lineId", edge.getLineId());
+        // 区间所属铁路系统 id；联络线为 null（不归属任何系统），此时省略该属性
+        if (edge.getRailwaySystemId() != null) {
+            props.put("railwaySystemId", edge.getRailwaySystemId());
+        }
         props.put("color", edge.getColor());
         props.put("length", edge.getLength());
         props.put("layer", edge.getLayer());

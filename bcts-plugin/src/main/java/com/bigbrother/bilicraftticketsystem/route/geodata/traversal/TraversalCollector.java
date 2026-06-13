@@ -97,12 +97,13 @@ public class TraversalCollector {
      * @param fromNodeId 起点节点 id
      * @param toNodeId   终点节点 id
      * @param lineId     区间所属线路 id
+     * @param railwaySystemId 区间所属铁路系统 id（联络线为 null）
      * @param color      显示颜色
      * @param coords     轨道坐标（已简化）
      * @param length     区间沿轨道的真实长度（{@link TrackWalker} 按 RailPath 实际移动距离计）
      */
     public void recordEdge(String fileKey, String fromNodeId, String toNodeId, String lineId,
-                           String color, List<LngLatAlt> coords, double length) {
+                           String railwaySystemId, String color, List<LngLatAlt> coords, double length) {
         Map<String, RailEdge> group = edgeGroups.computeIfAbsent(fileKey, k -> new LinkedHashMap<>());
         String edgeId = com.bigbrother.bilicraftticketsystem.route.NodeId.ofEdge(fromNodeId, toNodeId, lineId);
         if (group.containsKey(edgeId)) {
@@ -117,7 +118,7 @@ public class TraversalCollector {
                 }
             }
         }
-        group.put(edgeId, new RailEdge(fromNodeId, toNodeId, lineId, coords, color, length, layer));
+        group.put(edgeId, new RailEdge(fromNodeId, toNodeId, lineId, railwaySystemId, coords, color, length, layer));
     }
 
     /**

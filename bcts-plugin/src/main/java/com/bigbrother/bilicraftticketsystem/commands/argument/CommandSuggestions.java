@@ -2,6 +2,7 @@ package com.bigbrother.bilicraftticketsystem.commands.argument;
 
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.ItemsConfig;
+import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
 import com.bigbrother.bilicraftticketsystem.ticket.BCCard;
 import com.bigbrother.bilicraftticketsystem.ticket.BCCardInfo;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicket;
@@ -19,6 +20,11 @@ public class CommandSuggestions {
     @Suggestions("lineId")
     public List<String> lineIdSuggestions(CommandContext<C> context, CommandInput input) {
         return LineConfig.getNormalLineIds();
+    }
+
+    @Suggestions("systemId")
+    public List<String> systemIdSuggestions(CommandContext<C> context, CommandInput input) {
+        return RailwaySystemConfig.getAllIds();
     }
 
     @Suggestions("switchTraceState")

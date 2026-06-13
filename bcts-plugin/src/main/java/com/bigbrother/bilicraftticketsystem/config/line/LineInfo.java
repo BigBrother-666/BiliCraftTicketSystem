@@ -30,6 +30,11 @@ public class LineInfo {
      */
     private final String id;
     /**
+     * 所属铁路系统 id（routes.yml 的 {@code railway-system}），普通线路必填。
+     * 特殊线路（contact / default）该值无实际意义，可能为 null。
+     */
+    private final String railwaySystemId;
+    /**
      * 线路名称，如 "环线（顺时针方向）"。
      */
     private final String lineName;
@@ -86,12 +91,14 @@ public class LineInfo {
                     String bossbarColor,
                     List<String> noticeArrival,
                     List<String> noticeDeparture) {
-        this(id, lineName, lineColor, bossbarStations, Collections.emptySet(),
+        this(id, null,
+                lineName, lineColor, bossbarStations, Collections.emptySet(),
                 bossbarArrivalNotice, bossbarColor, noticeArrival, noticeDeparture);
     }
 
     /**
      * @param id                    线路 id
+     * @param railwaySystemId       所属铁路系统 id
      * @param lineName              线路名称
      * @param lineColor             线路标志色
      * @param bossbarStations       干净站名列表（已剥离 :RV 等后缀）
@@ -102,6 +109,7 @@ public class LineInfo {
      * @param noticeDeparture       出站提示列表
      */
     public LineInfo(String id,
+                    String railwaySystemId,
                     String lineName,
                     String lineColor,
                     List<String> bossbarStations,
@@ -111,6 +119,7 @@ public class LineInfo {
                     List<String> noticeArrival,
                     List<String> noticeDeparture) {
         this.id = id;
+        this.railwaySystemId = railwaySystemId;
         this.lineName = lineName;
         this.lineColor = lineColor;
         this.bossbarStations = bossbarStations == null ? Collections.emptyList() : bossbarStations;

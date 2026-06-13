@@ -18,6 +18,7 @@ public class RailNode {
     /**
      * 节点类型。
      */
+    @Getter
     public enum Type {
         /**
          * 车站节点（platform 控制牌），在前端地图上显示。
@@ -28,7 +29,6 @@ public class RailNode {
          */
         SWITCH("switch");
 
-        @Getter
         private final String value;
 
         Type(String value) {
@@ -56,6 +56,12 @@ public class RailNode {
      * 经过该节点的线路 id 集合（遍历过程中累积）。
      */
     private final Set<String> lineIds = new LinkedHashSet<>();
+    /**
+     * 经过该节点的线路所属铁路系统 id 集合（遍历过程中累积，去重）。
+     * <p>
+     * 一个车站可能被分属不同铁路系统的多条线路经过，故为集合。联络线不贡献系统 id。
+     */
+    private final Set<String> railwaySystemIds = new LinkedHashSet<>();
 
     /**
      * @param type        节点类型
@@ -77,6 +83,17 @@ public class RailNode {
     public void addLineId(String lineId) {
         if (lineId != null && !lineId.isEmpty()) {
             lineIds.add(lineId);
+        }
+    }
+
+    /**
+     * 记录一个经过该节点的铁路系统 id。
+     *
+     * @param railwaySystemId 铁路系统 id（null / 空忽略）
+     */
+    public void addRailwaySystemId(String railwaySystemId) {
+        if (railwaySystemId != null && !railwaySystemId.isEmpty()) {
+            railwaySystemIds.add(railwaySystemId);
         }
     }
 

@@ -1,0 +1,10 @@
+# 铁路系统配置，每个铁路系统下包含多条属于该系统的线路，线路配置在routes.yml
+# 玩家在游戏内创建线路前，必须先属于至少一个铁路系统（用 /ticket editSystem <id> 创建）。
+
+# 铁路系统id，不可重复
+paralon-railway:
+  # 铁路系统名称，必填
+  name: "帕拉伦国有铁路"
+  # 成员UUID
+  members:
+    - "5bc8940f-2e0e-4a30-a2c3-5552744f5d19"

@@ -51,6 +51,7 @@ public class LineConfig {
      */
     private static LineInfo parseNode(ConfigurationNode node) {
         String id = node.getName();
+        String railwaySystemId = node.get("railway-system", String.class, null);
         String lineName = node.get("line-name", id);
         String lineColor = node.get("line-color", "#a9a9a9");
         List<String> rawStations = node.getList("bossbar-stations", String.class, null);
@@ -78,6 +79,7 @@ public class LineConfig {
 
         return new LineInfo(
                 id,
+                railwaySystemId,
                 lineName,
                 lineColor,
                 bossbarStations,
@@ -111,6 +113,23 @@ public class LineConfig {
     }
 
     /**
+     * 获取线路所属铁路系统 id。
+     * <p>
+     * 特殊线路（contact / default）或不存在的线路返回 null——这类区间在 geojson 中
+     * 不归属任何铁路系统。
+     *
+     * @param lineId 线路 id
+     * @return 铁路系统 id；特殊线 / 缺失返回 null
+     */
+    public static String getSystemId(String lineId) {
+        LineInfo info = lines.get(lineId);
+        if (info == null || info.isSpecial()) {
+            return null;
+        }
+        return info.getRailwaySystemId();
+    }
+
+    /**
      * 判断给定线路 id 是否存在于配置中。
      *
      * @param lineId 线路 id
@@ -118,6 +137,60 @@ public class LineConfig {
      */
     public static boolean contains(String lineId) {
         return lines.containsKey(lineId);
+    }
+
+    /**
+     * 新建或更新一条线路，并写回 routes.yml（保留注释）。
+     * <p>
+     * 仅写文件，不刷新内存缓存——调用方应在写回后触发配置重载
+     * （{@link BiliCraftTicketSystem#loadConfig}）使其生效。选填字段传 null / 空集合表示
+     * 不写该项（移除已存在的键），必填字段调用方应保证非空。
+     *
+     * @param lineId               线路 id
+     * @param railwaySystemId      所属铁路系统 id
+     * @param lineName             线路名称
+     * @param lineColor            线路标志色（#RRGGBB）
+     * @param bossbarStations      车站列表（原样，含 :RV 后缀）
+     * @param bossbarArrivalNotice 到站 bossbar 提示（可空）
+     * @param bossbarColor         bossbar 颜色名（可空）
+     * @param noticeArrival        进站提示列表（可空）
+     * @param noticeDeparture      出站提示列表（可空）
+     */
+    public static void upsert(String lineId,
+                              String railwaySystemId,
+                              String lineName,
+                              String lineColor,
+                              List<String> bossbarStations,
+                              String bossbarArrivalNotice,
+                              String bossbarColor,
+                              List<String> noticeArrival,
+                              List<String> noticeDeparture) {
+        ConfigurationNode node = config.getNode(lineId);
+        node.set("railway-system", railwaySystemId);
+        node.set("line-name", lineName);
+        node.set("line-color", lineColor);
+        node.set("bossbar-stations", bossbarStations);
+        setOrRemove(node, "bossbar-arrival-notice", bossbarArrivalNotice);
+        setOrRemove(node, "bossbar-color", bossbarColor);
+        setOrRemoveList(node, "notice-arrival", noticeArrival);
+        setOrRemoveList(node, "notice-departure", noticeDeparture);
+        config.save();
+    }
+
+    private static void setOrRemove(ConfigurationNode node, String key, String value) {
+        if (value == null || value.isBlank()) {
+            node.remove(key);
+        } else {
+            node.set(key, value);
+        }
+    }
+
+    private static void setOrRemoveList(ConfigurationNode node, String key, List<String> value) {
+        if (value == null || value.isEmpty()) {
+            node.remove(key);
+        } else {
+            node.set(key, value);
+        }
     }
 
     /**

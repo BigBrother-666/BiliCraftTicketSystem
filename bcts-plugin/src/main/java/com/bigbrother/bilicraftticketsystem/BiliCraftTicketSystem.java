@@ -3,6 +3,9 @@ package com.bigbrother.bilicraftticketsystem;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bigbrother.bctsguardplugin.GuardListeners;
+import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
+import com.bigbrother.bilicraftticketsystem.listeners.*;
+import com.bigbrother.bilicraftticketsystem.menu.items.location.NearestLocItem;
 import com.bigbrother.bilicraftticketsystem.route.geodata.GeoCommand;
 import com.bigbrother.bilicraftticketsystem.route.geodata.GeoDatabaseManager;
 import com.bigbrother.bilicraftticketsystem.signactions.*;
@@ -13,10 +16,6 @@ import com.bigbrother.bilicraftticketsystem.commands.argument.CommandSuggestions
 import com.bigbrother.bilicraftticketsystem.config.*;
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.database.TrainDatabaseManager;
-import com.bigbrother.bilicraftticketsystem.listeners.CardListeners;
-import com.bigbrother.bilicraftticketsystem.listeners.ExpressSkipListener;
-import com.bigbrother.bilicraftticketsystem.listeners.PlayerListeners;
-import com.bigbrother.bilicraftticketsystem.listeners.TrainListeners;
 import com.bigbrother.bilicraftticketsystem.menu.Menu;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRouteEngine;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteIndexProperty;
@@ -98,6 +97,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         try {
             MainConfig.loadMainConfig(this);
             LineConfig.load(this);
+            RailwaySystemConfig.load(this);
             plugin.getComponentLogger().info(Component.text("成功加载主配置", NamedTextColor.GOLD));
 
             ItemsConfig.loadItemsConfig(this);
@@ -113,7 +113,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
             GeoRouteEngine.load(this.geodataDir, this.getLogger());
             plugin.getComponentLogger().info(Component.text("geojson路由图加载完成", NamedTextColor.GOLD));
             // 清空"最近车站"坐标缓存，使其按新图重新载入
-            com.bigbrother.bilicraftticketsystem.menu.items.location.NearestLocItem.setBcspawnInfoList(new java.util.ArrayList<>());
+            NearestLocItem.setBcspawnInfoList(new java.util.ArrayList<>());
 
             if (trainDatabaseManager != null) {
                 trainDatabaseManager.getDs().close();
@@ -153,6 +153,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         saveResource(EnumConfig.ADDON_CONFIG.getFileName(), /* replace */ false);
         saveResource(EnumConfig.MENU_CARD.getFileName(), /* replace */ false);
         saveResource(EnumConfig.ROUTES_CONFIG.getFileName(), /* replace */ false);
+        saveResource(EnumConfig.RAILWAY_SYSTEM_CONFIG.getFileName(), /* replace */ false);
     }
 
     private void initCommands() {
@@ -172,6 +173,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new ExpressSkipListener(), this);
         Bukkit.getPluginManager().registerEvents(new PlayerListeners(), this);
         Bukkit.getPluginManager().registerEvents(new CardListeners(), this);
+        Bukkit.getPluginManager().registerEvents(new WizardListeners(), this);
         Bukkit.getPluginManager().registerEvents(new GuardListeners(), this);
         Bukkit.getPluginManager().registerEvents(new BossbarManager(), this);
         this.getComponentLogger().info(Component.text("监听器注册成功", NamedTextColor.GOLD));

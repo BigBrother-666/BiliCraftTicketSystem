@@ -18,10 +18,14 @@ import static org.junit.jupiter.api.Assertions.*;
 public class TraversalTest {
 
     private RailEdge edge(String from, String to, String lineId) {
+        return edge(from, to, lineId, "paralon-railway");
+    }
+
+    private RailEdge edge(String from, String to, String lineId, String railwaySystemId) {
         List<LngLatAlt> coords = new ArrayList<>();
         coords.add(new LngLatAlt(0, 0, 64));
         coords.add(new LngLatAlt(10, 0, 64));
-        return new RailEdge(from, to, lineId, coords, "#AA0000", 10, 0);
+        return new RailEdge(from, to, lineId, railwaySystemId, coords, "#AA0000", 10, 0);
     }
 
     @Test
@@ -52,9 +56,20 @@ public class TraversalTest {
         assertEquals("A", props.get("from"));
         assertEquals("B", props.get("to"));
         assertEquals("pr-cw", props.get("lineId"));
+        assertEquals("paralon-railway", props.get("railwaySystemId"));
         assertEquals("#AA0000", props.get("color"));
         assertEquals(0, props.get("layer"));
         assertNotNull(props.get("id"));
         assertNotNull(props.get("length"));
+    }
+
+    @Test
+    void contactEdgeOmitsRailwaySystemId() {
+        // 联络线区间 railwaySystemId 为 null，geojson 中应省略该属性
+        List<RailEdge> edges = new ArrayList<>();
+        edges.add(edge("A", "B", "contact", null));
+        FeatureCollection fc = new GeojsonBuilder().build(new ArrayList<>(), edges);
+        Map<String, Object> props = fc.getFeatures().get(0).getProperties();
+        assertFalse(props.containsKey("railwaySystemId"), "联络线区间不应含 railwaySystemId");
     }
 }

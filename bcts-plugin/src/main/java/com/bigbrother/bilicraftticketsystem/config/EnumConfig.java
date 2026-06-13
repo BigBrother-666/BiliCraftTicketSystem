@@ -12,7 +12,8 @@ public enum EnumConfig {
     MENU_CARD("menu_card.yml"),
     MENU_ITEMS("menuitems.yml"),
     ADDON_CONFIG("railway_map.yml"),
-    ROUTES_CONFIG("routes.yml");
+    ROUTES_CONFIG("routes.yml"),
+    RAILWAY_SYSTEM_CONFIG("railway_system.yml");
 
     private final String fileName;
 

@@ -33,6 +33,12 @@ public class RailEdge {
      */
     private final String lineId;
     /**
+     * 所属铁路系统 id（来自该区间所属营运线的 {@code railway-system}）。
+     * 联络线（contact）区间为 null——联络线不归属任何铁路系统。正线（default）区间沿用
+     * 其所归属营运线的系统 id。
+     */
+    private final String railwaySystemId;
+    /**
      * 轨道坐标序列（经度=x, 纬度=z, 高度=y，沿用旧 geojson 约定）。
      */
     private final List<LngLatAlt> coordinates;
@@ -50,17 +56,19 @@ public class RailEdge {
     private final int layer;
 
     /**
-     * @param fromNodeId  起点节点 id
-     * @param toNodeId    终点节点 id
-     * @param lineId      所属线路 id
-     * @param coordinates 轨道坐标序列
-     * @param color       显示颜色
-     * @param length      区间长度
-     * @param layer       叠层层级
+     * @param fromNodeId      起点节点 id
+     * @param toNodeId        终点节点 id
+     * @param lineId          所属线路 id
+     * @param railwaySystemId 所属铁路系统 id（联络线为 null）
+     * @param coordinates     轨道坐标序列
+     * @param color           显示颜色
+     * @param length          区间长度
+     * @param layer           叠层层级
      */
     public RailEdge(String fromNodeId,
                     String toNodeId,
                     String lineId,
+                    String railwaySystemId,
                     List<LngLatAlt> coordinates,
                     String color,
                     double length,
@@ -69,6 +77,7 @@ public class RailEdge {
         this.fromNodeId = fromNodeId;
         this.toNodeId = toNodeId;
         this.lineId = lineId;
+        this.railwaySystemId = railwaySystemId;
         this.coordinates = coordinates == null ? new ArrayList<>() : coordinates;
         this.color = color;
         this.length = length;

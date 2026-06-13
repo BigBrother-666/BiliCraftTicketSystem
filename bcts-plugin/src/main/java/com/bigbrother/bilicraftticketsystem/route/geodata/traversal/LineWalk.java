@@ -88,6 +88,8 @@ public class LineWalk {
         log.info("=== 开始遍历线路 " + lineId + "（" + lineInfo.getLineName() + "）===");
 
         String color = lineInfo.getLineColor();
+        // 本线所属铁路系统 id（contact / default 返回 null）。本线主线及其正线子遍历的区间 / 节点都用它。
+        String railwaySystemId = LineConfig.getSystemId(lineId);
         List<String> expectedStations = lineInfo.getBossbarStations();
         int stationIndex = 0;
 
@@ -139,10 +141,11 @@ public class LineWalk {
                     log.info("  经过道岔 @ " + node.getId());
                 }
                 node.addLineId(lineId);
+                node.addRailwaySystemId(railwaySystemId);
 
                 // 记录从上一个节点到此节点的区间（归入本线路文件）
                 if (prevNodeId != null && !prevNodeId.equals(node.getId())) {
-                    collector.recordEdge(lineId, prevNodeId, node.getId(), lineId, color,
+                    collector.recordEdge(lineId, prevNodeId, node.getId(), lineId, railwaySystemId, color,
                             GeoUtils.simplifyLineString(coords), result.length());
                 }
 
@@ -165,7 +168,7 @@ public class LineWalk {
                         }
                     } else {
                         // 主线：含 default 分支额外遍历正线；含 contact 分支记联络线种子
-                        walkDefaultMainlineIfAny(result, node, color);
+                        walkDefaultMainlineIfAny(result, node, color, railwaySystemId);
                         collectContactSeedIfAny(result, node);
                     }
                 }
@@ -230,8 +233,10 @@ public class LineWalk {
      * @param switcherResult 到达 bcswitcher 的行走结果
      * @param switcherNode   bcswitcher 节点
      * @param color          当前线路颜色（正线沿用本线颜色显示）
+     * @param railwaySystemId 当前营运线所属铁路系统 id（正线区间沿用之）
      */
-    private void walkDefaultMainlineIfAny(TrackWalker.WalkResult switcherResult, RailNode switcherNode, String color) {
+    private void walkDefaultMainlineIfAny(TrackWalker.WalkResult switcherResult, RailNode switcherNode,
+                                          String color, String railwaySystemId) {
         boolean hasDefault = false;
         for (BcSwitcherBranch branch : parseBranches(switcherResult.sign())) {
             if (LineInfo.DEFAULT_ID.equals(branch.getLineId())) {
@@ -267,10 +272,12 @@ public class LineWalk {
                 endNode = collector.resolveNode(RailNode.Type.SWITCH, subResult.railBlock(), null);
             }
             endNode.addLineId(LineInfo.DEFAULT_ID);
+            endNode.addRailwaySystemId(railwaySystemId);
             if (!switcherNode.getId().equals(endNode.getId())) {
-                // 正线区间用 default 作 lineId（geojson 中按 default 着色规则），但归入当前线路文件
+                // 正线区间用 default 作 lineId（geojson 中按 default 着色规则），但归入当前线路文件；
+                // 铁路系统 id 沿用当前营运线（正线是该营运线的一部分）
                 collector.recordEdge(lineId, switcherNode.getId(), endNode.getId(), LineInfo.DEFAULT_ID,
-                        color, GeoUtils.simplifyLineString(coords), subResult.length());
+                        railwaySystemId, color, GeoUtils.simplifyLineString(coords), subResult.length());
                 log.info("    正线区间 " + switcherNode.getId() + " -> " + endNode.getId());
             }
         } finally {
