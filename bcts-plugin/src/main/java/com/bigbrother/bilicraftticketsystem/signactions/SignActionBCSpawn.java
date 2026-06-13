@@ -11,6 +11,9 @@ import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcStartNodeProper
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
+import java.lang.reflect.Field;
+import java.util.logging.Level;
+
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
 
 /**
@@ -62,6 +65,9 @@ public class SignActionBCSpawn extends SignActionSpawn {
 
         SpawnSign sign = info.getTrainCarts().getSpawnSignManager().create(info);
         if (sign.isActive()) {
+            // TrainCarts 的 SpawnSign 把第三、四行拼接当作矿车类型解析（spawnFormat = line3 + line4）。
+            // bcspawn 第三行是 <线路id> <车站名>，会被误当成矿车类型，所以只用第四行生成矿车。
+            overrideSpawnFormatToLine4(sign, info.getLine(3));
             sign.spawn(info);
             sign.resetSpawnTime();
             MinecartGroup group = info.getGroup();
@@ -79,6 +85,50 @@ public class SignActionBCSpawn extends SignActionSpawn {
                 plugin.getTrainDatabaseManager().getBcspawnService().recordSpawn(station, lineId);
             }
         }
+    }
+
+    /** 缓存的 SpawnSign.spawnFormat 字段，null 表示尚未解析或解析失败。 */
+    private static Field spawnFormatField;
+    private static boolean spawnFormatFieldResolved;
+
+    /**
+     * 把 SpawnSign 的私有字段 {@code spawnFormat} 覆写为仅第四行内容，
+     * 使其生成矿车时不把第三行的 {@code <线路id> <车站名>} 误当成矿车类型。
+     * <p>
+     * TrainCarts 的 {@code SpawnSign.updateState} 会把 {@code line3 + line4} 作为
+     * spawnFormat，这对原版 spawn 控制牌成立，但 bcspawn 占用了第三行。这里通过反射
+     * 修正。若 TrainCarts 内部实现变化导致字段缺失，记录警告并回退（不修正，行为同修复前）。
+     *
+     * @param sign  本次发车使用的 SpawnSign
+     * @param line4 控制牌第四行（矿车格式）
+     */
+    private static void overrideSpawnFormatToLine4(SpawnSign sign, String line4) {
+        Field field = resolveSpawnFormatField();
+        if (field == null) {
+            return;
+        }
+        try {
+            field.set(sign, line4 == null ? "" : line4);
+        } catch (IllegalAccessException e) {
+            plugin.getLogger().log(Level.WARNING,
+                    "无法覆写 SpawnSign.spawnFormat，bcspawn 可能把第三行误当矿车类型", e);
+        }
+    }
+
+    private static synchronized Field resolveSpawnFormatField() {
+        if (!spawnFormatFieldResolved) {
+            spawnFormatFieldResolved = true;
+            try {
+                Field field = SpawnSign.class.getDeclaredField("spawnFormat");
+                field.setAccessible(true);
+                spawnFormatField = field;
+            } catch (NoSuchFieldException | SecurityException e) {
+                plugin.getLogger().log(Level.WARNING,
+                        "找不到 SpawnSign.spawnFormat 字段（TrainCarts 版本可能已变更），"
+                                + "bcspawn 第三行将仍被当作矿车类型解析", e);
+            }
+        }
+        return spawnFormatField;
     }
 
     @Override
