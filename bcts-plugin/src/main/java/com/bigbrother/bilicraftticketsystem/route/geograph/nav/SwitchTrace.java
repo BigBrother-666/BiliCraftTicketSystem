@@ -47,7 +47,7 @@ public final class SwitchTrace {
         Component msg = Component.text("[道岔追踪] ", NamedTextColor.AQUA)
                 .append(Component.text("车=" + trainName, NamedTextColor.GRAY))
                 .append(Component.text(" 节点=" + nodeId, NamedTextColor.WHITE))
-                .append(Component.text(" 进度=" + indexBefore + 1 + "/" + total, NamedTextColor.YELLOW))
+                .append(Component.text(" 进度=" + (indexBefore + 1) + "/" + total, NamedTextColor.YELLOW))
                 .append(Component.text(" 应走=" + currentLineId, NamedTextColor.GOLD))
                 .append(Component.text(" 可选=" + branchLineIds, NamedTextColor.GRAY))
                 .append(Component.text(" 选中=" + selectedLineId,
@@ -78,7 +78,7 @@ public final class SwitchTrace {
                 .append(Component.text("车=" + trainName, NamedTextColor.GRAY))
                 .append(Component.text(" 节点=" + nodeId, NamedTextColor.WHITE))
                 .append(Component.text(" 站名=" + stationName, NamedTextColor.AQUA))
-                .append(Component.text(" 进度=" + indexBefore + 1 + "/" + total, NamedTextColor.YELLOW))
+                .append(Component.text(" 进度=" + (indexBefore + 1) + "/" + total, NamedTextColor.YELLOW))
                 .append(Component.text(" 动作=" + action, NamedTextColor.GOLD));
         BiliCraftTicketSystem.plugin.getComponentLogger().info(msg);
     }
