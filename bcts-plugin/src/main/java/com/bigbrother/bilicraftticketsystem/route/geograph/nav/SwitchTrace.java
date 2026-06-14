@@ -47,11 +47,39 @@ public final class SwitchTrace {
         Component msg = Component.text("[道岔追踪] ", NamedTextColor.AQUA)
                 .append(Component.text("车=" + trainName, NamedTextColor.GRAY))
                 .append(Component.text(" 节点=" + nodeId, NamedTextColor.WHITE))
-                .append(Component.text(" 指针=" + indexBefore + "/" + total, NamedTextColor.YELLOW))
+                .append(Component.text(" 进度=" + indexBefore + 1 + "/" + total, NamedTextColor.YELLOW))
                 .append(Component.text(" 应走=" + currentLineId, NamedTextColor.GOLD))
                 .append(Component.text(" 可选=" + branchLineIds, NamedTextColor.GRAY))
                 .append(Component.text(" 选中=" + selectedLineId,
                         selectedLineId == null ? NamedTextColor.RED : NamedTextColor.GREEN));
+        BiliCraftTicketSystem.plugin.getComponentLogger().info(msg);
+    }
+
+    /**
+     * 记录一次 platform（车站）节点的导航推进（仅在开启时输出）。
+     * <p>
+     * 与道岔追踪配合，完整还原列车经过的<b>每一个</b>节点（含车站），便于核对节点步骤序列与
+     * 物理经过是否逐项对齐。
+     *
+     * @param group       列车
+     * @param nodeId      站台节点 id（铁轨方块）
+     * @param stationName 车站名
+     * @param indexBefore 推进前的导航指针下标
+     * @param total       节点步骤序列总长
+     * @param action      触发动作（如 "进站" / "出站推进"）
+     */
+    public static void logPlatform(MinecartGroup group, String nodeId, String stationName,
+                                   int indexBefore, int total, String action) {
+        if (!enabled) {
+            return;
+        }
+        String trainName = group == null ? "(null)" : group.getProperties().getTrainName();
+        Component msg = Component.text("[站台追踪] ", NamedTextColor.LIGHT_PURPLE)
+                .append(Component.text("车=" + trainName, NamedTextColor.GRAY))
+                .append(Component.text(" 节点=" + nodeId, NamedTextColor.WHITE))
+                .append(Component.text(" 站名=" + stationName, NamedTextColor.AQUA))
+                .append(Component.text(" 进度=" + indexBefore + 1 + "/" + total, NamedTextColor.YELLOW))
+                .append(Component.text(" 动作=" + action, NamedTextColor.GOLD));
         BiliCraftTicketSystem.plugin.getComponentLogger().info(msg);
     }
 }

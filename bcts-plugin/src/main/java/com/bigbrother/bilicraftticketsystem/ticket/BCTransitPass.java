@@ -100,8 +100,8 @@ public abstract class BCTransitPass {
 
         // 设置speed
         trainProperties.setSpeedLimit(maxSpeed);
-        // 写入导航序列（替代旧的 setTags：bcswitcher 据此按当前 lineId 选向）
-        BcRouteNavigator.setRoute(group, pathInfo.switcherLineIds());
+        // 写入导航节点步骤序列（bcswitcher 据当前步骤 lineId 选向，platform 仅推进进度）
+        BcRouteNavigator.setRoute(group, pathInfo.routeSteps());
         trainProperties.getHolder().onPropertiesChanged();
 
         // 所有车厢显示直达车bossbar
@@ -111,7 +111,7 @@ public abstract class BCTransitPass {
                 ExpressRouteBossbar express = new ExpressRouteBossbar(
                         pathInfo.getStartStationName(), pathInfo.getEndStationName());
                 BossbarManager.put(minecartMember, express);
-                express.refreshProgress(0, pathInfo.switcherLineIds().size());
+                express.refreshProgress(0, pathInfo.routeSteps().size());
             }
         }
     }

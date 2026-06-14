@@ -88,9 +88,17 @@ public abstract class ConfigWizard {
     public void start() {
         this.steps = steps();
         player.sendMessage(BiliCraftTicketSystem.PREFIX.append(title()));
-        player.sendMessage(Component.text("在聊天框依次输入各项配置；随时可点 ", NamedTextColor.GRAY)
-                .append(exitButton())
-                .append(Component.text(" 放弃编辑。", NamedTextColor.GRAY)));
+        if (editMode) {
+            player.sendMessage(Component.text("在聊天框依次输入各项配置；随时可点 ", NamedTextColor.GRAY)
+                    .append(saveExitButton())
+                    .append(Component.text(" 直接保存，或点 ", NamedTextColor.GRAY))
+                    .append(exitButton())
+                    .append(Component.text(" 放弃修改。", NamedTextColor.GRAY)));
+        } else {
+            player.sendMessage(Component.text("在聊天框依次输入各项配置；随时可点 ", NamedTextColor.GRAY)
+                    .append(exitButton())
+                    .append(Component.text(" 放弃编辑。", NamedTextColor.GRAY)));
+        }
         sendCurrentPrompt();
     }
 
@@ -134,27 +142,49 @@ public abstract class ConfigWizard {
     }
 
     /**
-     * 取消向导（由 [退出] 按钮回调或掉线触发）。
+     * 取消向导（由 [退出]/[放弃] 按钮回调或掉线触发）。
      */
     public void cancel() {
         player.sendMessage(BiliCraftTicketSystem.PREFIX
                 .append(Component.text("已放弃本次编辑。", NamedTextColor.YELLOW)));
     }
 
+    /**
+     * 保存并退出（仅修改模式可用，由 [保存并退出] 按钮回调触发）：把当前已收集 / 预填的值
+     * 直接写回，不必走完剩余步骤。
+     */
+    public void saveAndExit() {
+        if (!WizardManager.isActive(player.getUniqueId()) || steps == null) {
+            return;
+        }
+        if (!editMode) {
+            return;
+        }
+        WizardManager.finish(player.getUniqueId());
+        complete();
+    }
+
     private void advance() {
         index++;
         if (index >= steps.size()) {
             WizardManager.finish(player.getUniqueId());
-            try {
-                onComplete(values);
-            } catch (Exception e) {
-                player.sendMessage(BiliCraftTicketSystem.PREFIX
-                        .append(Component.text("保存配置时出错：" + e, NamedTextColor.RED)));
-                BiliCraftTicketSystem.plugin.getLogger().warning("向导保存配置失败：" + e);
-            }
+            complete();
             return;
         }
         sendCurrentPrompt();
+    }
+
+    /**
+     * 调用子类 {@link #onComplete} 写回配置，统一异常处理。
+     */
+    private void complete() {
+        try {
+            onComplete(values);
+        } catch (Exception e) {
+            player.sendMessage(BiliCraftTicketSystem.PREFIX
+                    .append(Component.text("保存配置时出错：" + e, NamedTextColor.RED)));
+            BiliCraftTicketSystem.plugin.getLogger().warning("向导保存配置失败：" + e);
+        }
     }
 
     private void sendCurrentPrompt() {
@@ -173,6 +203,9 @@ public abstract class ConfigWizard {
         if (canSkip(step)) {
             actions = actions.append(skipButton()).append(Component.text("  ", NamedTextColor.GRAY));
         }
+        if (editMode) {
+            actions = actions.append(saveExitButton()).append(Component.text("  ", NamedTextColor.GRAY));
+        }
         actions = actions.append(exitButton());
         player.sendMessage(actions);
     }
@@ -187,8 +220,15 @@ public abstract class ConfigWizard {
                 .clickEvent(ClickEvent.callback(a -> WizardManager.skip(player.getUniqueId())));
     }
 
+    private Component saveExitButton() {
+        return Component.text(" [保存并退出] ", NamedTextColor.AQUA)
+                .decoration(TextDecoration.UNDERLINED, true)
+                .clickEvent(ClickEvent.callback(a -> WizardManager.saveAndExit(player.getUniqueId())));
+    }
+
     private Component exitButton() {
-        return Component.text(" [退出] ", NamedTextColor.RED)
+        String label = editMode ? " [放弃] " : " [退出] ";
+        return Component.text(label, NamedTextColor.RED)
                 .decoration(TextDecoration.UNDERLINED, true)
                 .clickEvent(ClickEvent.callback(a -> WizardManager.cancel(player.getUniqueId())));
     }

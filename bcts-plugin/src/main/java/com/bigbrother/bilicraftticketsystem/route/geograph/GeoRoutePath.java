@@ -61,7 +61,7 @@ public class GeoRoutePath {
      * 导出「列车依次经过的各 bcswitcher 应选的 lineId」序列，供导航使用。
      * <p>
      * 遍历路径节点，每遇到一个 switch（道岔）节点，取其<b>驶出段</b>的 lineId
-     * （即该节点在路径中对应的下一段 {@link #lineIdSequence}）。平台节点不产生道岔决策，跳过。
+     * （即该节点在路径中对应的下一段 {@link #lineIdSequence}）。站台节点不产生道岔决策，跳过。
      * 列车每经过一个 bcswitcher 推进一格，与本序列逐一对齐。
      * <p>
      * 注意：路径尾节点（终点站台）没有驶出段，自然不会被纳入。
@@ -82,6 +82,41 @@ public class GeoRoutePath {
     }
 
     /**
+     * 导出整条路径的「节点步骤序列」，供列车导航单指针消费（替代仅含道岔的
+     * {@link #switcherLineIds()}）。按经过顺序列出<b>每一个</b>路径节点：
+     * <ul>
+     *   <li>道岔（switch）节点编码为 {@code "S:" + 驶出段lineId}：bcswitcher 据此选向。</li>
+     *   <li>车站（station / platform）节点编码为 {@code "P"}：仅用于推进指针与进度，不选向。</li>
+     * </ul>
+     * 列车每物理经过一个节点控制牌推进一格：bcswitcher 进站推进、platform 出站推进。
+     * 由此即便整条线路没有任何 bcswitcher（全是无正线车站），指针也能随 platform 推进直到终点。
+     *
+     * @return 节点步骤有序序列（含起点 / 终点站台，size = 路径节点数）
+     */
+    public List<String> routeSteps() {
+        List<String> result = new ArrayList<>();
+        for (int i = 0; i < nodes.size(); i++) {
+            GeoNode node = nodes.get(i);
+            if (node.isStation()) {
+                result.add(ROUTE_STEP_PLATFORM);
+            } else {
+                String depart = i < lineIdSequence.size() ? lineIdSequence.get(i) : "";
+                result.add(ROUTE_STEP_SWITCH_PREFIX + depart);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * {@link #routeSteps()} 中车站（platform）步骤的编码。
+     */
+    public static final String ROUTE_STEP_PLATFORM = "P";
+    /**
+     * {@link #routeSteps()} 中道岔（switch）步骤的前缀，其后接驶出段 lineId。
+     */
+    public static final String ROUTE_STEP_SWITCH_PREFIX = "S:";
+
+    /**
      * 路径上的车站名有序序列（仅 station 节点，按经过顺序）。
      *
      * @return 车站名列表
@@ -99,8 +134,8 @@ public class GeoRoutePath {
     /**
      * 一个车站 + 其驶出段所属 lineId，用于 lore 显示（站名 + 箭头按该段线路上色）。
      *
-     * @param stationName   车站名
-     * @param departLineId  从该站驶出的那段轨道的 lineId（终到站为 null）
+     * @param stationName  车站名
+     * @param departLineId 从该站驶出的那段轨道的 lineId（终到站为 null）
      */
     public record StationStep(String stationName, String departLineId) {
     }
@@ -117,12 +152,20 @@ public class GeoRoutePath {
         List<StationStep> result = new ArrayList<>();
         for (int i = 0; i < nodes.size(); i++) {
             GeoNode node = nodes.get(i);
-            if (!node.isStation() || node.getName() == null) {
-                continue;
+            if (node.isStation() && node.getName() != null) {
+                String lineId = i < lineIdSequence.size() ? lineIdSequence.get(i) : null;
+                result.add(new StationStep(node.getName(), lineId));
+            } else {
+                // 含有正线的车站获车站名
+                // 寻找进站道岔直接出边连接的车站节点
+                String stationName = GeoRouteEngine.getGraph().platformNameOfMainlineSwitch(node);
+                if (stationName != null &&
+                        !result.isEmpty() &&
+                        !result.get(result.size() - 1).stationName.equals(stationName)) {
+                    String lineId = i < lineIdSequence.size() ? lineIdSequence.get(i) : null;
+                    result.add(new StationStep(stationName, lineId));
+                }
             }
-            // 该站驶出段 = lineIdSequence[i]（i 为最后一个节点时无驶出段）
-            String departLineId = i < lineIdSequence.size() ? lineIdSequence.get(i) : null;
-            result.add(new StationStep(node.getName(), departLineId));
         }
         return result;
     }

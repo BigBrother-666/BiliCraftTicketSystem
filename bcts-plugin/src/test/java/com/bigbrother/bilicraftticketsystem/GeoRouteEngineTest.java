@@ -147,6 +147,16 @@ public class GeoRouteEngineTest {
     }
 
     @Test
+    void routeStepsExportsEveryNode() {
+        GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(fc));
+        // nA(站台) -> s1(道岔,驶出 contact) -> s2(道岔,驶出 L1) -> nB(站台)
+        GeoRoutePath path = GeoRouteEngine.findFromNode("nA", "B");
+        assertNotNull(path);
+        // 每个节点一项：站台=P，道岔=S:驶出段lineId
+        assertEquals(List.of("P", "S:contact", "S:L1", "P"), path.routeSteps());
+    }
+
+    @Test
     void unknownStartOrEndReturnsNoPath() {
         GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(fc));
         assertNull(GeoRouteEngine.findFromNode("does-not-exist", "B"));

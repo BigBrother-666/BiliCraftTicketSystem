@@ -1,5 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.signactions.component;
 
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
@@ -71,6 +72,12 @@ public class CommonRouteBossbar extends RouteBossbarBase {
         }
     }
 
+    @Override
+    public boolean needsRebuild(LineInfo currentLine) {
+        // 换乘到别的线路：当前 bossbar 绑定的 lineId 与列车新线路不同则需重建
+        return currentLine != null && !currentLine.getId().equals(lineId);
+    }
+
     /**
      * 解析颜色字符串：支持 {@code #RRGGBB} 十六进制与 legacy &-code（如 {@code &7}），失败用回退色。
      */
@@ -88,7 +95,7 @@ public class CommonRouteBossbar extends RouteBossbarBase {
     }
 
     @Override
-    public void onArrive(String currStation) {
+    public void onArrive(MinecartGroup group, String currStation) {
         if (bossBar == null || stations.isEmpty()) {
             return;
         }
@@ -118,7 +125,7 @@ public class CommonRouteBossbar extends RouteBossbarBase {
     }
 
     @Override
-    public void onLeave() {
+    public void onLeave(MinecartGroup group) {
         if (bossBar == null || stations.isEmpty()) {
             return;
         }

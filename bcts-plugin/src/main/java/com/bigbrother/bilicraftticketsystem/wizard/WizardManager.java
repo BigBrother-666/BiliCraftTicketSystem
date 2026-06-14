@@ -93,6 +93,18 @@ public final class WizardManager {
     }
 
     /**
+     * 保存并退出玩家当前向导（[保存并退出] 按钮回调，仅修改模式有效）。
+     *
+     * @param uuid 玩家 UUID
+     */
+    public static void saveAndExit(UUID uuid) {
+        ConfigWizard wizard = active.get(uuid);
+        if (wizard != null) {
+            wizard.saveAndExit();
+        }
+    }
+
+    /**
      * 完成并移除玩家当前向导（不发取消提示），由向导内部走完全部步骤时调用。
      *
      * @param uuid 玩家 UUID

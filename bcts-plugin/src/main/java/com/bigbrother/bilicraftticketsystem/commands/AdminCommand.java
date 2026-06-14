@@ -260,10 +260,13 @@ public class AdminCommand {
         // 导航序列与进度
         int[] progress = BcRouteNavigator.progress(group);
         player.sendMessage(Component.text("导航进度：", NamedTextColor.GRAY).append(Component.text(
-                "%d / %d 个道岔".formatted(progress[0], progress[1]), NamedTextColor.WHITE)));
-        String current = BcRouteNavigator.currentLineId(group);
-        player.sendMessage(Component.text("下一道岔应选线路：", NamedTextColor.GRAY).append(Component.text(
-                current == null ? "(无 / 已走完)" : current, NamedTextColor.WHITE)));
+                "%d / %d 个节点".formatted(progress[0] + 1, progress[1]), NamedTextColor.WHITE)));
+        String currentStep = BcRouteNavigator.currentStep(group);
+        String currentSwitch = BcRouteNavigator.currentSwitchLineId(group);
+        String desc = currentStep == null ? "(无 / 已走完)"
+                : (currentSwitch != null ? "道岔应选 " + currentSwitch : "车站(站台)");
+        player.sendMessage(Component.text("当前节点步骤：", NamedTextColor.GRAY).append(Component.text(
+                desc, NamedTextColor.WHITE)));
         player.sendMessage(Component.text("==============================", NamedTextColor.AQUA));
     }
 

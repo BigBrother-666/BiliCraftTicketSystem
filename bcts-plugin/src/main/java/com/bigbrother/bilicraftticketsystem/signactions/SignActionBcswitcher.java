@@ -1,7 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.signactions;
 
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
-import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathPredictEvent;
@@ -9,9 +8,6 @@ import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bigbrother.bilicraftticketsystem.route.geodata.GeoUtils;
 import com.bigbrother.bilicraftticketsystem.signactions.component.BcSwitcherBranch;
-import com.bigbrother.bilicraftticketsystem.signactions.component.BossbarManager;
-import com.bigbrother.bilicraftticketsystem.signactions.component.ExpressRouteBossbar;
-import com.bigbrother.bilicraftticketsystem.signactions.component.RouteBossbarBase;
 import com.bigbrother.bilicraftticketsystem.route.NodeId;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteNavigator;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.SwitchTrace;
@@ -99,23 +95,17 @@ public class SignActionBcswitcher extends SignAction {
             SwitchTrace.log(group,
                     NodeId.ofBlock(info.getRails()),
                     progress[0], progress[1],
-                    BcRouteNavigator.currentLineId(group),
+                    BcRouteNavigator.currentSwitchLineId(group),
                     branchLineIds,
                     branch == null ? null : branch.getLineId());
         }
 
-        // 列车经过本道岔，导航指针推进一格（与 GeoRoutePath.switcherLineIds() 序列逐一对齐）。
-        // 仅在列车带有导航序列时推进；execute 在 GROUP_ENTER 每个物理道岔触发一次，符合"每过道岔推进"。
-        if (BcRouteNavigator.hasRoute(group)) {
+        // 列车经过本道岔，导航指针推进一格（节点步骤序列里 bcswitcher 对应一个 S 步骤）。
+        // 仅在列车带有导航序列且当前指针确实指向道岔步骤时推进，避免与 platform 推进错位。
+        if (BcRouteNavigator.hasRoute(group) && BcRouteNavigator.isAtSwitchStep(group)) {
             BcRouteNavigator.advance(group);
-            // 直达车 bossbar 进度 = index / total，随道岔推进刷新
-            int[] progress = BcRouteNavigator.progress(group);
-            for (MinecartMember<?> member : group) {
-                RouteBossbarBase bossbar = BossbarManager.get(member);
-                if (bossbar instanceof ExpressRouteBossbar express) {
-                    express.refreshProgress(progress[0], progress[1]);
-                }
-            }
+            // 直达车 bossbar 进度随节点推进刷新
+            BcRouteNavigator.refreshExpressBossbar(group);
         }
     }
 
@@ -154,9 +144,9 @@ public class SignActionBcswitcher extends SignAction {
         if (group == null) {
             return null;
         }
-        String currentLineId = BcRouteNavigator.currentLineId(group);
+        String currentLineId = BcRouteNavigator.currentSwitchLineId(group);
         if (currentLineId != null) {
-            // 有导航序列：按当前应走的 lineId 精确选向
+            // 有导航序列且当前步骤为道岔：按当前应走的 lineId 精确选向
             for (BcSwitcherBranch branch : branches) {
                 if (currentLineId.equals(branch.getLineId())) {
                     return branch;

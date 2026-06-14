@@ -67,6 +67,7 @@ message:
   ticket-expired: '<red>车票已过期'
   ticket-owner-conflict: '<red>不能使用其他玩家的车票'
   ticket-wrong-platform: '<red>此车票不能在本站台使用，请核对车票的可使用站台和本站台上的信息是否一致'
+  ticket-route-mismatch: '<red>此车票的路线与本趟列车不一致，无法乘坐'
   ticket-used: '<green>成功使用一张（次）%s 车票'
 
   card-charge-success: '<green>您成功向交通卡充值了 <bold>%.2f</bold> 银币，余额 <bold>%.2f</bold> 银币'

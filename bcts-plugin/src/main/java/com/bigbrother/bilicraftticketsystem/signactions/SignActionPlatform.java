@@ -10,6 +10,8 @@ import com.bigbrother.bilicraftticketsystem.signactions.component.*;
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteNavigator;
+import com.bigbrother.bilicraftticketsystem.route.geograph.nav.SwitchTrace;
+import com.bigbrother.bilicraftticketsystem.route.NodeId;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
@@ -60,14 +62,18 @@ public class SignActionPlatform extends SignAction {
         String stationName = info.getLine(2).trim();
 
         if (info.isAction(SignActionType.GROUP_ENTER)) {
-            // 进站提示
-            if (enabled.contains(PlatformFeature.ARRIVAL_NOTICE)) {
+            // 调试追踪：列车进入站台
+            if (SwitchTrace.isEnabled() && BcRouteNavigator.hasRoute(group)) {
+                int[] progress = BcRouteNavigator.progress(group);
+                SwitchTrace.logPlatform(group, NodeId.ofBlock(info.getRails()), stationName,
+                        progress[0], progress[1], "进站");
+            }
+            // 进站提示（仅普通车）
+            if (enabled.contains(PlatformFeature.ARRIVAL_NOTICE)&& !BcRouteNavigator.hasRoute(group)) {
                 sendNotice(group, stationName, true);
             }
-            // bossbar 进站推进（普通车：每站停，显示滚动站名带）
-            if (enabled.contains(PlatformFeature.BOSSBAR)) {
-                updateBossbarOnArrive(group, stationName);
-            }
+            // bossbar 进站刷新（普通车滚动站名带 / 直达车进度与终到文案，统一多态调用）
+            updateBossbarOnArrive(group, stationName, enabled.contains(PlatformFeature.BOSSBAR));
         } else if (info.isAction(SignActionType.GROUP_LEAVE)) {
             // 空车销毁/直达车终点强制销毁
             if (enabled.contains(PlatformFeature.DESTROY) && (isEmptyTrain(group) ||
@@ -75,68 +81,69 @@ public class SignActionPlatform extends SignAction {
                 group.destroy();
                 return;
             }
-            // 出站提示
-            if (enabled.contains(PlatformFeature.DEPARTURE_NOTICE)) {
+            // 导航：当前步骤为车站则推进指针（使无正线中途站也能推进到终点）。
+            // 推进属于导航逻辑，不受 BOSSBAR 功能位影响；bossbar 显示刷新交由 onLeave 多态处理。
+            if (BcRouteNavigator.hasRoute(group) && BcRouteNavigator.isAtPlatformStep(group)) {
+                if (SwitchTrace.isEnabled()) {
+                    int[] progress = BcRouteNavigator.progress(group);
+                    SwitchTrace.logPlatform(group, NodeId.ofBlock(info.getRails()), stationName,
+                            progress[0], progress[1], "出站");
+                }
+                BcRouteNavigator.advance(group);
+            }
+            // 出站提示（仅普通车）
+            if (enabled.contains(PlatformFeature.DEPARTURE_NOTICE) && !BcRouteNavigator.hasRoute(group)) {
                 sendNotice(group, stationName, false);
             }
-            // bossbar 出站滚动到下一站
-            if (enabled.contains(PlatformFeature.BOSSBAR)) {
-                updateBossbarOnLeave(group);
-            }
+            // bossbar 出站刷新（统一多态调用）
+            updateBossbarOnLeave(group);
         }
     }
 
     /**
-     * 列车进站时推进 bossbar。
+     * 列车进站时刷新 bossbar：统一对每个车厢的 bossbar 多态调用 {@code onArrive}，不区分类型。
      * <p>
-     * 直达车 bossbar（{@link ExpressRouteBossbar}）
-     * 跨越中间站、不在此更新（其 onArrive 为 no-op）；普通车按当前线路 lineId 取/建
-     * {@link CommonRouteBossbar}，换乘到别的线路时重建。
+     * 唯一的类型相关处理是<b>生命周期</b>：普通车 bossbar 在首次进站时由 platform 懒创建
+     * （仅当本站启用 BOSSBAR 功能位时），换乘线路时重建；直达车 bossbar 已在上车时创建、
+     * 此处只刷新不创建。
      *
      * @param group       列车
      * @param stationName 当前车站名
+     * @param bbEnabled   本站是否启用 BOSSBAR 功能位（仅影响普通车 bossbar 的懒创建）
      */
-    private void updateBossbarOnArrive(MinecartGroup group, String stationName) {
+    private void updateBossbarOnArrive(MinecartGroup group, String stationName, boolean bbEnabled) {
         LineInfo line = resolveLine(group.getProperties().getTags());
         for (MinecartMember<?> member : group) {
             RouteBossbarBase bossbar = BossbarManager.get(member);
-            if (bossbar instanceof CommonRouteBossbar common) {
-                // 换乘到别的线路：重建为新线路的 bossbar
-                if (line != null && !line.getId().equals(common.getLineId())) {
-                    BossbarManager.remove(member);
-                    bossbar = null;
-                }
-            } else if (bossbar != null) {
-                // 直达车 bossbar：不在站台牌处更新
-                bossbar.onArrive(stationName);
-                continue;
+            // 生命周期：普通车 bossbar 换乘到别的线路需重建
+            if (bossbar != null && bossbar.needsRebuild(line)) {
+                BossbarManager.remove(member);
+                bossbar = null;
             }
-            if (bossbar == null) {
-                // 普通车首次进站：创建该线路的 bossbar
-                if (line == null) {
-                    continue;
-                }
+            // 生命周期：普通车首次进站 / 重建后懒创建（需本站启用 BB 且能识别线路）
+            if (bossbar == null && bbEnabled && line != null) {
                 CommonRouteBossbar common = new CommonRouteBossbar(line);
-                if (common.getBossBar() == null) {
-                    continue;
+                if (common.getBossBar() != null) {
+                    BossbarManager.put(member, common);
+                    bossbar = common;
                 }
-                BossbarManager.put(member, common);
-                bossbar = common;
             }
-            bossbar.onArrive(stationName);
+            if (bossbar != null) {
+                bossbar.onArrive(group, stationName);
+            }
         }
     }
 
     /**
-     * 列车出站时让普通车 bossbar 滚动到下一站。
+     * 列车出站时刷新 bossbar：对每个车厢的 bossbar 多态调用 {@code onLeave}，不区分类型。
      *
      * @param group 列车
      */
     private void updateBossbarOnLeave(MinecartGroup group) {
         for (MinecartMember<?> member : group) {
             RouteBossbarBase bossbar = BossbarManager.get(member);
-            if (bossbar instanceof CommonRouteBossbar) {
-                bossbar.onLeave();
+            if (bossbar != null) {
+                bossbar.onLeave(group);
             }
         }
     }

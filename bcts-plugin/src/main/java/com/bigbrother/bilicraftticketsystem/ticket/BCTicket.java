@@ -10,7 +10,7 @@ import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRouteEngine;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRoutePath;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
-import com.bigbrother.bilicraftticketsystem.listeners.TrainListeners;
+import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteNavigator;
 import com.bigbrother.bilicraftticketsystem.menu.PlayerOption;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -235,16 +235,18 @@ public class BCTicket extends BCTransitPass {
             return false;
         }
 
-        // 列车为初始车（不需要比对路线） 或 已应用的车票与本车票为同一行程（同起终点）才能上车
-        BCTransitPass bcTransitPass = TrainListeners.trainTicketInfo.get(group);
+        // 列车为初始车（首位上车者，尚未成型）不需比对路线，直接放行
         if (BCTransitPass.isNewPRTrain(group)) {
             return true;
         }
-        if (bcTransitPass != null && bcTransitPass.getPathInfo() != null) {
-            GeoRoutePath trainPath = bcTransitPass.getPathInfo();
-            return trainPath.getStartStationName() != null
-                    && trainPath.getStartStationName().equals(pathInfo.getStartStationName())
-                    && Objects.equals(trainPath.getEndStationName(), pathInfo.getEndStationName());
+        // 已成型的直达车：要求本车票重算出的路线与列车正在行驶的导航路线<b>完全相同</b>才能上车
+        // （逐节点比对 BcRouteProperty，而非仅起终点相同）
+        if (!BcRouteNavigator.routeEquals(group, pathInfo.routeSteps())) {
+            usedPlayer.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+                    CommonUtils.mmStr2Component(message.get("ticket-route-mismatch",
+                            "此车票的路线与本趟列车不一致，无法乘坐"))
+            ));
+            return false;
         }
         return true;
     }
