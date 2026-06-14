@@ -1,5 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.main;
 
+import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRouteEngine;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRoutePath;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
@@ -63,9 +64,11 @@ public class SearchItem extends AbstractItem {
                 menu.setTickets(tickets);
                 return;
             } else {
-                // 显示车票
-                for (GeoRoutePath pathInfo : pathInfoList) {
-                    BCTicket ticket = new BCTicket(option, pathInfo, player);
+                // 显示车票：findByStation 已按距离升序，取最短的前 N 条（max-search-results，<=0 不限制）
+                int max = MainConfig.maxSearchResults;
+                int limit = max > 0 ? Math.min(max, pathInfoList.size()) : pathInfoList.size();
+                for (int i = 0; i < limit; i++) {
+                    BCTicket ticket = new BCTicket(option, pathInfoList.get(i), player);
                     tickets.add(new TicketItem(ticket));
                 }
             }

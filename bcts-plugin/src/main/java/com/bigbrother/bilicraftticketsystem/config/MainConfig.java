@@ -24,6 +24,11 @@ public class MainConfig {
     public static List<String> discount;
     public static List<String> expressSkipSigns;
     public static ConfigurationNode cardConfig;
+    /**
+     * 购票界面最多显示的车票数：即寻路返回的「距离最短的前 N 条路线」对应的车票数上限。
+     * {@code <=0} 表示不限制（显示全部候选路线）。
+     */
+    public static int maxSearchResults;
 
     public static int loreStationNameCntRow;
     public static int loreRailwayNameCntRow;
@@ -74,6 +79,8 @@ public class MainConfig {
         discount = uses.getList("discount", String.class, Collections.emptyList());
 
         expressSkipSigns = mainConfig.getList("express-skip-signs", String.class, Collections.emptyList());
+
+        maxSearchResults = mainConfig.get("max-search-results", 5);
 
         cardConfig = mainConfig.getNode("card");
         ConfigurationNode lore = mainConfig.getNode("lore");
