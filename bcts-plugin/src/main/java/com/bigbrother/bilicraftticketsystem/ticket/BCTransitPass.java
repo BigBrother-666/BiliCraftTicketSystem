@@ -132,28 +132,27 @@ public abstract class BCTransitPass {
 
             if (i == steps.size() - 1) {
                 // 终到站
-                join = join.append(Component.text(stationName, NamedTextColor.GOLD)
+                join = join.append(Component.text(stationName, lineColor(step.departLineId()))
                         .decoration(TextDecoration.ITALIC, false));
                 lore.add(join);
                 break;
             }
-            TextColor arrowColor = lineColor(step.departLineId());
             if (cnt == 0) {
                 // 起始站
-                join = join.append(Component.text(stationName, NamedTextColor.GOLD)
-                        .append(Component.text("→", arrowColor))
+                join = join.append(Component.text(stationName, lineColor(step.departLineId()))
+                        .append(Component.text("→", NamedTextColor.GOLD))
                         .decoration(TextDecoration.ITALIC, false));
             } else if (cntPerRow <= 0 || cnt % cntPerRow != 0) {
                 // 经过站
                 join = join.append(Component.text(stationName, NamedTextColor.GRAY)
-                        .append(Component.text("→", arrowColor))
+                        .append(Component.text("→", NamedTextColor.GOLD))
                         .decoration(TextDecoration.ITALIC, true));
             } else {
                 lore.add(join);
                 // 开始新的一行
                 join = Component.text("");
                 join = join.append(Component.text(stationName, NamedTextColor.GRAY)
-                        .append(Component.text("→", arrowColor))
+                        .append(Component.text("→", NamedTextColor.GOLD))
                         .decoration(TextDecoration.ITALIC, true));
             }
             cnt += 1;

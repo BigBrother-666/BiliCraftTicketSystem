@@ -3,8 +3,7 @@ package com.bigbrother.bilicraftticketsystem.route.geograph;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import lombok.Getter;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * 一次寻路得到的路径结果。
@@ -138,6 +137,18 @@ public class GeoRoutePath {
      * @param departLineId 从该站驶出的那段轨道的 lineId（终到站为 null）
      */
     public record StationStep(String stationName, String departLineId) {
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            StationStep that = (StationStep) o;
+            return Objects.equals(stationName, that.stationName) && Objects.equals(departLineId, that.departLineId);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(stationName, departLineId);
+        }
     }
 
     /**
@@ -149,25 +160,27 @@ public class GeoRoutePath {
      * @return 车站步骤有序列表
      */
     public List<StationStep> stationSteps() {
-        List<StationStep> result = new ArrayList<>();
+        LinkedHashSet<StationStep> result = new LinkedHashSet<>();
         for (int i = 0; i < nodes.size(); i++) {
             GeoNode node = nodes.get(i);
             if (node.isStation() && node.getName() != null) {
                 String lineId = i < lineIdSequence.size() ? lineIdSequence.get(i) : null;
-                result.add(new StationStep(node.getName(), lineId));
+                if (lineId != null) {
+                    result.add(new StationStep(node.getName(), lineId));
+                }
             } else {
                 // 含有正线的车站获车站名
                 // 寻找进站道岔直接出边连接的车站节点
                 String stationName = GeoRouteEngine.getGraph().platformNameOfMainlineSwitch(node);
-                if (stationName != null &&
-                        !result.isEmpty() &&
-                        !result.get(result.size() - 1).stationName.equals(stationName)) {
+                if (stationName != null) {
                     String lineId = i < lineIdSequence.size() ? lineIdSequence.get(i) : null;
-                    result.add(new StationStep(stationName, lineId));
+                    if (lineId != null) {
+                        result.add(new StationStep(stationName, lineId));
+                    }
                 }
             }
         }
-        return result;
+        return result.stream().toList();
     }
 
     /**
