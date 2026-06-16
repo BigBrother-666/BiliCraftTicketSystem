@@ -139,6 +139,29 @@ public class CommonRouteBossbar extends RouteBossbarBase {
     }
 
     /**
+     * 转线后定位：把 bossbar 定位到「正驶向 {@code entryStation}」的状态——该站显示为下一站，
+     * 之前的站标记为已过。用于普通车转入本线（可能跳过本线靠前的车站，如从别线终点直接接入中间站），
+     * 列车尚未物理到达该站，故不发到站提示、只刷新显示。
+     * <p>
+     * {@code entryStation} 为空或不在本线车站列表时，回退定位到首站（下标 0）。
+     *
+     * @param entryStation 转线后的进入站名（下一站）
+     */
+    public void approach(String entryStation) {
+        if (bossBar == null || stations.isEmpty()) {
+            return;
+        }
+        int idx = entryStation == null ? -1 : stations.indexOf(entryStation);
+        this.nextStationIdx = Math.max(idx, 0);
+        bossBar.name(buildScrollTitle());
+        if (ring) {
+            bossBar.progress(1.0f);
+        } else {
+            bossBar.progress(Math.min((float) (nextStationIdx + 1) / stations.size(), 1.0f));
+        }
+    }
+
+    /**
      * 构造滚动站名带标题：当前站前 {@code passedNum} 个已过站、后 {@code notPassedNum} 个未过站，
      * 已过 / 未过站不同颜色，被截断的一侧用 {@code ...} 省略。环线按去重后的唯一站序环绕，
      * 两端恒显省略号。

@@ -56,18 +56,19 @@ public class BcspawnService {
     /**
      * 记录一次发车事件（新 bcspawn 控制牌使用）。
      * <p>
-     * 新控制牌直接在牌面携带车站名与线路 id，无需再经图解析。
-     * 线路 id 暂存入 spawn_railway 列，方向列留空（数据库 schema 的进一步调整见 Phase 6）。
+     * 新控制牌直接在牌面携带车站名与线路 id，无需再经图解析。线路 id 存入 spawn_line 列，
+     * 线路名（便于直接查看）存入 spawn_line_name 列。
      *
-     * @param station 当前车站名
-     * @param lineId  线路 id
+     * @param station  当前车站名
+     * @param lineId   线路 id
+     * @param lineName 线路名称（用于查看，可空）
      */
-    public void recordSpawn(String station, String lineId) {
+    public void recordSpawn(String station, String lineId, String lineName) {
         if (station == null || station.isEmpty()) {
             return;
         }
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () ->
-                recordDao.insertRecord(nowAsString(), station, "", lineId));
+                recordDao.insertRecord(nowAsString(), station, lineId, lineName == null ? "" : lineName));
     }
 
     public Component getDailySpawn(int days) {
@@ -83,14 +84,14 @@ public class BcspawnService {
     }
 
     public Component getSpawnRecordsByDate(String date) {
-        Component header = CommonUtils.legacyStr2Component("%-20s &7|&6 %-15s &7|&6 %-15s &7|&6 %-15s".formatted("&6spawn time", "station", "railway", "direction&6"));
+        Component header = CommonUtils.legacyStr2Component("%-20s &7|&6 %-15s &7|&6 %-15s &7|&6 %-15s".formatted("&6spawn time", "station", "line", "line name&6"));
         List<BcspawnRecordDao.BcspawnRecordRow> rows = recordDao.findRecordsByDate(date);
         Component result = header;
         for (BcspawnRecordDao.BcspawnRecordRow row : rows) {
             result = result.append(CommonUtils.legacyStr2Component("\n%-20s &7|&6 ".formatted(row.spawnTime())))
                     .append(CommonUtils.legacyStr2Component("%-15s &7|&6 ".formatted(row.spawnStation())))
-                    .append(CommonUtils.legacyStr2Component("%-15s &7|&6 ".formatted(row.spawnRailway())))
-                    .append(CommonUtils.legacyStr2Component("%-15s".formatted(row.spawnDirection())));
+                    .append(CommonUtils.legacyStr2Component("%-15s &7|&6 ".formatted(row.spawnLine())))
+                    .append(CommonUtils.legacyStr2Component("%-15s".formatted(row.spawnLineName())));
         }
         return result;
     }

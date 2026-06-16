@@ -72,6 +72,22 @@ public class LineInfo {
      * 出站提示，支持 tc 的 announce / sound 等指令；可能为空。
      */
     private final List<String> noticeDeparture;
+    /**
+     * 转线目标线路 id：routes.yml 中 {@code bossbar-stations} 最后一项若填的是
+     * {@code <线路id>} 或 {@code <线路id>:<进入站名>}（而非普通站名），表示普通车到达本线终点站后
+     * 转入该线路继续运行。无转线时为 null。
+     * <p>
+     * 该项不计入 {@link #bossbarStations}（不当站名、不参与遍历期望站序）。
+     */
+    private final String nextLineId;
+    /**
+     * 转线后在目标线路上的<b>进入站名</b>（即转线后的下一站，可能跳过目标线路靠前的车站）。
+     * <p>
+     * 来源：{@code bossbar-stations} 最后一项写成 {@code <线路id>:<进入站名>} 时冒号后的部分。
+     * 仅写 {@code <线路id>}（无冒号）时为空串。用于转线后 bossbar 的初始定位与出站提示
+     * {@code {next_station}}。
+     */
+    private final String nextLineEntryStation;
 
     /**
      * @param id                   线路 id
@@ -93,7 +109,7 @@ public class LineInfo {
                     List<String> noticeDeparture) {
         this(id, null,
                 lineName, lineColor, bossbarStations, Collections.emptySet(),
-                bossbarArrivalNotice, bossbarColor, noticeArrival, noticeDeparture);
+                bossbarArrivalNotice, bossbarColor, noticeArrival, noticeDeparture, null, null);
     }
 
     /**
@@ -107,6 +123,8 @@ public class LineInfo {
      * @param bossbarColor          bossbar 颜色名
      * @param noticeArrival         进站提示列表
      * @param noticeDeparture       出站提示列表
+     * @param nextLineId            转线目标线路 id（无则 null）
+     * @param nextLineEntryStation  转线后的进入站名（无则 null / 空串）
      */
     public LineInfo(String id,
                     String railwaySystemId,
@@ -117,7 +135,9 @@ public class LineInfo {
                     String bossbarArrivalNotice,
                     String bossbarColor,
                     List<String> noticeArrival,
-                    List<String> noticeDeparture) {
+                    List<String> noticeDeparture,
+                    String nextLineId,
+                    String nextLineEntryStation) {
         this.id = id;
         this.railwaySystemId = railwaySystemId;
         this.lineName = lineName;
@@ -128,6 +148,8 @@ public class LineInfo {
         this.bossbarColor = bossbarColor;
         this.noticeArrival = noticeArrival == null ? Collections.emptyList() : noticeArrival;
         this.noticeDeparture = noticeDeparture == null ? Collections.emptyList() : noticeDeparture;
+        this.nextLineId = nextLineId;
+        this.nextLineEntryStation = nextLineEntryStation;
     }
 
     /**

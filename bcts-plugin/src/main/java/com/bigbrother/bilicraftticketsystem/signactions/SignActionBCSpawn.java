@@ -7,6 +7,9 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
 import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.signactions.spawner.SpawnSign;
+import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
+import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
+import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcLineIdProperty;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcStartNodeProperty;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -72,17 +75,21 @@ public class SignActionBCSpawn extends SignActionSpawn {
             sign.resetSpawnTime();
             MinecartGroup group = info.getGroup();
             if (group != null) {
-                // 标记列车所属线路（bcswitcher 回退 / platform 据此识别）
+                // 标记列车所属线路：写入 train property（不再用 tag，避免玩家用 TC 指令篡改）
+                String lineName = "";
                 if (!lineId.isEmpty()) {
-                    group.getProperties().addTags(lineId);
-                    group.onPropertiesChanged();
+                    BcLineIdProperty.write(group, lineId);
+                    LineInfo lineInfo = LineConfig.get(lineId);
+                    if (lineInfo != null) {
+                        lineName = lineInfo.getLineName();
+                    }
                 }
                 // 记录列车起点车站名（新模型据此做车票 verify / 交通卡任意站台上车）
                 if (!station.isEmpty()) {
                     BcStartNodeProperty.write(group, station);
                 }
-                // 发车信息记录到数据库
-                plugin.getTrainDatabaseManager().getBcspawnService().recordSpawn(station, lineId);
+                // 发车信息记录到数据库（线路 id + 线路名，便于直接查看）
+                plugin.getTrainDatabaseManager().getBcspawnService().recordSpawn(station, lineId, lineName);
             }
         }
     }

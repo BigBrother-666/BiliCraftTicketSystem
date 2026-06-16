@@ -1,5 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.route.geodata.traversal;
 
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bigbrother.bilicraftticketsystem.route.geodata.GeoUtils;
 import com.bigbrother.bilicraftticketsystem.signactions.component.BcSwitcherBranch;
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
@@ -134,6 +135,15 @@ public class LineWalk {
                                 && lineInfo.isReverseStation(matchedIndex)) {
                             needReverse = true;
                         }
+                        // 转线：到达本线终点站且配置了 nextLineId 时，把通往下一线的连接轨记为联络线种子，
+                        // 使其作为联络线被遍历（运行时普通车在此转入下一线，见 SignActionPlatform）。
+                        if (lineInfo.getNextLineId() != null
+                                && matchedIndex == expectedStations.size() - 1
+                                && expectedStations.get(matchedIndex).equals(stationName)) {
+                            collector.addContactSeed(node.getId(), result.railBlock(), result.direction());
+                            log.info("  终点站 " + stationName + " 配置了转线 " + lineInfo.getNextLineId()
+                                    + "，连接轨记为联络线种子 @ " + node.getId());
+                        }
                     }
                     log.info("  到达车站 " + stationName + " @ " + node.getId());
                 } else {
@@ -166,6 +176,9 @@ public class LineWalk {
                             log.info("  联络线到达不含 contact 分支的道岔 @ " + node.getId() + "，停止（主线已覆盖）");
                             break;
                         }
+                        // 该道岔仍含 contact 分支：可能引出另一条联络线，记为新种子继续遍历
+                        // （按道岔节点 id 去重，不会重复遍历已记录过的道岔）。
+                        collectContactSeedIfAny(result, node);
                     } else {
                         // 主线：含 default 分支额外遍历正线；含 contact 分支记联络线种子
                         walkDefaultMainlineIfAny(result, node, color, railwaySystemId);
@@ -305,7 +318,7 @@ public class LineWalk {
      * @param sign 控制牌
      * @return true 表示含 contact 分支
      */
-    private boolean hasContactBranch(com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign sign) {
+    private boolean hasContactBranch(RailLookup.TrackedSign sign) {
         for (BcSwitcherBranch branch : parseBranches(sign)) {
             if (LineInfo.CONTACT_ID.equalsIgnoreCase(branch.getLineId())) {
                 return true;
@@ -320,7 +333,7 @@ public class LineWalk {
      * @param sign 控制牌
      * @return 分支列表
      */
-    private List<BcSwitcherBranch> parseBranches(com.bergerkiller.bukkit.tc.rails.RailLookup.TrackedSign sign) {
+    private List<BcSwitcherBranch> parseBranches(RailLookup.TrackedSign sign) {
         List<BcSwitcherBranch> branches = new ArrayList<>();
         for (int i = 2; i <= 3; i++) {
             BcSwitcherBranch branch = GeoUtils.parseBcSwitcherBranch(sign.getLine(i));

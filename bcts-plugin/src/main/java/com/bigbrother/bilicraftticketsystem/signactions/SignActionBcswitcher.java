@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bigbrother.bilicraftticketsystem.route.geodata.GeoUtils;
 import com.bigbrother.bilicraftticketsystem.signactions.component.BcSwitcherBranch;
 import com.bigbrother.bilicraftticketsystem.route.NodeId;
+import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcLineIdProperty;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteNavigator;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.SwitchTrace;
 import net.kyori.adventure.text.Component;
@@ -154,7 +155,16 @@ public class SignActionBcswitcher extends SignAction {
             }
             return null;
         }
-        // 回退：无导航序列时按列车 tag 集合首个匹配（兼容存量 / 手动列车）
+        // 回退：无导航序列时（普通车 / 遍历临时矿车）选向。
+        // 普通车按 BcLineIdProperty 选；遍历临时矿车无该 property，回退按 tag 选（walker 用 setLineTag 加 tag）。
+        String propLineId = BcLineIdProperty.read(group);
+        if (propLineId != null && !propLineId.isEmpty()) {
+            for (BcSwitcherBranch branch : branches) {
+                if (propLineId.equals(branch.getLineId())) {
+                    return branch;
+                }
+            }
+        }
         return selectBranchByTags(branches, group.getProperties().getTags());
     }
 

@@ -35,9 +35,15 @@ public class LineConfig {
         config = new FileConfiguration(plugin, EnumConfig.ROUTES_CONFIG.getFileName());
         config.load();
 
+        // 先收集所有线路 id，供解析时判断 bossbar-stations 最后一项是否为「转线目标线路 id」。
+        java.util.Set<String> allLineIds = new java.util.HashSet<>();
+        for (ConfigurationNode node : config.getNodes()) {
+            allLineIds.add(node.getName());
+        }
+
         Map<String, LineInfo> parsed = new LinkedHashMap<>();
         for (ConfigurationNode node : config.getNodes()) {
-            LineInfo info = parseNode(node);
+            LineInfo info = parseNode(node, allLineIds);
             parsed.put(info.getId(), info);
         }
         lines = parsed;
@@ -46,10 +52,11 @@ public class LineConfig {
     /**
      * 把一个配置节点解析为 {@link LineInfo}。
      *
-     * @param node 线路配置节点（节点名即线路 id）
+     * @param node       线路配置节点（节点名即线路 id）
+     * @param allLineIds 所有已知线路 id 集合（用于判断车站列表末项是否为转线目标线路 id）
      * @return 解析出的线路信息
      */
-    private static LineInfo parseNode(ConfigurationNode node) {
+    private static LineInfo parseNode(ConfigurationNode node, java.util.Set<String> allLineIds) {
         String id = node.getName();
         String railwaySystemId = node.get("railway-system", String.class, null);
         String lineName = node.get("line-name", id);
@@ -59,6 +66,25 @@ public class LineConfig {
         String bossbarColor = node.get("bossbar-color", "WHITE");
         List<String> noticeArrival = node.getList("notice-arrival", String.class, null);
         List<String> noticeDeparture = node.getList("notice-departure", String.class, null);
+
+        // 转线目标：bossbar-stations 最后一项若是 "<线路id>" 或 "<线路id>:<进入站名>"（线路 id 为某条
+        // 已存在线路、非本线），表示普通车到达本线终点站后转入该线路。该项不当站名处理（从车站列表剥离）。
+        // 仅末项可填线路 id。冒号后为转线后的进入站名（即下一站，可跳过目标线路靠前的车站）。
+        String nextLineId = null;
+        String nextLineEntryStation = null;
+        if (rawStations != null && !rawStations.isEmpty()) {
+            String last = rawStations.get(rawStations.size() - 1);
+            if (last != null) {
+                String trimmed = last.trim();
+                int sep = trimmed.indexOf(':');
+                String candidateId = sep >= 0 ? trimmed.substring(0, sep).trim() : trimmed;
+                if (allLineIds.contains(candidateId) && !candidateId.equals(id)) {
+                    nextLineId = candidateId;
+                    nextLineEntryStation = sep >= 0 ? trimmed.substring(sep + 1).trim() : "";
+                    rawStations = new java.util.ArrayList<>(rawStations.subList(0, rawStations.size() - 1));
+                }
+            }
+        }
 
         // 解析车站名后缀：站名写成 "站名:RV" 表示该站为折返站（尽头式，进站后反向驶出）。
         // 拆出干净站名列表 + 折返下标集合（用下标标记，环线重复站名也能精确区分）。
@@ -87,7 +113,9 @@ public class LineConfig {
                 bossbarArrivalNotice,
                 bossbarColor,
                 noticeArrival,
-                noticeDeparture
+                noticeDeparture,
+                nextLineId,
+                nextLineEntryStation
         );
     }
 

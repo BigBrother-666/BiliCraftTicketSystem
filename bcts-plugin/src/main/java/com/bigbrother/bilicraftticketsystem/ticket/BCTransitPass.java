@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bigbrother.bctsguardplugin.GuardListeners;
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
+import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcLineIdProperty;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRoutePath;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteNavigator;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcStartNodeProperty;
@@ -252,22 +253,21 @@ public abstract class BCTransitPass {
     }
 
     /**
-     * 列车所属营运线路 id：取列车 tag 中第一个在 routes.yml 中存在且非特殊（非 default / contact）的 lineId。
+     * 列车所属营运线路 id：读取列车的 {@link BcLineIdProperty}（bcspawn 发车时写入）。
      * <p>
-     * bcspawn 发车时把线路 id 作为 tag 加到列车上（{@code addTags(lineId)}），故据此识别列车所属线路。
+     * 旧模型把线路 id 作为 tag 加在列车上，已改为 train property（玩家无法用 tag 指令篡改）。
      *
      * @param group 列车
-     * @return 营运线路 id；找不到返回空串
+     * @return 营运线路 id；找不到 / 非营运线返回空串
      */
     public static String getTrainLineId(MinecartGroup group) {
         if (group == null) {
             return "";
         }
-        for (String tag : group.getProperties().getTags()) {
-            LineInfo info = LineConfig.get(tag);
-            if (info != null && !info.isSpecial()) {
-                return tag;
-            }
+        String lineId = BcLineIdProperty.read(group);
+        LineInfo info = LineConfig.get(lineId);
+        if (info != null && !info.isSpecial()) {
+            return lineId;
         }
         return "";
     }

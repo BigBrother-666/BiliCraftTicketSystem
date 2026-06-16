@@ -105,11 +105,17 @@ public class GeoTraversalTask {
             return;
         }
         log.message("遍历 " + seeds.size() + " 条联络线...", NamedTextColor.DARK_AQUA);
-        for (TraversalCollector.ContactSeed seed : seeds) {
+        // 用下标遍历并每轮重读 size()：联络线遍历途中遇到仍含 contact 分支的道岔会往 seeds 追加新种子
+        // （见 LineWalk），需一并处理。addContactSeed 按道岔节点 id 去重，故不会无限增长。
+        for (int i = 0; i < seeds.size(); i++) {
+            TraversalCollector.ContactSeed seed = seeds.get(i);
             new LineWalk(LineInfo.CONTACT_ID, seed.getStartRail(), seed.getStartDirection(),
                     collector, log, MAX_NODES_PER_LINE, MAX_EDGES_PER_WALK)
                     .withInitialPrevNode(seed.getSourceNodeId())
                     .walk();
+        }
+        if (seeds.size() > 0) {
+            log.message("联络线遍历完成，共 " + seeds.size() + " 条", NamedTextColor.DARK_AQUA);
         }
     }
 

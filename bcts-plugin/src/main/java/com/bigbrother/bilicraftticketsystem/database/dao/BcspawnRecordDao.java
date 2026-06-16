@@ -17,14 +17,14 @@ public class BcspawnRecordDao extends BaseDao {
         super(plugin, dataSource);
     }
 
-    public void insertRecord(String spawnTime, String station, String direction, String railway) {
+    public void insertRecord(String spawnTime, String station, String line, String lineName) {
         String sql = "INSERT INTO " + TrainDatabaseConstants.BCSPAWN_TABLE_NAME
-                + " (`spawn_time`, `spawn_station`, `spawn_direction`, `spawn_railway`) VALUES (?, ?, ?, ?)";
+                + " (`spawn_time`, `spawn_station`, `spawn_line`, `spawn_line_name`) VALUES (?, ?, ?, ?)";
         try (Connection connection = dataSource.getConnection(); PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setString(1, spawnTime);
             preparedStatement.setString(2, station);
-            preparedStatement.setString(3, direction);
-            preparedStatement.setString(4, railway);
+            preparedStatement.setString(3, line);
+            preparedStatement.setString(4, lineName);
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
             logSQLException(e);
@@ -56,7 +56,7 @@ public class BcspawnRecordDao extends BaseDao {
 
     public List<BcspawnRecordRow> findRecordsByDate(String date) {
         List<BcspawnRecordRow> result = new ArrayList<>();
-        String sql = "SELECT spawn_time, spawn_station, spawn_railway, spawn_direction FROM "
+        String sql = "SELECT spawn_time, spawn_station, spawn_line, spawn_line_name FROM "
                 + TrainDatabaseConstants.BCSPAWN_TABLE_NAME
                 + " WHERE DATE(spawn_time) = ? ORDER BY spawn_time";
 
@@ -68,8 +68,8 @@ public class BcspawnRecordDao extends BaseDao {
                 result.add(new BcspawnRecordRow(
                         rs.getString("spawn_time"),
                         rs.getString("spawn_station"),
-                        rs.getString("spawn_railway"),
-                        rs.getString("spawn_direction")
+                        rs.getString("spawn_line"),
+                        rs.getString("spawn_line_name")
                 ));
             }
         } catch (SQLException e) {
@@ -82,6 +82,6 @@ public class BcspawnRecordDao extends BaseDao {
     public record DailySpawnRow(String day, int dailySpawn) {
     }
 
-    public record BcspawnRecordRow(String spawnTime, String spawnStation, String spawnRailway, String spawnDirection) {
+    public record BcspawnRecordRow(String spawnTime, String spawnStation, String spawnLine, String spawnLineName) {
     }
 }

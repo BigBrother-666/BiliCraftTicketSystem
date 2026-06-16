@@ -47,3 +47,46 @@ pr-cw:
     - "sound:noteblock.xxxx,0.8,0.5"
     - "announce:欢迎乘坐{line_color}{line_name}"
     - "announce:下一站: {line_color}{next_station}"
+
+pr-s1:
+  railway-system: "paralon-railway"
+  line-name: "S1线"
+  line-color: "#AA0000"
+
+  bossbar-stations:
+    - "S1-A"
+    - "S1-B:RV"
+    - "S1-C"
+    - "S1-D"
+    # 线路id:车站只能存在于最后，含义是：对于普通车来说，经过终点站后，转入pr-s2运行，且下一站是pr-s2的S2-B站。需要更换pr-s2的bossbar（修改列车属性lineID）
+    - "pr-s2:S2-B"
+  bossbar-arrival-notice: "&6列车已到达 {line_color}{curr_station}站"
+  bossbar-color: "RED"
+
+  notice-arrival:
+    - "sound:noteblock.xxxx,0.56,0.5"
+    - "announce:列车即将到达 {line_color}{curr_station}站"
+  notice-departure:
+    - "sound:noteblock.xxxx,0.8,0.5"
+    - "announce:欢迎乘坐{line_color}{line_name}"
+    - "announce:下一站: {line_color}{next_station}"
+
+pr-s2:
+  railway-system: "paralon-railway"
+  line-name: "S2线"
+  line-color: "#AA0000"
+
+  bossbar-stations:
+    - "S2-A"
+    - "S2-B"
+    - "S2-C"
+  bossbar-arrival-notice: "&6列车已到达 {line_color}{curr_station}站"
+  bossbar-color: "RED"
+
+  notice-arrival:
+    - "sound:noteblock.xxxx,0.56,0.5"
+    - "announce:列车即将到达 {line_color}{curr_station}站"
+  notice-departure:
+    - "sound:noteblock.xxxx,0.8,0.5"
+    - "announce:欢迎乘坐{line_color}{line_name}"
+    - "announce:下一站: {line_color}{next_station}"

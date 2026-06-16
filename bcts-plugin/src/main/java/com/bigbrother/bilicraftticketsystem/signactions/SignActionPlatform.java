@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bigbrother.bilicraftticketsystem.signactions.component.*;
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
+import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcLineIdProperty;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteNavigator;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.SwitchTrace;
 import com.bigbrother.bilicraftticketsystem.route.NodeId;
@@ -16,6 +17,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -70,7 +72,7 @@ public class SignActionPlatform extends SignAction {
             }
             // 进站提示（仅普通车）
             if (enabled.contains(PlatformFeature.ARRIVAL_NOTICE)&& !BcRouteNavigator.hasRoute(group)) {
-                sendNotice(group, stationName, true);
+                sendNotice(group, stationName, true, null);
             }
             // bossbar 进站刷新（普通车滚动站名带 / 直达车进度与终到文案，统一多态调用）
             updateBossbarOnArrive(group, stationName, enabled.contains(PlatformFeature.BOSSBAR));
@@ -91,12 +93,24 @@ public class SignActionPlatform extends SignAction {
                 }
                 BcRouteNavigator.advance(group);
             }
-            // 出站提示（仅普通车）
-            if (enabled.contains(PlatformFeature.DEPARTURE_NOTICE) && !BcRouteNavigator.hasRoute(group)) {
-                sendNotice(group, stationName, false);
+            // 运行时转线（仅普通车）：离开本线终点站且本线配置了 nextLineId 时，把列车所属线路改为
+            // 下一线。出站提示仍属本线（到达本线终点），但下一站用转线后的进入站名；bossbar 重建为
+            // 新线路并定位到进入站。entryStation 为 null 表示本站非「终点 + 转线」，按常规处理。
+            String entryStation = null;
+            if (!BcRouteNavigator.hasRoute(group)) {
+                entryStation = transferLineIfTerminus(group, stationName);
             }
-            // bossbar 出站刷新（统一多态调用）
-            updateBossbarOnLeave(group);
+            // 出站提示（仅普通车）。转线时下一站用进入站名覆盖（不在本线车站列表中，无法推算）。
+            if (enabled.contains(PlatformFeature.DEPARTURE_NOTICE) && !BcRouteNavigator.hasRoute(group)) {
+                sendNotice(group, stationName, false,
+                        entryStation != null && !entryStation.isEmpty() ? entryStation : null);
+            }
+            // bossbar 出站刷新：转线则重建为新线路并定位到进入站，否则常规 onLeave 多态刷新。
+            if (entryStation != null) {
+                rebuildBossbarForTransfer(group, entryStation, enabled.contains(PlatformFeature.BOSSBAR));
+            } else {
+                updateBossbarOnLeave(group);
+            }
         }
     }
 
@@ -112,7 +126,7 @@ public class SignActionPlatform extends SignAction {
      * @param bbEnabled   本站是否启用 BOSSBAR 功能位（仅影响普通车 bossbar 的懒创建）
      */
     private void updateBossbarOnArrive(MinecartGroup group, String stationName, boolean bbEnabled) {
-        LineInfo line = resolveLine(group.getProperties().getTags());
+        LineInfo line = resolveLine(group);
         for (MinecartMember<?> member : group) {
             RouteBossbarBase bossbar = BossbarManager.get(member);
             // 生命周期：普通车 bossbar 换乘到别的线路需重建
@@ -170,8 +184,8 @@ public class SignActionPlatform extends SignAction {
      * @param stationName 当前车站名
      * @param arrival     true 进站，false 出站
      */
-    private void sendNotice(MinecartGroup group, String stationName, boolean arrival) {
-        LineInfo line = resolveLine(group.getProperties().getTags());
+    private void sendNotice(MinecartGroup group, String stationName, boolean arrival, String nextStationOverride) {
+        LineInfo line = resolveLine(group);
         if (line == null) {
             return;
         }
@@ -180,22 +194,76 @@ public class SignActionPlatform extends SignAction {
             return;
         }
         for (MinecartMember<?> member : group) {
-            NoticePlayer.play(member, notices, line, stationName);
+            NoticePlayer.play(member, notices, line, stationName, nextStationOverride);
         }
     }
 
     /**
-     * 从列车携带的 tag 中找出对应的线路信息（首个在 routes.yml 中存在的 lineId）。
+     * 运行时转线：普通车离开本线<b>终点站</b>且本线配置了 {@code nextLineId} 时，把列车所属线路
+     * （{@link BcLineIdProperty}）改为下一条线路，使其转入新线继续运行。
+     * <p>
+     * 仅当当前站名正是本线 bossbar 车站列表的最后一站时触发。终点站可能不在下一线车站列表中
+     * （如 S1-D 转入 S2 线、下一站 S2-B），故转线在<b>出站</b>时进行：到达提示仍属本线终点，
+     * 出站后才转入新线。下一线不存在 / 为特殊线时不改写（避免列车丢失线路标识）。
      *
-     * @param trainTags 列车 tag
-     * @return 线路信息，找不到返回 null
+     * @param group       列车
+     * @param stationName 当前离开的车站名
+     * @return 转线后在新线的进入站名（可能为空串表示未指定）；本站非「终点 + 转线」时返回 null
      */
-    private LineInfo resolveLine(Collection<String> trainTags) {
-        for (String tag : trainTags) {
-            LineInfo info = LineConfig.get(tag);
-            if (info != null && !info.isSpecial()) {
-                return info;
+    private String transferLineIfTerminus(MinecartGroup group, String stationName) {
+        LineInfo line = resolveLine(group);
+        if (line == null || line.getNextLineId() == null) {
+            return null;
+        }
+        List<String> stations = line.getBossbarStations();
+        if (stations.isEmpty() || !stations.get(stations.size() - 1).equals(stationName)) {
+            return null;
+        }
+        LineInfo next = LineConfig.get(line.getNextLineId());
+        if (next == null || next.isSpecial()) {
+            return null;
+        }
+        BcLineIdProperty.write(group, next.getId());
+        String entry = line.getNextLineEntryStation();
+        return entry == null ? "" : entry;
+    }
+
+    /**
+     * 转线后重建 bossbar：移除旧线 bossbar，按新线路懒创建并定位到进入站
+     * （{@link CommonRouteBossbar#approach}）。仅当本站启用 BOSSBAR 功能位且能识别新线路时创建。
+     *
+     * @param group        列车
+     * @param entryStation 转线后在新线的进入站名
+     * @param bbEnabled    本站是否启用 BOSSBAR 功能位
+     */
+    private void rebuildBossbarForTransfer(MinecartGroup group, String entryStation, boolean bbEnabled) {
+        LineInfo line = resolveLine(group);
+        for (MinecartMember<?> member : group) {
+            // 移除旧线 bossbar（换乘到别的线路必重建）
+            RouteBossbarBase old = BossbarManager.get(member);
+            if (old != null) {
+                BossbarManager.remove(member);
             }
+            if (bbEnabled && line != null) {
+                CommonRouteBossbar common = new CommonRouteBossbar(line);
+                if (common.getBossBar() != null) {
+                    BossbarManager.put(member, common);
+                    common.approach(entryStation);
+                }
+            }
+        }
+    }
+
+    /**
+     * 从列车所属线路 property（{@link BcLineIdProperty}）解析线路信息。
+     *
+     * @param group 列车
+     * @return 线路信息，找不到或非营运线返回 null
+     */
+    private LineInfo resolveLine(MinecartGroup group) {
+        LineInfo info = LineConfig.get(BcLineIdProperty.read(group));
+        if (info != null && !info.isSpecial()) {
+            return info;
         }
         return null;
     }

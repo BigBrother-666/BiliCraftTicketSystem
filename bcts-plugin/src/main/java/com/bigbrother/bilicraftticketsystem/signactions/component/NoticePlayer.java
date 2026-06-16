@@ -37,6 +37,23 @@ public final class NoticePlayer {
      * @param currStation 当前车站名
      */
     public static void play(MinecartMember<?> member, Collection<String> notices, LineInfo line, String currStation) {
+        play(member, notices, line, currStation, null);
+    }
+
+    /**
+     * 对一节车厢的所有玩家乘客播放提示，并可显式指定下一站名（覆盖按车站列表推算的结果）。
+     * <p>
+     * 转线场景下，列车在前一线终点站出站、即将转入下一线，下一站不在当前线车站列表中（如从 S1-D
+     * 转入 S2-B），需由调用方显式传入 {@code nextStationOverride}。
+     *
+     * @param member              车厢
+     * @param notices             提示行列表（announce/sound 指令）
+     * @param line                列车所属线路（提供 line_name / line_color 占位符）
+     * @param currStation         当前车站名
+     * @param nextStationOverride 下一站名覆盖；为 null 时按线路车站列表推算
+     */
+    public static void play(MinecartMember<?> member, Collection<String> notices, LineInfo line,
+                            String currStation, String nextStationOverride) {
         if (member.getEntity() == null) {
             return;
         }
@@ -45,19 +62,21 @@ public final class NoticePlayer {
             return;
         }
         for (String notice : notices) {
-            dispatch(passengers, notice, line, currStation);
+            dispatch(passengers, notice, line, currStation, nextStationOverride);
         }
     }
 
     /**
      * 解析并分发一条提示指令到所有乘客。
      *
-     * @param passengers  乘客列表
-     * @param notice      提示行
-     * @param line        线路信息
-     * @param currStation 当前车站名
+     * @param passengers          乘客列表
+     * @param notice              提示行
+     * @param line                线路信息
+     * @param currStation         当前车站名
+     * @param nextStationOverride 下一站名覆盖；为 null 时按线路车站列表推算
      */
-    private static void dispatch(List<Player> passengers, String notice, LineInfo line, String currStation) {
+    private static void dispatch(List<Player> passengers, String notice, LineInfo line, String currStation,
+                                 String nextStationOverride) {
         if (notice == null || notice.isEmpty()) {
             return;
         }
@@ -72,7 +91,7 @@ public final class NoticePlayer {
             case "announce" -> {
                 // 走统一占位符解析（同时支持 MiniMessage 与 & 代码），便于以后扩展更多占位符
                 List<Component> parsed = PlaceholderParser.parse(
-                        List.of(body), placeholders(line, currStation));
+                        List.of(body), placeholders(line, currStation, nextStationOverride));
                 if (parsed.isEmpty()) {
                     return;
                 }
@@ -135,12 +154,13 @@ public final class NoticePlayer {
      * <p>
      * 以后扩展新占位符只需往这里加键。
      *
-     * @param line        线路信息
-     * @param currStation 当前车站名
+     * @param line                线路信息
+     * @param currStation         当前车站名
+     * @param nextStationOverride 下一站名覆盖；为 null 时按线路车站列表推算
      * @return 占位符 map
      */
-    private static Map<String, Object> placeholders(LineInfo line, String currStation) {
-        String nextStation = nextStation(line, currStation);
+    private static Map<String, Object> placeholders(LineInfo line, String currStation, String nextStationOverride) {
+        String nextStation = nextStationOverride != null ? nextStationOverride : nextStation(line, currStation);
         Map<String, Object> map = new HashMap<>();
         map.put("curr_station", currStation == null ? "" : currStation);
         map.put("line_name", line == null ? "" : line.getLineName());
