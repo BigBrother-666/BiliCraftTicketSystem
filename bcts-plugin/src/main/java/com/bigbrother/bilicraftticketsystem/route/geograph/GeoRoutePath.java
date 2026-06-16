@@ -164,10 +164,8 @@ public class GeoRoutePath {
         for (int i = 0; i < nodes.size(); i++) {
             GeoNode node = nodes.get(i);
             if (node.isStation() && node.getName() != null) {
-                String lineId = i < lineIdSequence.size() ? lineIdSequence.get(i) : null;
-                if (lineId != null) {
-                    result.add(new StationStep(node.getName(), lineId));
-                }
+                String lineId = i < lineIdSequence.size() ? lineIdSequence.get(i) : (i > 0 ? lineIdSequence.get(i - 1) : null);
+                result.add(new StationStep(node.getName(), lineId));
             } else {
                 // 含有正线的车站获车站名
                 // 寻找进站道岔直接出边连接的车站节点
@@ -180,6 +178,7 @@ public class GeoRoutePath {
                 }
             }
         }
+        System.out.println(result.stream().toList());
         return result.stream().toList();
     }
 

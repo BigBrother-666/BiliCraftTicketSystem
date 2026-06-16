@@ -125,6 +125,9 @@ public class GeoRouteGraph {
         }
         // 取出边中通往车站（停靠线 platform）的那条，返回其车站名
         for (GeoLink out : outLinks) {
+            if (LineInfo.DEFAULT_ID.equals(out.getLineId())) {
+                continue;
+            }
             GeoNode to = nodes.get(out.getToNodeId());
             if (to != null && to.isStation() && to.getName() != null) {
                 return to.getName();
