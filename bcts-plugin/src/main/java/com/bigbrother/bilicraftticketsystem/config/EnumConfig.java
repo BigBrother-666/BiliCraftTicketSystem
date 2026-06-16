@@ -11,7 +11,7 @@ public enum EnumConfig {
     MENU_TICKETBG("menu_ticketbg.yml"),
     MENU_CARD("menu_card.yml"),
     MENU_ITEMS("menuitems.yml"),
-    ADDON_CONFIG("railway_map.yml"),
+    GEO_CONFIG("railway_geo.yml"),
     ROUTES_CONFIG("routes.yml"),
     RAILWAY_SYSTEM_CONFIG("railway_system.yml");
 

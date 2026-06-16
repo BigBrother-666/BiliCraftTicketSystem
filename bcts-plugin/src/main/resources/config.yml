@@ -138,6 +138,3 @@ bossbar:
   not-passed-num: 3
   # 到站标题：使用 routes.yml 中各线路的 bossbar-arrival-notice（占位符 {curr_station}），
   # 该线路留空则到站时显示滚动站名带（…上一站 → 当前站 → 下一站…）
-
-
-railway-color:

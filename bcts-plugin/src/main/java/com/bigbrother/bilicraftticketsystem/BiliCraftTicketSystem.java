@@ -105,7 +105,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
             MenuConfig.loadMenuConfig(this);
             plugin.getComponentLogger().info(Component.text("成功加载GUI配置", NamedTextColor.GOLD));
 
-            RailwayMapConfig.loadRailwayMapConfig(this);
+            RailwayMapConfig.loadRailwayGeoConfig(this);
             plugin.getComponentLogger().info(Component.text("成功加载额外功能", NamedTextColor.GOLD));
 
             BCTicketDisplay.loadFont();
@@ -151,7 +151,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         saveResource(EnumConfig.MENU_FILTER.getFileName(), /* replace */ false);
         saveResource(EnumConfig.MENU_ITEMS.getFileName(), /* replace */ false);
         saveResource(EnumConfig.MENU_TICKETBG.getFileName(), /* replace */ false);
-        saveResource(EnumConfig.ADDON_CONFIG.getFileName(), /* replace */ false);
+        saveResource(EnumConfig.GEO_CONFIG.getFileName(), /* replace */ false);
         saveResource(EnumConfig.MENU_CARD.getFileName(), /* replace */ false);
         saveResource(EnumConfig.ROUTES_CONFIG.getFileName(), /* replace */ false);
         saveResource(EnumConfig.RAILWAY_SYSTEM_CONFIG.getFileName(), /* replace */ false);
