@@ -45,7 +45,7 @@ public final class SwitchTrace {
         }
         String trainName = group == null ? "(null)" : group.getProperties().getTrainName();
         String trainType = BcRouteNavigator.hasRoute(group) ? "快速车" : "普通车";
-        Component msg = Component.text("[道岔追踪] ", NamedTextColor.AQUA)
+        Component msg = Component.text("[路径追踪] ", NamedTextColor.AQUA)
                 .append(Component.text("列车=%s(%s)".formatted(trainName, trainType), NamedTextColor.GRAY))
                 .append(Component.text(" 节点=" + nodeId, NamedTextColor.WHITE))
                 .append(Component.text(" 进度=" + Math.min(indexBefore + 1, total) + "/" + total, NamedTextColor.YELLOW))
@@ -76,7 +76,7 @@ public final class SwitchTrace {
         }
         String trainName = group == null ? "(null)" : group.getProperties().getTrainName();
         String trainType = BcRouteNavigator.hasRoute(group) ? "快速车" : "普通车";
-        Component msg = Component.text("[站台追踪] ", NamedTextColor.LIGHT_PURPLE)
+        Component msg = Component.text("[路径追踪] ", NamedTextColor.AQUA)
                 .append(Component.text("列车=%s(%s)".formatted(trainName, trainType), NamedTextColor.GRAY))
                 .append(Component.text(" 节点=" + nodeId, NamedTextColor.WHITE))
                 .append(Component.text(" 进度=" + Math.min(indexBefore + 1, total) + "/" + total, NamedTextColor.YELLOW))

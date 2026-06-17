@@ -84,6 +84,8 @@ public class GeoTraversalTask {
                     walk.walkFrom(start.getLineId(), startRail, start.getStartDirection());
                 }
 
+                log.message("遍历完成，校验车站和配置是否对应...", NamedTextColor.DARK_AQUA);
+
                 // 按线校验：覆盖所有起点登记线 + 遍历中实际到达过车站的线。
                 Map<String, Set<String>> byLine = walk.getVisitedStationsByLine();
                 java.util.Set<String> linesToCheck = new java.util.LinkedHashSet<>(startLineIds);
@@ -93,7 +95,7 @@ public class GeoTraversalTask {
                 }
 
                 // 所有区间收集完毕后，按空间交叉关系全局重算 layer（高架压平交）
-                log.message("计算LineString层级...", NamedTextColor.DARK_AQUA);
+                log.message("验证完成，开始计算LineString层级...", NamedTextColor.DARK_AQUA);
                 collector.assignLayers();
                 int files = saveAll(collector, log);
                 log.message("遍历完成：共 %d 个节点、%d 条区间，写入 %d 个文件".formatted(
