@@ -53,6 +53,7 @@
 | ticketconfig editSystem \<systemId>         | bcts.ticket.editsystem    | 游戏内新建 / 修改铁路系统配置（railway_system.yml）     |
 | 建立 bcspawn 控制牌                              | bcts.buildsign.bcspawn    |                                          |
 | 建立 platform 控制牌                             | bcts.buildsign.platform   |                                          |
+| 建立 bcswitcher 控制牌                           | bcts.buildsign.bcswitcher |                                          |
 
 ## 5. 自定义菜单界面（menu_*.yml）
 
