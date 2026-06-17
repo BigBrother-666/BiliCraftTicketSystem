@@ -225,6 +225,7 @@ public class TicketbgDao extends BaseDao {
         super.updatePlayerNameByUuid(playerUuid, newName, TrainDatabaseConstants.TICKET_BG_TABLE_NAME);
     }
 
+    @SuppressWarnings("SameParameterValue")
     private void setBgId(PreparedStatement preparedStatement, int index, Integer bgId) throws SQLException {
         if (bgId == null) {
             preparedStatement.setNull(index, Types.INTEGER);
@@ -233,6 +234,7 @@ public class TicketbgDao extends BaseDao {
         }
     }
 
+    @SuppressWarnings("SameParameterValue")
     private void setNullableUuid(PreparedStatement preparedStatement, int index, String uuid) throws SQLException {
         if (uuid == null) {
             preparedStatement.setNull(index, Types.VARCHAR);

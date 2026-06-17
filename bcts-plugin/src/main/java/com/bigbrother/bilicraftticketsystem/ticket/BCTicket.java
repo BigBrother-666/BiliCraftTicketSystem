@@ -139,8 +139,8 @@ public class BCTicket extends BCTransitPass {
         CommonItemStack.of(itemStack).updateCustomData(this::updateNbt);
         List<Component> lore = itemStack.lore();
         if (lore != null && lore.size() > 2) {
-            lore.remove(lore.size() - 1);
-            lore.remove(lore.size() - 1);
+            lore.removeLast();
+            lore.removeLast();
         }
         ItemStack newTicket = itemStack.clone();
         newTicket.editMeta(itemMeta -> itemMeta.lore(lore));
@@ -150,23 +150,9 @@ public class BCTicket extends BCTransitPass {
         }
     }
 
-    /**
-     * 获取当前车票的单程票
-     */
-    public BCTicket getNewSingleTicket() {
-        return new BCTicket(1, maxSpeed, pathInfo, owner);
-    }
-
     @Override
     public BCTicket getNewSingleTicket(Player player) {
         return new BCTicket(1, maxSpeed, pathInfo, player);
-    }
-
-    /**
-     * 车票使用次数+1
-     */
-    public void useTicket() {
-        useTransitPass(owner);
     }
 
     @Override
@@ -368,34 +354,6 @@ public class BCTicket extends BCTransitPass {
                     nbt.getValue(KEY_TICKET_START_STATION, "Unknown"),
                     nbt.getValue(KEY_TICKET_END_STATION, "Unknown")
             );
-        }
-    }
-
-    /**
-     * 如果铁路有变化，更新车票信息：按 NBT 中存的起终点站名重新寻路，取距离最接近原距离的一条。
-     */
-    public void update() {
-        CommonItemStack commonItemStack = CommonItemStack.of(itemStack);
-        CommonTagCompound nbt = commonItemStack.getCustomData();
-        String startStation = nbt.getValue(KEY_TICKET_START_STATION, "");
-        String endStation = nbt.getValue(KEY_TICKET_END_STATION, "");
-        double distance = nbt.getValue(KEY_TICKET_DISTANCE, -1.0);
-        if (startStation.isEmpty() || endStation.isEmpty() || distance < 0) {
-            // 旧格式车票直接作废
-            commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TICKET_EXPIRATION_TIME, 0));
-            return;
-        }
-        GeoRoutePath path = GeoRouteEngine.findClosestByDistance(startStation, endStation, distance);
-        if (path != null) {
-            this.pathInfo = path;
-            commonItemStack.updateCustomData(tag -> {
-                tag.putValue(KEY_TRANSIT_PASS_PLUGIN, "bcts");
-                tag.putValue(KEY_TRANSIT_PASS_TYPE, PassType.TICKET.getId());
-                tag.putValue(KEY_TICKET_DISTANCE, path.getDistance());
-            });
-        } else {
-            // 标记为过期车票
-            commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TICKET_EXPIRATION_TIME, 0));
         }
     }
 

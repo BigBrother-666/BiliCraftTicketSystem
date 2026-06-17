@@ -19,16 +19,6 @@ public class BcspawnInfo {
     private Integer coordZ;
     private String world;
 
-    @Nullable
-    public Location getLocation() {
-        World world1 = Bukkit.getWorld(world);
-        if (world1 != null) {
-            return new Location(world1, coordX, coordY, coordZ);
-        } else {
-            return null;
-        }
-    }
-
     public int getFixedY() {
         return coordY + 3;
     }

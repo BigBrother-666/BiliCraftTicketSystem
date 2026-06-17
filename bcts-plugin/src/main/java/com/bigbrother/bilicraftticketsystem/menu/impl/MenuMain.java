@@ -30,7 +30,7 @@ import java.util.*;
 public class MenuMain extends Menu {
     @Getter
     private static final Map<UUID, MenuMain> mainMenuMapping = new HashMap<>();
-    PagedGui<@NotNull Item> gui;
+    private final PagedGui<@NotNull Item> gui;
     private final Player player;
 
     @Getter

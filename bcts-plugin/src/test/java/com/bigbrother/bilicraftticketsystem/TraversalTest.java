@@ -50,7 +50,7 @@ public class TraversalTest {
         FeatureCollection fc = new GeojsonBuilder().build(new ArrayList<>(), edges);
         assertEquals(2, fc.getFeatures().size());
 
-        Feature first = fc.getFeatures().get(0);
+        Feature first = fc.getFeatures().getFirst();
         assertInstanceOf(LineString.class, first.getGeometry());
         Map<String, Object> props = first.getProperties();
         assertEquals("A", props.get("from"));
@@ -69,7 +69,7 @@ public class TraversalTest {
         List<RailEdge> edges = new ArrayList<>();
         edges.add(edge("A", "B", "contact", null));
         FeatureCollection fc = new GeojsonBuilder().build(new ArrayList<>(), edges);
-        Map<String, Object> props = fc.getFeatures().get(0).getProperties();
+        Map<String, Object> props = fc.getFeatures().getFirst().getProperties();
         assertFalse(props.containsKey("railwaySystemId"), "联络线区间不应含 railwaySystemId");
     }
 }

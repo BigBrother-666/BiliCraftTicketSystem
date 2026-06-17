@@ -1,7 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.wizard;
 
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
-import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemInfo;
 import net.kyori.adventure.text.Component;

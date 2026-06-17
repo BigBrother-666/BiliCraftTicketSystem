@@ -51,6 +51,7 @@ public class GeoRouteEngineTest {
         fc.add(line("e.L2.nA__nB", "nA", "nB", "L2", 100));
     }
 
+    @SuppressWarnings("SameParameterValue")
     private Feature point(String id, String type, String name, double x, double y, double z) {
         Feature f = new Feature();
         // 坐标约定：经度=x、纬度=z、高度=y
@@ -116,7 +117,7 @@ public class GeoRouteEngineTest {
         List<GeoRoutePath> paths = GeoRouteEngine.findByStation("A", "B");
         assertFalse(paths.isEmpty());
         // 最短经 nA2：1 + 10 = 11
-        GeoRoutePath best = paths.get(0);
+        GeoRoutePath best = paths.getFirst();
         assertEquals(11.0 / 1000, best.getDistance(), 1e-9);
         assertEquals("nA2", best.getStartNode().getId());
         assertEquals("nB", best.getEndNode().getId());
@@ -192,7 +193,7 @@ public class GeoRouteEngineTest {
     void startLineIdReturnsFirstSegment() {
         GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(fc));
         // 最短 A→B 经 nA2：段 [L1, L1]，起始线为 L1
-        GeoRoutePath best = GeoRouteEngine.findByStation("A", "B").get(0);
+        GeoRoutePath best = GeoRouteEngine.findByStation("A", "B").getFirst();
         assertEquals("L1", best.getStartLineId());
 
         // nA 出发：段 [L1, contact, L1]，首段即起始线 L1

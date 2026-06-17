@@ -6,7 +6,6 @@ import com.bigbrother.bctsguardplugin.GuardListeners;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
 import com.bigbrother.bilicraftticketsystem.listeners.*;
 import com.bigbrother.bilicraftticketsystem.menu.items.location.NearestLocItem;
-import com.bigbrother.bilicraftticketsystem.commands.GeoCommand;
 import com.bigbrother.bilicraftticketsystem.database.GeoDatabaseManager;
 import com.bigbrother.bilicraftticketsystem.signactions.*;
 import com.bigbrother.bilicraftticketsystem.signactions.component.BossbarManager;
@@ -64,7 +63,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     // Command
     private final AdminCommand adminCommand = new AdminCommand(this);
     private final TicketbgCommand ticketbgCommand = new TicketbgCommand(this);
-    private final BaseCommand baseCommand = new BaseCommand(this);
+    private final BaseCommand baseCommand = new BaseCommand();
     private final CardCommand cardCommand = new CardCommand(this);
     private final GeoCommand geoCommand = new GeoCommand(this);
     private final ConfigEditCommand configEditCommand = new ConfigEditCommand(this);
@@ -100,25 +99,21 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
             MainConfig.loadMainConfig(this);
             LineConfig.load(this);
             RailwaySystemConfig.load(this);
-            plugin.getComponentLogger().info(Component.text("成功加载主配置", NamedTextColor.GOLD));
-
             ItemsConfig.loadItemsConfig(this);
             MenuConfig.loadMenuConfig(this);
-            plugin.getComponentLogger().info(Component.text("成功加载GUI配置", NamedTextColor.GOLD));
-
             RailwayMapConfig.loadRailwayGeoConfig(this);
-            plugin.getComponentLogger().info(Component.text("成功加载额外功能", NamedTextColor.GOLD));
+            plugin.getComponentLogger().info(Component.text("成功加载配置文件", NamedTextColor.GOLD));
 
             BCTicketDisplay.loadFont();
 
             // geojson 路由图
-            GeoRouteEngine.load(this.geodataDir, this.getLogger());
+            GeoRouteEngine.load(this.geodataDir, this.getComponentLogger());
             plugin.getComponentLogger().info(Component.text("geojson路由图加载完成", NamedTextColor.GOLD));
             // 清空"最近车站"坐标缓存，使其按新图重新载入
             NearestLocItem.setBcspawnInfoList(new java.util.ArrayList<>());
 
             if (trainDatabaseManager != null) {
-                trainDatabaseManager.getDs().close();
+                trainDatabaseManager.close();
             }
             trainDatabaseManager = new TrainDatabaseManager(this);
             geoDatabaseManager = new GeoDatabaseManager(this);
@@ -146,16 +141,27 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
 
     private void copyResources() {
         this.getComponentLogger().info(Component.text("拷贝配置文件...", NamedTextColor.GOLD));
-        saveResource(EnumConfig.MAIN_CONFIG.getFileName(), /* replace */ false);
-        saveResource(EnumConfig.MENU_MAIN.getFileName(), /* replace */ false);
-        saveResource(EnumConfig.MENU_LOCATION.getFileName(), /* replace */ false);
-        saveResource(EnumConfig.MENU_FILTER.getFileName(), /* replace */ false);
-        saveResource(EnumConfig.MENU_ITEMS.getFileName(), /* replace */ false);
-        saveResource(EnumConfig.MENU_TICKETBG.getFileName(), /* replace */ false);
-        saveResource(EnumConfig.GEO_CONFIG.getFileName(), /* replace */ false);
-        saveResource(EnumConfig.MENU_CARD.getFileName(), /* replace */ false);
-        saveResource(EnumConfig.ROUTES_CONFIG.getFileName(), /* replace */ false);
-        saveResource(EnumConfig.RAILWAY_SYSTEM_CONFIG.getFileName(), /* replace */ false);
+        saveResourceIfAbsent(EnumConfig.MAIN_CONFIG.getFileName());
+        saveResourceIfAbsent(EnumConfig.MENU_MAIN.getFileName());
+        saveResourceIfAbsent(EnumConfig.MENU_LOCATION.getFileName());
+        saveResourceIfAbsent(EnumConfig.MENU_FILTER.getFileName());
+        saveResourceIfAbsent(EnumConfig.MENU_ITEMS.getFileName());
+        saveResourceIfAbsent(EnumConfig.MENU_TICKETBG.getFileName());
+        saveResourceIfAbsent(EnumConfig.GEO_CONFIG.getFileName());
+        saveResourceIfAbsent(EnumConfig.MENU_CARD.getFileName());
+        saveResourceIfAbsent(EnumConfig.ROUTES_CONFIG.getFileName());
+        saveResourceIfAbsent(EnumConfig.RAILWAY_SYSTEM_CONFIG.getFileName());
+    }
+
+    /**
+     * 仅当目标文件尚不存在时，从 jar 内拷贝默认配置。
+     *
+     * @param fileName 相对于数据目录的资源文件名
+     */
+    private void saveResourceIfAbsent(String fileName) {
+        if (!new File(getDataFolder(), fileName).exists()) {
+            saveResource(fileName, /* replace */ false);
+        }
     }
 
     private void initCommands() {
@@ -243,8 +249,9 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         SignAction.unregister(signActionPlatform);
         SignAction.unregister(signActionBcswitcher);
 
-        BCCardInfo.saveAll();
-
         Bukkit.getScheduler().cancelTasks(plugin);
+
+        BCCardInfo.saveAll();
+        trainDatabaseManager.close();
     }
 }

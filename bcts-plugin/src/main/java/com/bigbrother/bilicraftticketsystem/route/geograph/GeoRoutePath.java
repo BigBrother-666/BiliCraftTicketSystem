@@ -51,7 +51,7 @@ public class GeoRoutePath {
      * @return 路径首节点
      */
     public GeoNode getStartNode() {
-        return nodes.get(0);
+        return nodes.getFirst();
     }
 
     /**
@@ -60,7 +60,7 @@ public class GeoRoutePath {
      * @return 路径尾节点
      */
     public GeoNode getEndNode() {
-        return nodes.get(nodes.size() - 1);
+        return nodes.getLast();
     }
 
     /**

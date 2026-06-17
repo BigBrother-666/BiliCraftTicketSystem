@@ -20,6 +20,7 @@ import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
  * {@link AsyncPlayerChatEvent} 在异步线程触发，因此实际推进（发提示、写配置、构造可点击组件）
  * 切回主线程执行。
  */
+@SuppressWarnings("deprecation")
 public class WizardListeners implements Listener {
 
     /**

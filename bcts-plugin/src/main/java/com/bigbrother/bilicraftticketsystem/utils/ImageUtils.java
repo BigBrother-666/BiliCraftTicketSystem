@@ -1,6 +1,5 @@
 package com.bigbrother.bilicraftticketsystem.utils;
 
-import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import org.bukkit.entity.Player;
 
@@ -9,6 +8,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 
 public class ImageUtils {
@@ -77,7 +77,7 @@ public class ImageUtils {
     }
 
     public static long getImageSize(String imageUrl) throws IOException {
-        URL url = new URL(imageUrl);
+        URL url = URI.create(imageUrl).toURL();
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("HEAD");
         conn.setConnectTimeout(5000);
@@ -92,7 +92,7 @@ public class ImageUtils {
     }
 
     public static byte[] getImageBytes(String imageUrl) throws IOException {
-        HttpURLConnection conn = (HttpURLConnection) new URL(imageUrl).openConnection();
+        HttpURLConnection conn = (HttpURLConnection) URI.create(imageUrl).toURL().openConnection();
         conn.setRequestMethod("GET");
         conn.setConnectTimeout(5000);
         conn.setReadTimeout(5000);

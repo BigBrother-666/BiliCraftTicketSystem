@@ -96,17 +96,6 @@ public final class BcRouteNavigator {
     }
 
     /**
-     * 当前指针是否指向一个车站（platform）步骤。
-     *
-     * @param group 列车
-     * @return true 表示当前步骤为车站
-     */
-    public static boolean isAtPlatformStep(MinecartGroup group) {
-        String step = currentStep(group);
-        return GeoRoutePath.ROUTE_STEP_PLATFORM.equals(step);
-    }
-
-    /**
      * 推进指针一格（列车经过一个节点控制牌时调用）。
      *
      * @param group 列车
@@ -122,20 +111,6 @@ public final class BcRouteNavigator {
         }
         int index = props.get(BcRouteIndexProperty.INSTANCE);
         props.set(BcRouteIndexProperty.INSTANCE, index + 1);
-    }
-
-    /**
-     * 清空导航（行程结束 / 到达终点）。
-     *
-     * @param group 列车
-     */
-    public static void clear(MinecartGroup group) {
-        if (group == null) {
-            return;
-        }
-        TrainProperties props = group.getProperties();
-        props.set(BcRouteProperty.INSTANCE, BcRouteProperty.INSTANCE.getDefault());
-        props.set(BcRouteIndexProperty.INSTANCE, BcRouteIndexProperty.INSTANCE.getDefault());
     }
 
     /**

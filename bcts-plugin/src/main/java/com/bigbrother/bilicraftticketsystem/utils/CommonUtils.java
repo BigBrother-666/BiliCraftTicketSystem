@@ -1,23 +1,16 @@
 package com.bigbrother.bilicraftticketsystem.utils;
 
-import com.bergerkiller.bukkit.tc.TrainCarts;
-import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import java.awt.*;
 import java.io.File;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static com.bigbrother.bilicraftticketsystem.config.ItemsConfig.itemsConfig;
 
@@ -58,19 +51,6 @@ public class CommonUtils {
         return str;
     }
 
-    public static TextColor getRailwayColor(String railway) {
-        for (String key : MainConfig.railwayColor.getKeys()) {
-            if (railway.startsWith(key)) {
-                TextColor color = TextColor.fromHexString(MainConfig.railwayColor.get(key, ""));
-                if (color != null) {
-                    return color;
-                }
-                break;
-            }
-        }
-        return NamedTextColor.GOLD;
-    }
-
     // 保存物品到配置文件
     public static void saveItemToFile(String path, ItemStack item) {
         // 序列化
@@ -90,6 +70,7 @@ public class CommonUtils {
         return new ItemStack(Material.RAIL);
     }
 
+    @SuppressWarnings("UnusedReturnValue")
     public static boolean deleteTicketbg(String fileName) {
         File file = new File(ImageUtils.getImageFolder(), fileName);
         if (file.exists()) {
@@ -112,10 +93,6 @@ public class CommonUtils {
         int blue = Integer.parseInt(hex.substring(4, 6), 16);
 
         return new Color(red, green, blue);
-    }
-
-    public static List<String> getOnlinePlayers() {
-        return Bukkit.getOnlinePlayers().stream().map(Player::getName).collect(Collectors.toList());
     }
 
     /**

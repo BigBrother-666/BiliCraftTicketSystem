@@ -3,7 +3,6 @@ package com.bigbrother.bilicraftticketsystem.route.geograph.nav;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.tc.properties.api.ITrainProperty;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -38,8 +37,7 @@ public class BcRouteProperty implements ITrainProperty<List<String>> {
     @Override
     public Optional<List<String>> readFromConfig(ConfigurationNode config) {
         if (config.contains(KEY)) {
-            return Optional.of(Collections.unmodifiableList(
-                    new ArrayList<>(config.getList(KEY, String.class))));
+            return Optional.of(List.copyOf(config.getList(KEY, String.class)));
         }
         return Optional.empty();
     }

@@ -70,14 +70,14 @@ public class PlaceholderParserTest {
     void toComponentRendersLegacyColor() {
         Component c = PlaceholderParser.toComponent("&c红色");
         assertEquals("红色", plain(c));
-        assertEquals(NamedTextColor.RED, c.children().isEmpty() ? c.color() : c.children().get(0).color());
+        assertEquals(NamedTextColor.RED, c.children().isEmpty() ? c.color() : c.children().getFirst().color());
     }
 
     @Test
     void toComponentRendersHexColor() {
         Component c = PlaceholderParser.toComponent("&#AA00FF紫");
         assertEquals("紫", plain(c));
-        TextColor color = c.children().isEmpty() ? c.color() : c.children().get(0).color();
+        TextColor color = c.children().isEmpty() ? c.color() : c.children().getFirst().color();
         assertEquals(TextColor.fromHexString("#AA00FF"), color);
     }
 
@@ -111,6 +111,6 @@ public class PlaceholderParserTest {
                 java.util.List.of("&6列车已到达 <red>{curr_station}站"),
                 java.util.Map.of("curr_station", "Station A"));
         assertEquals(1, result.size());
-        assertEquals("列车已到达 Station A站", plain(result.get(0)));
+        assertEquals("列车已到达 Station A站", plain(result.getFirst()));
     }
 }

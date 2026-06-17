@@ -100,13 +100,13 @@ public class SignActionBcswitcher extends SignAction {
         String sidingDir = navDir != null ? null : structuralSidingDir(info);
         BcSwitcherBranch branch = null;
         if (navDir != null) {
-            info.setRailsTo(Direction.parse(navDir));
+            info.setRailsTo(info.findJunction(Direction.parse(navDir)));
         } else if (sidingDir != null) {
-            info.setRailsTo(Direction.parse(sidingDir));
+            info.setRailsTo(info.findJunction(Direction.parse(sidingDir)));
         } else {
             branch = selectBranch(branches, group);
             if (branch != null) {
-                info.setRailsTo(branch.getDirection());
+                info.setRailsTo(info.findJunction(branch.getDirection()));
             }
         }
         // 没有匹配的线路，保持默认（不切换）

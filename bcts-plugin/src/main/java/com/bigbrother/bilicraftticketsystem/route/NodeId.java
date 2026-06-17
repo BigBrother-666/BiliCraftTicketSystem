@@ -1,6 +1,5 @@
 package com.bigbrother.bilicraftticketsystem.route;
 
-import org.bukkit.Location;
 import org.bukkit.block.Block;
 
 /**
@@ -24,16 +23,6 @@ public final class NodeId {
      */
     public static String ofBlock(Block block) {
         return ofCoords(block.getWorld().getName(), block.getX(), block.getY(), block.getZ());
-    }
-
-    /**
-     * 根据坐标生成节点 id。
-     *
-     * @param loc 位置（取整数方块坐标）
-     * @return 确定性节点 id
-     */
-    public static String ofLocation(Location loc) {
-        return ofCoords(loc.getWorld().getName(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
     }
 
     /**

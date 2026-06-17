@@ -103,15 +103,6 @@ public class RailwaySystemConfig {
     }
 
     /**
-     * 获取所有系统 id，按配置文件顺序。
-     *
-     * @return 系统 id 有序列表
-     */
-    public static List<String> getAllIds() {
-        return new ArrayList<>(systems.keySet());
-    }
-
-    /**
      * 获取某玩家所属的全部系统 id（按配置文件顺序）。
      *
      * @param playerUuid 玩家 UUID
@@ -160,6 +151,7 @@ public class RailwaySystemConfig {
      * @param systemId 系统 id
      * @return true 表示该系统存在并已删除；false 表示系统不存在（未改动文件）
      */
+    @SuppressWarnings("UnusedReturnValue")
     public static boolean delete(String systemId) {
         if (systemId == null || !config.contains(systemId)) {
             return false;

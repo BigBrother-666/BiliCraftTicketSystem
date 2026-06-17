@@ -1,66 +1,13 @@
 package com.bigbrother.bilicraftticketsystem.utils;
 
-import com.bergerkiller.bukkit.tc.Direction;
-import com.bergerkiller.bukkit.tc.DirectionStatement;
 import com.bigbrother.bilicraftticketsystem.signactions.component.BcSwitcherBranch;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.TextComponent;
-import net.kyori.adventure.text.format.TextColor;
-import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.util.Vector;
 import org.geojson.LngLatAlt;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class GeoUtils {
-    /**
-     * 获取component的字体颜色
-     */
-    public static TextColor getPrimaryColor(Component component) {
-        if (component instanceof TextComponent text && text.color() != null) {
-            return text.color();
-        }
-        for (Component child : component.children()) {
-            TextColor c = getPrimaryColor(child);
-            if (c != null) {
-                return c;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * 解析道岔switcher某行包含的tag
-     *
-     * @param line switcher控制牌的行
-     * @return 这一行的所有tag，包括continue
-     */
-    public static List<String> parseSwitcherTags(String line) {
-        List<String> tags = new ArrayList<>();
-        // 必须是包含方向的switcher（道岔节点）
-        if (!line.contains(":")) {
-            return tags;
-        }
-        line = line.substring(line.indexOf(":") + 1);
-        line = line.replace("t@", "").trim();
-        if (!line.isEmpty()) {
-            tags.addAll(Arrays.asList(line.split(";")));
-        }
-        return tags;
-    }
-
-    public static DirectionStatement parseDirectionStatement(String line) {
-        String left_str = Direction.IMPLICIT_LEFT.aliases()[0];
-        if (line == null || line.isEmpty()) {
-            return new DirectionStatement("default", left_str);
-        } else {
-            return new DirectionStatement(line, left_str);
-        }
-    }
-
     /**
      * 解析 bcswitcher 控制牌的一行出向声明 {@code <方向>@<线路id>;[线路id]...}，返回道岔分支。
      * <p>
@@ -107,7 +54,7 @@ public class GeoUtils {
         if (coords.size() <= 2) return coords;
 
         List<LngLatAlt> result = new ArrayList<>();
-        result.add(coords.get(0)); // 起点
+        result.add(coords.getFirst()); // 起点
 
         for (int i = 1; i < coords.size() - 1; i++) {
             LngLatAlt prev = coords.get(i - 1);
@@ -129,7 +76,7 @@ public class GeoUtils {
         }
 
         // 末点始终保留
-        result.add(coords.get(coords.size() - 1));
+        result.add(coords.getLast());
 
         return result;
     }
@@ -173,22 +120,5 @@ public class GeoUtils {
                 || type == Material.POWERED_RAIL
                 || type == Material.DETECTOR_RAIL
                 || type == Material.ACTIVATOR_RAIL;
-    }
-
-    public static String formatLoc(Location loc) {
-        return String.format("(%d, %d, %d - %s)",
-                loc.getBlockX(),
-                loc.getBlockY(),
-                loc.getBlockZ(),
-                loc.getWorld().getName()
-        );
-    }
-
-    public static String formatVector(Vector vector) {
-        return String.format("(%d, %d, %d)",
-                vector.getBlockX(),
-                vector.getBlockY(),
-                vector.getBlockZ()
-        );
     }
 }

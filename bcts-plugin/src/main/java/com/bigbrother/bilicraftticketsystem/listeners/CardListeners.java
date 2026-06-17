@@ -40,6 +40,7 @@ public class CardListeners implements Listener {
     }
 
     // 接收玩家输入的充值金额
+    @SuppressWarnings("deprecation")
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerChat(AsyncPlayerChatEvent chatEvent) {
         Player player = chatEvent.getPlayer();

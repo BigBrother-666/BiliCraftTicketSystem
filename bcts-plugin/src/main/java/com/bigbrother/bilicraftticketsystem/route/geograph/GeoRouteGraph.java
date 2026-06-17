@@ -33,6 +33,7 @@ public class GeoRouteGraph {
      * @param node 节点
      * @return 图中最终持有的该 id 节点（已存在则为旧对象）
      */
+    @SuppressWarnings("UnusedReturnValue")
     public GeoNode addNode(GeoNode node) {
         GeoNode existing = nodes.get(node.getId());
         if (existing != null) {
@@ -140,7 +141,6 @@ public class GeoRouteGraph {
         if (node == null) {
             return null;
         }
-        String sidingDir = null;
         for (GeoLink out : links(node.getId())) {
             GeoNode to = nodes.get(out.getToNodeId());
             if (to == null) {

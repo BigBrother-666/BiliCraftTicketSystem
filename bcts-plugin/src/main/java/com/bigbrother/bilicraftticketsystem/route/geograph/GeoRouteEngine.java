@@ -2,10 +2,10 @@ package com.bigbrother.bilicraftticketsystem.route.geograph;
 
 import lombok.Getter;
 import lombok.Setter;
+import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 
 import java.io.File;
 import java.util.*;
-import java.util.logging.Logger;
 
 /**
  * 基于 geojson 路由图的寻路引擎（直达，不含换乘）。
@@ -31,7 +31,7 @@ public class GeoRouteEngine {
      * @param geodataDir geojson 目录
      * @param logger     日志（可为 null）
      */
-    public static void load(File geodataDir, Logger logger) {
+    public static void load(File geodataDir, ComponentLogger logger) {
         graph = new GeoGraphLoader(logger).loadDir(geodataDir);
     }
 

@@ -204,6 +204,7 @@ public class GraphWalk {
      * @param arrivalFace 到达方向的面 key（入向）
      * @param queue       待展开队列
      */
+    @SuppressWarnings("unused")
     private void expandSwitcher(RailNode node, String lineId, TrackWalker walker, TrackWalker.WalkResult result,
                                 Vector arrival, String arrivalFace, Deque<WalkState> queue) {
         List<BcSwitcherBranch> branches = walker.collectSwitcherBranches(result.sign().getRail());

@@ -18,6 +18,7 @@ import xyz.xenondevs.invui.window.Window;
 import java.util.Collections;
 
 public class MenuCard extends Menu {
+    @SuppressWarnings("FieldCanBeLocal")
     private final Gui gui;
 
     public MenuCard(Player viewer) {

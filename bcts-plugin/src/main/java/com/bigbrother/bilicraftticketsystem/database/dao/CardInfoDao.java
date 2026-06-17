@@ -75,6 +75,7 @@ public class CardInfoDao extends BaseDao {
         return result;
     }
 
+    @SuppressWarnings("UnusedReturnValue")
     public int updateByCardUuid(CardInfo cardInfo) {
         String sql = "UPDATE " + TrainDatabaseConstants.CARD_INFO_TABLE_NAME
                 + " SET start_station = ?, mm_start_station = ?, end_station = ?, mm_end_station = ?, max_speed = ?, balance = ?"

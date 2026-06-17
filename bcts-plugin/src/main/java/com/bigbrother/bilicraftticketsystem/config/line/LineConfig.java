@@ -70,7 +70,7 @@ public class LineConfig {
         String nextLineId = null;
         String nextLineEntryStation = null;
         if (rawStations != null && !rawStations.isEmpty()) {
-            String last = rawStations.get(rawStations.size() - 1);
+            String last = rawStations.getLast();
             if (last != null) {
                 String trimmed = last.trim();
                 int sep = trimmed.indexOf(':');
@@ -208,6 +208,7 @@ public class LineConfig {
      * @param lineId 线路 id
      * @return true 表示该线路存在并已删除；false 表示线路不存在（未改动文件）
      */
+    @SuppressWarnings("UnusedReturnValue")
     public static boolean delete(String lineId) {
         if (lineId == null || !config.contains(lineId)) {
             return false;
@@ -249,14 +250,5 @@ public class LineConfig {
         } else {
             node.set(key, value);
         }
-    }
-
-    /**
-     * 获取所有线路的 id，按配置文件顺序。
-     *
-     * @return 线路 id 有序列表
-     */
-    public static List<String> getNormalLineIds() {
-        return new ArrayList<>(lines.keySet());
     }
 }

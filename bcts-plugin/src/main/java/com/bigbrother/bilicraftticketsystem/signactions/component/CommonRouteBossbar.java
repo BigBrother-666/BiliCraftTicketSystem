@@ -120,7 +120,7 @@ public class CommonRouteBossbar extends RouteBossbarBase {
             placeholders.put("line_name", lineName);
             placeholders.put("line_color", lineInfo == null ? "<#FFFFFF>" : "<%s>".formatted(lineInfo.getLineColor()));
             List<Component> parsed = PlaceholderParser.parse(List.of(arrivalNotice), placeholders);
-            bossBar.name(parsed.isEmpty() ? buildScrollTitle() : parsed.get(0));
+            bossBar.name(parsed.isEmpty() ? buildScrollTitle() : parsed.getFirst());
         }
     }
 
@@ -194,7 +194,7 @@ public class CommonRouteBossbar extends RouteBossbarBase {
         if (ring) {
             int unique = size - 1;
             if (unique <= 0) {
-                return Component.text(stations.get(0), notPassedColor);
+                return Component.text(stations.getFirst(), notPassedColor);
             }
             int cur = ((nextStationIdx % unique) + unique) % unique;
             for (int k = cur - passedNum; k <= cur + notPassedNum - 1; k++) {
@@ -204,6 +204,7 @@ public class CommonRouteBossbar extends RouteBossbarBase {
             lead = true;
             trail = true;
         } else {
+            //noinspection UnnecessaryLocalVariable
             int cur = nextStationIdx;
             int start = Math.max(cur - passedNum, 0);
             int end = Math.min(cur + notPassedNum, size);

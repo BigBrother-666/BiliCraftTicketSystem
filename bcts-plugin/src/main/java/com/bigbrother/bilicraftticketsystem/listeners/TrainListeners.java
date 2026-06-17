@@ -185,9 +185,4 @@ public class TrainListeners implements Listener {
         // trainTicketInfo没有不一定就是普通车，还有可能是初始车
         return !trainTicketInfo.containsKey(group) && !isInitTrain(group);
     }
-
-    // 判断是快速车
-    public static boolean isExpressTrain(MinecartGroup group) {
-        return !isCommonTrain(group);
-    }
 }

@@ -1,6 +1,9 @@
 package com.bigbrother.bilicraftticketsystem.route.geograph;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import org.geojson.Feature;
 import org.geojson.FeatureCollection;
 import org.geojson.GeoJsonObject;
@@ -13,7 +16,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 
 /**
  * 从 geojson 文件反向构建 {@link GeoRouteGraph}。
@@ -26,12 +28,12 @@ import java.util.logging.Logger;
  */
 public class GeoGraphLoader {
     private final ObjectMapper mapper = new ObjectMapper();
-    private final Logger logger;
+    private final ComponentLogger logger;
 
     /**
      * @param logger 日志（可为 null，为 null 时静默）
      */
-    public GeoGraphLoader(Logger logger) {
+    public GeoGraphLoader(ComponentLogger logger) {
         this.logger = logger;
     }
 
@@ -85,21 +87,6 @@ public class GeoGraphLoader {
         return graph;
     }
 
-    /**
-     * 从输入流读取一个 FeatureCollection。
-     *
-     * @param stream geojson 输入流
-     * @return FeatureCollection，解析失败返回 null
-     */
-    public FeatureCollection readStream(InputStream stream) {
-        try {
-            return mapper.readValue(stream, FeatureCollection.class);
-        } catch (IOException e) {
-            warn("解析 geojson 流失败：" + e.getMessage());
-            return null;
-        }
-    }
-
     private FeatureCollection readFile(File file) {
         try {
             return mapper.readValue(file, FeatureCollection.class);
@@ -112,7 +99,7 @@ public class GeoGraphLoader {
     private void addNodes(GeoRouteGraph graph, FeatureCollection fc) {
         for (Feature feature : fc.getFeatures()) {
             GeoJsonObject geometry = feature.getGeometry();
-            if (!(geometry instanceof Point)) {
+            if (!(geometry instanceof Point point)) {
                 continue;
             }
             Map<String, Object> props = feature.getProperties();
@@ -122,7 +109,6 @@ public class GeoGraphLoader {
             }
             String type = str(props.get("type"));
             String name = str(props.get("name"));
-            Point point = (Point) geometry;
             // 坐标约定：经度=x、纬度=z、高度=y
             double x = point.getCoordinates().getLongitude();
             double z = point.getCoordinates().getLatitude();
@@ -178,13 +164,13 @@ public class GeoGraphLoader {
 
     private void info(String msg) {
         if (logger != null) {
-            logger.info(msg);
+            logger.info(Component.text(msg, NamedTextColor.DARK_AQUA));
         }
     }
 
     private void warn(String msg) {
         if (logger != null) {
-            logger.warning(msg);
+            logger.warn(Component.text(msg, NamedTextColor.DARK_AQUA));
         }
     }
 }

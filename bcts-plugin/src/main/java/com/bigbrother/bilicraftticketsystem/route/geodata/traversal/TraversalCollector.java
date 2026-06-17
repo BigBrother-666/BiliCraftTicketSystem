@@ -88,23 +88,6 @@ public class TraversalCollector {
     }
 
     /**
-     * 是否已存在某文件分组的某区间（供调用方避免重复子遍历）。
-     *
-     * @param fileKey    文件键
-     * @param fromNodeId 起点节点 id
-     * @param toNodeId   终点节点 id
-     * @param lineId     线路 id
-     * @return true 表示已记录
-     */
-    public boolean hasEdge(String fileKey, String fromNodeId, String toNodeId, String lineId) {
-        Map<String, RailEdge> group = edgeGroups.get(fileKey);
-        if (group == null) {
-            return false;
-        }
-        return group.containsKey(com.bigbrother.bilicraftticketsystem.route.NodeId.ofEdge(fromNodeId, toNodeId, lineId));
-    }
-
-    /**
      * 所有文件键。
      *
      * @return 文件键集合

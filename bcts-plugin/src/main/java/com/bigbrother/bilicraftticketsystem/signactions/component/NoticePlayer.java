@@ -4,6 +4,8 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import com.bigbrother.bilicraftticketsystem.utils.PlaceholderParser;
 import net.kyori.adventure.text.Component;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 
@@ -26,18 +28,6 @@ import java.util.Map;
  */
 public final class NoticePlayer {
     private NoticePlayer() {
-    }
-
-    /**
-     * 对一节车厢的所有玩家乘客播放提示。
-     *
-     * @param member      车厢
-     * @param notices     提示行列表（announce/sound 指令）
-     * @param line        列车所属线路（提供 line_name / next_station 占位符）
-     * @param currStation 当前车站名
-     */
-    public static void play(MinecartMember<?> member, Collection<String> notices, LineInfo line, String currStation) {
-        play(member, notices, line, currStation, null);
     }
 
     /**
@@ -95,7 +85,7 @@ public final class NoticePlayer {
                 if (parsed.isEmpty()) {
                     return;
                 }
-                Component msg = parsed.get(0);
+                Component msg = parsed.getFirst();
                 for (Player p : passengers) {
                     p.sendMessage(msg);
                 }
@@ -136,17 +126,20 @@ public final class NoticePlayer {
     }
 
     /**
-     * 按枚举名匹配 Bukkit 内置音效。
+     * 按命名空间 key 匹配音效（替代已废弃的 {@code Sound.valueOf}）。
+     * <p>
+     * 配置里的音效名为点分形式（如 {@code block.note_block.bell}，可带命名空间 {@code minecraft:}），
+     * 转成 {@link NamespacedKey} 后走 {@link Registry#SOUNDS} 查询。
      *
-     * @param key 音效名
-     * @return 匹配的音效，无匹配返回 null
+     * @param key 音效名（点分形式，含下划线）
+     * @return 匹配的音效，无匹配 / key 非法返回 null
      */
     private static Sound matchSound(String key) {
-        try {
-            return Sound.valueOf(key.toUpperCase(Locale.ENGLISH).replace('.', '_'));
-        } catch (IllegalArgumentException e) {
+        NamespacedKey nsKey = NamespacedKey.fromString(key.toLowerCase(Locale.ENGLISH));
+        if (nsKey == null) {
             return null;
         }
+        return Registry.SOUNDS.get(nsKey);
     }
 
     /**
@@ -197,6 +190,7 @@ public final class NoticePlayer {
         return "";
     }
 
+    @SuppressWarnings("SameParameterValue")
     private static float parseFloat(String s, float def) {
         try {
             return Float.parseFloat(s.trim());

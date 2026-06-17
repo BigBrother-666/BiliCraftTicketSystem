@@ -175,7 +175,7 @@ public abstract class BCTransitPass {
                 continue;
             }
             // 相邻去重
-            if (lineIds.isEmpty() || !lineIds.get(lineIds.size() - 1).equals(lineId)) {
+            if (lineIds.isEmpty() || !lineIds.getLast().equals(lineId)) {
                 lineIds.add(lineId);
             }
         }

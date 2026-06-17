@@ -144,7 +144,7 @@ public class BCCard extends BCTransitPass {
             String startStation = this.cardInfo.getStartStationString();
             String endStation = this.cardInfo.getEndStationString();
             List<GeoRoutePath> paths = GeoRouteEngine.findByStation(startStation, endStation);
-            this.pathInfo = paths.isEmpty() ? null : paths.get(0);
+            this.pathInfo = paths.isEmpty() ? null : paths.getFirst();
         }
     }
 
@@ -215,7 +215,7 @@ public class BCCard extends BCTransitPass {
             String startStation = BCTransitPass.getTrainStartStationName(group);
             if (!startStation.isEmpty()) {
                 List<GeoRoutePath> paths = GeoRouteEngine.findByStation(startStation, cardInfo.getEndStationString());
-                this.pathInfo = paths.isEmpty() ? null : paths.get(0);
+                this.pathInfo = paths.isEmpty() ? null : paths.getFirst();
             }
 
             if (pathInfo == null) {
@@ -330,7 +330,7 @@ public class BCCard extends BCTransitPass {
         } else if (cardInfo.isStationNotEmpty()) {
             if (pathInfo != null) {
                 // 起点站 + 起点驶出段所属线路名（替代旧的 railwayName/direction）
-                String startLineId = pathInfo.getLineIdSequence().isEmpty() ? null : pathInfo.getLineIdSequence().get(0);
+                String startLineId = pathInfo.getLineIdSequence().isEmpty() ? null : pathInfo.getLineIdSequence().getFirst();
                 placeholder.put("usePlatform", "<dark_green>[%s<dark_green>] 标有 [<blue>%s</blue><dark_green>] 的站台".formatted(mmStartStationName, lineName(startLineId)));
             } else {
                 placeholder.put("usePlatform", "<red>暂无 %s <red>到 %s <red>的直达车".formatted(mmStartStationName, mmEndStationName));

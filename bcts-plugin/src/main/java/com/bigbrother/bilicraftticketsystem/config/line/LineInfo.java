@@ -79,29 +79,6 @@ public class LineInfo {
     private final String nextLineEntryStation;
 
     /**
-     * @param id                   线路 id
-     * @param lineName             线路名称
-     * @param lineColor            线路标志色
-     * @param bossbarStations      bossbar 车站列表
-     * @param bossbarArrivalNotice 到站 bossbar 提示
-     * @param bossbarColor         bossbar 颜色名
-     * @param noticeArrival        进站提示列表
-     * @param noticeDeparture      出站提示列表
-     */
-    public LineInfo(String id,
-                    String lineName,
-                    String lineColor,
-                    List<String> bossbarStations,
-                    String bossbarArrivalNotice,
-                    String bossbarColor,
-                    List<String> noticeArrival,
-                    List<String> noticeDeparture) {
-        this(id, null,
-                lineName, lineColor, bossbarStations, Collections.emptySet(),
-                bossbarArrivalNotice, bossbarColor, noticeArrival, noticeDeparture, null, null);
-    }
-
-    /**
      * @param id                    线路 id
      * @param railwaySystemId       所属铁路系统 id
      * @param lineName              线路名称
@@ -179,6 +156,6 @@ public class LineInfo {
      */
     public boolean isRing() {
         return bossbarStations.size() > 1
-                && bossbarStations.get(0).equals(bossbarStations.get(bossbarStations.size() - 1));
+                && bossbarStations.getFirst().equals(bossbarStations.getLast());
     }
 }

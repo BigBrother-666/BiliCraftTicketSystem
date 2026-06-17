@@ -19,7 +19,6 @@ public class MainConfig {
     public static ConfigurationNode font;
     public static ConfigurationNode message;
     public static ConfigurationNode permDiscount;
-    public static ConfigurationNode railwayColor;
     public static int maxUses;
     public static List<String> discount;
     public static List<String> expressSkipSigns;
@@ -69,8 +68,6 @@ public class MainConfig {
         speedStep = speed.get("step", 0.2);
 
         permDiscount = mainConfig.getNode("perm-discount");
-
-        railwayColor = mainConfig.getNode("railway-color");
 
         message = mainConfig.getNode("message");
 

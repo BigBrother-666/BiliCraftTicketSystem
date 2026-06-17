@@ -216,7 +216,7 @@ public class SignActionPlatform extends SignAction {
             return null;
         }
         List<String> stations = line.getBossbarStations();
-        if (stations.isEmpty() || !stations.get(stations.size() - 1).equals(stationName)) {
+        if (stations.isEmpty() || !stations.getLast().equals(stationName)) {
             return null;
         }
         LineInfo next = LineConfig.get(line.getNextLineId());

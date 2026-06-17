@@ -80,7 +80,7 @@ public class BCTicketDisplay extends MapDisplay {
 
     public void renderBackground() {
         CommonTagCompound ticketNbt = this.getCommonMapItem().getCustomData();
-        UUID bgUuid = ticketNbt.getValue(BCTicket.KEY_TICKET_OWNER_UUID, this.getOwners().get(0).getUniqueId());
+        UUID bgUuid = ticketNbt.getValue(BCTicket.KEY_TICKET_OWNER_UUID, this.getOwners().getFirst().getUniqueId());
         TicketbgInfo ticketbgInfo = BiliCraftTicketSystem.plugin.getTrainDatabaseManager().getTicketbgService().getCurrentTicketbgInfo(bgUuid.toString());
         MapTexture bg;
 
@@ -97,7 +97,7 @@ public class BCTicketDisplay extends MapDisplay {
             // ???
             return;
         }
-        Player owner = this.getOwners().get(0);
+        Player owner = this.getOwners().getFirst();
         this.getLayer(1).clear();
         BCTransitPass bcTransitPass = BCTransitPassFactory.fromItemStack(this.getMapItem());
         CommonTagCompound customData = this.getCommonMapItem().getCustomData();
