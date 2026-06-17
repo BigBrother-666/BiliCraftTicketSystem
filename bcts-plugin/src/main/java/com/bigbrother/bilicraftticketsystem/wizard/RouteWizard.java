@@ -226,7 +226,13 @@ public class RouteWizard extends ConfigWizard {
         player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
                 "提示：线路走向 / 车站若有变动，请用 /railgeo walkAll 重新遍历生成路由图。",
                 NamedTextColor.YELLOW)));
-        org.bukkit.Bukkit.getScheduler().runTaskAsynchronously(BiliCraftTicketSystem.plugin,
-                () -> BiliCraftTicketSystem.plugin.loadConfig(player));
+        try {
+            LineConfig.load(BiliCraftTicketSystem.plugin);
+            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+                    "配置重载完成", NamedTextColor.GREEN)));
+        } catch (Exception e) {
+            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+                    "配置重载时发生错误：" + e.getMessage(), NamedTextColor.RED)));
+        }
     }
 }
