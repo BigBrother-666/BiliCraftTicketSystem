@@ -65,7 +65,7 @@ public class GeoTraversalTask {
                     log.message("没有已登记的线路起点，请先用 /railgeo setStartPos <lineId> 登记", NamedTextColor.RED);
                     return;
                 }
-                log.message("开始遍历，从 " + starts.size() + " 个登记起点展开全图...", NamedTextColor.DARK_AQUA);
+                log.message("开始遍历，共 " + starts.size() + " 个登记起点...", NamedTextColor.DARK_AQUA);
 
                 // 整次遍历共享一个收集器与去重集合：一个起点即可覆盖其连通子网，
                 // 后续起点撞到已访问状态立即终止（多起点用于覆盖不连通子网）。
@@ -92,6 +92,9 @@ public class GeoTraversalTask {
                     validateStationOrder(lineId, byLine.getOrDefault(lineId, java.util.Collections.emptySet()), log);
                 }
 
+                // 所有区间收集完毕后，按空间交叉关系全局重算 layer（高架压平交）
+                log.message("计算LineString层级...", NamedTextColor.DARK_AQUA);
+                collector.assignLayers();
                 int files = saveAll(collector, log);
                 log.message("遍历完成：共 %d 个节点、%d 条区间，写入 %d 个文件".formatted(
                         collector.totalNodes(), collector.totalEdges(), files), NamedTextColor.GREEN);
@@ -110,9 +113,9 @@ public class GeoTraversalTask {
      * 图遍历可能有分叉（如正线跨站 + 停靠线进站），不强求顺序严格一致，只做集合层面的覆盖检查：
      * 配置里有但没走到的（缺失，可能轨道未铺或控制牌缺声明）、走到但配置里没有的（多余，可能站名写错）。
      *
-     * @param lineId   线路 id
-     * @param visited  实际到达的车站名
-     * @param log      日志
+     * @param lineId  线路 id
+     * @param visited 实际到达的车站名
+     * @param log     日志
      */
     private void validateStationOrder(String lineId, Set<String> visited, GeoTraversalLogger log) {
         LineInfo info = LineConfig.get(lineId);

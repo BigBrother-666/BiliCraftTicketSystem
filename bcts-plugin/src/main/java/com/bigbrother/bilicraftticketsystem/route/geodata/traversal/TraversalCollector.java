@@ -47,7 +47,9 @@ public class TraversalCollector {
     }
 
     /**
-     * 记录一条区间到指定文件分组（按 from/to/lineId 去重，叠层 layer 按已有同物理区间条数递增）。
+     * 记录一条区间到指定文件分组（按 from/to/lineId 去重）。
+     * <p>
+     * layer 初始置 0，待所有区间收集完毕后由 {@link #assignLayers()} 按空间交叉关系统一重算。
      *
      * @param fileKey    输出文件键（lineId）
      * @param fromNodeId 起点节点 id
@@ -67,17 +69,22 @@ public class TraversalCollector {
         if (group.containsKey(edgeId)) {
             return;
         }
-        // 叠层：统计全局已有的同 from->to 物理区间数
-        int layer = 0;
-        for (Map<String, RailEdge> g : edgeGroups.values()) {
-            for (RailEdge e : g.values()) {
-                if (e.getFromNodeId().equals(fromNodeId) && e.getToNodeId().equals(toNodeId)) {
-                    layer++;
-                }
-            }
-        }
-        group.put(edgeId, new RailEdge(fromNodeId, toNodeId, lineId, railwaySystemId, coords, color, length, layer,
+        group.put(edgeId, new RailEdge(fromNodeId, toNodeId, lineId, railwaySystemId, coords, color, length, 0,
                 departDirection));
+    }
+
+    /**
+     * 所有区间收集完毕后，按空间交叉关系统一计算各区间 layer，写回每条 {@link RailEdge}。
+     * <p>
+     * 跨文件全局计算：前端会叠加显示所有 geojson，故共线 / 交叉关系必须在全集上一致。
+     * 详见 {@link LayerAssigner}。
+     */
+    public void assignLayers() {
+        List<RailEdge> all = new ArrayList<>();
+        for (Map<String, RailEdge> g : edgeGroups.values()) {
+            all.addAll(g.values());
+        }
+        LayerAssigner.assign(all);
     }
 
     /**

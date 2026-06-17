@@ -2,6 +2,7 @@ package com.bigbrother.bilicraftticketsystem.route.geodata.traversal;
 
 import com.bigbrother.bilicraftticketsystem.route.NodeId;
 import lombok.Getter;
+import lombok.Setter;
 import org.geojson.LngLatAlt;
 
 import java.util.ArrayList;
@@ -49,9 +50,11 @@ public class RailEdge {
      */
     private final double length;
     /**
-     * 叠层层级，越大越在上层。
+     * 叠层层级，越大越在上层。两条线在 XZ 平面发生空间交叉时，高度更高的一段必须位于更高 layer。
+     * 初始记录时为 0，全部区间收集完毕后由 {@link LayerAssigner} 统一重算。
      */
-    private final int layer;
+    @Setter
+    private int layer;
     /**
      * 本段的物理出向（{@code e/s/w/n} 或 {@code f/b/l/r}）——即离开起点节点（道岔）所走的方向。
      * platform 续行段 / 起点首段无道岔决策时为 null。运行时道岔据此对带导航的列车直接选向，消除

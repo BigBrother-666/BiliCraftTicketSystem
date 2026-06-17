@@ -98,7 +98,10 @@ public class GeoUtils {
     }
 
     /**
-     * 简化折线，去除相邻重复点与共线点（水平/垂直/45度）
+     * 简化折线，去除相邻重复点与<b>三维</b>共线点。
+     * <p>
+     * 只有当连续三点在三维空间（含高度）上严格共线且方向一致时才丢弃中间点，
+     * 因此任何高度变化（爬坡 / 下坡）处的拐点都会被保留，不会把不同高度压平成同一值。
      */
     public static List<LngLatAlt> simplifyLineString(List<LngLatAlt> coords) {
         if (coords.size() <= 2) return coords;
@@ -139,24 +142,30 @@ public class GeoUtils {
     }
 
     /**
-     * 判断三点是否共线（水平、垂直、或45度）
-     * 这里的x = longitude，y = latitude（实际为mc的x,z）
+     * 判断三点是否<b>三维</b>共线且方向一致。
+     * <p>
+     * x = longitude（mc 的 x）、y = latitude（mc 的 z）、z = altitude（mc 的 y）。
+     * 用两段向量的叉积是否为零判断共线，再用点积 &gt; 0 排除原路折返（折返点必须保留）。
      */
     private static boolean isCollinear(LngLatAlt a, LngLatAlt b, LngLatAlt c) {
-        double x1 = a.getLongitude(), y1 = a.getLatitude();
-        double x2 = b.getLongitude(), y2 = b.getLatitude();
-        double x3 = c.getLongitude(), y3 = c.getLatitude();
+        // 第一段向量 a->b
+        double ux = b.getLongitude() - a.getLongitude();
+        double uy = b.getLatitude() - a.getLatitude();
+        double uz = b.getAltitude() - a.getAltitude();
+        // 第二段向量 b->c
+        double vx = c.getLongitude() - b.getLongitude();
+        double vy = c.getLatitude() - b.getLatitude();
+        double vz = c.getAltitude() - b.getAltitude();
 
-        // 向量差
-        double dx1 = x2 - x1, dy1 = y2 - y1;
-        double dx2 = x3 - x2, dy2 = y3 - y2;
-
-        // 全水平
-        if (dy1 == 0 && dy2 == 0) return true;
-        // 全垂直
-        if (dx1 == 0 && dx2 == 0) return true;
-
-        return false;
+        // 叉积 u × v，全为 0 才三维共线
+        double cx = uy * vz - uz * vy;
+        double cy = uz * vx - ux * vz;
+        double cz = ux * vy - uy * vx;
+        if (cx != 0 || cy != 0 || cz != 0) {
+            return false;
+        }
+        // 共线但需方向一致（点积 > 0），否则是折返拐点，必须保留
+        return ux * vx + uy * vy + uz * vz > 0;
     }
 
     public static boolean isRail(Material type) {
