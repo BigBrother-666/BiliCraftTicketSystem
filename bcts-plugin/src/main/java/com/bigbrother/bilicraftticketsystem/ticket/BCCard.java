@@ -416,7 +416,7 @@ public class BCCard extends BCTransitPass {
 
     private void createItem() {
         ItemStack mapItem = MapDisplay.createMapItem(BCTicketDisplay.class);
-        mapItem.addItemFlags(ItemFlag.HIDE_ITEM_SPECIFICS);
+        mapItem.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
         this.itemStack = CommonItemStack.of(mapItem)
                 .updateCustomData(tag -> {
                     tag.putValue(KEY_TRANSIT_PASS_TYPE, PassType.CARD.getId());
@@ -432,7 +432,7 @@ public class BCCard extends BCTransitPass {
 
     private void createItemFromCardInfo() {
         ItemStack mapItem = MapDisplay.createMapItem(BCTicketDisplay.class);
-        mapItem.addItemFlags(ItemFlag.HIDE_ITEM_SPECIFICS);
+        mapItem.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
         this.itemStack = CommonItemStack.of(mapItem)
                 .updateCustomData(tag -> {
                     tag.putValue(KEY_TRANSIT_PASS_TYPE, PassType.CARD.getId());
