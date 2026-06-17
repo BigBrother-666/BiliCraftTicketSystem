@@ -305,7 +305,7 @@ public class BCTicket extends BCTransitPass {
      */
     private ItemStack createItem() {
         ItemStack mapItem = MapDisplay.createMapItem(BCTicketDisplay.class);
-        mapItem.addItemFlags(ItemFlag.HIDE_ITEM_SPECIFICS);
+        mapItem.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
         return CommonItemStack.of(mapItem)
                 .updateCustomData(this::updateNbt).toBukkit();
     }

@@ -21,7 +21,7 @@ public class CardLocationItem extends AbstractItem {
     public CardLocationItem(ItemStack itemStack, MenuLocationCard fromMenu) {
         this.fromMenu = fromMenu;
         ItemMeta itemMeta = itemStack.getItemMeta();
-        itemMeta.addItemFlags(ItemFlag.HIDE_ITEM_SPECIFICS);
+        itemMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
         itemStack.setItemMeta(itemMeta);
         this.itemStack = itemStack;
     }

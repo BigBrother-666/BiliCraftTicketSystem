@@ -3,9 +3,8 @@ package com.bigbrother.bilicraftticketsystem.signactions;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
-import com.bergerkiller.bukkit.tc.signactions.SignActionMode;
-import com.bergerkiller.bukkit.tc.signactions.SignActionSpawn;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
+import com.bergerkiller.bukkit.tc.signactions.TrainCartsSignAction;
 import com.bergerkiller.bukkit.tc.signactions.spawner.SpawnSign;
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
@@ -39,7 +38,11 @@ import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
  * </ul>
  * 第三行格式 {@code <线路id> <车站名>}：第一个空格前为线路 id，其余为车站名。
  */
-public class SignActionBCSpawn extends SignActionSpawn {
+public class SignActionBCSpawn extends TrainCartsSignAction {
+
+    public SignActionBCSpawn() {
+        super("bcspawn");
+    }
 
     /**
      * 解析第三行，返回 [线路id, 车站名]。
@@ -157,7 +160,9 @@ public class SignActionBCSpawn extends SignActionSpawn {
     }
 
     @Override
-    public boolean match(SignActionEvent info) {
-        return info != null && info.getMode() != SignActionMode.NONE && info.isType("bcspawn");
+    public void destroy(SignActionEvent info) {
+        // 牌子被破坏时从 SpawnSignManager 移除（原继承 SignActionSpawn 时由其 destroy 提供，
+        // 现自行实现以保持一致）。
+        info.getTrainCarts().getSpawnSignManager().remove(info);
     }
 }

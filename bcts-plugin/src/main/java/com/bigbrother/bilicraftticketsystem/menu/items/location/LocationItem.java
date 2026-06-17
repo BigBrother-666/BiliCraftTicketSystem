@@ -19,7 +19,7 @@ public class LocationItem extends AbstractItem {
 
     public LocationItem(ItemStack itemStack) {
         ItemMeta itemMeta = itemStack.getItemMeta();
-        itemMeta.addItemFlags(ItemFlag.HIDE_ITEM_SPECIFICS);
+        itemMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
         itemStack.setItemMeta(itemMeta);
         this.itemStack = itemStack;
     }

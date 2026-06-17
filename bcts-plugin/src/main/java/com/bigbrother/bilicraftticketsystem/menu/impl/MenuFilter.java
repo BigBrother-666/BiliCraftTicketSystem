@@ -121,7 +121,7 @@ public class MenuFilter extends Menu {
             }
             ItemStack customItem = StationProvider.buildIcon(entry);
             ItemMeta itemMeta = customItem.getItemMeta();
-            itemMeta.addItemFlags(ItemFlag.HIDE_ITEM_SPECIFICS);
+            itemMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             customItem.setItemMeta(itemMeta);
 
             FilterLocItem filterLocItem = new FilterLocItem(customItem);
