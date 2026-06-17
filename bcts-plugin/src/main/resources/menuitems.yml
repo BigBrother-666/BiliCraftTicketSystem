@@ -217,7 +217,7 @@ ticketbg:
     lore:
     - '{"text":"","extra":[{"text":"点击查看自己上传和所有公开共享的的车票背景图。","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
     - '{"text":"","extra":[{"text":"可以共享自己上传的背景图供其他玩家使用。","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
-    - '{"text":"","extra":[{"text":"也可使用 /ticket bg 指令直接打开该界面。","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
+    - '{"text":"","extra":[{"text":"也可使用 /ticketbg 指令直接打开该界面。","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
     - '{"text":"","extra":[{"text":"","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
     - '{"text":"","extra":[{"text":"上传指令：","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
     - '{"text":"","extra":[{"text":"/ticket uploadbg <图片链接> <自定义背景图名> [车票字体颜色(可选，格式#RRGGBB)]","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'

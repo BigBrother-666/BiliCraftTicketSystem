@@ -108,7 +108,7 @@ public class TicketbgCommand {
             String filePath = folder + File.separator + System.currentTimeMillis() + ".png";
             try {
                 if (downloadAndSaveImage(url, player, filePath)) {
-                    player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("车票背景图上传成功！可使用/ticket bg指令管理上传的背景图", NamedTextColor.GREEN)));
+                    player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("车票背景图上传成功！可使用/ticketbg指令管理上传的背景图", NamedTextColor.GREEN)));
                     // 数据库记录
                     String dbFilePath = filePath.replace(ImageUtils.getImageFolder().toString(), "").substring(1);
                     if (isAdmin) {

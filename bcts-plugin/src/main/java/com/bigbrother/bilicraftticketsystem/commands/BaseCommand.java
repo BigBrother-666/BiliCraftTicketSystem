@@ -32,7 +32,7 @@ public class BaseCommand {
     }
 
     @CommandDescription("打开车票系统背景图设置界面")
-    @Command("ticket bg")
+    @Command("ticketbg")
     @Permission("bcts.ticket.open")
     public void openBgGui(Player player) {
         MenuTicketbg.getMenu(player).open();

@@ -36,7 +36,7 @@
 
 | 指令                                          | 权限                        | 说明                                       |
 |---------------------------------------------|---------------------------|------------------------------------------|
-| ticket / ticket bg                          | bcts.ticket.open          | 打开车票购买界面 / 车票背景设置界面                      |
+| ticket / ticketbg                           | bcts.ticket.open          | 打开车票购买界面 / 车票背景设置界面                      |
 | ticketbg upload \<图片链接> \<背景名> \[字体颜色]      | bcts.ticket.uploadbg      | 上传车票/交通卡背景图，字体颜色格式 #RRGGBB（不填默认黑色）       |
 | ticketbg adminupload \<图片链接> \<背景名> \[字体颜色] | bcts.ticket.adminuploadbg | 以管理员身份上传共享背景图（无个数限制）                     |
 | ticketbg delete \<图片id>                     | bcts.ticket.deletebg      | 根据 id 删除背景图                              |
