@@ -11,13 +11,11 @@ import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.database.entity.TicketbgInfo;
+import com.bigbrother.bilicraftticketsystem.utils.ImageUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import java.awt.*;
 import java.io.File;
@@ -152,24 +150,17 @@ public class BCTicketDisplay extends MapDisplay {
 
     public MapTexture loadBackgroundImage(String backgroundImagePath) {
         if (!backgroundImagePath.isEmpty()) {
-            int index = backgroundImagePath.indexOf(58);
             MapTexture bg;
-            if (index != -1) {
-                String pluginName = backgroundImagePath.substring(0, index);
-                Plugin plugin = Bukkit.getPluginManager().getPlugin(pluginName);
-                if (plugin instanceof JavaPlugin) {
-                    try {
-                        bg = MapTexture.loadPluginResource((JavaPlugin) plugin, backgroundImagePath.substring(index + 1));
-                        if (bg.getWidth() >= 128 && bg.getHeight() >= 128) {
-                            return bg;
-                        }
-                    } catch (RuntimeException ignored) {
-                    }
-
-                    return Ticket.getDefaultBackgroundImage();
+            // 加载本插件下的image
+            try {
+                bg = MapTexture.fromImageFile(new File(ImageUtils.getImageFolder(), backgroundImagePath).getAbsolutePath());
+                if (bg.getWidth() >= 128 && bg.getHeight() >= 128) {
+                    return bg;
                 }
+            } catch (RuntimeException ignored) {
             }
 
+            // 否则加载TC下的image
             File imagesDir = TrainCarts.plugin.getDataFile("images");
             File imageFile = new File(backgroundImagePath);
             if (!imageFile.isAbsolute()) {

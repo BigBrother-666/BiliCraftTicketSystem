@@ -91,7 +91,7 @@ public class CommonUtils {
     }
 
     public static boolean deleteTicketbg(String fileName) {
-        File file = new File(TrainCarts.plugin.getDataFile("images"), fileName);
+        File file = new File(ImageUtils.getImageFolder(), fileName);
         if (file.exists()) {
             return file.delete();
         }

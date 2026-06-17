@@ -1,6 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.utils;
 
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import org.bukkit.entity.Player;
 
 import javax.imageio.ImageIO;
@@ -11,8 +12,12 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 public class ImageUtils {
+    public static File getImageFolder() {
+        return new File(BiliCraftTicketSystem.plugin.getDataFolder(), "images");
+    }
+
     public static File getPlayerTicketbgFolder(Player player) {
-        return new File(TrainCarts.plugin.getDataFile("images"), player.getUniqueId().toString());
+        return new File(getImageFolder(), player.getUniqueId().toString());
     }
 
     public static byte[] convertTo128x128(byte[] imageBytes) throws IOException {
