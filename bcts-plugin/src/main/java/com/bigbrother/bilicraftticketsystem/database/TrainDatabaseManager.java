@@ -71,7 +71,6 @@ public class TrainDatabaseManager {
         try (Connection connection = ds.getConnection(); Statement statement = connection.createStatement()) {
             // 开发阶段直接重建：列结构调整（去掉 spawn_direction、spawn_railway 改名 spawn_line、
             // 新增 spawn_line_name），旧发车历史可丢弃，故建表前 DROP 重建。
-            statement.execute("DROP TABLE IF EXISTS %s;".formatted(TrainDatabaseConstants.BCSPAWN_TABLE_NAME));
             statement.execute("""
                     CREATE TABLE IF NOT EXISTS %s (
                                 id INTEGER PRIMARY KEY AUTOINCREMENT,
