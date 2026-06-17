@@ -4,6 +4,7 @@ import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.route.geodata.traversal.GeoTraversalTask;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.incendo.cloud.annotations.*;
 
@@ -18,9 +19,9 @@ public class GeoCommand {
     @Command("railgeo walkAll")
     @Permission("bcts.railgeo")
     public void walkAll(
-            Player player
+            CommandSender commandSender
     ) {
-        new GeoTraversalTask(plugin, player).runAll();
+        new GeoTraversalTask(plugin, commandSender).runAll();
     }
 
     @CommandDescription("登记某线路的遍历起点，以玩家所在铁轨为起点坐标、面朝方向为起点方向")
@@ -39,11 +40,11 @@ public class GeoCommand {
     @Command("railgeo delStartPos <lineId>")
     @Permission("bcts.railgeo")
     public void delStartPos(
-            Player player,
+            CommandSender commandSender,
             @Argument(value = "lineId", description = "线路 id", suggestions = "lineId")
             String lineId
     ) {
         int deleted = plugin.getGeoDatabaseManager().deleteGeoNodeLoc(lineId);
-        player.sendMessage(Component.text("成功删除线路 [%s] 的遍历起点 %s 条".formatted(lineId, deleted), NamedTextColor.GREEN));
+        commandSender.sendMessage(Component.text("成功删除线路 [%s] 的遍历起点 %s 条".formatted(lineId, deleted), NamedTextColor.GREEN));
     }
 }
