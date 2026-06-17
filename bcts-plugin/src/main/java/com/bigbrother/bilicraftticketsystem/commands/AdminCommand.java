@@ -47,7 +47,7 @@ public class AdminCommand {
     }
 
     @CommandDescription("重载配置文件")
-    @Command("ticket reload")
+    @Command("ticketadmin reload")
     @Permission("bcts.ticket.reload")
     public void reload(
             CommandSender commandSender
@@ -62,7 +62,7 @@ public class AdminCommand {
     }
 
     @CommandDescription("从旧数据库 data.db 迁移交通卡与车票背景数据到新库 bcts.db（跳过已存在，可重复执行）")
-    @Command("ticket migrate-olddb")
+    @Command("ticketadmin migrate-olddb")
     @Permission("bcts.ticket.migrate")
     public void migrateOldDb(
             CommandSender sender
@@ -90,7 +90,7 @@ public class AdminCommand {
     }
 
     @CommandDescription("添加菜单物品")
-    @Command("ticket menuitem add <menuItemId>")
+    @Command("ticketadmin menuitem add <menuItemId>")
     @Permission("bcts.ticket.menuitem")
     public void addMenuItem(
             Player player,
@@ -102,7 +102,7 @@ public class AdminCommand {
     }
 
     @CommandDescription("获取菜单物品")
-    @Command("ticket menuitem get <menuItemId>")
+    @Command("ticketadmin menuitem get <menuItemId>")
     @Permission("bcts.ticket.menuitem")
     public void getMenuItem(
             Player player,
@@ -119,7 +119,7 @@ public class AdminCommand {
     }
 
     @CommandDescription("查看或修改乘车凭证nbt")
-    @Command("ticket nbt <nbtKey> [values]")
+    @Command("ticketdebug nbt <nbtKey> [values]")
     @Permission("bcts.ticket.nbt")
     public void nbt(
             Player player,
@@ -174,19 +174,8 @@ public class AdminCommand {
         }
     }
 
-    @CommandDescription("查询系统注册的字体列表")
-    @Command("ticket font")
-    @Permission("bcts.ticket.font")
-    public void getFont(
-            CommandSender sender
-    ) {
-        GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-        String[] fontNames = ge.getAvailableFontFamilyNames();
-        sender.sendMessage(Component.text(String.join(", ", fontNames), NamedTextColor.GREEN));
-    }
-
     @CommandDescription("调试：输出当前所坐列车的信息（车型 / 线路 / 起点站 / 路线 / 导航）")
-    @Command("ticket traininfo")
+    @Command("ticketdebug traininfo")
     @Permission("bcts.ticket.traininfo")
     public void trainInfo(
             Player player
@@ -271,7 +260,7 @@ public class AdminCommand {
     }
 
     @CommandDescription("调试：开关道岔选向追踪（开启后列车每经过 bcswitcher 打印选向到控制台）")
-    @Command("ticket switchtrace <state>")
+    @Command("ticketdebug switchtrace <state>")
     @Permission("bcts.ticket.traininfo")
     public void switchTrace(
             CommandSender sender,
@@ -286,7 +275,7 @@ public class AdminCommand {
     }
 
     @CommandDescription("查询n天内的某类型的统计信息")
-    @Command("ticket statistics <statisticsType> <days>")
+    @Command("ticketadmin statistics <statisticsType> <days>")
     @Permission("bcts.ticket.statistics")
     public void bcspawnStatistics(
             CommandSender sender,

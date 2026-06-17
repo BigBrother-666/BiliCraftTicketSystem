@@ -22,7 +22,7 @@ public class CardCommand {
     }
 
     @CommandDescription("给予一名玩家一张未开卡或已存在的交通卡")
-    @Command("ticket card give <player> [cardUUID]")
+    @Command("ticketadmin card give <player> [cardUUID]")
     @Permission("bcts.ticket.getcard")
     public void give(
             CommandSender sender,
@@ -45,7 +45,7 @@ public class CardCommand {
     }
 
     @CommandDescription("删除指定UUID的交通卡")
-    @Command("ticket card delete <cardUUID>")
+    @Command("ticketadmin card delete <cardUUID>")
     @Permission("bcts.ticket.delcard")
     public void give(
             CommandSender sender,

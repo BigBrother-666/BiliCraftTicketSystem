@@ -37,19 +37,20 @@
 | 指令                                          | 权限                        | 说明                                       |
 |---------------------------------------------|---------------------------|------------------------------------------|
 | ticket / ticket bg                          | bcts.ticket.open          | 打开车票购买界面 / 车票背景设置界面                      |
-| ticket uploadbg \<图片链接> \<背景名> \[字体颜色]      | bcts.ticket.uploadbg      | 上传车票/交通卡背景图，字体颜色格式 #RRGGBB（不填默认黑色）       |
-| ticket adminuploadbg \<图片链接> \<背景名> \[字体颜色] | bcts.ticket.adminuploadbg | 以管理员身份上传共享背景图（无个数限制）                     |
-| ticket deletebg \<图片id>                     | bcts.ticket.deletebg      | 根据 id 删除背景图                              |
-| ticket reload                               | bcts.ticket.reload        | 重载所有配置文件                                 |
-| ticket migrate-olddb                        | bcts.ticket.migrate       | 从旧库 data.db 迁移交通卡与车票背景到新库 bcts.db        |
-| ticket card give \<player> \[cardUUID]      | bcts.ticket.getcard       | 给予玩家一张未开卡或已存在的交通卡                        |
-| ticket card delete \<cardUUID>              | bcts.ticket.delcard       | 删除指定 UUID 的交通卡                           |
-| ticket menuitem \<add/get> \<自定义物品名>        | bcts.ticket.menuitem      | 将手中物品保存到 menuitems.yml，或获取自定义物品，用于编辑菜单界面 |
-| ticket nbt \<key> \[value]                  | bcts.ticket.nbt           | 查看/设置乘车凭证的 nbt，已定义的 nbt 见第 7 节           |
-| ticket font                                 | bcts.ticket.font          | 查询系统注册的字体列表                              |
-| ticket statistics \<type> \<days>           | bcts.ticket.statistics    | 查询 n 天内某类型的统计信息                          |
-| ticket traininfo                            | bcts.ticket.traininfo     | 调试：输出当前所坐列车的信息                           |
-| ticket switchtrace \<on/off>                | bcts.ticket.traininfo     | 调试：开关道岔选向追踪，开启后列车每经过 bcswitcher 打印选向到控制台 |
+| ticketbg upload \<图片链接> \<背景名> \[字体颜色]      | bcts.ticket.uploadbg      | 上传车票/交通卡背景图，字体颜色格式 #RRGGBB（不填默认黑色）       |
+| ticketbg adminupload \<图片链接> \<背景名> \[字体颜色] | bcts.ticket.adminuploadbg | 以管理员身份上传共享背景图（无个数限制）                     |
+| ticketbg delete \<图片id>                     | bcts.ticket.deletebg      | 根据 id 删除背景图                              |
+| ticketadmin reload                          | bcts.ticket.reload        | 重载所有配置文件                                 |
+| ticketadmin migrate-olddb                   | bcts.ticket.migrate       | 从旧库 data.db 迁移交通卡与车票背景到新库 bcts.db        |
+| ticketadmin card give \<player> \[cardUUID] | bcts.ticket.getcard       | 给予玩家一张未开卡或已存在的交通卡                        |
+| ticketadmin card delete \<cardUUID>         | bcts.ticket.delcard       | 删除指定 UUID 的交通卡                           |
+| ticketadmin menuitem \<add/get> \<自定义物品名>   | bcts.ticket.menuitem      | 将手中物品保存到 menuitems.yml，或获取自定义物品，用于编辑菜单界面 |
+| ticketadmin statistics \<type> \<days>      | bcts.ticket.statistics    | 查询 n 天内某类型的统计信息                          |
+| ticketdebug nbt \<key> \[value]             | bcts.ticket.nbt           | 查看/设置乘车凭证的 nbt，已定义的 nbt 见第 7 节           |
+| ticketdebug traininfo                       | bcts.ticket.debug         | 调试：输出当前所坐列车的信息                           |
+| ticketdebug switchtrace \<on/off>           | bcts.ticket.debug         | 调试：开关道岔选向追踪，开启后列车每经过 bcswitcher 打印选向到控制台 |
+| ticketconfig editRoute \<lineId>            | bcts.ticket.editroute     | 游戏内新建 / 修改线路配置（routes.yml）               |
+| ticketconfig editSystem \<systemId>         | bcts.ticket.editsystem    | 游戏内新建 / 修改铁路系统配置（railway_system.yml）     |
 | 建立 bcspawn 控制牌                              | bcts.buildsign.bcspawn    |                                          |
 | 建立 platform 控制牌                             | bcts.buildsign.platform   |                                          |
 

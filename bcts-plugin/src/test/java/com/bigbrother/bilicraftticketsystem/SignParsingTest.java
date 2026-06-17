@@ -1,6 +1,6 @@
 package com.bigbrother.bilicraftticketsystem;
 
-import com.bigbrother.bilicraftticketsystem.route.geodata.GeoUtils;
+import com.bigbrother.bilicraftticketsystem.utils.GeoUtils;
 import com.bigbrother.bilicraftticketsystem.signactions.component.BcSwitcherBranch;
 import com.bigbrother.bilicraftticketsystem.signactions.component.PlatformFeature;
 import org.junit.jupiter.api.Test;

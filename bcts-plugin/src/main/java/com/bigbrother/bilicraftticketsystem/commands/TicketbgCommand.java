@@ -33,7 +33,7 @@ public class TicketbgCommand {
     }
 
     @CommandDescription("上传车票/交通卡背景图片")
-    @Command("ticket uploadbg <url> <bgName> [hexColorString]")
+    @Command("ticketbg upload <url> <bgName> [hexColorString]")
     @Permission("bcts.ticket.uploadbg")
     public void uploadBg(
             Player player,
@@ -45,7 +45,7 @@ public class TicketbgCommand {
     }
 
     @CommandDescription("以管理员身份上传共享的车票/交通卡背景图片")
-    @Command("ticket adminuploadbg <url> <bgName> [hexColorString]")
+    @Command("ticketbg adminupload <url> <bgName> [hexColorString]")
     @Permission("bcts.ticket.adminuploadbg")
     public void adminUploadBg(
             Player player,
@@ -57,7 +57,7 @@ public class TicketbgCommand {
     }
 
     @CommandDescription("根据ID删除背景图")
-    @Command("ticket deletebg <id>")
+    @Command("ticketbg delete <id>")
     @Permission("bcts.ticket.deletebg")
     public void deleteBg(
             CommandSender sender,

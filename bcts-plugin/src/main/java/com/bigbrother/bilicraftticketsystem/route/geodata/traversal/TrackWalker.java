@@ -9,7 +9,7 @@ import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
-import com.bigbrother.bilicraftticketsystem.route.geodata.GeoUtils;
+import com.bigbrother.bilicraftticketsystem.utils.GeoUtils;
 import com.bigbrother.bilicraftticketsystem.signactions.SignActionBcswitcher;
 import com.bigbrother.bilicraftticketsystem.signactions.component.BcSwitcherBranch;
 import lombok.Setter;

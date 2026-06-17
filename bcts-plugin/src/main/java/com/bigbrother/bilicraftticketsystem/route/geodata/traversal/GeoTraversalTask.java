@@ -1,7 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.route.geodata.traversal;
 
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
-import com.bigbrother.bilicraftticketsystem.route.geodata.GeoUtils;
+import com.bigbrother.bilicraftticketsystem.utils.GeoUtils;
 import com.bigbrother.bilicraftticketsystem.route.geodata.entity.GeoNodeLoc;
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;

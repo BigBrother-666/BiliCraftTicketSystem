@@ -2,7 +2,7 @@ package com.bigbrother.bilicraftticketsystem.route.geodata.traversal;
 
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
-import com.bigbrother.bilicraftticketsystem.route.geodata.GeoUtils;
+import com.bigbrother.bilicraftticketsystem.utils.GeoUtils;
 import com.bigbrother.bilicraftticketsystem.signactions.component.BcSwitcherBranch;
 import lombok.Getter;
 import org.bukkit.block.Block;

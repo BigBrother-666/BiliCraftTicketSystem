@@ -1,4 +1,4 @@
-package com.bigbrother.bilicraftticketsystem.route.geodata;
+package com.bigbrother.bilicraftticketsystem.utils;
 
 import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.DirectionStatement;

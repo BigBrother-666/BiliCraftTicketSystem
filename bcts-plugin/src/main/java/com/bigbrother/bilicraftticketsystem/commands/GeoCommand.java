@@ -1,4 +1,4 @@
-package com.bigbrother.bilicraftticketsystem.route.geodata;
+package com.bigbrother.bilicraftticketsystem.commands;
 
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.route.geodata.traversal.GeoTraversalTask;

@@ -7,7 +7,7 @@ import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathPredictEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
-import com.bigbrother.bilicraftticketsystem.route.geodata.GeoUtils;
+import com.bigbrother.bilicraftticketsystem.utils.GeoUtils;
 import com.bigbrother.bilicraftticketsystem.signactions.component.BcSwitcherBranch;
 import com.bigbrother.bilicraftticketsystem.route.NodeId;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoNode;

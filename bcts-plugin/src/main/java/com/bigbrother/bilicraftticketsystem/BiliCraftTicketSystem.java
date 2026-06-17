@@ -6,8 +6,8 @@ import com.bigbrother.bctsguardplugin.GuardListeners;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
 import com.bigbrother.bilicraftticketsystem.listeners.*;
 import com.bigbrother.bilicraftticketsystem.menu.items.location.NearestLocItem;
-import com.bigbrother.bilicraftticketsystem.route.geodata.GeoCommand;
-import com.bigbrother.bilicraftticketsystem.route.geodata.GeoDatabaseManager;
+import com.bigbrother.bilicraftticketsystem.commands.GeoCommand;
+import com.bigbrother.bilicraftticketsystem.database.GeoDatabaseManager;
 import com.bigbrother.bilicraftticketsystem.signactions.*;
 import com.bigbrother.bilicraftticketsystem.signactions.component.BossbarManager;
 import com.bigbrother.bilicraftticketsystem.commands.*;
@@ -64,9 +64,10 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     // Command
     private final AdminCommand adminCommand = new AdminCommand(this);
     private final TicketbgCommand ticketbgCommand = new TicketbgCommand(this);
-    private final TransitPassCommand transitPassCommand = new TransitPassCommand(this);
+    private final BaseCommand baseCommand = new BaseCommand(this);
     private final CardCommand cardCommand = new CardCommand(this);
     private final GeoCommand geoCommand = new GeoCommand(this);
+    private final ConfigEditCommand configEditCommand = new ConfigEditCommand(this);
 
 
     @Override
@@ -165,7 +166,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         @SuppressWarnings({"unchecked", "rawtypes"})
         AnnotationParser<C> annotationParser = new AnnotationParser(commandManager, CommandSender.class);
         annotationParser.parse(new CommandSuggestions(), new CommandParsers());
-        annotationParser.parse(adminCommand, ticketbgCommand, transitPassCommand, geoCommand, cardCommand);
+        annotationParser.parse(adminCommand, ticketbgCommand, baseCommand, geoCommand, cardCommand, configEditCommand);
         this.getComponentLogger().info(Component.text("指令注册成功", NamedTextColor.GOLD));
     }
 
