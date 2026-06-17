@@ -6,9 +6,7 @@ import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.config.EnumConfig;
 import lombok.Getter;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 线路配置（routes.yml）的加载器。
@@ -35,7 +33,7 @@ public class LineConfig {
         config.load();
 
         // 先收集所有线路 id，供解析时判断 bossbar-stations 最后一项是否为「转线目标线路 id」。
-        java.util.Set<String> allLineIds = new java.util.HashSet<>();
+        Set<String> allLineIds = new HashSet<>();
         for (ConfigurationNode node : config.getNodes()) {
             allLineIds.add(node.getName());
         }
@@ -55,7 +53,7 @@ public class LineConfig {
      * @param allLineIds 所有已知线路 id 集合（用于判断车站列表末项是否为转线目标线路 id）
      * @return 解析出的线路信息
      */
-    private static LineInfo parseNode(ConfigurationNode node, java.util.Set<String> allLineIds) {
+    private static LineInfo parseNode(ConfigurationNode node, Set<String> allLineIds) {
         String id = node.getName();
         String railwaySystemId = node.get("railway-system", String.class, null);
         String lineName = node.get("line-name", id);
@@ -80,15 +78,15 @@ public class LineConfig {
                 if (allLineIds.contains(candidateId) && !candidateId.equals(id)) {
                     nextLineId = candidateId;
                     nextLineEntryStation = sep >= 0 ? trimmed.substring(sep + 1).trim() : "";
-                    rawStations = new java.util.ArrayList<>(rawStations.subList(0, rawStations.size() - 1));
+                    rawStations = new ArrayList<>(rawStations.subList(0, rawStations.size() - 1));
                 }
             }
         }
 
         // 解析车站名后缀：站名写成 "站名:RV" 表示该站为折返站（尽头式，进站后反向驶出）。
         // 拆出干净站名列表 + 折返下标集合（用下标标记，环线重复站名也能精确区分）。
-        List<String> bossbarStations = new java.util.ArrayList<>();
-        java.util.Set<Integer> reverseStationIndices = new java.util.HashSet<>();
+        List<String> bossbarStations = new ArrayList<>();
+        Set<Integer> reverseStationIndices = new HashSet<>();
         if (rawStations != null) {
             for (int i = 0; i < rawStations.size(); i++) {
                 String raw = rawStations.get(i);
@@ -201,8 +199,44 @@ public class LineConfig {
         config.save();
     }
 
-    private static void setOrRemove(ConfigurationNode node, String key, String value) {
-        if (value == null || value.isBlank()) {
+    /**
+     * 删除一条线路，并写回 routes.yml（保留其余注释）。
+     * <p>
+     * 仅写文件，不刷新内存缓存——调用方应在写回后触发配置重载
+     * （{@link BiliCraftTicketSystem#loadConfig} 或 {@link #load}）使其生效。
+     *
+     * @param lineId 线路 id
+     * @return true 表示该线路存在并已删除；false 表示线路不存在（未改动文件）
+     */
+    public static boolean delete(String lineId) {
+        if (lineId == null || !config.contains(lineId)) {
+            return false;
+        }
+        config.remove(lineId);
+        config.save();
+        return true;
+    }
+
+    /**
+     * 获取归属于某铁路系统的所有线路 id（按配置文件顺序），基于当前内存缓存。
+     *
+     * @param systemId 铁路系统 id
+     * @return 该系统下的线路 id 列表（systemId 为 null / 无匹配时返回空列表）
+     */
+    public static List<String> getLineIdsOfSystem(String systemId) {
+        List<String> result = new ArrayList<>();
+        if (systemId == null) {
+            return result;
+        }
+        for (LineInfo info : lines.values()) {
+            if (systemId.equals(info.getRailwaySystemId())) {
+                result.add(info.getId());
+            }
+        }
+        return result;
+    }
+
+    private static void setOrRemove(ConfigurationNode node, String key, String value) {        if (value == null || value.isBlank()) {
             node.remove(key);
         } else {
             node.set(key, value);
@@ -223,6 +257,6 @@ public class LineConfig {
      * @return 线路 id 有序列表
      */
     public static List<String> getNormalLineIds() {
-        return new java.util.ArrayList<>(lines.keySet());
+        return new ArrayList<>(lines.keySet());
     }
 }

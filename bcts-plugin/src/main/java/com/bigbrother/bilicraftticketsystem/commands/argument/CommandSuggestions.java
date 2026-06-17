@@ -14,17 +14,24 @@ import org.incendo.cloud.annotations.suggestion.Suggestions;
 import org.incendo.cloud.context.CommandContext;
 import org.incendo.cloud.context.CommandInput;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class CommandSuggestions {
     @Suggestions("lineId")
-    public List<String> lineIdSuggestions(CommandContext<C> context, CommandInput input) {
-        return LineConfig.getNormalLineIds();
+    public List<String> lineIdSuggestions(CommandContext<Player> context, CommandInput input) {
+        // 该玩家所在的所有铁路系统下的线路 id
+        List<String> result = new ArrayList<>();
+        for (String systemId : RailwaySystemConfig.getSystemsOfMember(context.sender().getUniqueId())) {
+            result.addAll(LineConfig.getLineIdsOfSystem(systemId));
+        }
+        return result;
     }
 
     @Suggestions("systemId")
-    public List<String> systemIdSuggestions(CommandContext<C> context, CommandInput input) {
-        return RailwaySystemConfig.getAllIds();
+    public List<String> systemIdSuggestions(CommandContext<Player> context, CommandInput input) {
+        // 该玩家所在的所有铁路系统 id
+        return RailwaySystemConfig.getSystemsOfMember(context.sender().getUniqueId());
     }
 
     @Suggestions("switchTraceState")

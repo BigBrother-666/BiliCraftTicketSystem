@@ -6,11 +6,7 @@ import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.config.EnumConfig;
 import lombok.Getter;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * 铁路系统配置（railway_system.yml）的加载器与写回工具。
@@ -54,7 +50,7 @@ public class RailwaySystemConfig {
         String id = node.getName();
         String name = node.get("name", id);
         List<String> rawMembers = node.getList("members", String.class, null);
-        java.util.Set<UUID> members = new java.util.LinkedHashSet<>();
+        Set<UUID> members = new LinkedHashSet<>();
         if (rawMembers != null) {
             for (String raw : rawMembers) {
                 UUID uuid = parseUuid(raw);
@@ -141,7 +137,7 @@ public class RailwaySystemConfig {
      * @param name     系统显示名称
      * @param members  成员 UUID 集合
      */
-    public static void upsert(String systemId, String name, java.util.Set<UUID> members) {
+    public static void upsert(String systemId, String name, Set<UUID> members) {
         ConfigurationNode node = config.getNode(systemId);
         node.set("name", name);
         List<String> memberStrings = new ArrayList<>();
@@ -152,5 +148,24 @@ public class RailwaySystemConfig {
         }
         node.set("members", memberStrings);
         config.save();
+    }
+
+    /**
+     * 删除一个铁路系统，并写回 railway_system.yml（保留其余注释）。
+     * <p>
+     * 仅删除系统本身，不级联删除其下线路——调用方（如 delSystem 指令）应先删除所属线路。
+     * 仅写文件，不刷新内存缓存——调用方应在写回后触发配置重载
+     * （{@link BiliCraftTicketSystem#loadConfig} 或 {@link #load}）使其生效。
+     *
+     * @param systemId 系统 id
+     * @return true 表示该系统存在并已删除；false 表示系统不存在（未改动文件）
+     */
+    public static boolean delete(String systemId) {
+        if (systemId == null || !config.contains(systemId)) {
+            return false;
+        }
+        config.remove(systemId);
+        config.save();
+        return true;
     }
 }
