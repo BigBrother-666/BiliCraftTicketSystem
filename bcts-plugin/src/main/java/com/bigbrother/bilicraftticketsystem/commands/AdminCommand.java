@@ -262,9 +262,9 @@ public class AdminCommand {
         player.sendMessage(Component.text("导航进度：", NamedTextColor.GRAY).append(Component.text(
                 "%d / %d 个节点".formatted(progress[0] + 1, progress[1]), NamedTextColor.WHITE)));
         String currentStep = BcRouteNavigator.currentStep(group);
-        String currentSwitch = BcRouteNavigator.currentSwitchLineId(group);
+        String currentSwitch = BcRouteNavigator.currentSwitchDirection(group);
         String desc = currentStep == null ? "(无 / 已走完)"
-                : (currentSwitch != null ? "道岔应选 " + currentSwitch : "车站(站台)");
+                : (currentSwitch != null ? "道岔应走出向 " + currentSwitch : "车站(站台)");
         player.sendMessage(Component.text("当前节点步骤：", NamedTextColor.GRAY).append(Component.text(
                 desc, NamedTextColor.WHITE)));
         player.sendMessage(Component.text("==============================", NamedTextColor.AQUA));

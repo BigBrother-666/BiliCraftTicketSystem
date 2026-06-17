@@ -18,7 +18,7 @@ import java.util.Map;
  * 产出符合 CLAUDE.md 规定的属性：
  * <ul>
  *   <li>Point：id（必须）、name（仅 station）、lineIds、railwaySystemIds（仅 station）、prev、next、type。</li>
- *   <li>LineString：id、from、to、lineId、railwaySystemId（联络线省略）、color、length、layer。</li>
+ *   <li>LineString：id、from、to、lineId、railwaySystemId（未配置则省略）、color、length、layer。</li>
  * </ul>
  * prev / next 由所有区间的 from -> to 关系推算。该类为纯转换逻辑，不依赖 Bukkit / TC，
  * 便于单元测试。
@@ -98,13 +98,17 @@ public class GeojsonBuilder {
         props.put("from", edge.getFromNodeId());
         props.put("to", edge.getToNodeId());
         props.put("lineId", edge.getLineId());
-        // 区间所属铁路系统 id；联络线为 null（不归属任何系统），此时省略该属性
+        // 区间所属铁路系统 id；未配置时为 null，此时省略该属性
         if (edge.getRailwaySystemId() != null) {
             props.put("railwaySystemId", edge.getRailwaySystemId());
         }
         props.put("color", edge.getColor());
         props.put("length", edge.getLength());
         props.put("layer", edge.getLayer());
+        // 物理出向（离开起点道岔的方向）；无道岔决策时为 null，省略该属性
+        if (edge.getDepartDirection() != null) {
+            props.put("departDir", edge.getDepartDirection());
+        }
         feature.setProperties(props);
         return feature;
     }

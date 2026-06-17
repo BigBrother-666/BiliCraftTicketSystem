@@ -43,12 +43,23 @@ public class SignParsingTest {
         BcSwitcherBranch b = GeoUtils.parseBcSwitcherBranch("e@pr-cw");
         assertNotNull(b);
         assertEquals("e", b.getDirectionStr());
-        assertEquals("pr-cw", b.getLineId());
-        assertFalse(b.isContact());
-        assertFalse(b.isDefault());
+        assertEquals(java.util.List.of("pr-cw"), b.getLineIds());
+        assertTrue(b.hasLineId("pr-cw"));
+        assertFalse(b.hasLineId("pr-s1"));
+    }
 
-        assertTrue(GeoUtils.parseBcSwitcherBranch("l@contact").isContact());
-        assertTrue(GeoUtils.parseBcSwitcherBranch("f@default").isDefault());
+    @Test
+    void bcswitcherBranchSharedTrack() {
+        // 共用轨道：一个出向挂多条线路，分号分隔
+        BcSwitcherBranch b = GeoUtils.parseBcSwitcherBranch("r@pr-cw;pr-s1");
+        assertNotNull(b);
+        assertEquals("r", b.getDirectionStr());
+        assertEquals(java.util.List.of("pr-cw", "pr-s1"), b.getLineIds());
+        assertTrue(b.hasLineId("pr-cw"));
+        assertTrue(b.hasLineId("pr-s1"));
+        // 多余空白与空段应被忽略
+        BcSwitcherBranch b2 = GeoUtils.parseBcSwitcherBranch("l@ a ; ; b ");
+        assertEquals(java.util.List.of("a", "b"), b2.getLineIds());
     }
 
     @Test
@@ -58,5 +69,6 @@ public class SignParsingTest {
         assertNull(GeoUtils.parseBcSwitcherBranch("nopdelimiter"));
         assertNull(GeoUtils.parseBcSwitcherBranch("@pr-cw"));
         assertNull(GeoUtils.parseBcSwitcherBranch("e@"));
+        assertNull(GeoUtils.parseBcSwitcherBranch("e@ ; "));
     }
 }

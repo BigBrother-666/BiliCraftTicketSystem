@@ -1,7 +1,5 @@
 package com.bigbrother.bilicraftticketsystem.route.geograph;
 
-import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -96,13 +94,13 @@ public class GeoRouteGraph {
     }
 
     /**
-     * 取「含正线(default)分支的进站道岔」对应的停靠线 platform 车站名。
+     * 取「有正线的进站道岔」对应的停靠线 platform 车站名。
      * <p>
-     * 对应「有正线车站」的结构：进站道岔是一个 bcswitcher，其 default 分支指向正线（跨站全速通过）、
-     * 营运线 id 分支指向停靠线，停靠线上有 platform 车站节点。
+     * 结构判定（不再依赖 {@code default} 特殊 lineId）：进站道岔是一个 bcswitcher，其一条出边通往
+     * <b>道岔</b>节点（正线，跨站全速通过）、另一条出边通往<b>车站</b>节点（停靠线 platform）。
      * <p>
-     * 仅当传入节点<b>含 default 出边</b>（即此处确有正线）时，返回其出边中通往 station 节点的
-     * 停靠线车站名；否则（不是道岔、无正线、或找不到停靠线车站）返回 null。
+     * 仅当传入节点<b>同时</b>有通往道岔与通往车站的出边时，返回那条通往车站的停靠线车站名；
+     * 否则（不是道岔、无正线绕行、或找不到停靠线车站）返回 null。
      *
      * @param node 待判断的节点（通常为进站道岔节点）
      * @return 停靠线 platform 车站名；不满足条件返回 null
@@ -112,25 +110,46 @@ public class GeoRouteGraph {
             return null;
         }
         List<GeoLink> outLinks = links(node.getId());
-        // 须含正线(default)分支，才算「有正线车站」的进站道岔
-        boolean hasDefault = false;
+        boolean toSwitch = false;
+        String platformName = null;
         for (GeoLink out : outLinks) {
-            if (LineInfo.DEFAULT_ID.equals(out.getLineId())) {
-                hasDefault = true;
-                break;
-            }
-        }
-        if (!hasDefault) {
-            return null;
-        }
-        // 取出边中通往车站（停靠线 platform）的那条，返回其车站名
-        for (GeoLink out : outLinks) {
-            if (LineInfo.DEFAULT_ID.equals(out.getLineId())) {
+            GeoNode to = nodes.get(out.getToNodeId());
+            if (to == null) {
                 continue;
             }
+            if (to.isStation()) {
+                if (to.getName() != null) {
+                    platformName = to.getName();
+                }
+            } else {
+                toSwitch = true;
+            }
+        }
+        // 须同时有「通往道岔的正线出边」和「通往车站的停靠线出边」，才算有正线的进站道岔
+        return toSwitch ? platformName : null;
+    }
+
+    /**
+     * 取「有正线的进站道岔」的<b>到发线物理出向</b>（e/s/w/n 或 f/b/l/r），供无导航列车（普通车 /
+     * 手动车）在此一律走到发线进站停靠。
+     *
+     * @param node 待判断的节点（通常为进站道岔节点）
+     * @return 到发线物理出向；不满足条件 / 无出向记录返回 null
+     */
+    public String sidingDirectionOfMainlineSwitch(GeoNode node) {
+        if (node == null) {
+            return null;
+        }
+        String sidingDir = null;
+        for (GeoLink out : links(node.getId())) {
             GeoNode to = nodes.get(out.getToNodeId());
-            if (to != null && to.isStation() && to.getName() != null) {
-                return to.getName();
+            if (to == null) {
+                continue;
+            }
+            if (to.isStation()) {
+                if (out.getDepartDirection() != null) {
+                    return out.getDepartDirection();
+                }
             }
         }
         return null;

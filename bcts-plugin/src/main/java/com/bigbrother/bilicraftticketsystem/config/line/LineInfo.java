@@ -9,29 +9,18 @@ import java.util.List;
 /**
  * 一条线路的配置信息（对应 routes.yml 中的一个线路 id）。
  * <p>
- * 普通线路含完整 bossbar / 进出站提示信息；特殊 id（contact 联络线、default 到发线）
- * 通常只含 line-name / line-color。所有字段在缺省时给出安全默认值，方便扩展
+ * 每条线路含完整 bossbar / 进出站提示信息。所有字段在缺省时给出安全默认值，方便扩展
  * （例如以后加入铁路公司 company 字段，只需在此追加并在 {@link LineConfig} 解析）。
  */
 @Getter
 @ToString
 public class LineInfo {
     /**
-     * 联络线特殊 id。
-     */
-    public static final String CONTACT_ID = "contact";
-    /**
-     * 到发线特殊 id。
-     */
-    public static final String DEFAULT_ID = "default";
-
-    /**
      * 线路 id（routes.yml 中的键，如 "pr-cw"）。
      */
     private final String id;
     /**
-     * 所属铁路系统 id（routes.yml 的 {@code railway-system}），普通线路必填。
-     * 特殊线路（contact / default）该值无实际意义，可能为 null。
+     * 所属铁路系统 id（routes.yml 的 {@code railway-system}），必填。
      */
     private final String railwaySystemId;
     /**
@@ -43,7 +32,7 @@ public class LineInfo {
      */
     private final String lineColor;
     /**
-     * bossbar 车站列表，首尾车站名相同则为环线；特殊 id 可能为空。
+     * bossbar 车站列表，首尾车站名相同则为环线。
      * <p>
      * 列表中存放的是<b>干净站名</b>（已剥离 {@code :RV} 等后缀）。折返信息见
      * {@link #reverseStationIndices}。
@@ -163,6 +152,27 @@ public class LineInfo {
     }
 
     /**
+     * 按<b>站名</b>判断该线路上是否存在折返站（尽头式，进站后反向驶出）。
+     * <p>
+     * 遍历期只能从 platform 控制牌拿到站名（没有下标），故提供按名查询。环线即便站名重复，
+     * 折返与否只取决于该站本身的 {@code :RV} 标记，按名判断与按下标一致。
+     *
+     * @param stationName 车站名（干净站名，不含 {@code :RV} 后缀）
+     * @return true 表示该站为折返站
+     */
+    public boolean isReverseStationByName(String stationName) {
+        if (stationName == null) {
+            return false;
+        }
+        for (int index : reverseStationIndices) {
+            if (index < bossbarStations.size() && stationName.equals(bossbarStations.get(index))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * 判断该线路是否为环线（bossbar 车站列表首尾相同）。
      *
      * @return true 表示环线
@@ -170,24 +180,5 @@ public class LineInfo {
     public boolean isRing() {
         return bossbarStations.size() > 1
                 && bossbarStations.get(0).equals(bossbarStations.get(bossbarStations.size() - 1));
-    }
-
-    /**
-     * 判断该线路 id 是否为特殊 id（联络线或到发线）。
-     *
-     * @return true 表示特殊 id
-     */
-    public boolean isSpecial() {
-        return CONTACT_ID.equalsIgnoreCase(id) || DEFAULT_ID.equalsIgnoreCase(id);
-    }
-
-    /**
-     * 判断给定线路 id 是否为特殊 id（联络线或到发线），不依赖 {@link LineInfo} 实例。
-     *
-     * @param lineId 线路 id
-     * @return true 表示特殊 id
-     */
-    public static boolean isSpecialId(String lineId) {
-        return CONTACT_ID.equalsIgnoreCase(lineId) || DEFAULT_ID.equalsIgnoreCase(lineId);
     }
 }

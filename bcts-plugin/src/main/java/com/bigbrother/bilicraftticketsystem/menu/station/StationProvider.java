@@ -38,7 +38,7 @@ public class StationProvider {
      * UI 消费的车站条目：站名 + 经过该站的所有线路 id（聚合同名各站台节点）。
      *
      * @param name    车站名（== geojson 真实站名，可直接喂 {@link GeoRouteEngine#findByStation}）
-     * @param lineIds 经过该站的线路 id（含 contact/default 等特殊线路，构图时再过滤）
+     * @param lineIds 经过该站的线路 id
      */
     public record StationEntry(String name, Set<String> lineIds) {
     }
@@ -78,7 +78,7 @@ public class StationProvider {
         List<Component> lore = new ArrayList<>();
         for (String lineId : entry.lineIds()) {
             LineInfo line = LineConfig.get(lineId);
-            if (line == null || line.isSpecial()) {
+            if (line == null) {
                 continue;
             }
             lore.add(Component.text("● " + line.getLineName(),
@@ -116,7 +116,7 @@ public class StationProvider {
     private static TextColor stationColor(StationEntry entry) {
         for (String lineId : entry.lineIds()) {
             LineInfo line = LineConfig.get(lineId);
-            if (line != null && !line.isSpecial()) {
+            if (line != null) {
                 return colorOf(lineId);
             }
         }

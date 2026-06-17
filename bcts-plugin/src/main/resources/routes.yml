@@ -1,18 +1,9 @@
 # 线路配置文件
-# 每个顶层键是一个线路 id（bcswitcher / bcspawn 控制牌中 "方向@线路id" 的线路id）。
-# 特殊 id：
-#   contact —— 联络线（区间间的连接线，地图上以中性色显示）
-#   default —— 到发线（车站进出站股道，不属于任何营运线路）
-# 普通线路含完整 bossbar / 进出站提示信息。
 
 # 联络线
 contact:
   line-name: "联络线"
   line-color: "#868686"
-
-# 正线
-default:
-  line-name: "正线"
 
 # 线路id
 pr-cw:

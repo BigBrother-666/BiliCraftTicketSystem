@@ -62,10 +62,13 @@ public class GeoUtils {
     }
 
     /**
-     * 解析 bcswitcher 控制牌的一行 {@code <方向>@<线路id>}，返回道岔分支。
+     * 解析 bcswitcher 控制牌的一行出向声明 {@code <方向>@<线路id>;[线路id]...}，返回道岔分支。
+     * <p>
+     * {@code @} 后可用分号分隔多个线路 id，表示该出向轨道被多条线路共用
+     * （如 {@code r@pr-cw;pr-s1}）。
      *
-     * @param line bcswitcher 控制牌的一行（第二或第三行）
-     * @return 解析出的道岔分支；该行为空或缺少 '@' 时返回 null
+     * @param line bcswitcher 控制牌的一行（第三或第四行）
+     * @return 解析出的道岔分支；该行为空、缺少 '@' 或无有效线路 id 时返回 null
      */
     public static BcSwitcherBranch parseBcSwitcherBranch(String line) {
         if (line == null) {
@@ -77,11 +80,21 @@ public class GeoUtils {
             return null;
         }
         String directionStr = trimmed.substring(0, idx).trim();
-        String lineId = trimmed.substring(idx + 1).trim();
-        if (directionStr.isEmpty() || lineId.isEmpty()) {
+        String lineIdsPart = trimmed.substring(idx + 1).trim();
+        if (directionStr.isEmpty() || lineIdsPart.isEmpty()) {
             return null;
         }
-        return new BcSwitcherBranch(directionStr, lineId);
+        List<String> lineIds = new ArrayList<>();
+        for (String part : lineIdsPart.split(";")) {
+            String id = part.trim();
+            if (!id.isEmpty()) {
+                lineIds.add(id);
+            }
+        }
+        if (lineIds.isEmpty()) {
+            return null;
+        }
+        return new BcSwitcherBranch(directionStr, lineIds);
     }
 
     /**

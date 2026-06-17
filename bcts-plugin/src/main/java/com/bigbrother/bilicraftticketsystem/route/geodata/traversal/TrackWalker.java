@@ -4,14 +4,21 @@ import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
+import com.bigbrother.bilicraftticketsystem.route.geodata.GeoUtils;
+import com.bigbrother.bilicraftticketsystem.signactions.SignActionBcswitcher;
+import com.bigbrother.bilicraftticketsystem.signactions.component.BcSwitcherBranch;
 import lombok.Setter;
 import org.bukkit.block.Block;
 import org.bukkit.entity.EntityType;
 import org.bukkit.util.Vector;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -70,6 +77,11 @@ public class TrackWalker {
      */
     private String lineTag;
     /**
+     * 当前强制出向 tag（{@link com.bigbrother.bilicraftticketsystem.signactions.SignActionBcswitcher#FORCE_DIR_TAG_PREFIX}
+     * 前缀）。遍历器在道岔节点 fork 时设置，使本段离开该道岔时按指定方向走（绕过 lineId 选向）。
+     */
+    private String forceDirTag;
+    /**
      * 单段行走最多前进的铁轨格数（兜底）。loopFilter 已关闭（环线闭合段会重走起点附近铁轨，
      * 不能当成环路截断），改由此上限防止真正无控制牌的物理环路造成死循环。
      */
@@ -112,6 +124,28 @@ public class TrackWalker {
         this.lineTag = (lineId == null || lineId.isEmpty()) ? null : lineId;
         if (this.lineTag != null) {
             this.member.getProperties().addTags(this.lineTag);
+        }
+        refreshPredictedPath();
+    }
+
+    /**
+     * 设置本段离开起始 bcswitcher 时的<b>强制出向</b>。
+     * <p>
+     * 遍历器在道岔节点 fork 时调用：给矿车打 {@code bcsw_force_dir:<dir>} tag，
+     * {@link com.bigbrother.bilicraftticketsystem.signactions.SignActionBcswitcher#predictPathFinding}
+     * 读到后强制把道岔切到该方向（优先级高于 lineId 选向）。两个相邻节点之间不会再有 bcswitcher，
+     * 故该 tag 只影响正在离开的这个道岔。
+     *
+     * @param directionStr 出向字符串（如 "e"、"l"、"f"；null 或空表示清除强制出向）
+     */
+    public void setForcedDirection(String directionStr) {
+        if (this.forceDirTag != null) {
+            this.member.getProperties().removeTags(this.forceDirTag);
+            this.forceDirTag = null;
+        }
+        if (directionStr != null && !directionStr.isEmpty()) {
+            this.forceDirTag = SignActionBcswitcher.FORCE_DIR_TAG_PREFIX + directionStr;
+            this.member.getProperties().addTags(this.forceDirTag);
         }
         refreshPredictedPath();
     }
@@ -234,6 +268,45 @@ public class TrackWalker {
             return StopReason.SWITCHER;
         }
         return null;
+    }
+
+    /**
+     * 收集当前停止位置铁轨上、其进入方向匹配本次<b>到达方向</b>的所有 bcswitcher 出向分支。
+     * <p>
+     * 一格铁轨下可能有多块 bcswitcher 牌（依次处理，不合并）：每块牌的牌头声明了它适用的进入方向
+     * （如 {@code [+train:lf]}）。只有牌头进入方向匹配本次到达方向的牌，其出向才纳入；不匹配的牌
+     * （为反方向来车准备）跳过。这样有向图的「入边方向 → 出边」关系才正确。
+     *
+     * @param nodeRailPiece 节点所在铁轨片
+     * @return 匹配的出向分支（跨多块牌合并收集，按声明顺序）
+     */
+    public List<BcSwitcherBranch> collectSwitcherBranches(RailPiece nodeRailPiece) {
+        List<BcSwitcherBranch> result = new ArrayList<>();
+        if (nodeRailPiece == null) {
+            return result;
+        }
+        RailLookup.TrackedSign[] signs = nodeRailPiece.signs();
+        if (signs == null) {
+            return result;
+        }
+        Vector arrival = wp.state.motionVector();
+        for (RailLookup.TrackedSign sign : signs) {
+            if (signType(sign) != StopReason.SWITCHER) {
+                continue;
+            }
+            SignActionEvent event = new SignActionEvent(sign, member);
+            // 牌头声明了进入方向时，只在到达方向匹配时纳入；未声明则视为不限方向（兼容，但建牌已强制声明）
+            if (event.isWatchedDirectionsDefined() && !event.isWatchedDirection(arrival)) {
+                continue;
+            }
+            for (int i = 2; i <= 3; i++) {
+                BcSwitcherBranch branch = GeoUtils.parseBcSwitcherBranch(sign.getLine(i));
+                if (branch != null) {
+                    result.add(branch);
+                }
+            }
+        }
+        return result;
     }
 
     /**

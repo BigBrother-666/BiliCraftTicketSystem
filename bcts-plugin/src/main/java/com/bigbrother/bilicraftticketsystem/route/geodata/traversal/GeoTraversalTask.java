@@ -3,6 +3,7 @@ package com.bigbrother.bilicraftticketsystem.route.geodata.traversal;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.route.geodata.GeoUtils;
 import com.bigbrother.bilicraftticketsystem.route.geodata.entity.GeoNodeLoc;
+import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -10,22 +11,24 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
-import org.bukkit.util.Vector;
 import org.geojson.FeatureCollection;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
- * 铁路遍历任务：遍历所有已登记的线路起点，按线路分文件产出 geojson。
+ * 铁路遍历任务：从所有已登记起点做全图 BFS，按线路分文件产出 geojson。
  * <p>
- * 流程（Phase 3 重做方案）：
+ * 流程：
  * <ol>
- *   <li>从数据库读出每条线路登记的起点（{@link GeoNodeLoc}，按 lineId）。</li>
- *   <li>对每条线路跑一次 {@link LineWalk}：矿车带该 lineId tag 连续行走，platform 记车站节点并
- *       核对车站名顺序，含 default 的 bcswitcher 额外遍历正线，按配置车站走完终止。</li>
- *   <li>按文件分组保存：每条线路一个 {@code <lineId>.geojson}（含其正线），联络线
- *       {@code contact.geojson} 单独保存。</li>
+ *   <li>从数据库读出所有登记起点（{@link GeoNodeLoc}，含 lineId + 坐标 + 方向）。</li>
+ *   <li>建一个共享 {@link TraversalCollector} 与共享去重集合，对每个起点调用 {@link GraphWalk#walkFrom}：
+ *       以 bcswitcher / platform 为节点、其间铁路为有向边做全图展开。矿车携带「当前 lineId」沿途更新
+ *       （离开道岔出向时改写），决定每段边归属；一个起点即可覆盖其连通子网，后续起点撞到已访问状态即停。</li>
+ *   <li>每条线路一个 {@code <lineId>.geojson}（共用轨道在各线文件中均完整）。</li>
+ *   <li>遍历后按线把实际到达车站与配置 {@code bossbar-stations} 比对，报告缺失 / 多余。</li>
  * </ol>
  * 遍历在主线程执行（需读取实时轨道数据）。
  */
@@ -37,9 +40,9 @@ public class GeoTraversalTask {
      */
     private static final int MAX_EDGES_PER_WALK = 5000;
     /**
-     * 单条线路最多经过的节点数（兜底）。
+     * 整次遍历最多展开的段数（跨所有起点，兜底防环；真正防环靠共享 visited）。
      */
-    private static final int MAX_NODES_PER_LINE = 2000;
+    private static final int MAX_TOTAL_NODES = 100000;
 
     /**
      * @param plugin 插件实例
@@ -62,21 +65,32 @@ public class GeoTraversalTask {
                     log.message("没有已登记的线路起点，请先用 /railgeo setStartPos <lineId> 登记", NamedTextColor.RED);
                     return;
                 }
-                log.message("开始遍历 " + starts.size() + " 条线路...", NamedTextColor.DARK_AQUA);
+                log.message("开始遍历，从 " + starts.size() + " 个登记起点展开全图...", NamedTextColor.DARK_AQUA);
 
+                // 整次遍历共享一个收集器与去重集合：一个起点即可覆盖其连通子网，
+                // 后续起点撞到已访问状态立即终止（多起点用于覆盖不连通子网）。
                 TraversalCollector collector = new TraversalCollector();
+                Set<String> visited = new java.util.HashSet<>();
+                GraphWalk walk = new GraphWalk(collector, log, visited, MAX_TOTAL_NODES, MAX_EDGES_PER_WALK);
+                java.util.Set<String> startLineIds = new java.util.LinkedHashSet<>();
                 for (GeoNodeLoc start : starts) {
                     Block startRail = resolveStartRail(start.getStartLocation());
                     if (startRail == null) {
-                        log.warn("线路 " + start.getLineId() + " 起点坐标处没有铁轨，跳过");
+                        log.warn("起点 " + start.getLineId() + " 坐标处没有铁轨，跳过");
                         continue;
                     }
-                    new LineWalk(start.getLineId(), startRail, start.getStartDirection(),
-                            collector, log, MAX_NODES_PER_LINE, MAX_EDGES_PER_WALK).walk();
+                    startLineIds.add(start.getLineId());
+                    log.info("从起点 " + start.getLineId() + " @ " + start.getStartLocation() + " 展开");
+                    walk.walkFrom(start.getLineId(), startRail, start.getStartDirection());
                 }
 
-                // 主线全部走完后，统一遍历途中收集到的联络线种子，存入 contact.geojson
-                walkContactSeeds(collector, log);
+                // 按线校验：覆盖所有起点登记线 + 遍历中实际到达过车站的线。
+                Map<String, Set<String>> byLine = walk.getVisitedStationsByLine();
+                java.util.Set<String> linesToCheck = new java.util.LinkedHashSet<>(startLineIds);
+                linesToCheck.addAll(byLine.keySet());
+                for (String lineId : linesToCheck) {
+                    validateStationOrder(lineId, byLine.getOrDefault(lineId, java.util.Collections.emptySet()), log);
+                }
 
                 int files = saveAll(collector, log);
                 log.message("遍历完成：共 %d 个节点、%d 条区间，写入 %d 个文件".formatted(
@@ -91,31 +105,30 @@ public class GeoTraversalTask {
     }
 
     /**
-     * 遍历主线途中收集到的联络线种子，坐标存入 contact 文件分组（{@code contact.geojson}）。
+     * 事后校验：把本线实际到达的车站与配置的 {@code bossbar-stations} 比对，报告缺失 / 多余。
      * <p>
-     * 每个种子用一节带 contact tag 的矿车从来源道岔出发——经该道岔时被导向 contact 分支，
-     * 沿联络线走到下一个节点为止。联络线无配置车站，靠轨道结束/节点上限自然终止。
+     * 图遍历可能有分叉（如正线跨站 + 停靠线进站），不强求顺序严格一致，只做集合层面的覆盖检查：
+     * 配置里有但没走到的（缺失，可能轨道未铺或控制牌缺声明）、走到但配置里没有的（多余，可能站名写错）。
      *
-     * @param collector 结果收集器
-     * @param log       日志
+     * @param lineId   线路 id
+     * @param visited  实际到达的车站名
+     * @param log      日志
      */
-    private void walkContactSeeds(TraversalCollector collector, GeoTraversalLogger log) {
-        List<TraversalCollector.ContactSeed> seeds = collector.getContactSeeds();
-        if (seeds.isEmpty()) {
+    private void validateStationOrder(String lineId, Set<String> visited, GeoTraversalLogger log) {
+        LineInfo info = LineConfig.get(lineId);
+        if (info == null || info.getBossbarStations().isEmpty()) {
             return;
         }
-        log.message("遍历 " + seeds.size() + " 条联络线...", NamedTextColor.DARK_AQUA);
-        // 用下标遍历并每轮重读 size()：联络线遍历途中遇到仍含 contact 分支的道岔会往 seeds 追加新种子
-        // （见 LineWalk），需一并处理。addContactSeed 按道岔节点 id 去重，故不会无限增长。
-        for (int i = 0; i < seeds.size(); i++) {
-            TraversalCollector.ContactSeed seed = seeds.get(i);
-            new LineWalk(LineInfo.CONTACT_ID, seed.getStartRail(), seed.getStartDirection(),
-                    collector, log, MAX_NODES_PER_LINE, MAX_EDGES_PER_WALK)
-                    .withInitialPrevNode(seed.getSourceNodeId())
-                    .walk();
+        Set<String> expected = new java.util.LinkedHashSet<>(info.getBossbarStations());
+        for (String want : expected) {
+            if (!visited.contains(want)) {
+                log.warn("线路 " + lineId + " 校验：配置车站 \"" + want + "\" 未在遍历中到达（轨道未铺设或道岔未声明该线？）");
+            }
         }
-        if (seeds.size() > 0) {
-            log.message("联络线遍历完成，共 " + seeds.size() + " 条", NamedTextColor.DARK_AQUA);
+        for (String got : visited) {
+            if (!expected.contains(got)) {
+                log.warn("线路 " + lineId + " 校验：到达了配置外的车站 \"" + got + "\"（站名写错或控制牌归属线路有误？）");
+            }
         }
     }
 
@@ -169,33 +182,5 @@ public class GeoTraversalTask {
             }
         }
         return files;
-    }
-
-    /**
-     * 单点调试遍历：从给定铁轨与方向，按指定 lineId 走一条线，写单个文件。
-     * 保留作游戏内调试用，不影响 {@link #runAll} 的正式流程。
-     *
-     * @param startRail      起点铁轨
-     * @param startDirection 起点方向
-     * @param lineId         线路 id
-     */
-    public void runSingle(Block startRail, Vector startDirection, String lineId) {
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            GeoTraversalLogger log = new GeoTraversalLogger(plugin, sender);
-            try {
-                log.message("开始单线调试遍历：" + lineId, NamedTextColor.DARK_AQUA);
-                TraversalCollector collector = new TraversalCollector();
-                new LineWalk(lineId, startRail, startDirection, collector, log,
-                        MAX_NODES_PER_LINE, MAX_EDGES_PER_WALK).walk();
-                int files = saveAll(collector, log);
-                log.message("调试遍历完成：%d 节点，%d 区间，%d 文件".formatted(
-                        collector.totalNodes(), collector.totalEdges(), files), NamedTextColor.GREEN);
-            } catch (Exception e) {
-                log.error("调试遍历失败", e);
-                log.message("调试遍历失败：" + e, NamedTextColor.RED);
-            } finally {
-                log.close();
-            }
-        });
     }
 }

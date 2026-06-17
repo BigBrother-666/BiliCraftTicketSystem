@@ -11,13 +11,13 @@ import java.util.List;
 
 /**
  * 列车导航的读写门面：在 {@link BcRouteProperty} / {@link BcRouteIndexProperty} 之上提供
- * setRoute / currentSwitchLineId / advance / clear。
+ * setRoute / currentSwitchDirection / advance / clear。
  * <p>
  * 导航序列是整条路径的<b>节点步骤序列</b>（{@link GeoRoutePath#routeSteps()}，有序、含起终点站台）：
- * 道岔步骤编码 {@code "S:lineId"}，车站步骤编码 {@code "P"}。单指针 {@link BcRouteIndexProperty}
+ * 道岔步骤编码 {@code "S:dir"}（dir 为物理出向），车站步骤编码 {@code "P"}。单指针 {@link BcRouteIndexProperty}
  * 指向「下一个将经过的节点」。列车每物理经过一个节点控制牌推进一格：
  * <ul>
- *   <li>bcswitcher 进站（GROUP_ENTER）：按当前步骤的 lineId 选向，随后推进。</li>
+ *   <li>bcswitcher 进站（GROUP_ENTER）：按当前步骤的出向选向，随后推进。</li>
  *   <li>platform 出站（GROUP_LEAVE）：推进。</li>
  * </ul>
  * 由此即便整条线路没有任何 bcswitcher（全是无正线车站），指针也能随 platform 推进直到终点。
@@ -44,18 +44,20 @@ public final class BcRouteNavigator {
     }
 
     /**
-     * 取列车当前应走的 lineId（仅当当前步骤为道岔步骤 {@code "S:lineId"} 时有意义）。
+     * 取列车当前道岔步骤应走的<b>物理出向</b>（仅当当前步骤为道岔步骤 {@code "S:dir"} 时有意义）。
      * <p>
      * bcswitcher 选向与路径预测均用此方法（只读、不推进）。当前步骤不是道岔步骤（如站台步骤，
-     * 表示对齐异常或当前不在道岔）时返回 null，道岔保持默认方向。
+     * 表示对齐异常或当前不在道岔）时返回 null，道岔保持默认 / 回退选向。载荷为空串（旧数据无 departDir）
+     * 时返回 null，道岔回退按 lineId / tag 选向。
      *
      * @param group 列车
-     * @return 当前道岔应选 lineId；非道岔步骤 / 无导航 / 已走完返回 null
+     * @return 当前道岔应走出向（e/s/w/n 或 f/b/l/r）；非道岔步骤 / 无导航 / 已走完 / 载荷空返回 null
      */
-    public static String currentSwitchLineId(MinecartGroup group) {
+    public static String currentSwitchDirection(MinecartGroup group) {
         String step = currentStep(group);
         if (step != null && step.startsWith(GeoRoutePath.ROUTE_STEP_SWITCH_PREFIX)) {
-            return step.substring(GeoRoutePath.ROUTE_STEP_SWITCH_PREFIX.length());
+            String dir = step.substring(GeoRoutePath.ROUTE_STEP_SWITCH_PREFIX.length());
+            return dir.isEmpty() ? null : dir;
         }
         return null;
     }

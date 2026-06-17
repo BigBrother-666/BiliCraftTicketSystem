@@ -16,15 +16,15 @@
 - 通过 `railgeo` 系列指令沿真实轨道遍历，把每条线路的车站（platform 控制牌）、道岔（bcswitcher 控制牌）和它们之间的区间导出为 geojson 文件（见第 9 节）。
 - 插件启动/重载时由 `GeoGraphLoader` 读入所有 `*.geojson`，构建成一张**有向图**（`GeoRouteGraph`）：节点为车站/道岔，边为区间。
 - 查询车票时，`GeoRouteEngine` 用 **Dijkstra 最短路径**在图上寻路。同一车站可能有多个站台节点，按起点站名枚举各站台分别寻路，返回距离升序的候选路线。
-- 寻路得到的路线会推导出一条 各道岔应选线路 的导航序列（见下 直达车导航机制），写入列车属性，列车据此在每个 bcswitcher 自动选向。
+- 寻路得到的路线会推导出一条 各道岔应选方向 的导航序列（见下 直达车导航机制），写入列车属性，列车据此在每个 bcswitcher 自动选向。
 
-### 直达车导航机制
+### 2.1 直达车导航机制
 
-直达车根据**导航序列**——途经各 bcswitcher 应选的线路 id 有序列表，存于列车属性（记录TC的ITrainProperty）：
+直达车根据**导航序列**——途经各 bcswitcher 应选的方向的有序列表，存于列车属性（记录TC的ITrainProperty）：
 
 - 购票/刷卡上车时，由寻路结果（`GeoRoutePath.switcherLineIds()`）生成导航序列写入列车。
 - 列车每经过一个 bcswitcher，该道岔按导航序列**当前项**选向，随后导航指针推进一格。
-- bossbar 进度 = 已过道岔数 / 道岔总数；导航走完即视为到达终点区段（以后可能会升级为基于剩余距离的进度显示）。
+- bossbar 进度 = 已过道岔数 / 道岔总数；导航走完即视为到达终点区段。
 
 调试用 `/ticket traininfo` 查看某列车的导航序列与进度，用 `/ticket switchtrace on` 把每次道岔选向打印到控制台。
 
@@ -157,29 +157,32 @@ bossbar 分两种：
 
 - **普通车**（不持票上车，每站停）：显示 “…上一站 → 当前站 → 下一站…” 滚动站名带，站序取自列车当前所属线路，在 `routes.yml` 中的 `bossbar-stations`，首尾站名相同识别为环线（进度一直 100%）。列车每经过一个 platform 控制牌推进一格；换乘到别的线路时按新线路重建。滚动样式（已过/未过站颜色与显示个数）见
   `config.yml` 的 `bossbar` 节点：`not-passed-color` 留空则使用该线路 `line-color`，颜色支持 `#RRGGBB` 或 `&` 代码。到站标题取自 `routes.yml` 各线路的 `bossbar-arrival-notice`（占位符 `{curr_station}`），该线路留空则到站时显示滚动站名带。
-- **直达车**（持票/刷卡上车，正线跨越中间站直达终点）：显示「起点 → 终点」+ 进度条，文案见 `config.yml` 的 `message.express-normal` / `message.express-end`。直达车不触发中间站的 platform 控制牌，进度由导航序列推进驱动（每经过一个 bcswitcher 道岔，进度 = 已过道岔数 / 道岔总数）。
+- **直达车**（持票/刷卡上车，正线跨越中间站直达终点）：显示“起点 → 终点”+ 进度条，文案见 `config.yml` 的 `message.express-normal` / `message.express-end`。直达车不触发中间站的 platform 控制牌，进度由导航序列推进驱动（每经过一个 bcswitcher 道岔，进度 = 已过道岔数 / 道岔总数）。
 
 ### 8.4 bcswitcher
 
-道岔控制牌，声明该道岔可通向哪些线路，并在运行时控制列车走向。控制牌格式如下：
+道岔控制牌，声明该道岔的进入方向与各出向所属线路，并在运行时控制列车走向。控制牌格式如下：
 
-- 第一行：\[+train\]（也可以指定方向等）
+- 第一行：\[+train:\<进入方向>\]（**进入方向必填**）
 - 第二行：bcswitcher
-- 第三行：\<方向>@\<线路id>
-- 第四行：\<方向>@\<线路id>
+- 第三行：\<出向>@\<线路id>\[;\<线路id>...\]
+- 第四行：\<出向>@\<线路id>\[;\<线路id>...\]
 
-第三、四行各声明一个分支，格式为 `方向@线路id`（`@` 两侧都不能为空）：
+**进入方向（必填）**：写在 `[+train:...]` 里，如 `[+train:lf]`。沿用 TrainCarts Direction 写法（`f`/`b`/`l`/`r` 或 `e`/`s`/`w`/`n`），可写多个。**不能为空、不能为 `*`**。它声明本牌只对从这些方向驶入的列车生效——遍历系统据此把道岔当作有向图节点，正确区分入边和出边。
 
-- **方向**：沿用 TrainCarts 的 Direction 写法——绝对方向 `e`/`s`/`w`/`n`（东/南/西/北），或相对方向 `f`/`b`/`l`/`r`（前/后/左/右，相对牌子朝向）。
-- **线路 id**：可以是 `routes.yml` 中定义的普通线路 id，或特殊 id `contact`（联络线）、`default`（到发线/正线）。
+**出向（第三、四行）**：格式 `出向@线路id`（`@` 两侧都不能为空）：
+
+- **出向**：同样是 TrainCarts Direction 写法（`e`/`s`/`w`/`n` 或 `f`/`b`/`l`/`r`）。
+- **线路 id**：`routes.yml` 中定义的线路 id。**不再有 `contact` / `default` 特殊 id**——每个出向都显式声明其归属的真实线路。
+- **共用轨道**：一个出向被多条线路共用时，`@` 后用分号分隔多个线路 id，如 `r@pr-cw;pr-s1`。在路由图里它等于多条边（各属一条线），物理上是同一出向。
 
 选向逻辑：
 
-1. 列车有导航序列时（持票/刷卡的直达车），按导航当前应走的 lineId 精确匹配分支方向（见 8.5）。
-2. 无导航序列时（普通车），按列车 tag 集合里第一个匹配的 lineId 选向。
+1. 列车有导航序列时（持票/刷卡的直达车），按导航当前应走的 lineId 匹配出向。
+2. 无导航序列时（普通车），按线路属性 / tag 集合里第一个被命中的出向选向。
 3. 都无匹配时保持默认方向（不切换）。
 
-### 8.6 spawn
+### 8.5 spawn
 
 重写 build 方法，生成模型车不再检查 attachment editor 权限。
 
@@ -200,16 +203,12 @@ bossbar 分两种：
 | 指令                            | 功能                                |
 |-------------------------------|-----------------------------------|
 | railgeo walkAll               | 遍历所有已登记线路起点，按线路分文件保存为 geojson     |
-| railgeo walk \<lineId>        | 单线调试遍历：从玩家当前位置和朝向起步，按指定线路 id 走一条线 |
 | railgeo setStartPos \<lineId> | 登记某线路的遍历起点，以玩家所在铁轨为起点坐标、面朝方向为起点方向 |
 | railgeo delStartPos \<lineId> | 删除某线路已登记的遍历起点                     |
 
 ### 9.4 线路配置（routes.yml）
 
-`routes.yml` 每个顶层键是一个线路 id，与 bcswitcher / bcspawn 控制牌中使用的线路 id 对应。两个特殊 id：
-
-- **contact**：联络线（区间之间的连接线，地图上以中性色显示）。
-- **default**：车站正线（跨站行驶的轨道，没有正线的车站则从到发线跨越）。
+`routes.yml` 每个顶层键是一个线路 id，与 bcswitcher / bcspawn 控制牌中使用的线路 id 对应。
 
 线路配置项：
 
@@ -223,25 +222,26 @@ bossbar 分两种：
 | notice-arrival         | 进站提示列表，支持 `sound:...` 与 `announce:...`              |
 | notice-departure       | 出站提示列表，同上                                           |
 
-进出站提示可用占位符：`{curr_station}` 当前站、`{next_station}` 下一站、`{line_name}` 线路名。`contact` 与 `default` 只需配置 `line-name`（及可选 `line-color`）。
+进出站提示可用占位符：`{curr_station}` 当前站、`{next_station}` 下一站、`{line_name}` 线路名、`{line_color}`线路标志色。
 
 ### 9.5 遍历流程与 geojson 结构
 
 **遍历流程**（`railgeo walkAll`）：
 
 1. 从数据库读出各条线路登记的起点（由 `railgeo setStartPos` 设置）。
-2. 对每条线路，一节带该 lineId tag 的临时矿车从起点沿轨道行走（基于 TrainCarts 的路径预测，所有道岔按 tag 决定走向）：
-    - 经过 **platform** 记为车站节点，并按 `routes.yml` 的 `bossbar-stations` 顺序校验站名；
-    - 经过 **bcswitcher** 记为道岔节点；若该道岔含 `default` 分支，额外走一段正线子遍历并入当前线路文件；若含 `contact` 分支，记录下来，待主线遍历完成后遍历。
-    - 终止条件：配置车站全部按序到齐、环线闭合、或轨道结束。
-3. 联络线（contact）在所有线路遍历完后统一遍历，单独成文件。
+2. 对每条线路做**有向图遍历**：以 bcswitcher / platform 为节点、其间铁路为有向边，从起点 BFS 展开。一节带该 lineId tag 的临时矿车按段行走（基于 TrainCarts 路径预测，正确触发沿途原版 switcher 的 addtag/remtag）：
+    - 经过 **platform** 记为车站节点。按站名查 `routes.yml`：普通站沿进入方向续行，折返站（`:RV`）反向驶出。
+    - 经过 **bcswitcher** 记为道岔节点：枚举牌上 进入方向匹配本次到达方向、且归属当前线路 的所有出向，对每个出向各走一段（同一条线在一个道岔有多个出边时逐个走到，如正线 + 到发线）。
+    - 去重 key = `(线路, 节点, 入向, 出向)`，既防环线 / 重复死循环，又保证共用轨道在每条线各自的文件里都完整。
+    - 终止条件：所有可达状态展开完毕、或达到节点上限。
+3. 遍历后按线把实际到达车站与配置 `bossbar-stations` 比对，报告缺失（轨道未铺 / 道岔未声明该线）或多余（站名写错 / 控制牌归属有误）。
 
-**文件分组**：每条线路一个 `<lineId>.geojson`（含其正线区间），联络线汇总到 `contact.geojson`。节点按物理坐标生成的 id（`n.world.x.y.z`）跨文件去重共享，累积经过它的所有线路 id。
+**文件分组**：每条线路一个 `<lineId>.geojson`（含其经过的全部区间；共用轨道在各相关线路文件中均完整保存一份）。节点按物理坐标生成的 id（`n.world.x.y.z`）跨文件去重共享，累积经过它的所有线路 id。
 
 **geojson 结构**：
 
 - **Point**（节点）属性：`id`、`type`（`station` / `switch`）、`name`（仅 station）、`lineIds`（经过的线路 id 数组）、`prev` / `next`（前后相邻节点 id）。
-    - **LineString**（区间）属性：`id`、`from`、`to`、`lineId`、`color`、`length`、`layer`（webUI显示层级）。
+- **LineString**（区间）属性：`id`、`from`、`to`、`lineId`、`color`、`length`、`layer`（webUI显示层级）`departDir`（从from节点选择什么方向可以到达这条线）。
 
 ### 9.6 标准车站格式
 

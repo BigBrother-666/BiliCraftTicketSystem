@@ -1,6 +1,5 @@
 package com.bigbrother.bilicraftticketsystem.route.geograph;
 
-import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import lombok.Getter;
 
 import java.util.*;
@@ -23,6 +22,11 @@ public class GeoRoutePath {
      */
     private final List<String> lineIdSequence;
     /**
+     * 每段轨道的物理出向（{@code e/s/w/n} 或 {@code f/b/l/r}），与 {@link #lineIdSequence} 平行、
+     * 一一对应（size = nodes.size()-1）。无道岔决策段为 null。导航的道岔步骤据此选向，消除共用 lineId 歧义。
+     */
+    private final List<String> departDirectionSequence;
+    /**
      * 总距离（沿途各段边权之和），单位：km。
      */
     private final double distance;
@@ -30,11 +34,14 @@ public class GeoRoutePath {
     /**
      * @param nodes          有序节点列表
      * @param lineIdSequence 逐段 lineId 序列
+     * @param departDirectionSequence 逐段物理出向序列（与 lineIdSequence 平行）
      * @param distance       总距离（km）
      */
-    public GeoRoutePath(List<GeoNode> nodes, List<String> lineIdSequence, double distance) {
+    public GeoRoutePath(List<GeoNode> nodes, List<String> lineIdSequence, List<String> departDirectionSequence,
+                        double distance) {
         this.nodes = nodes;
         this.lineIdSequence = lineIdSequence;
+        this.departDirectionSequence = departDirectionSequence;
         this.distance = distance;
     }
 
@@ -84,7 +91,9 @@ public class GeoRoutePath {
      * 导出整条路径的「节点步骤序列」，供列车导航单指针消费（替代仅含道岔的
      * {@link #switcherLineIds()}）。按经过顺序列出<b>每一个</b>路径节点：
      * <ul>
-     *   <li>道岔（switch）节点编码为 {@code "S:" + 驶出段lineId}：bcswitcher 据此选向。</li>
+     *   <li>道岔（switch）节点编码为 {@code "S:" + 驶出段物理出向}：bcswitcher 据此直接选向（消除共用
+     *       lineId 歧义，如进站道岔正线/到发线同 lineId）。出向缺失（旧数据无 departDir）时载荷为空，
+     *       道岔回退按 lineId / tag 选向。</li>
      *   <li>车站（station / platform）节点编码为 {@code "P"}：仅用于推进指针与进度，不选向。</li>
      * </ul>
      * 列车每物理经过一个节点控制牌推进一格：bcswitcher 进站推进、platform 出站推进。
@@ -99,7 +108,8 @@ public class GeoRoutePath {
             if (node.isStation()) {
                 result.add(ROUTE_STEP_PLATFORM);
             } else {
-                String depart = i < lineIdSequence.size() ? lineIdSequence.get(i) : "";
+                String depart = i < departDirectionSequence.size() && departDirectionSequence.get(i) != null
+                        ? departDirectionSequence.get(i) : "";
                 result.add(ROUTE_STEP_SWITCH_PREFIX + depart);
             }
         }
@@ -111,7 +121,7 @@ public class GeoRoutePath {
      */
     public static final String ROUTE_STEP_PLATFORM = "P";
     /**
-     * {@link #routeSteps()} 中道岔（switch）步骤的前缀，其后接驶出段 lineId。
+     * {@link #routeSteps()} 中道岔（switch）步骤的前缀，其后接驶出段<b>物理出向</b>（e/s/w/n 或 f/b/l/r）。
      */
     public static final String ROUTE_STEP_SWITCH_PREFIX = "S:";
 
@@ -178,7 +188,6 @@ public class GeoRoutePath {
                 }
             }
         }
-        System.out.println(result.stream().toList());
         return result.stream().toList();
     }
 
@@ -192,16 +201,15 @@ public class GeoRoutePath {
     }
 
     /**
-     * 本次行程所属的营运线路 id：取逐段 lineId 序列中第一个非特殊（非 default / contact）的 lineId。
+     * 本次行程所属的营运线路 id：取逐段 lineId 序列中第一个非空的 lineId。
      * <p>
-     * 用于上车校验：车票 / 交通卡据此比对列车所属线路（列车的营运线 tag）。出站初段可能先走
-     * 到发线（default），故跳过特殊段取第一条真正的营运线。全程都是特殊线时返回 null。
+     * 用于上车校验：车票 / 交通卡据此比对列车所属线路（列车的营运线 tag）。
      *
-     * @return 营运线路 id；无营运线段时返回 null
+     * @return 营运线路 id；无有效线段时返回 null
      */
     public String getStartLineId() {
         for (String lineId : lineIdSequence) {
-            if (lineId != null && !LineInfo.isSpecialId(lineId)) {
+            if (lineId != null && !lineId.isEmpty()) {
                 return lineId;
             }
         }

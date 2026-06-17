@@ -1,6 +1,5 @@
 package com.bigbrother.bilicraftticketsystem.route.geograph;
 
-import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -146,10 +145,11 @@ public class GeoRouteEngine {
                 if (nextNode == null || settled.contains(next)) {
                     continue;
                 }
-                // 中途站避让正线：若 next 是非终点的 station 节点，且当前节点 cur 存在一条 default
-                // 出边（说明本站有正线可绕行），则放弃穿越该 station，让寻路改走正线跨站。
-                // 终点 station 不避让（要在此停车）；本站无正线（cur 无 default 出边）时正常进站。
-                if (nextNode.isStation() && !endStation.equals(nextNode.getName()) && hasDefaultBypass(g, cur)) {
+                // 中途站避让正线：若 next 是非终点的 station 节点，且当前节点 cur 存在正线绕行
+                // （结构判定：cur 同时有通往「道岔」的出边和通往「车站」的出边——前者是正线跨站、
+                // 后者是进停靠线），则放弃穿越该 station，让寻路改走正线跨站。
+                // 终点 station 不避让（要在此停车）；本站无正线时正常进站。
+                if (nextNode.isStation() && !endStation.equals(nextNode.getName()) && hasMainlineBypass(g, cur)) {
                     continue;
                 }
                 double nd = curDist + link.getDistance();
@@ -167,38 +167,53 @@ public class GeoRouteEngine {
     }
 
     /**
-     * 判断某节点是否存在一条 {@code default}（正线）出边——即该处有正线可绕过站台。
+     * 结构判定某节点是否存在「正线绕行」——即该处有正线可越过停靠线车站。
+     * <p>
+     * 不再依赖 {@code default} 特殊 lineId（遍历已取消正线 / 联络线概念）。改按图结构判断：
+     * 一个道岔节点若<b>同时</b>有一条出边通往<b>道岔</b>节点（正线，跨站直行）、又有一条出边通往
+     * <b>车站</b>节点（停靠线进站），即视为有正线绕行。两条出边通常归属同一条线（共用 lineId）。
      *
      * @param g      路由图
      * @param nodeId 节点 id（一般是 station 前一个 switcher）
-     * @return true 表示存在正线绕行边
+     * @return true 表示存在正线绕行
      */
-    private static boolean hasDefaultBypass(GeoRouteGraph g, String nodeId) {
+    private static boolean hasMainlineBypass(GeoRouteGraph g, String nodeId) {
+        boolean toSwitch = false;
+        boolean toStation = false;
         for (GeoLink link : g.links(nodeId)) {
-            if (LineInfo.DEFAULT_ID.equalsIgnoreCase(link.getLineId())) {
-                return true;
+            GeoNode to = g.getNode(link.getToNodeId());
+            if (to == null) {
+                continue;
+            }
+            if (to.isStation()) {
+                toStation = true;
+            } else {
+                toSwitch = true;
             }
         }
-        return false;
+        return toSwitch && toStation;
     }
 
     /**
-     * 从 Dijkstra 的前驱链回溯，构建有序节点列表与逐段 lineId 序列。
+     * 从 Dijkstra 的前驱链回溯，构建有序节点列表、逐段 lineId 序列与逐段物理出向序列。
      */
     private static GeoRoutePath buildPath(GeoRouteGraph g, String startNodeId, String endNodeId,
                                           double distance, Map<String, GeoLink> prevLink) {
         List<GeoNode> nodes = new ArrayList<>();
         List<String> lineIds = new ArrayList<>();
+        List<String> departDirs = new ArrayList<>();
         String cur = endNodeId;
         while (cur != null && !cur.equals(startNodeId)) {
             nodes.add(g.getNode(cur));
             GeoLink link = prevLink.get(cur);
             lineIds.add(link == null ? null : link.getLineId());
+            departDirs.add(link == null ? null : link.getDepartDirection());
             cur = link == null ? null : link.getFromNodeId();
         }
         nodes.add(g.getNode(startNodeId));
         Collections.reverse(nodes);
         Collections.reverse(lineIds);
-        return new GeoRoutePath(nodes, lineIds, distance / 1000);
+        Collections.reverse(departDirs);
+        return new GeoRoutePath(nodes, lineIds, departDirs, distance / 1000);
     }
 }

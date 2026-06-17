@@ -59,7 +59,7 @@ public class RailNode {
     /**
      * 经过该节点的线路所属铁路系统 id 集合（遍历过程中累积，去重）。
      * <p>
-     * 一个车站可能被分属不同铁路系统的多条线路经过，故为集合。联络线不贡献系统 id。
+     * 一个车站可能被分属不同铁路系统的多条线路经过，故为集合。未配置系统的线路不贡献系统 id。
      */
     private final Set<String> railwaySystemIds = new LinkedHashSet<>();
 

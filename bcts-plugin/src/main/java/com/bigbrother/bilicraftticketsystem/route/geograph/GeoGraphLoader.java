@@ -18,7 +18,7 @@ import java.util.logging.Logger;
 /**
  * 从 geojson 文件反向构建 {@link GeoRouteGraph}。
  * <p>
- * 读取目录下所有 {@code *.geojson}（每条线路一个 {@code <lineId>.geojson} 加 {@code contact.geojson}），
+ * 读取目录下所有 {@code *.geojson}（每条线路一个 {@code <lineId>.geojson}），
  * Point feature 转 {@link GeoNode}（按 id 合并、累积 lineIds），LineString feature 转 {@link GeoLink}。
  * 节点跨文件共享同一 id。缺目录 / 空目录 / 单文件解析失败都不抛异常，仅记日志并跳过。
  * <p>
@@ -153,7 +153,8 @@ public class GeoGraphLoader {
             }
             double distance = num(props.get("length"));
             String color = str(props.get("color"));
-            graph.addLink(new GeoLink(id, from, to, lineId, distance, color));
+            String departDir = str(props.get("departDir"));
+            graph.addLink(new GeoLink(id, from, to, lineId, distance, color, departDir));
         }
     }
 

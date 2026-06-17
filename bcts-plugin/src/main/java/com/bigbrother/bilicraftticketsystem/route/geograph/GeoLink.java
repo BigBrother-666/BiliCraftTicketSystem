@@ -36,6 +36,11 @@ public class GeoLink {
      * 线路标志色（十六进制），仅供展示。
      */
     private final String color;
+    /**
+     * 本段物理出向（{@code e/s/w/n} 或 {@code f/b/l/r}）——离开 {@link #fromNodeId}（道岔）所走的方向。
+     * 无道岔决策（platform 续行段 / 起点首段）时为 null。导航据此让道岔直接选向，消除共用 lineId 歧义。
+     */
+    private final String departDirection;
 
     /**
      * @param id         边 id
@@ -44,13 +49,16 @@ public class GeoLink {
      * @param lineId     所属线路 id
      * @param distance   边权（长度）
      * @param color      线路色
+     * @param departDirection 物理出向（无道岔决策为 null）
      */
-    public GeoLink(String id, String fromNodeId, String toNodeId, String lineId, double distance, String color) {
+    public GeoLink(String id, String fromNodeId, String toNodeId, String lineId, double distance, String color,
+                   String departDirection) {
         this.id = id;
         this.fromNodeId = fromNodeId;
         this.toNodeId = toNodeId;
         this.lineId = lineId;
         this.distance = distance;
         this.color = color;
+        this.departDirection = departDirection;
     }
 }

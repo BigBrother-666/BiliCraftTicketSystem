@@ -14,8 +14,7 @@ import java.util.Map;
  * 线路配置（routes.yml）的加载器。
  * <p>
  * 读取 CLAUDE.md 描述的线路配置格式，
- * 每个顶层键是一个线路 id，解析为 {@link LineInfo}。特殊 id（contact / default）同样以
- * LineInfo 表示，缺失字段使用默认值。
+ * 每个顶层键是一个线路 id，解析为 {@link LineInfo}，缺失字段使用默认值。
  */
 public class LineConfig {
     /**
@@ -142,16 +141,13 @@ public class LineConfig {
 
     /**
      * 获取线路所属铁路系统 id。
-     * <p>
-     * 特殊线路（contact / default）或不存在的线路返回 null——这类区间在 geojson 中
-     * 不归属任何铁路系统。
      *
      * @param lineId 线路 id
-     * @return 铁路系统 id；特殊线 / 缺失返回 null
+     * @return 铁路系统 id；线路不存在返回 null
      */
     public static String getSystemId(String lineId) {
         LineInfo info = lines.get(lineId);
-        if (info == null || info.isSpecial()) {
+        if (info == null) {
             return null;
         }
         return info.getRailwaySystemId();
@@ -222,19 +218,11 @@ public class LineConfig {
     }
 
     /**
-     * 获取所有非特殊（营运）线路的 id，按配置文件顺序。
-     * <p>
-     * 排除 contact / default 等特殊线路（它们不登记遍历起点）。
+     * 获取所有线路的 id，按配置文件顺序。
      *
-     * @return 营运线路 id 有序列表
+     * @return 线路 id 有序列表
      */
     public static List<String> getNormalLineIds() {
-        List<String> result = new java.util.ArrayList<>();
-        for (Map.Entry<String, LineInfo> entry : lines.entrySet()) {
-            if (!entry.getValue().isSpecial()) {
-                result.add(entry.getKey());
-            }
-        }
-        return result;
+        return new java.util.ArrayList<>(lines.keySet());
     }
 }

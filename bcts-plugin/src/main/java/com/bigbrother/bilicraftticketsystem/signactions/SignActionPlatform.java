@@ -65,7 +65,7 @@ public class SignActionPlatform extends SignAction {
 
         if (info.isAction(SignActionType.GROUP_ENTER)) {
             // 调试追踪：列车进入站台
-            if (SwitchTrace.isEnabled() && BcRouteNavigator.hasRoute(group)) {
+            if (SwitchTrace.isEnabled()) {
                 int[] progress = BcRouteNavigator.progress(group);
                 SwitchTrace.logPlatform(group, NodeId.ofBlock(info.getRails()), stationName,
                         progress[0], progress[1], "进站");
@@ -85,7 +85,7 @@ public class SignActionPlatform extends SignAction {
             }
             // 导航：当前步骤为车站则推进指针（使无正线中途站也能推进到终点）。
             // 推进属于导航逻辑，不受 BOSSBAR 功能位影响；bossbar 显示刷新交由 onLeave 多态处理。
-            if (BcRouteNavigator.hasRoute(group) && BcRouteNavigator.isAtPlatformStep(group)) {
+            if (BcRouteNavigator.hasRoute(group)) {
                 if (SwitchTrace.isEnabled()) {
                     int[] progress = BcRouteNavigator.progress(group);
                     SwitchTrace.logPlatform(group, NodeId.ofBlock(info.getRails()), stationName,
@@ -204,7 +204,7 @@ public class SignActionPlatform extends SignAction {
      * <p>
      * 仅当当前站名正是本线 bossbar 车站列表的最后一站时触发。终点站可能不在下一线车站列表中
      * （如 S1-D 转入 S2 线、下一站 S2-B），故转线在<b>出站</b>时进行：到达提示仍属本线终点，
-     * 出站后才转入新线。下一线不存在 / 为特殊线时不改写（避免列车丢失线路标识）。
+     * 出站后才转入新线。下一线不存在时不改写（避免列车丢失线路标识）。
      *
      * @param group       列车
      * @param stationName 当前离开的车站名
@@ -220,7 +220,7 @@ public class SignActionPlatform extends SignAction {
             return null;
         }
         LineInfo next = LineConfig.get(line.getNextLineId());
-        if (next == null || next.isSpecial()) {
+        if (next == null) {
             return null;
         }
         BcLineIdProperty.write(group, next.getId());
@@ -258,14 +258,10 @@ public class SignActionPlatform extends SignAction {
      * 从列车所属线路 property（{@link BcLineIdProperty}）解析线路信息。
      *
      * @param group 列车
-     * @return 线路信息，找不到或非营运线返回 null
+     * @return 线路信息，找不到返回 null
      */
     private LineInfo resolveLine(MinecartGroup group) {
-        LineInfo info = LineConfig.get(BcLineIdProperty.read(group));
-        if (info != null && !info.isSpecial()) {
-            return info;
-        }
-        return null;
+        return LineConfig.get(BcLineIdProperty.read(group));
     }
 
     @Override

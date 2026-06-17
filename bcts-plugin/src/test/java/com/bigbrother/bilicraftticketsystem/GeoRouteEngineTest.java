@@ -45,8 +45,8 @@ public class GeoRouteEngineTest {
         fc.add(point("nB", "station", "B", 30, 64, 0));
 
         fc.add(line("e.L1.nA__s1", "nA", "s1", "L1", 10));
-        fc.add(line("e.contact.s1__s2", "s1", "s2", "contact", 5));
-        fc.add(line("e.L1.s2__nB", "s2", "nB", "L1", 10));
+        fc.add(line("e.contact.s1__s2", "s1", "s2", "contact", 5, "e"));
+        fc.add(line("e.L1.s2__nB", "s2", "nB", "L1", 10, "n"));
         fc.add(line("e.L1.nA2__s2", "nA2", "s2", "L1", 1));
         fc.add(line("e.L2.nA__nB", "nA", "nB", "L2", 100));
     }
@@ -66,6 +66,10 @@ public class GeoRouteEngineTest {
     }
 
     private Feature line(String id, String from, String to, String lineId, double length) {
+        return line(id, from, to, lineId, length, null);
+    }
+
+    private Feature line(String id, String from, String to, String lineId, double length, String departDir) {
         Feature f = new Feature();
         f.setGeometry(new LineString(new LngLatAlt(0, 0, 64), new LngLatAlt(1, 0, 64)));
         Map<String, Object> props = new HashMap<>();
@@ -74,6 +78,9 @@ public class GeoRouteEngineTest {
         props.put("to", to);
         props.put("lineId", lineId);
         props.put("length", length);
+        if (departDir != null) {
+            props.put("departDir", departDir);
+        }
         f.setProperties(props);
         return f;
     }
@@ -149,11 +156,28 @@ public class GeoRouteEngineTest {
     @Test
     void routeStepsExportsEveryNode() {
         GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(fc));
-        // nA(站台) -> s1(道岔,驶出 contact) -> s2(道岔,驶出 L1) -> nB(站台)
+        // nA(站台) -> s1(道岔,驶出向 e) -> s2(道岔,驶出向 n) -> nB(站台)
         GeoRoutePath path = GeoRouteEngine.findFromNode("nA", "B");
         assertNotNull(path);
-        // 每个节点一项：站台=P，道岔=S:驶出段lineId
-        assertEquals(List.of("P", "S:contact", "S:L1", "P"), path.routeSteps());
+        // 每个节点一项：站台=P，道岔=S:驶出段物理出向
+        assertEquals(List.of("P", "S:e", "S:n", "P"), path.routeSteps());
+    }
+
+    @Test
+    void sidingDirectionDetectsMainlineSwitch() {
+        // 进站道岔 sw：一条出边去 platform 车站(到发线, departDir=s)、一条去 sw2 道岔(正线, departDir=e)
+        FeatureCollection f = new FeatureCollection();
+        f.add(point("sw", "switch", null, 0, 64, 0));
+        f.add(point("plat", "station", "P", 5, 64, 5));
+        f.add(point("sw2", "switch", null, 10, 64, 0));
+        f.add(line("e.L.sw__plat", "sw", "plat", "L", 5, "s"));
+        f.add(line("e.L.sw__sw2", "sw", "sw2", "L", 5, "e"));
+        GeoRouteGraph g = new GeoGraphLoader(null).loadFeatureCollection(f);
+        // 进站道岔 sw → 到发线出向 = 通往车站那条边的 departDir = "s"
+        assertEquals("s", g.sidingDirectionOfMainlineSwitch(g.getNode("sw")));
+        // 普通分岔(只有去车站、无去道岔的出边) sw2 不是进站道岔 → null
+        assertNull(g.sidingDirectionOfMainlineSwitch(g.getNode("sw2")));
+        assertNull(g.sidingDirectionOfMainlineSwitch(null));
     }
 
     @Test
@@ -165,32 +189,15 @@ public class GeoRouteEngineTest {
     }
 
     @Test
-    void startLineIdSkipsSpecialSegments() {
+    void startLineIdReturnsFirstSegment() {
         GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(fc));
-        // 最短 A→B 经 nA2：段 [L1, L1]，营运线为 L1
+        // 最短 A→B 经 nA2：段 [L1, L1]，起始线为 L1
         GeoRoutePath best = GeoRouteEngine.findByStation("A", "B").get(0);
         assertEquals("L1", best.getStartLineId());
 
-        // nA 出发：段 [L1, contact, L1]，首段已是营运线 L1
+        // nA 出发：段 [L1, contact, L1]，首段即起始线 L1
         GeoRoutePath viaContact = GeoRouteEngine.findFromNode("nA", "B");
         assertNotNull(viaContact);
         assertEquals("L1", viaContact.getStartLineId());
-    }
-
-    @Test
-    void startLineIdSkipsLeadingDefaultSegment() {
-        // 构造首段为 default（到发线）的路径：nC --default,2--> s3 --L9,8--> nD
-        FeatureCollection fc2 = new FeatureCollection();
-        fc2.add(point("nC", "station", "C", 0, 64, 0));
-        fc2.add(point("s3", "switch", null, 5, 64, 0));
-        fc2.add(point("nD", "station", "D", 10, 64, 0));
-        fc2.add(line("e.default.nC__s3", "nC", "s3", "default", 2));
-        fc2.add(line("e.L9.s3__nD", "s3", "nD", "L9", 8));
-
-        GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(fc2));
-        GeoRoutePath path = GeoRouteEngine.findByStation("C", "D").get(0);
-        assertEquals(List.of("default", "L9"), path.getLineIdSequence());
-        // 跳过首段 default，返回第一条营运线 L9
-        assertEquals("L9", path.getStartLineId());
     }
 }

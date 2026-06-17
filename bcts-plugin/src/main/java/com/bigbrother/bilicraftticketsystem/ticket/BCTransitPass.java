@@ -171,7 +171,7 @@ public abstract class BCTransitPass {
         List<String> lineIds = new ArrayList<>();
 
         for (String lineId : pathInfo.getLineIdSequence()) {
-            if (lineId == null || lineId.isEmpty() || LineInfo.isSpecialId(lineId)) {
+            if (lineId == null || lineId.isEmpty()) {
                 continue;
             }
             // 相邻去重
@@ -266,7 +266,7 @@ public abstract class BCTransitPass {
         }
         String lineId = BcLineIdProperty.read(group);
         LineInfo info = LineConfig.get(lineId);
-        if (info != null && !info.isSpecial()) {
+        if (info != null) {
             return lineId;
         }
         return "";

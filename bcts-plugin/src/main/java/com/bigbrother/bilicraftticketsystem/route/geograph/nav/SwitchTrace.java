@@ -30,26 +30,27 @@ public final class SwitchTrace {
     /**
      * 记录一次道岔选向（仅在开启时输出）。
      *
-     * @param group         列车
-     * @param nodeId        道岔节点 id（铁轨方块）
-     * @param indexBefore   推进前的导航指针下标
-     * @param total         导航序列总长
-     * @param currentLineId 当前应走的 lineId（无导航返回 null）
-     * @param branchLineIds 该控制牌声明的所有分支 lineId
+     * @param group          列车
+     * @param nodeId         道岔节点 id（铁轨方块）
+     * @param indexBefore    推进前的导航指针下标
+     * @param total          导航序列总长
+     * @param currentLineId  当前应走的 lineId
+     * @param branchLines    该控制牌声明的所有分支
      * @param selectedLineId 最终选中分支的 lineId（无匹配为 null）
      */
     public static void log(MinecartGroup group, String nodeId, int indexBefore, int total,
-                           String currentLineId, List<String> branchLineIds, String selectedLineId) {
+                           String currentLineId, List<String> branchLines, String selectedLineId) {
         if (!enabled) {
             return;
         }
         String trainName = group == null ? "(null)" : group.getProperties().getTrainName();
+        String trainType = BcRouteNavigator.hasRoute(group) ? "快速车" : "普通车";
         Component msg = Component.text("[道岔追踪] ", NamedTextColor.AQUA)
-                .append(Component.text("车=" + trainName, NamedTextColor.GRAY))
+                .append(Component.text("列车=%s(%s)".formatted(trainName, trainType), NamedTextColor.GRAY))
                 .append(Component.text(" 节点=" + nodeId, NamedTextColor.WHITE))
-                .append(Component.text(" 进度=" + (indexBefore + 1) + "/" + total, NamedTextColor.YELLOW))
+                .append(Component.text(" 进度=" + Math.min(indexBefore + 1, total) + "/" + total, NamedTextColor.YELLOW))
                 .append(Component.text(" 应走=" + currentLineId, NamedTextColor.GOLD))
-                .append(Component.text(" 可选=" + branchLineIds, NamedTextColor.GRAY))
+                .append(Component.text(" 可选=" + branchLines, NamedTextColor.GRAY))
                 .append(Component.text(" 选中=" + selectedLineId,
                         selectedLineId == null ? NamedTextColor.RED : NamedTextColor.GREEN));
         BiliCraftTicketSystem.plugin.getComponentLogger().info(msg);
@@ -74,11 +75,12 @@ public final class SwitchTrace {
             return;
         }
         String trainName = group == null ? "(null)" : group.getProperties().getTrainName();
+        String trainType = BcRouteNavigator.hasRoute(group) ? "快速车" : "普通车";
         Component msg = Component.text("[站台追踪] ", NamedTextColor.LIGHT_PURPLE)
-                .append(Component.text("车=" + trainName, NamedTextColor.GRAY))
+                .append(Component.text("列车=%s(%s)".formatted(trainName, trainType), NamedTextColor.GRAY))
                 .append(Component.text(" 节点=" + nodeId, NamedTextColor.WHITE))
+                .append(Component.text(" 进度=" + Math.min(indexBefore + 1, total) + "/" + total, NamedTextColor.YELLOW))
                 .append(Component.text(" 站名=" + stationName, NamedTextColor.AQUA))
-                .append(Component.text(" 进度=" + (indexBefore + 1) + "/" + total, NamedTextColor.YELLOW))
                 .append(Component.text(" 动作=" + action, NamedTextColor.GOLD));
         BiliCraftTicketSystem.plugin.getComponentLogger().info(msg);
     }

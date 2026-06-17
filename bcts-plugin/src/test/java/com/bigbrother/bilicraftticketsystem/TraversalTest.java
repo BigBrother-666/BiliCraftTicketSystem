@@ -25,7 +25,7 @@ public class TraversalTest {
         List<LngLatAlt> coords = new ArrayList<>();
         coords.add(new LngLatAlt(0, 0, 64));
         coords.add(new LngLatAlt(10, 0, 64));
-        return new RailEdge(from, to, lineId, railwaySystemId, coords, "#AA0000", 10, 0);
+        return new RailEdge(from, to, lineId, railwaySystemId, coords, "#AA0000", 10, 0, null);
     }
 
     @Test

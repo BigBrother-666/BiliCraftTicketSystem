@@ -16,7 +16,7 @@ import java.util.Optional;
  * 推进一格（配合 {@link BcRouteIndexProperty}）：bcswitcher 进站推进并据当前步骤 lineId 选向，
  * platform 出站推进。存为 TrainCarts 的 train property，TC 自动随存档持久化，服务器重启 / 插件重载后恢复。
  * <p>
- * 不用 TC 自带的 tag 集合：tag 是无序 Set，无法表达「先走 L1，再走 contact，再回到 L1」这种
+ * 不用 TC 自带的 tag 集合：tag 是无序 Set，无法表达「先走 L1，再走 L2，再回到 L1」这种
  * 有序且可重复的导航序列。
  */
 public class BcRouteProperty implements ITrainProperty<List<String>> {
