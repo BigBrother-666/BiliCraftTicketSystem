@@ -97,8 +97,8 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     public void loadConfig(CommandSender sender) {
         try {
             MainConfig.loadMainConfig(this);
-            LineConfig.load(this);
             RailwaySystemConfig.load(this);
+            LineConfig.load(this);
             ItemsConfig.loadItemsConfig(this);
             MenuConfig.loadMenuConfig(this);
             RailwayMapConfig.loadRailwayGeoConfig(this);

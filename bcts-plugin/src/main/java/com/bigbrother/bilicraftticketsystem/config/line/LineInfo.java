@@ -20,7 +20,7 @@ public class LineInfo {
      */
     private final String id;
     /**
-     * 所属铁路系统 id（routes.yml 的 {@code railway-system}），必填。
+     * 所属铁路系统 id（routes.yml 的 {@code railway-system}）。
      */
     private final String railwaySystemId;
     /**

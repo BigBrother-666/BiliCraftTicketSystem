@@ -82,7 +82,11 @@ public class RouteWizard extends ConfigWizard {
                 this::parseHexColor));
 
         steps.add(new WizardStep("bossbar-stations",
-                Component.text("输入车站列表，按行车顺序用 -> 分隔（如 A->B->C->A）；尽头折返站名后加 :RV",
+                Component.text("""
+                                输入车站名列表，按行车顺序用 -> 分隔
+                                如果一个车站需要折返，在站名后添加 :RV
+                                如果这条线路出最后一站后转入了另一条线路，最后一个车站格式应为 转入线路id:转入线路下一站车站名
+                                例子：StationA->StationB:RV->StationC->StationD->otherLineId:Station S""",
                         NamedTextColor.WHITE),
                 true,
                 this::parseStations));

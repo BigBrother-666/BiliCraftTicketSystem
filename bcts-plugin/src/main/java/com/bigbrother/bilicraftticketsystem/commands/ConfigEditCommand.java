@@ -263,8 +263,8 @@ public class ConfigEditCommand {
      */
     private void reloadConfig(Player player) {
         try {
-            LineConfig.load(plugin);
             RailwaySystemConfig.load(plugin);
+            LineConfig.load(plugin);
             player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
                     "配置重载完成", NamedTextColor.GREEN)));
         } catch (Exception e) {
