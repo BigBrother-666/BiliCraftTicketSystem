@@ -176,7 +176,8 @@ public class BCTicket extends BCTransitPass {
                 usedPlayer.getName(),
                 getPrice(),
                 PassType.TICKET.getId(),
-                nbt
+                nbt,
+                pathInfo.getStartNode().getId()
         );
     }
 

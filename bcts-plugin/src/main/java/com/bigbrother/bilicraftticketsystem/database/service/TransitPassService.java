@@ -22,7 +22,7 @@ public class TransitPassService {
         this.transitPassDao = transitPassDao;
     }
 
-    public void addTicketUsage(String playerUuid, String playerName, Double price, String passType, CommonTagCompound ticketNbt) {
+    public void addTicketUsage(String playerUuid, String playerName, Double price, String passType, CommonTagCompound ticketNbt, String startNodeId) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             transitPassDao.updatePlayerNameByUuid(playerUuid, playerName);
             transitPassDao.insertTransitPassUsage(
@@ -30,7 +30,7 @@ public class TransitPassService {
                     playerName,
                     nowAsString(),
                     ticketNbt.getValue(BCTicket.KEY_TICKET_START_STATION, null),
-                    null,
+                    startNodeId,
                     ticketNbt.getValue(BCTicket.KEY_TICKET_END_STATION, null),
                     ticketNbt.getValue(BCTicket.KEY_TICKET_MAX_SPEED, null),
                     price,
