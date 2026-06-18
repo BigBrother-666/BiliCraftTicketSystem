@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bergerkiller.bukkit.tc.signactions.TrainCartsSignAction;
 import com.bergerkiller.bukkit.tc.signactions.spawner.SpawnSign;
+import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcLineIdProperty;
@@ -91,6 +92,8 @@ public class SignActionBCSpawn extends TrainCartsSignAction {
                 if (!station.isEmpty()) {
                     BcStartNodeProperty.write(group, station);
                 }
+                // 添加ticket
+                group.getProperties().addTicket(MainConfig.expressTicketName);
                 // 发车信息记录到数据库（线路 id + 线路名，便于直接查看）
                 plugin.getTrainDatabaseManager().getBcspawnService().recordSpawn(station, lineId, lineName);
             }
