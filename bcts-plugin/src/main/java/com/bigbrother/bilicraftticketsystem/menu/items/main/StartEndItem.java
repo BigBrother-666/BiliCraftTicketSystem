@@ -3,6 +3,9 @@ package com.bigbrother.bilicraftticketsystem.menu.items.main;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuLocation;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
+import com.bigbrother.bilicraftticketsystem.menu.impl.MenuStationSearch;
+import com.bigbrother.bilicraftticketsystem.menu.impl.MenuSystem;
+import com.bigbrother.bilicraftticketsystem.menu.station.StationProvider;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -35,12 +38,16 @@ public class StartEndItem extends AbstractItem {
         ItemMeta itemMeta;
         if (isStart) {
             itemMeta = startItemStack.getItemMeta();
-            itemMeta.lore(List.of(Component.text("当前选择：", NamedTextColor.DARK_AQUA).append(menu.getPlayerOption().getStartStation().decoration(TextDecoration.ITALIC, true))));
+            itemMeta.lore(List.of(
+                    Component.text("当前选择：", NamedTextColor.DARK_AQUA).append(menu.getPlayerOption().getStartStation().decoration(TextDecoration.ITALIC, true)),
+                    Component.text("左键选择车站，Shift+左键搜索车站", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false)));
             startItemStack.setItemMeta(itemMeta);
             return new ItemBuilder(startItemStack);
         } else {
             itemMeta = endItemStack.getItemMeta();
-            itemMeta.lore(List.of(Component.text("当前选择：", NamedTextColor.DARK_AQUA).append(menu.getPlayerOption().getEndStation().decoration(TextDecoration.ITALIC, true))));
+            itemMeta.lore(List.of(
+                    Component.text("当前选择：", NamedTextColor.DARK_AQUA).append(menu.getPlayerOption().getEndStation().decoration(TextDecoration.ITALIC, true)),
+                    Component.text("左键选择车站，Shift+左键搜索车站", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false)));
             endItemStack.setItemMeta(itemMeta);
             return new ItemBuilder(endItemStack);
         }
@@ -48,6 +55,23 @@ public class StartEndItem extends AbstractItem {
 
     @Override
     public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent inventoryClickEvent) {
-        MenuLocation.getMenu(player, isStart).open();
+        if (clickType == ClickType.SHIFT_LEFT) {
+            // shift+左键：铁砧搜索车站，确认后打开搜索结果车站列表
+            MenuStationSearch.open(player, keyword ->
+                    openStations(player, StationProvider.searchStations(keyword)));
+        } else if (clickType.isLeftClick()) {
+            // 左键：先选铁路系统（系统数 ≤ 1 时自动跳过），再打开该系统的车站列表
+            MenuSystem.openOrSkip(player, systemId ->
+                    openStations(player, StationProvider.listStationsOfSystem(systemId)));
+        }
+    }
+
+    /**
+     * 用指定车站列表打开车站选择界面（同步设置起点/终点目标后展示）。
+     */
+    private void openStations(Player player, java.util.List<StationProvider.StationEntry> stations) {
+        MenuLocation menu = MenuLocation.getMenu(player, isStart);
+        menu.setStations(stations);
+        menu.open();
     }
 }

@@ -6,8 +6,6 @@ import lombok.Getter;
 
 public class MenuConfig {
     @Getter
-    private static FileConfiguration filterMenuConfig;
-    @Getter
     private static FileConfiguration locationMenuConfig;
     @Getter
     private static FileConfiguration mainMenuConfig;
@@ -15,10 +13,10 @@ public class MenuConfig {
     private static FileConfiguration ticketbgMenuConfig;
     @Getter
     private static FileConfiguration cardMenuConfig;
+    @Getter
+    private static FileConfiguration systemMenuConfig;
 
     public static void loadMenuConfig(BiliCraftTicketSystem plugin) {
-        filterMenuConfig = new FileConfiguration(plugin, EnumConfig.MENU_FILTER.getFileName());
-        filterMenuConfig.load();
         locationMenuConfig = new FileConfiguration(plugin, EnumConfig.MENU_LOCATION.getFileName());
         locationMenuConfig.load();
         mainMenuConfig = new FileConfiguration(plugin, EnumConfig.MENU_MAIN.getFileName());
@@ -27,5 +25,7 @@ public class MenuConfig {
         ticketbgMenuConfig.load();
         cardMenuConfig = new FileConfiguration(plugin, EnumConfig.MENU_CARD.getFileName());
         cardMenuConfig.load();
+        systemMenuConfig = new FileConfiguration(plugin, EnumConfig.MENU_SYSTEM.getFileName());
+        systemMenuConfig.load();
     }
 }

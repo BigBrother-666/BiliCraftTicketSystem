@@ -110,7 +110,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
             GeoRouteEngine.load(this.geodataDir, this.getComponentLogger());
             plugin.getComponentLogger().info(Component.text("geojson路由图加载完成", NamedTextColor.GOLD));
             // 清空"最近车站"坐标缓存，使其按新图重新载入
-            NearestLocItem.setBcspawnInfoList(new java.util.ArrayList<>());
+            NearestLocItem.setPlatfromInfoList(new java.util.ArrayList<>());
 
             if (trainDatabaseManager != null) {
                 trainDatabaseManager.close();
@@ -144,11 +144,11 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         saveResourceIfAbsent(EnumConfig.MAIN_CONFIG.getFileName());
         saveResourceIfAbsent(EnumConfig.MENU_MAIN.getFileName());
         saveResourceIfAbsent(EnumConfig.MENU_LOCATION.getFileName());
-        saveResourceIfAbsent(EnumConfig.MENU_FILTER.getFileName());
         saveResourceIfAbsent(EnumConfig.MENU_ITEMS.getFileName());
         saveResourceIfAbsent(EnumConfig.MENU_TICKETBG.getFileName());
         saveResourceIfAbsent(EnumConfig.GEO_CONFIG.getFileName());
         saveResourceIfAbsent(EnumConfig.MENU_CARD.getFileName());
+        saveResourceIfAbsent(EnumConfig.MENU_SYSTEM.getFileName());
         saveResourceIfAbsent(EnumConfig.ROUTES_CONFIG.getFileName());
         saveResourceIfAbsent(EnumConfig.RAILWAY_SYSTEM_CONFIG.getFileName());
     }

@@ -1,0 +1,15 @@
+title: <#FF8C00>帕拉伦国有铁路车票系统-铁路系统选择
+
+structure:
+  - "# # # # # # # # #"
+  - "# . . . . . . . #"
+  - "# . . . . . . . #"
+  - "# . . . . . . . #"
+  - "# . . . . . . . #"
+  - "# # p # # # n # #"
+
+mapping:
+  - "p item-prevpage"
+  - "n item-nextpage"
+  - ". content"
+  - "# ORANGE_STAINED_GLASS_PANE"

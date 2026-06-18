@@ -2,7 +2,10 @@ package com.bigbrother.bilicraftticketsystem.menu.items.card;
 
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuLocationCard;
+import com.bigbrother.bilicraftticketsystem.menu.impl.MenuStationSearch;
+import com.bigbrother.bilicraftticketsystem.menu.impl.MenuSystem;
 import com.bigbrother.bilicraftticketsystem.menu.items.common.CoolDownItem;
+import com.bigbrother.bilicraftticketsystem.menu.station.StationProvider;
 import com.bigbrother.bilicraftticketsystem.ticket.BCCard;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -38,7 +41,8 @@ public class CardStartEndItem extends CoolDownItem {
             itemMeta.lore(List.of(
                     Component.text("当前选择：", NamedTextColor.DARK_AQUA).append(card != null ? card.getCardInfo().getStartStation().decoration(TextDecoration.ITALIC, true) : CommonUtils.NOT_AVAILABLE_COMPONENT),
                     Component.text(""),
-                    Component.text("左键选择起始站，右键清除选择", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false)
+                    Component.text("左键选择起始站，右键清除选择", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false),
+                    Component.text("Shift+左键搜索车站", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false)
             ));
             startItemStack.setItemMeta(itemMeta);
             return new ItemBuilder(startItemStack);
@@ -47,7 +51,8 @@ public class CardStartEndItem extends CoolDownItem {
             itemMeta.lore(List.of(
                     Component.text("当前选择：", NamedTextColor.DARK_AQUA).append(card != null ? card.getCardInfo().getEndStation().decoration(TextDecoration.ITALIC, true) : CommonUtils.NOT_AVAILABLE_COMPONENT),
                     Component.text(""),
-                    Component.text("左键选择终到站，右键清除选择", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false)
+                    Component.text("左键选择终到站，右键清除选择", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false),
+                    Component.text("Shift+左键搜索车站", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false)
             ));
             endItemStack.setItemMeta(itemMeta);
             return new ItemBuilder(endItemStack);
@@ -66,8 +71,14 @@ public class CardStartEndItem extends CoolDownItem {
             return;
         }
 
-        if (clickType.isLeftClick()) {
-            MenuLocationCard.getMenu(player, isStart).open();
+        if (clickType == ClickType.SHIFT_LEFT) {
+            // shift+左键：铁砧搜索车站，确认后打开搜索结果车站列表
+            MenuStationSearch.open(player, keyword ->
+                    openStations(player, StationProvider.searchStations(keyword)));
+        } else if (clickType.isLeftClick()) {
+            // 左键：先选铁路系统（系统数 ≤ 1 时自动跳过），再打开该系统的车站列表
+            MenuSystem.openOrSkip(player, systemId ->
+                    openStations(player, StationProvider.listStationsOfSystem(systemId)));
         } else if (clickType.isRightClick()) {
             if (isStart) {
                 card.setStartStation(null);
@@ -76,5 +87,14 @@ public class CardStartEndItem extends CoolDownItem {
             }
             this.notifyWindows();
         }
+    }
+
+    /**
+     * 用指定车站列表打开交通卡的车站选择界面。
+     */
+    private void openStations(Player player, java.util.List<StationProvider.StationEntry> stations) {
+        MenuLocationCard menu = MenuLocationCard.getMenu(player, isStart);
+        menu.setStations(stations);
+        menu.open();
     }
 }

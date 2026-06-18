@@ -12,9 +12,11 @@ import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.text.Collator;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -35,6 +37,12 @@ public class StationProvider {
     }
 
     /**
+     * 中文站名排序器：按拼音正序（{@link Locale#CHINA} 的 Collator 内置拼音排序规则），
+     * 非中文字符回退到 Collator 的通用规则。无需引入额外拼音库，离线可用。
+     */
+    private static final Collator PINYIN = Collator.getInstance(Locale.CHINA);
+
+    /**
      * UI 消费的车站条目：站名 + 经过该站的所有线路 id（聚合同名各站台节点）。
      *
      * @param name    车站名（== geojson 真实站名，可直接喂 {@link GeoRouteEngine#findByStation}）
@@ -44,22 +52,102 @@ public class StationProvider {
     }
 
     /**
-     * 列出所有车站，按站名排序。同名多站台节点的 lineIds 聚合。
+     * 把车站名列表按拼音正序排序（中文拼音，纯静态便于单测）。
+     *
+     * @param names 车站名列表（原列表不被修改）
+     * @return 排序后的新列表
+     */
+    public static List<String> sortByPinyin(List<String> names) {
+        List<String> sorted = new ArrayList<>(names);
+        sorted.sort(PINYIN);
+        return sorted;
+    }
+
+    /**
+     * 列出所有车站，按站名拼音正序排序。同名多站台节点的 lineIds 聚合。
      *
      * @return 车站条目列表
      */
     public static List<StationEntry> listStations() {
-        List<StationEntry> result = new ArrayList<>();
-        List<String> names = new ArrayList<>(GeoRouteEngine.getGraph().allStationNames());
-        names.sort(String::compareTo);
-        for (String name : names) {
-            Set<String> lineIds = new LinkedHashSet<>();
-            for (GeoNode node : GeoRouteEngine.getGraph().stationNodes(name)) {
-                lineIds.addAll(node.getLineIds());
+        return toEntries(sortByPinyin(new ArrayList<>(GeoRouteEngine.getGraph().allStationNames())));
+    }
+
+    /**
+     * 列出属于指定铁路系统的车站，按站名拼音正序排序。
+     * <p>
+     * 判定方式：车站经过的任一线路（lineId）经 {@link LineConfig#getSystemId} 属于该系统，
+     * 即视为该系统的车站。{@code systemId} 为 null 时返回全部车站。
+     *
+     * @param systemId 铁路系统 id
+     * @return 车站条目列表
+     */
+    public static List<StationEntry> listStationsOfSystem(String systemId) {
+        if (systemId == null) {
+            return listStations();
+        }
+        List<String> names = new ArrayList<>();
+        for (String name : GeoRouteEngine.getGraph().allStationNames()) {
+            if (belongsToSystem(name, systemId)) {
+                names.add(name);
             }
-            result.add(new StationEntry(name, lineIds));
+        }
+        return toEntries(sortByPinyin(names));
+    }
+
+    /**
+     * 按关键字搜索车站（站名包含关键字，忽略大小写），按站名拼音正序排序。
+     * <p>
+     * 关键字为空 / 空白时返回全部车站（与 {@link #listStations()} 等价）。
+     *
+     * @param keyword 搜索关键字
+     * @return 匹配的车站条目列表
+     */
+    public static List<StationEntry> searchStations(String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return listStations();
+        }
+        String needle = keyword.trim().toLowerCase(Locale.ROOT);
+        List<String> names = new ArrayList<>();
+        for (String name : GeoRouteEngine.getGraph().allStationNames()) {
+            if (name != null && name.toLowerCase(Locale.ROOT).contains(needle)) {
+                names.add(name);
+            }
+        }
+        return toEntries(sortByPinyin(names));
+    }
+
+    /**
+     * 把已排序的站名列表转成 {@link StationEntry}（聚合同名各站台节点的 lineIds）。
+     */
+    private static List<StationEntry> toEntries(List<String> sortedNames) {
+        List<StationEntry> result = new ArrayList<>();
+        for (String name : sortedNames) {
+            result.add(new StationEntry(name, lineIdsOf(name)));
         }
         return result;
+    }
+
+    /**
+     * 聚合某车站名下所有站台节点经过的线路 id。
+     */
+    private static Set<String> lineIdsOf(String stationName) {
+        Set<String> lineIds = new LinkedHashSet<>();
+        for (GeoNode node : GeoRouteEngine.getGraph().stationNodes(stationName)) {
+            lineIds.addAll(node.getLineIds());
+        }
+        return lineIds;
+    }
+
+    /**
+     * 判断某车站是否属于指定铁路系统（任一经过线路归属该系统即算）。
+     */
+    private static boolean belongsToSystem(String stationName, String systemId) {
+        for (String lineId : lineIdsOf(stationName)) {
+            if (systemId.equals(LineConfig.getSystemId(lineId))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -81,9 +169,8 @@ public class StationProvider {
             if (line == null) {
                 continue;
             }
-            lore.add(Component.text("● " + line.getLineName(),
-                            colorOf(lineId))
-                    .decoration(TextDecoration.ITALIC, false));
+            lore.add(Component.text("途径此车站的铁路：", NamedTextColor.GRAY));
+            lore.add(Component.text("● " + line.getLineName(), colorOf(lineId)));
         }
         if (!lore.isEmpty()) {
             meta.lore(lore);

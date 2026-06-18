@@ -1,6 +1,5 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.location;
 
-import com.bigbrother.bilicraftticketsystem.menu.impl.MenuFilter;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuLocation;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
 import org.bukkit.entity.Player;
@@ -37,7 +36,6 @@ public class LocationItem extends AbstractItem {
         } else {
             menu.getPlayerOption().setEndStation(itemStack.getItemMeta().displayName());
         }
-        MenuFilter.getMenu(player).getFilterStations().clear();
         menu.clearTickets();
         menu.open();
     }

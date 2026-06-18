@@ -1,5 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.utils;
 
+import com.bergerkiller.bukkit.common.config.yaml.YamlNodeAbstract;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -8,8 +9,11 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
-import java.awt.*;
+import java.awt.Color;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import static com.bigbrother.bilicraftticketsystem.config.ItemsConfig.itemsConfig;
@@ -63,11 +67,55 @@ public class CommonUtils {
     public static ItemStack loadItemFromFile(String path) {
         path = path.trim();
         if (itemsConfig.contains(path)) {
-            // 反序列化
-            Map<String, Object> itemData = itemsConfig.getNode(path).getValues();
+            // 反序列化。
+            // 注意：BKCommonLib 的 getValues() 返回的是 YamlNodeMapProxy，其嵌套子树（如新版物品
+            // 数据组件格式的 components 块）仍是 BKCommonLib 节点代理，既不是 java.util.Map 也不是
+            // Bukkit ConfigurationSection。而 Paper 1.21+ 在反序列化「新版格式」（含 schema_version）
+            // 时会断言 components instanceof Map，否则抛 "components must be a Map"。
+            // 因此这里先把整棵树递归转成纯 LinkedHashMap，新旧两种格式都能正确反序列化。
+            Map<String, Object> itemData = deepToPlainMap(itemsConfig.getNode(path).getValues());
             return ItemStack.deserialize(itemData);
         }
         return new ItemStack(Material.RAIL);
+    }
+
+    /**
+     * 把 BKCommonLib 配置节点（{@code getValues()} 返回的代理 Map / 嵌套节点）递归转换为纯
+     * {@link LinkedHashMap} / {@link ArrayList}，保持键顺序。
+     * <p>
+     * 用于喂给 {@link ItemStack#deserialize(Map)}：Paper 的新版物品反序列化对 {@code components}
+     * 等嵌套结构要求是标准 {@link Map}，而 BKCommonLib 的节点代理不满足该判断。
+     * <p>
+     * 设为公开以便单测直接验证转换结果（见 ItemDeserializeTest）。
+     *
+     * @param map 节点 Map（顶层）
+     * @return 仅含纯 JDK 集合 / 标量的等价 Map
+     */
+    public static Map<String, Object> deepToPlainMap(Map<String, Object> map) {
+        Map<String, Object> result = new LinkedHashMap<>(Math.max(8, map.size() * 2));
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            result.put(entry.getKey(), deepToPlainValue(entry.getValue()));
+        }
+        return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Object deepToPlainValue(Object value) {
+        // BKCommonLib 的嵌套子节点是 YamlNodeAbstract（未实现 java.util.Map），需先取其 getValues()
+        if (value instanceof YamlNodeAbstract<?> node) {
+            return deepToPlainMap(node.getValues());
+        }
+        if (value instanceof Map<?, ?> nested) {
+            return deepToPlainMap((Map<String, Object>) nested);
+        }
+        if (value instanceof List<?> list) {
+            List<Object> copy = new ArrayList<>(list.size());
+            for (Object element : list) {
+                copy.add(deepToPlainValue(element));
+            }
+            return copy;
+        }
+        return value;
     }
 
     @SuppressWarnings("UnusedReturnValue")

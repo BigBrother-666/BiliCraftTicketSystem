@@ -9,11 +9,8 @@ import org.jetbrains.annotations.Nullable;
 
 @Data
 @AllArgsConstructor
-public class BcspawnInfo {
-    private String spawnStation;
-    private String spawnDirection;
-    private String spawnRailway;
-    private String tag;
+public class PlatfromInfo {
+    private String stationName;
     private Integer coordX;
     private Integer coordY;
     private Integer coordZ;

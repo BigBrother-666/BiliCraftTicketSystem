@@ -90,8 +90,6 @@ message:
   forbidden-get-on: '<red>主手车票不正确或列车已经驶离起始站，禁止上车'
   quick-buy: '<green><underlined>点击花费 <bold>%.2f银币</bold> 快速购买一张此列车的单程票'
   wiki: '<green><underlined><click:open_url:https://www.yuque.com/sasanarx/bilicraft/iunb5gkspevng8gf#>点击打开帕拉伦国有铁路wiki页面'
-  # 车票系统内
-  filter-empty: '没有 <i><u>%s</i> 直达 <i><u>%s</i> 且途经 <i><u>%s</i> 的车票'
   # 直达车bossbar
   express-normal: '<green>%s <rainbow>======== 直达 ========＞</rainbow> %s</green>'
   express-end: '<rainbow>>>>> <gold>列车已到达终点站：<red>%s</red>，下车时，请您注意站台与列车之间的空隙</gold> <<<<</rainbow>'

@@ -1,7 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.card;
 
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
-import com.bigbrother.bilicraftticketsystem.database.entity.BcspawnInfo;
+import com.bigbrother.bilicraftticketsystem.database.entity.PlatfromInfo;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuCard;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuLocationCard;
 import com.bigbrother.bilicraftticketsystem.menu.station.StationProvider;
@@ -20,11 +20,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
-import static com.bigbrother.bilicraftticketsystem.menu.items.location.NearestLocItem.bcspawnInfoList;
+import static com.bigbrother.bilicraftticketsystem.menu.items.location.NearestLocItem.platfromInfoList;
 
 public class CardNearestLocItem extends CardLocationItem {
     private final Player viewer;
-    private BcspawnInfo nearestBcspawn = null;
+    private PlatfromInfo nearestBcspawn = null;
 
     public CardNearestLocItem(Player viewer, MenuLocationCard fromMenu) {
         super(CommonUtils.loadItemFromFile("nearest"), fromMenu);
@@ -41,7 +41,7 @@ public class CardNearestLocItem extends CardLocationItem {
 
         if (nearestBcspawn != null) {
             MenuCard menu = MenuCard.getMenu(player);
-            Component name = StationProvider.stationNameComponent(nearestBcspawn.getSpawnStation());
+            Component name = StationProvider.stationNameComponent(nearestBcspawn.getStationName());
             if (fromMenu.isStart()) {
                 card.setStartStation(name);
             } else {
@@ -54,21 +54,21 @@ public class CardNearestLocItem extends CardLocationItem {
     public void calcNearestStation() {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             // 获取全部bcspawn数据
-            if (bcspawnInfoList.isEmpty()) {
-                bcspawnInfoList = plugin.getTrainDatabaseManager().getBcspawnService().getAllBcspawnInfo();
+            if (platfromInfoList.isEmpty()) {
+                platfromInfoList = plugin.getTrainDatabaseManager().getBcspawnService().getAllPlatfromInfo();
             }
 
             // 计算最近的车站
             Location playerLocation = viewer.getLocation();
             double minDistanceSquared = Double.MAX_VALUE;
-            for (BcspawnInfo bcspawnInfo : bcspawnInfoList) {
-                if (bcspawnInfo.getWorld().equals(playerLocation.getWorld().getName())) {
-                    Location bcspawnLocation = bcspawnInfo.getFixedLocation();
+            for (PlatfromInfo platfromInfo : platfromInfoList) {
+                if (platfromInfo.getWorld().equals(playerLocation.getWorld().getName())) {
+                    Location bcspawnLocation = platfromInfo.getFixedLocation();
                     if (bcspawnLocation != null) {
                         double distanceSquared = playerLocation.distanceSquared(bcspawnLocation);
                         if (minDistanceSquared > distanceSquared) {
                             minDistanceSquared = distanceSquared;
-                            nearestBcspawn = bcspawnInfo;
+                            nearestBcspawn = platfromInfo;
                         }
                     }
                 }
@@ -79,7 +79,7 @@ public class CardNearestLocItem extends CardLocationItem {
             List<Component> lore = new ArrayList<>();
             if (nearestBcspawn != null) {
                 lore.add(Component.text("距离最近的车站：%s(%.2fm)，位于(x=%d, z=%d, z=%d)附近"
-                        .formatted(nearestBcspawn.getSpawnStation(), Math.sqrt(minDistanceSquared), nearestBcspawn.getCoordX(), nearestBcspawn.getFixedY(), nearestBcspawn.getCoordZ()), NamedTextColor.DARK_AQUA));
+                        .formatted(nearestBcspawn.getStationName(), Math.sqrt(minDistanceSquared), nearestBcspawn.getCoordX(), nearestBcspawn.getFixedY(), nearestBcspawn.getCoordZ()), NamedTextColor.DARK_AQUA));
             } else {
                 lore.add(Component.text("当前世界没有国铁车站", NamedTextColor.RED));
             }

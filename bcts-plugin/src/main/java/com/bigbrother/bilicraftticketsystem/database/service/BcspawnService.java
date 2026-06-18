@@ -3,7 +3,7 @@ package com.bigbrother.bilicraftticketsystem.database.service;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.database.dao.BcspawnRecordDao;
-import com.bigbrother.bilicraftticketsystem.database.entity.BcspawnInfo;
+import com.bigbrother.bilicraftticketsystem.database.entity.PlatfromInfo;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoNode;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRouteEngine;
 import net.kyori.adventure.text.Component;
@@ -32,18 +32,15 @@ public class BcspawnService {
      *
      * @return 车站坐标点列表
      */
-    public List<BcspawnInfo> getAllBcspawnInfo() {
-        List<BcspawnInfo> result = new ArrayList<>();
+    public List<PlatfromInfo> getAllPlatfromInfo() {
+        List<PlatfromInfo> result = new ArrayList<>();
         for (GeoNode node : GeoRouteEngine.allStationNodes()) {
             String world = node.getWorld();
             if (world == null) {
                 continue;
             }
-            result.add(new BcspawnInfo(
+            result.add(new PlatfromInfo(
                     node.getName(),
-                    "",
-                    "",
-                    "",
                     (int) Math.round(node.getX()),
                     (int) Math.round(node.getY()),
                     (int) Math.round(node.getZ()),

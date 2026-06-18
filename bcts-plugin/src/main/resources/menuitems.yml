@@ -1,315 +1,230 @@
 start:
-  v: 3700
-  type: PLAYER_HEAD
-  meta:
-    ==: ItemMeta
-    meta-type: SKULL
-    display-name: '{"text":"","extra":[{"text":"点击选择起始站","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"gold","bold":true}]}'
-    skull-owner:
-      ==: PlayerProfile
-      uniqueId: 04049c90-d3e9-4621-9caf-0000aaa71858
-      name: HeadDatabase
-      properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOTY4MTNiZDFhZTBjZDhkYTYxOWViNDNmYTI5MTFhMTA3MzJjMTgzNDc1OTkxOGExZjdlMGYyODQ3YmFhMzlmZiJ9fX0=
+  DataVersion: 4671
+  id: minecraft:player_head
+  count: 1
+  components:
+    minecraft:profile: '{id:[I;67411088,-739686879,-1666252800,-1431889832],name:"HeadDatabase",properties:[{name:"textures",value:"eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOTY4MTNiZDFhZTBjZDhkYTYxOWViNDNmYTI5MTFhMTA3MzJjMTgzNDc1OTkxOGExZjdlMGYyODQ3YmFhMzlmZiJ9fX0="}]}'
+    minecraft:custom_name: '{extra:[{bold:1b,color:"gold",italic:0b,obfuscated:0b,strikethrough:0b,text:"点击选择起始站",underlined:0b}],text:""}'
+  schema_version: 1
 end:
-  v: 3700
-  type: PLAYER_HEAD
-  meta:
-    ==: ItemMeta
-    meta-type: SKULL
-    display-name: '{"text":"","extra":[{"text":"点击选择终到站","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"gold","bold":true}]}'
-    skull-owner:
-      ==: PlayerProfile
-      uniqueId: 04049c90-d3e9-4621-9caf-0000aaa64539
-      name: HeadDatabase
-      properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYWE2OGNjMGM1NzlmNDIzZjUwYzAwZmUyY2QwMjZmOTlkMDJlOWUzMTdmYTdmNTFiNjY4ZGI1MGY4NjFlMzU5In19fQ==
+  DataVersion: 4671
+  id: minecraft:player_head
+  count: 1
+  components:
+    minecraft:profile: '{id:[I;67411088,-739686879,-1666252800,-1431943879],name:"HeadDatabase",properties:[{name:"textures",value:"eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYWE2OGNjMGM1NzlmNDIzZjUwYzAwZmUyY2QwMjZmOTlkMDJlOWUzMTdmYTdmNTFiNjY4ZGI1MGY4NjFlMzU5In19fQ=="}]}'
+    minecraft:custom_name: '{extra:[{bold:1b,color:"gold",italic:0b,obfuscated:0b,strikethrough:0b,text:"点击选择终到站",underlined:0b}],text:""}'
+  schema_version: 1
 warn:
-  v: 3700
-  type: PLAYER_HEAD
-  meta:
-    ==: ItemMeta
-    meta-type: SKULL
-    display-name: '{"text":"","extra":[{"text":"车票使用方法&注意事项","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"gold","bold":true}]}'
-    lore:
-    - '{"text":"","extra":[{"text":"==========================使用方法==========================","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"white","bold":true}]}'
-    - '{"text":"","extra":[{"text":"前往车票指定的可使用站台发车，主手拿车票上车","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
-    - '{"text":"","extra":[{"text":"==========================注意事项==========================","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"white","bold":true}]}'
-    - '{"text":"","extra":[{"text":"1.请前往车票指定的站台乘车。","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"yellow","bold":false}]}'
-    - '{"text":"","extra":[{"text":"2.第一名玩家持票上车后，后续上车的玩家，必须持有相同路线的车票才能上车。","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"yellow","bold":false}]}'
-    - '{"text":"","extra":[{"text":"第一名玩家如果没有持票上车，则后续玩家上车不消耗车票，列车每站都会停车。","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"yellow","bold":false}]}'
-    - '{"text":"","extra":[{"text":"3.到达终点站后请及时下车，列车会在再次出站后强制销毁。","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"yellow","bold":false}]}'
-    - '{"text":"","extra":[{"text":"===========================================================","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"white","bold":true}]}'
-    - '{"text":"","extra":[{"text":"点击打开wiki页面查看线路图和详细使用方法。","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
-    skull-owner:
-      ==: PlayerProfile
-      uniqueId: 04049c90-d3e9-4621-9caf-0000aaa39269
-      name: HeadDatabase
-      properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZGE5MDAzMzliYjk3MWYwMjhhZmU2NzI0YTg1MjE5YmEyMzM5OTE4YmE0OWMxMTlkMmZiODcxZTQ3YWM5OWIzOSJ9fX0=
+  DataVersion: 4671
+  id: minecraft:player_head
+  count: 1
+  components:
+    minecraft:profile: '{id:[I;67411088,-739686879,-1666252800,-1432120727],name:"HeadDatabase",properties:[{name:"textures",value:"eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZGE5MDAzMzliYjk3MWYwMjhhZmU2NzI0YTg1MjE5YmEyMzM5OTE4YmE0OWMxMTlkMmZiODcxZTQ3YWM5OWIzOSJ9fX0="}]}'
+    minecraft:lore: '[{extra:[{bold:1b,color:"white",italic:0b,obfuscated:0b,strikethrough:0b,text:"==========================使用方法==========================",underlined:0b}],text:""},{extra:[{bold:0b,color:"green",italic:0b,obfuscated:0b,strikethrough:0b,text:"前往车票指定的可使用站台发车，主手拿车票上车",underlined:0b}],text:""},{extra:[{bold:1b,color:"white",italic:0b,obfuscated:0b,strikethrough:0b,text:"==========================注意事项==========================",underlined:0b}],text:""},{extra:[{bold:0b,color:"yellow",italic:0b,obfuscated:0b,strikethrough:0b,text:"1.请前往车票指定的站台乘车。",underlined:0b}],text:""},{extra:[{bold:0b,color:"yellow",italic:0b,obfuscated:0b,strikethrough:0b,text:"2.第一名玩家持票上车后，后续上车的玩家，必须持有相同路线的车票才能上车。",underlined:0b}],text:""},{extra:[{bold:0b,color:"yellow",italic:0b,obfuscated:0b,strikethrough:0b,text:"第一名玩家如果没有持票上车，则后续玩家上车不消耗车票，列车每站都会停车。",underlined:0b}],text:""},{extra:[{bold:0b,color:"yellow",italic:0b,obfuscated:0b,strikethrough:0b,text:"3.到达终点站后请及时下车，列车会在再次出站后强制销毁。",underlined:0b}],text:""},{extra:[{bold:1b,color:"white",italic:0b,obfuscated:0b,strikethrough:0b,text:"===========================================================",underlined:0b}],text:""},{extra:[{bold:0b,color:"green",italic:0b,obfuscated:0b,strikethrough:0b,text:"点击打开wiki页面查看线路图和详细使用方法。",underlined:0b}],text:""}]'
+    minecraft:custom_name: '{extra:[{bold:1b,color:"gold",italic:0b,obfuscated:0b,strikethrough:0b,text:"车票使用方法&注意事项",underlined:0b}],text:""}'
+  schema_version: 1
 search:
-  v: 3700
-  type: PLAYER_HEAD
-  meta:
-    ==: ItemMeta
-    meta-type: SKULL
-    display-name: '{"text":"","extra":[{"text":"点击查询车票","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"gold","bold":true}]}'
-    skull-owner:
-      ==: PlayerProfile
-      uniqueId: 04049c90-d3e9-4621-9caf-0000aaa60723
-      name: HeadDatabase
-      properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMjkxYWM0MzJhYTQwZDdlN2E2ODdhYTg1MDQxZGU2MzY3MTJkNGYwMjI2MzJkZDUzNTZjODgwNTIxYWYyNzIzYSJ9fX0=
+  DataVersion: 4671
+  id: minecraft:player_head
+  count: 1
+  components:
+    minecraft:profile: '{id:[I;67411088,-739686879,-1666252800,-1431959773],name:"HeadDatabase",properties:[{name:"textures",value:"eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMjkxYWM0MzJhYTQwZDdlN2E2ODdhYTg1MDQxZGU2MzY3MTJkNGYwMjI2MzJkZDUzNTZjODgwNTIxYWYyNzIzYSJ9fX0="}]}'
+    minecraft:custom_name: '{extra:[{bold:1b,color:"gold",italic:0b,obfuscated:0b,strikethrough:0b,text:"点击查询车票",underlined:0b}],text:""}'
+  schema_version: 1
 uses:
-  v: 3700
-  type: PLAYER_HEAD
-  meta:
-    ==: ItemMeta
-    meta-type: SKULL
-    display-name: '{"text":"","extra":[{"text":"选择车票可使用次数","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"gold","bold":true}]}'
-    skull-owner:
-      ==: PlayerProfile
-      uniqueId: 04049c90-d3e9-4621-9caf-0000aaa24269
-      name: HeadDatabase
-      properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOWQ1OGQzODYwZDIyMjEyYjkxNTUwMTFhMGU2OWI1YTkzNjJhMTk1MzJjNmUxMzk5OGI4MTI5M2IxMjJlOWRiYyJ9fX0=
+  DataVersion: 4671
+  id: minecraft:player_head
+  count: 1
+  components:
+    minecraft:profile: '{id:[I;67411088,-739686879,-1666252800,-1432206743],name:"HeadDatabase",properties:[{name:"textures",value:"eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOWQ1OGQzODYwZDIyMjEyYjkxNTUwMTFhMGU2OWI1YTkzNjJhMTk1MzJjNmUxMzk5OGI4MTI5M2IxMjJlOWRiYyJ9fX0="}]}'
+    minecraft:custom_name: '{extra:[{bold:1b,color:"gold",italic:0b,obfuscated:0b,strikethrough:0b,text:"选择车票可使用次数",underlined:0b}],text:""}'
+  schema_version: 1
 speed:
-  v: 3700
-  type: PLAYER_HEAD
-  meta:
-    ==: ItemMeta
-    meta-type: SKULL
-    display-name: '{"text":"","extra":[{"text":"选择最大速度","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"gold","bold":true}]}'
-    skull-owner:
-      ==: PlayerProfile
-      uniqueId: 04049c90-d3e9-4621-9caf-0000aaa84104
-      name: HeadDatabase
-      properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYTJjMjA1MGVjYTBlZmRkMDMxZTY1OGI5OTZjMjM5YmY3ZGEzYWVmODY1NjEyMzY3ZWQ5ZDg5NWFlN2EwZGE5ZiJ9fX0=
+  DataVersion: 4671
+  id: minecraft:player_head
+  count: 1
+  components:
+    minecraft:profile: '{id:[I;67411088,-739686879,-1666252800,-1431813884],name:"HeadDatabase",properties:[{name:"textures",value:"eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYTJjMjA1MGVjYTBlZmRkMDMxZTY1OGI5OTZjMjM5YmY3ZGEzYWVmODY1NjEyMzY3ZWQ5ZDg5NWFlN2EwZGE5ZiJ9fX0="}]}'
+    minecraft:custom_name: '{extra:[{bold:1b,color:"gold",italic:0b,obfuscated:0b,strikethrough:0b,text:"选择最大速度",underlined:0b}],text:""}'
+  schema_version: 1
+flag-瓦尔德:
+  DataVersion: 4671
+  id: minecraft:cyan_banner
+  count: 1
+  components:
+    minecraft:banner_patterns: '[{color:"yellow",pattern:"minecraft:half_vertical_right"},{color:"cyan",pattern:"minecraft:square_top_right"},{color:"cyan",pattern:"minecraft:square_bottom_right"},{color:"cyan",pattern:"minecraft:straight_cross"},{color:"yellow",pattern:"minecraft:stripe_left"},{color:"cyan",pattern:"minecraft:border"}]'
+  schema_version: 1
+flag-普拉米尔:
+  DataVersion: 4671
+  id: minecraft:blue_banner
+  count: 1
+  components:
+    minecraft:banner_patterns: '[{color:"lime",pattern:"minecraft:square_top_left"},{color:"lime",pattern:"minecraft:square_bottom_right"},{color:"blue",pattern:"minecraft:border"}]'
+  schema_version: 1
+flag-舒芙蕾:
+  DataVersion: 4671
+  id: minecraft:red_banner
+  count: 1
+  components:
+    minecraft:banner_patterns: '[{color:"white",pattern:"minecraft:small_stripes"},{color:"red",pattern:"minecraft:stripe_left"},{color:"red",pattern:"minecraft:stripe_right"},{color:"white",pattern:"minecraft:square_top_left"},{color:"white",pattern:"minecraft:square_bottom_right"},{color:"red",pattern:"minecraft:border"}]'
+  schema_version: 1
+flag-蒙布朗:
+  DataVersion: 4671
+  id: minecraft:white_banner
+  count: 1
+  components:
+    minecraft:banner_patterns: '[{color:"light_blue",pattern:"minecraft:stripe_left"},{color:"light_blue",pattern:"minecraft:stripe_right"},{color:"light_blue",pattern:"minecraft:stripe_middle"},{color:"white",pattern:"minecraft:border"},{color:"white",pattern:"minecraft:square_top_right"},{color:"white",pattern:"minecraft:square_bottom_left"}]'
+  schema_version: 1
+flag-慕斯:
+  DataVersion: 4671
+  id: minecraft:yellow_banner
+  count: 1
+  components:
+    minecraft:banner_patterns: '[{color:"lime",pattern:"minecraft:square_bottom_left"},{color:"lime",pattern:"minecraft:square_bottom_right"},{color:"yellow",pattern:"minecraft:stripe_center"},{color:"lime",pattern:"minecraft:circle"},{color:"yellow",pattern:"minecraft:border"}]'
+  schema_version: 1
+flag-班戟列岛:
+  DataVersion: 4671
+  id: minecraft:orange_banner
+  count: 1
+  components:
+    minecraft:banner_patterns: '[{color:"white",pattern:"minecraft:flower"},{color:"lime",pattern:"minecraft:straight_cross"},{color:"yellow",pattern:"minecraft:circle"},{color:"orange",pattern:"minecraft:stripe_top"},{color:"orange",pattern:"minecraft:stripe_bottom"},{color:"orange",pattern:"minecraft:border"}]'
+  schema_version: 1
 scrollup:
-  v: 3700
-  type: PLAYER_HEAD
-  meta:
-    ==: ItemMeta
-    meta-type: SKULL
-    display-name: '{"text":"","extra":[{"text":"向上滚动","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"gold","bold":true}]}'
-    skull-owner:
-      ==: PlayerProfile
-      uniqueId: 04049c90-d3e9-4621-9caf-00000aaa8786
-      name: HeadDatabase
-      properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNmNjYmY5ODgzZGQzNTlmZGYyMzg1YzkwYTQ1OWQ3Mzc3NjUzODJlYzQxMTdiMDQ4OTVhYzRkYzRiNjBmYyJ9fX0=
+  DataVersion: 4671
+  id: minecraft:player_head
+  count: 1
+  components:
+    minecraft:profile: '{id:[I;67411088,-739686879,-1666252800,178947974],name:"HeadDatabase",properties:[{name:"textures",value:"eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNmNjYmY5ODgzZGQzNTlmZGYyMzg1YzkwYTQ1OWQ3Mzc3NjUzODJlYzQxMTdiMDQ4OTVhYzRkYzRiNjBmYyJ9fX0="}]}'
+    minecraft:custom_name: '{extra:[{bold:1b,color:"gold",italic:0b,obfuscated:0b,strikethrough:0b,text:"向上滚动",underlined:0b}],text:""}'
+  schema_version: 1
 scrolldown:
-  v: 3700
-  type: PLAYER_HEAD
-  meta:
-    ==: ItemMeta
-    meta-type: SKULL
-    display-name: '{"text":"","extra":[{"text":"向下滚动","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"gold","bold":true}]}'
-    skull-owner:
-      ==: PlayerProfile
-      uniqueId: 04049c90-d3e9-4621-9caf-00000aaa8793
-      name: HeadDatabase
-      properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNzI0MzE5MTFmNDE3OGI0ZDJiNDEzYWE3ZjVjNzhhZTQ0NDdmZTkyNDY5NDNjMzFkZjMxMTYzYzBlMDQzZTBkNiJ9fX0=
+  DataVersion: 4671
+  id: minecraft:player_head
+  count: 1
+  components:
+    minecraft:profile: '{id:[I;67411088,-739686879,-1666252800,178947987],name:"HeadDatabase",properties:[{name:"textures",value:"eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNzI0MzE5MTFmNDE3OGI0ZDJiNDEzYWE3ZjVjNzhhZTQ0NDdmZTkyNDY5NDNjMzFkZjMxMTYzYzBlMDQzZTBkNiJ9fX0="}]}'
+    minecraft:custom_name: '{extra:[{bold:1b,color:"gold",italic:0b,obfuscated:0b,strikethrough:0b,text:"向下滚动",underlined:0b}],text:""}'
+  schema_version: 1
 prevpage:
-  v: 3700
-  type: PLAYER_HEAD
-  meta:
-    ==: ItemMeta
-    meta-type: SKULL
-    display-name: '{"text":"","extra":[{"text":"上一页","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"gold","bold":true}]}'
-    skull-owner:
-      ==: PlayerProfile
-      uniqueId: 04049c90-d3e9-4621-9caf-00000aaa8790
-      name: HeadDatabase
-      properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMzdhZWU5YTc1YmYwZGY3ODk3MTgzMDE1Y2NhMGIyYTdkNzU1YzYzMzg4ZmYwMTc1MmQ1ZjQ0MTlmYzY0NSJ9fX0=
+  DataVersion: 4671
+  id: minecraft:player_head
+  count: 1
+  components:
+    minecraft:profile: '{id:[I;67411088,-739686879,-1666252800,178947984],name:"HeadDatabase",properties:[{name:"textures",value:"eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMzdhZWU5YTc1YmYwZGY3ODk3MTgzMDE1Y2NhMGIyYTdkNzU1YzYzMzg4ZmYwMTc1MmQ1ZjQ0MTlmYzY0NSJ9fX0="}]}'
+    minecraft:custom_name: '{extra:[{bold:1b,color:"gold",italic:0b,obfuscated:0b,strikethrough:0b,text:"上一页",underlined:0b}],text:""}'
+  schema_version: 1
 nextpage:
-  v: 3700
-  type: PLAYER_HEAD
-  meta:
-    ==: ItemMeta
-    meta-type: SKULL
-    display-name: '{"text":"","extra":[{"text":"下一页","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"gold","bold":true}]}'
-    skull-owner:
-      ==: PlayerProfile
-      uniqueId: 04049c90-d3e9-4621-9caf-00000aaa8787
-      name: HeadDatabase
-      properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNjgyYWQxYjljYjRkZDIxMjU5YzBkNzVhYTMxNWZmMzg5YzNjZWY3NTJiZTM5NDkzMzgxNjRiYWM4NGE5NmUifX19
+  DataVersion: 4671
+  id: minecraft:player_head
+  count: 1
+  components:
+    minecraft:profile: '{id:[I;67411088,-739686879,-1666252800,178947975],name:"HeadDatabase",properties:[{name:"textures",value:"eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNjgyYWQxYjljYjRkZDIxMjU5YzBkNzVhYTMxNWZmMzg5YzNjZWY3NTJiZTM5NDkzMzgxNjRiYWM4NGE5NmUifX19"}]}'
+    minecraft:custom_name: '{extra:[{bold:1b,color:"gold",italic:0b,obfuscated:0b,strikethrough:0b,text:"下一页",underlined:0b}],text:""}'
+  schema_version: 1
 refresh:
-  v: 3700
-  type: PLAYER_HEAD
-  meta:
-    ==: ItemMeta
-    meta-type: SKULL
-    display-name: '{"text":"","extra":[{"text":"重置筛选","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"gold","bold":true}]}'
-    skull-owner:
-      ==: PlayerProfile
-      uniqueId: 04049c90-d3e9-4621-9caf-0000aaa52587
-      name: HeadDatabase
-      properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvM2E0ZmFiM2ZkOTdlYjdlY2Y0OGFiNGZkMzI3ZTA5M2U4ODZmNGUyMTdhYWI2OTU4NTMxM2MyN2E1MDM1ODMxYSJ9fX0=
+  DataVersion: 4671
+  id: minecraft:player_head
+  count: 1
+  components:
+    minecraft:profile: '{id:[I;67411088,-739686879,-1666252800,-1432017529],name:"HeadDatabase",properties:[{name:"textures",value:"eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvM2E0ZmFiM2ZkOTdlYjdlY2Y0OGFiNGZkMzI3ZTA5M2U4ODZmNGUyMTdhYWI2OTU4NTMxM2MyN2E1MDM1ODMxYSJ9fX0="}]}'
+    minecraft:custom_name: '{extra:[{bold:1b,color:"gold",italic:0b,obfuscated:0b,strikethrough:0b,text:"重置筛选",underlined:0b}],text:""}'
+  schema_version: 1
 filter:
-  v: 3700
-  type: PLAYER_HEAD
-  meta:
-    ==: ItemMeta
-    meta-type: SKULL
-    display-name: '{"text":"","extra":[{"text":"筛选途经车站","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"gold","bold":true}]}'
-    lore:
-    - '{"text":"","extra":[{"text":"当车票数量过多时，可以使用该功能筛选经过特定车站的车票","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
-    - '{"text":"","extra":[{"text":"进入筛选界面后，左键添加车站，右键移除车站","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
-    skull-owner:
-      ==: PlayerProfile
-      uniqueId: 04049c90-d3e9-4621-9caf-0000aaa30877
-      name: HeadDatabase
-      properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNjhlODRmYTYzMTJlMDViZmY0OGNlZWM3NTBjZTViODUyNjkzOWNlZjYzYjZlZmE3YTUzOWE1YjFkMjVkMDViMCJ9fX0=
+  DataVersion: 4671
+  id: minecraft:player_head
+  count: 1
+  components:
+    minecraft:profile: '{id:[I;67411088,-739686879,-1666252800,-1432156041],name:"HeadDatabase",properties:[{name:"textures",value:"eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNjhlODRmYTYzMTJlMDViZmY0OGNlZWM3NTBjZTViODUyNjkzOWNlZjYzYjZlZmE3YTUzOWE1YjFkMjVkMDViMCJ9fX0="}]}'
+    minecraft:lore: '[{extra:[{bold:0b,color:"green",italic:0b,obfuscated:0b,strikethrough:0b,text:"当车票数量过多时，可以使用该功能筛选经过特定车站的车票",underlined:0b}],text:""},{extra:[{bold:0b,color:"green",italic:0b,obfuscated:0b,strikethrough:0b,text:"进入筛选界面后，左键添加车站，右键移除车站",underlined:0b}],text:""}]'
+    minecraft:custom_name: '{extra:[{bold:1b,color:"gold",italic:0b,obfuscated:0b,strikethrough:0b,text:"筛选途经车站",underlined:0b}],text:""}'
+  schema_version: 1
 back:
-  v: 3700
-  type: PLAYER_HEAD
-  meta:
-    ==: ItemMeta
-    meta-type: SKULL
-    display-name: '{"text":"","extra":[{"text":"返回主界面","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"gold","bold":true}]}'
-    skull-owner:
-      ==: PlayerProfile
-      uniqueId: 04049c90-d3e9-4621-9caf-0000aaa21779
-      name: HeadDatabase
-      properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMmIwYzE2NDdkYWU1ZDVmNmJjNWRjYTU0OWYxNjUyNTU2YzdmMWJjMDhhZGVlMzdjY2ZjNDA5MGJjMjBlNjQ3ZSJ9fX0=
+  DataVersion: 4671
+  id: minecraft:player_head
+  count: 1
+  components:
+    minecraft:profile: '{id:[I;67411088,-739686879,-1666252800,-1432217735],name:"HeadDatabase",properties:[{name:"textures",value:"eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMmIwYzE2NDdkYWU1ZDVmNmJjNWRjYTU0OWYxNjUyNTU2YzdmMWJjMDhhZGVlMzdjY2ZjNDA5MGJjMjBlNjQ3ZSJ9fX0="}]}'
+    minecraft:custom_name: '{extra:[{bold:1b,color:"gold",italic:0b,obfuscated:0b,strikethrough:0b,text:"返回主界面",underlined:0b}],text:""}'
+  schema_version: 1
 selected:
-  v: 3700
-  type: PLAYER_HEAD
-  meta:
-    ==: ItemMeta
-    meta-type: SKULL
-    display-name: '{"text":"","extra":[{"text":"","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"blue","bold":true}]}'
-    skull-owner:
-      ==: PlayerProfile
-      uniqueId: 04049c90-d3e9-4621-9caf-0000aaa21797
-      name: HeadDatabase
-      properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYjVhM2I0OWJlZWMzYWIyM2FlMGI2MGRhYjU2ZTljYzhmYTE2NzY5YTI1ODMwYjVkOGQ2YzQ2Mzc4ZjU0NDMwIn19fQ==
+  DataVersion: 4671
+  id: minecraft:player_head
+  count: 1
+  components:
+    minecraft:profile: '{id:[I;67411088,-739686879,-1666252800,-1432217705],name:"HeadDatabase",properties:[{name:"textures",value:"eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYjVhM2I0OWJlZWMzYWIyM2FlMGI2MGRhYjU2ZTljYzhmYTE2NzY5YTI1ODMwYjVkOGQ2YzQ2Mzc4ZjU0NDMwIn19fQ=="}]}'
+    minecraft:custom_name: '{extra:[{bold:1b,color:"blue",italic:0b,obfuscated:0b,strikethrough:0b,text:"",underlined:0b}],text:""}'
+  schema_version: 1
 ticketbg:
-  v: 3700
-  type: PLAYER_HEAD
-  meta:
-    ==: ItemMeta
-    meta-type: SKULL
-    display-name: '{"text":"","extra":[{"text":"选择车票背景图","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"gold","bold":true}]}'
-    lore:
-    - '{"text":"","extra":[{"text":"点击查看自己上传和所有公开共享的的车票背景图。","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
-    - '{"text":"","extra":[{"text":"可以共享自己上传的背景图供其他玩家使用。","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
-    - '{"text":"","extra":[{"text":"也可使用 /ticketbg 指令直接打开该界面。","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
-    - '{"text":"","extra":[{"text":"","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
-    - '{"text":"","extra":[{"text":"上传指令：","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
-    - '{"text":"","extra":[{"text":"/ticket uploadbg <图片链接> <自定义背景图名> [车票字体颜色(可选，格式#RRGGBB)]","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
-    - '{"text":"","extra":[{"text":"详细使用方法见帕拉伦国有铁路wiki","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
-    skull-owner:
-      ==: PlayerProfile
-      uniqueId: 04049c90-d3e9-4621-9caf-0000aaa23556
-      name: HeadDatabase
-      properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvM2MwZTVkNTZiNDNiNmQzOWI0YmViYTc5NTdmYjM5MWVlY2FjMTYxNmMyNDIzMDA2ZWRjZGE0YTk2MjNmYWVlIn19fQ==
+  DataVersion: 4671
+  id: minecraft:player_head
+  count: 1
+  components:
+    minecraft:profile: '{id:[I;67411088,-739686879,-1666252800,-1432210090],name:"HeadDatabase",properties:[{name:"textures",value:"eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvM2MwZTVkNTZiNDNiNmQzOWI0YmViYTc5NTdmYjM5MWVlY2FjMTYxNmMyNDIzMDA2ZWRjZGE0YTk2MjNmYWVlIn19fQ=="}]}'
+    minecraft:lore: '[{extra:[{bold:0b,color:"green",italic:0b,obfuscated:0b,strikethrough:0b,text:"点击查看自己上传和所有公开共享的的车票背景图。",underlined:0b}],text:""},{extra:[{bold:0b,color:"green",italic:0b,obfuscated:0b,strikethrough:0b,text:"可以共享自己上传的背景图供其他玩家使用。",underlined:0b}],text:""},{extra:[{bold:0b,color:"green",italic:0b,obfuscated:0b,strikethrough:0b,text:"也可使用
+      /ticket bg 指令直接打开该界面。",underlined:0b}],text:""},{extra:[{bold:0b,color:"green",italic:0b,obfuscated:0b,strikethrough:0b,text:"",underlined:0b}],text:""},{extra:[{bold:0b,color:"green",italic:0b,obfuscated:0b,strikethrough:0b,text:"上传指令：",underlined:0b}],text:""},{extra:[{bold:0b,color:"green",italic:0b,obfuscated:0b,strikethrough:0b,text:"/ticket
+      uploadbg <图片链接> <自定义背景图名> [车票字体颜色(可选，格式#RRGGBB)]",underlined:0b}],text:""},{extra:[{bold:0b,color:"green",italic:0b,obfuscated:0b,strikethrough:0b,text:"详细使用方法见帕拉伦国有铁路wiki",underlined:0b}],text:""}]'
+    minecraft:custom_name: '{extra:[{bold:1b,color:"gold",italic:0b,obfuscated:0b,strikethrough:0b,text:"选择车票背景图",underlined:0b}],text:""}'
+  schema_version: 1
 defaultbg:
-  v: 3700
-  type: PLAYER_HEAD
-  meta:
-    ==: ItemMeta
-    meta-type: SKULL
-    display-name: '{"text":"","extra":[{"text":"点击恢复为默认背景图","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"gold","bold":true}]}'
-    skull-owner:
-      ==: PlayerProfile
-      uniqueId: 04049c90-d3e9-4621-9caf-0000aaa52587
-      name: HeadDatabase
-      properties:
-      - name: textures
-        value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvM2E0ZmFiM2ZkOTdlYjdlY2Y0OGFiNGZkMzI3ZTA5M2U4ODZmNGUyMTdhYWI2OTU4NTMxM2MyN2E1MDM1ODMxYSJ9fX0=
+  DataVersion: 4671
+  id: minecraft:player_head
+  count: 1
+  components:
+    minecraft:profile: '{id:[I;67411088,-739686879,-1666252800,-1432017529],name:"HeadDatabase",properties:[{name:"textures",value:"eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvM2E0ZmFiM2ZkOTdlYjdlY2Y0OGFiNGZkMzI3ZTA5M2U4ODZmNGUyMTdhYWI2OTU4NTMxM2MyN2E1MDM1ODMxYSJ9fX0="}]}'
+    minecraft:custom_name: '{extra:[{bold:1b,color:"gold",italic:0b,obfuscated:0b,strikethrough:0b,text:"点击恢复为默认背景图",underlined:0b}],text:""}'
+  schema_version: 1
 usedbg:
-  v: 3700
-  type: FILLED_MAP
-  meta:
-    ==: ItemMeta
-    meta-type: MAP
-    map-id: 0
+  DataVersion: 4671
+  id: minecraft:filled_map
+  count: 1
+  components:
+    minecraft:map_id: '0'
+  schema_version: 1
 selfbg:
-  v: 3700
-  type: MAP
-  meta:
-    ==: ItemMeta
-    meta-type: UNSPECIFIC
+  DataVersion: 4671
+  id: minecraft:map
+  count: 1
+  schema_version: 1
 sharedbg:
-  v: 3700
-  type: MAP
-  meta:
-    ==: ItemMeta
-    meta-type: UNSPECIFIC
+  DataVersion: 4671
+  id: minecraft:map
+  count: 1
+  schema_version: 1
 bg-border:
-  v: 3700
-  type: ORANGE_STAINED_GLASS_PANE
-  meta:
-    ==: ItemMeta
-    meta-type: UNSPECIFIC
-    display-name: '{"text":"","extra":[{"text":"","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"gold","bold":true}]}'
-    lore:
-    - '{"text":"","extra":[{"text":"  ↑自己上传的背景图↑","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
-    - '{"text":"","extra":[{"text":"=====================","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"white","bold":false}]}'
-    - '{"text":"","extra":[{"text":"↓所有玩家共享的背景图↓","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
+  DataVersion: 4671
+  id: minecraft:orange_stained_glass_pane
+  count: 1
+  components:
+    minecraft:lore: '[{extra:[{bold:0b,color:"green",italic:0b,obfuscated:0b,strikethrough:0b,text:"  ↑自己上传的背景图↑",underlined:0b}],text:""},{extra:[{bold:0b,color:"white",italic:0b,obfuscated:0b,strikethrough:0b,text:"=====================",underlined:0b}],text:""},{extra:[{bold:0b,color:"green",italic:0b,obfuscated:0b,strikethrough:0b,text:"↓所有玩家共享的背景图↓",underlined:0b}],text:""}]'
+    minecraft:custom_name: '{extra:[{bold:1b,color:"gold",italic:0b,obfuscated:0b,strikethrough:0b,text:"",underlined:0b}],text:""}'
+  schema_version: 1
 sort:
-  v: 3700
-  type: RED_STAINED_GLASS_PANE
-  meta:
-    ==: ItemMeta
-    meta-type: UNSPECIFIC
-    display-name: '{"text":"","extra":[{"text":"排序","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"gold","bold":true}]}'
-    lore:
-    - '{"text":"","extra":[{"text":"左键按照上传时间倒序排序","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
-    - '{"text":"","extra":[{"text":"右键按照使用人数倒序排序","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"green","bold":false}]}'
+  DataVersion: 4671
+  id: minecraft:red_stained_glass_pane
+  count: 1
+  components:
+    minecraft:lore: '[{extra:[{bold:0b,color:"green",italic:0b,obfuscated:0b,strikethrough:0b,text:"左键按照上传时间倒序排序",underlined:0b}],text:""},{extra:[{bold:0b,color:"green",italic:0b,obfuscated:0b,strikethrough:0b,text:"右键按照使用人数倒序排序",underlined:0b}],text:""}]'
+    minecraft:custom_name: '{extra:[{bold:1b,color:"gold",italic:0b,obfuscated:0b,strikethrough:0b,text:"排序",underlined:0b}],text:""}'
+  schema_version: 1
 nearest:
-  v: 3700
-  type: BLACK_BANNER
-  meta:
-    ==: ItemMeta
-    meta-type: BANNER
-    patterns:
-    - ==: Pattern
-      color: WHITE
-      pattern: mr
-    - ==: Pattern
-      color: BLACK
-      pattern: hh
-    display-name: '{"text":"","extra":[{"text":"点击选择距离最近的车站","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"gold","bold":true}]}'
-    lore:
-    - '{"text":"","extra":[{"text":"定位中...","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"aqua","bold":false}]}'
+  DataVersion: 4671
+  id: minecraft:black_banner
+  count: 1
+  components:
+    minecraft:banner_patterns: '[{color:"white",pattern:"minecraft:rhombus"},{color:"black",pattern:"minecraft:half_horizontal"}]'
+    minecraft:lore: '[{extra:[{bold:0b,color:"aqua",italic:0b,obfuscated:0b,strikethrough:0b,text:"定位中...",underlined:0b}],text:""}]'
+    minecraft:custom_name: '{extra:[{bold:1b,color:"gold",italic:0b,obfuscated:0b,strikethrough:0b,text:"点击选择距离最近的车站",underlined:0b}],text:""}'
+  schema_version: 1
 charge:
-  v: 3700
-  type: PLAYER_HEAD
-  meta:
-    ==: ItemMeta
-    meta-type: SKULL
-    display-name: '{"text":"","extra":[{"text":"交通卡充值","obfuscated":false,"italic":false,"underlined":false,"strikethrough":false,"color":"gold","bold":true}]}'
-    skull-owner:
-      ==: PlayerProfile
-      uniqueId: 04049c90-d3e9-4621-9caf-0000aaa20940
-      name: HeadDatabase
-      properties:
-        - name: textures
-          value: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNGU3NGQ2NDcyZjgxMWVlN2U1ZTgwNWVhOTNkN2I0Yzc2MWM2NmE2NGU1OTM3MDJmYzgwNzNkYjM1N2YwNDY0ZCJ9fX0=
+  DataVersion: 4671
+  id: minecraft:player_head
+  count: 1
+  components:
+    minecraft:profile: '{id:[I;67411088,-739686879,-1666252800,-1432221376],name:"HeadDatabase",properties:[{name:"textures",value:"eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNGU3NGQ2NDcyZjgxMWVlN2U1ZTgwNWVhOTNkN2I0Yzc2MWM2NmE2NGU1OTM3MDJmYzgwNzNkYjM1N2YwNDY0ZCJ9fX0="}]}'
+    minecraft:custom_name: '{extra:[{bold:1b,color:"gold",italic:0b,obfuscated:0b,strikethrough:0b,text:"交通卡充值",underlined:0b}],text:""}'
+  schema_version: 1
+station:
+  DataVersion: 4671
+  id: minecraft:minecart
+  count: 1
+  schema_version: 1

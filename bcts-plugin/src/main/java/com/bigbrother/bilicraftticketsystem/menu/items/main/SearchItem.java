@@ -4,7 +4,6 @@ import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRouteEngine;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRoutePath;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
-import com.bigbrother.bilicraftticketsystem.menu.impl.MenuFilter;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
 import com.bigbrother.bilicraftticketsystem.menu.PlayerOption;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicket;
@@ -74,8 +73,6 @@ public class SearchItem extends AbstractItem {
             }
             if (player.isConnected()) {
                 menu.setTickets(tickets);
-                MenuFilter.getMenu(player).setFilterLocItems(player);
-                menu.getFilterItem().notifyWindows();
                 notifyWindows();
             }
         });
