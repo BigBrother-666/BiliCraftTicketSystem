@@ -49,8 +49,8 @@
 | ticketdebug nbt \<key> \[value]             | bcts.ticket.nbt           | 查看/设置乘车凭证的 nbt，已定义的 nbt 见第 7 节             |
 | ticketdebug traininfo                       | bcts.ticket.debug         | 调试：输出当前所坐列车的信息                             |
 | ticketdebug switchtrace \<on/off>           | bcts.ticket.debug         | 调试：开关道岔选向追踪，开启后列车每经过 bcswitcher 打印选向到控制台   |
-| ticketconfig editRoute \<lineId>            | bcts.ticket.editroute     | 游戏内新建 / 修改线路配置（routes.yml）                 |
-| ticketconfig delRoute \<lineId>             | bcts.ticket.editroute     | 删除一条线路配置（routes.yml）                       |
+| ticketconfig editRoute \<lineId>            | bcts.ticket.editroute     | 游戏内新建 / 修改线路配置（railway_routes.yml）         |
+| ticketconfig delRoute \<lineId>             | bcts.ticket.editroute     | 删除一条线路配置（railway_routes.yml）               |
 | ticketconfig editSystem \<systemId>         | bcts.ticket.editsystem    | 游戏内新建 / 修改铁路系统配置（railway_system.yml）       |
 | ticketconfig delSystem \<systemId>          | bcts.ticket.editsystem    | 删除一个铁路系统配置（railway_system.yml），并连带删除其下所有线路 |
 | 建立 bcspawn 控制牌                              | bcts.buildsign.bcspawn    |                                            |
@@ -158,8 +158,8 @@
 
 bossbar 分两种：
 
-- **普通车**（不持票上车，每站停）：显示 “…上一站 → 当前站 → 下一站…” 滚动站名带，站序取自列车当前所属线路，在 `routes.yml` 中的 `bossbar-stations`，首尾站名相同识别为环线（进度一直 100%）。列车每经过一个 platform 控制牌推进一格；换乘到别的线路时按新线路重建。滚动样式（已过/未过站颜色与显示个数）见
-  `config.yml` 的 `bossbar` 节点：`not-passed-color` 留空则使用该线路 `line-color`，颜色支持 `#RRGGBB` 或 `&` 代码。到站标题取自 `routes.yml` 各线路的 `bossbar-arrival-notice`（占位符 `{curr_station}`），该线路留空则到站时显示滚动站名带。
+- **普通车**（不持票上车，每站停）：显示 “…上一站 → 当前站 → 下一站…” 滚动站名带，站序取自列车当前所属线路，在 `railway_routes.yml` 中的 `bossbar-stations`，首尾站名相同识别为环线（进度一直 100%）。列车每经过一个 platform 控制牌推进一格；换乘到别的线路时按新线路重建。滚动样式（已过/未过站颜色与显示个数）见
+  `config.yml` 的 `bossbar` 节点：`not-passed-color` 留空则使用该线路 `line-color`，颜色支持 `#RRGGBB` 或 `&` 代码。到站标题取自 `railway_routes.yml` 各线路的 `bossbar-arrival-notice`（占位符 `{curr_station}`），该线路留空则到站时显示滚动站名带。
 - **直达车**（持票/刷卡上车，正线跨越中间站直达终点）：显示“起点 → 终点”+ 进度条，文案见 `config.yml` 的 `message.express-normal` / `message.express-end`。直达车不触发中间站的 platform 控制牌，进度由导航序列推进驱动（每经过一个 bcswitcher 道岔，进度 =
   已过道岔数 / 道岔总数）。
 
@@ -177,7 +177,7 @@ bossbar 分两种：
 **出向（第三、四行）**：格式 `出向@线路id`（`@` 两侧都不能为空）：
 
 - **出向**：同样是 TrainCarts Direction 写法（`e`/`s`/`w`/`n` 或 `f`/`b`/`l`/`r`）。
-- **线路 id**：`routes.yml` 中定义的线路 id。
+- **线路 id**：`railway_routes.yml` 中定义的线路 id。
 - **共用轨道**：一个出向被多条线路共用时，`@` 后用分号分隔多个线路 id，如 `r@pr-cw;pr-s1`。在路由图里它等于多条边（各属一条线），物理上是同一出向。
 
 选向逻辑：
@@ -210,9 +210,9 @@ bossbar 分两种：
 | railgeo setStartPos \<lineId> | 登记某线路的遍历起点，以玩家所在铁轨为起点坐标、面朝方向为起点方向 |
 | railgeo delStartPos \<lineId> | 删除某线路已登记的遍历起点                     |
 
-### 9.4 线路配置（routes.yml）
+### 9.4 线路配置（railway_routes.yml）
 
-`routes.yml` 每个顶层键是一个线路 id，与 bcswitcher / bcspawn 控制牌中使用的线路 id 对应。
+`railway_routes.yml` 每个顶层键是一个线路 id，与 bcswitcher / bcspawn 控制牌中使用的线路 id 对应。
 
 线路配置项：
 
@@ -234,7 +234,7 @@ bossbar 分两种：
 
 1. 从数据库读出各条线路登记的起点（由 `railgeo setStartPos` 设置）。
 2. 对每条线路做**有向图遍历**：以 bcswitcher / platform 为节点、其间铁路为有向边，从起点 BFS 展开。一节带该 lineId tag 的临时矿车按段行走（基于 TrainCarts 路径预测，正确触发沿途原版 switcher 的 addtag/remtag）：
-    - 经过 **platform** 记为车站节点。按站名查 `routes.yml`：普通站沿进入方向续行，折返站（`:RV`）反向驶出。
+    - 经过 **platform** 记为车站节点。按站名查 `railway_routes.yml`：普通站沿进入方向续行，折返站（`:RV`）反向驶出。
     - 经过 **bcswitcher** 记为道岔节点：枚举牌上 进入方向匹配本次到达方向、且归属当前线路 的所有出向，对每个出向各走一段（同一条线在一个道岔有多个出边时逐个走到，如正线 + 到发线）。
     - 去重 key = `(线路, 节点, 入向, 出向)`，既防环线 / 重复死循环，又保证共用轨道在每条线各自的文件里都完整。
     - 终止条件：所有可达状态展开完毕、或达到节点上限。

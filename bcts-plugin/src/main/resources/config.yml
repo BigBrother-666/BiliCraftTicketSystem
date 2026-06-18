@@ -130,11 +130,11 @@ lore:
 bossbar:
   # 已过站颜色（支持 #RRGGBB 十六进制或 legacy &-code）
   passed-color: '&7'
-  # 未过站颜色（支持 #RRGGBB 或 legacy &-code）；留空则使用该线路 routes.yml 中的 line-color
+  # 未过站颜色（支持 #RRGGBB 或 legacy &-code）；留空则使用该线路 railway_routes.yml 中的 line-color
   not-passed-color: ''
   # 已过站最大显示个数
   passed-num: 2
   # 未过站最大显示个数
   not-passed-num: 3
-  # 到站标题：使用 routes.yml 中各线路的 bossbar-arrival-notice（占位符 {curr_station}），
+  # 到站标题：使用 railway_routes.yml 中各线路的 bossbar-arrival-notice（占位符 {curr_station}），
   # 该线路留空则到站时显示滚动站名带（…上一站 → 当前站 → 下一站…）

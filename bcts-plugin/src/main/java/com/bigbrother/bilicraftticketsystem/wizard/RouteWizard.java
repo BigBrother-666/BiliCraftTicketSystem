@@ -16,9 +16,9 @@ import java.util.Map;
 /**
  * 线路编辑向导（{@code /ticket editRoute <lineId>}）。
  * <p>
- * 按 routes.yml 字段顺序引导填写：所属铁路系统、线路名、标志色（必填），bossbar 车站列表（必填，
+ * 按 railway_routes.yml 字段顺序引导填写：所属铁路系统、线路名、标志色（必填），bossbar 车站列表（必填，
  * 以 {@code ->} 分隔），到站提示、bossbar 颜色、进/出站提示（选填，进出站提示以 {@code ,} 分隔）。
- * 新建模式必填项不可跳过；修改模式预填现有值、均可跳过。完成后写回 routes.yml 并自动重载，
+ * 新建模式必填项不可跳过；修改模式预填现有值、均可跳过。完成后写回 railway_routes.yml 并自动重载，
  * 并提示路径变动需重新遍历。
  */
 public class RouteWizard extends ConfigWizard {

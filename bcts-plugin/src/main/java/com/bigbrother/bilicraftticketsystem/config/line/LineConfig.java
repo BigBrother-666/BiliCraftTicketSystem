@@ -9,7 +9,7 @@ import lombok.Getter;
 import java.util.*;
 
 /**
- * 线路配置（routes.yml）的加载器。
+ * 线路配置（railway_routes.yml）的加载器。
  * <p>
  * 读取 CLAUDE.md 描述的线路配置格式，
  * 每个顶层键是一个线路 id，解析为 {@link LineInfo}，缺失字段使用默认值。
@@ -24,12 +24,12 @@ public class LineConfig {
     private static FileConfiguration config;
 
     /**
-     * 加载 routes.yml，解析所有线路配置。插件启动与 reload 时调用。
+     * 加载 railway_routes.yml，解析所有线路配置。插件启动与 reload 时调用。
      *
      * @param plugin 插件实例
      */
     public static void load(BiliCraftTicketSystem plugin) {
-        config = new FileConfiguration(plugin, EnumConfig.ROUTES_CONFIG.getFileName());
+        config = new FileConfiguration(plugin, EnumConfig.RAILWAY_ROUTES_CONFIG.getFileName());
         config.load();
 
         // 先收集所有线路 id，供解析时判断 bossbar-stations 最后一项是否为「转线目标线路 id」。
@@ -162,7 +162,7 @@ public class LineConfig {
     }
 
     /**
-     * 新建或更新一条线路，并写回 routes.yml（保留注释）。
+     * 新建或更新一条线路，并写回 railway_routes.yml（保留注释）。
      * <p>
      * 仅写文件，不刷新内存缓存——调用方应在写回后触发配置重载
      * （{@link BiliCraftTicketSystem#loadConfig}）使其生效。选填字段传 null / 空集合表示
@@ -200,7 +200,7 @@ public class LineConfig {
     }
 
     /**
-     * 删除一条线路，并写回 routes.yml（保留其余注释）。
+     * 删除一条线路，并写回 railway_routes.yml（保留其余注释）。
      * <p>
      * 仅写文件，不刷新内存缓存——调用方应在写回后触发配置重载
      * （{@link BiliCraftTicketSystem#loadConfig} 或 {@link #load}）使其生效。

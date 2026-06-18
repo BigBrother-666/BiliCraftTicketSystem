@@ -11,7 +11,7 @@ import java.util.UUID;
 /**
  * 一个铁路系统的配置信息（对应 railway_system.yml 中的一个系统 id）。
  * <p>
- * 一个铁路系统下可包含多条线路（线路在 routes.yml 中通过 {@code railway-system} 字段声明所属系统）。
+ * 一个铁路系统下可包含多条线路（线路在 railway_routes.yml 中通过 {@code railway-system} 字段声明所属系统）。
  * 成员（members）用玩家 UUID 标识，用于校验玩家是否有权编辑该系统下的线路 / 系统本身。
  * <p>
  * 当前为最小配置（name + members），字段结构便于以后扩展（如系统标志色、图标等）。

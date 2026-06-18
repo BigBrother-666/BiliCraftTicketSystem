@@ -14,7 +14,7 @@ import java.util.List;
  * 但物理上是同一出向。
  * <p>
  * 方向沿用 traincarts 的写法：绝对方向 e/s/w/n，或相对牌子的 f/b/l/r，解析交给
- * {@link Direction#parse(String)}。线路 id 为 routes.yml 中的线路 id（不再有 contact / default
+ * {@link Direction#parse(String)}。线路 id 为 railway_routes.yml 中的线路 id（不再有 contact / default
  * 特殊 id——遍历系统已取消正线 / 联络线概念，每个出向都显式声明其归属线路）。
  */
 @Getter

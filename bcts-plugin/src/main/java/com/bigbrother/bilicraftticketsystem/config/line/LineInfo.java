@@ -7,7 +7,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * 一条线路的配置信息（对应 routes.yml 中的一个线路 id）。
+ * 一条线路的配置信息（对应 railway_routes.yml 中的一个线路 id）。
  * <p>
  * 每条线路含完整 bossbar / 进出站提示信息。所有字段在缺省时给出安全默认值，方便扩展
  * （例如以后加入铁路公司 company 字段，只需在此追加并在 {@link LineConfig} 解析）。
@@ -16,11 +16,11 @@ import java.util.List;
 @ToString
 public class LineInfo {
     /**
-     * 线路 id（routes.yml 中的键，如 "pr-cw"）。
+     * 线路 id（railway_routes.yml 中的键，如 "pr-cw"）。
      */
     private final String id;
     /**
-     * 所属铁路系统 id（routes.yml 的 {@code railway-system}）。
+     * 所属铁路系统 id（railway_routes.yml 的 {@code railway-system}）。
      */
     private final String railwaySystemId;
     /**
@@ -41,7 +41,7 @@ public class LineInfo {
     /**
      * 需要折返出站的车站在 {@link #bossbarStations} 中的下标集合。
      * <p>
-     * 来源：routes.yml 中车站名写成 {@code 站名:RV}（尽头式车站，进站后反向驶出）。
+     * 来源：railway_routes.yml 中车站名写成 {@code 站名:RV}（尽头式车站，进站后反向驶出）。
      * 用下标而非站名标记，是因为环线会重复站名，按位置才能精确区分。
      */
     private final java.util.Set<Integer> reverseStationIndices;
@@ -62,7 +62,7 @@ public class LineInfo {
      */
     private final List<String> noticeDeparture;
     /**
-     * 转线目标线路 id：routes.yml 中 {@code bossbar-stations} 最后一项若填的是
+     * 转线目标线路 id：railway_routes.yml 中 {@code bossbar-stations} 最后一项若填的是
      * {@code <线路id>} 或 {@code <线路id>:<进入站名>}（而非普通站名），表示普通车到达本线终点站后
      * 转入该线路继续运行。无转线时为 null。
      * <p>

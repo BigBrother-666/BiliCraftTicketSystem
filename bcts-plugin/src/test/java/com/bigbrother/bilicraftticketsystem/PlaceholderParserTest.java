@@ -99,7 +99,7 @@ public class PlaceholderParserTest {
 
     @Test
     void legacyArrivalNoticeStyleWorks() {
-        // routes.yml bossbar-arrival-notice 实际写法
+        // railway_routes.yml bossbar-arrival-notice 实际写法
         Component c = PlaceholderParser.toComponent("&6列车已到达 &cStation A站");
         assertEquals("列车已到达 Station A站", plain(c));
     }

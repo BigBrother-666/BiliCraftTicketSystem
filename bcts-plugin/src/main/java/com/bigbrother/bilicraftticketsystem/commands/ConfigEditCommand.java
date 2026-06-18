@@ -27,7 +27,7 @@ public class ConfigEditCommand {
         this.plugin = plugin;
     }
 
-    @CommandDescription("游戏内新建 / 修改线路配置（routes.yml）")
+    @CommandDescription("游戏内新建 / 修改线路配置（railway_routes.yml）")
     @Command("ticketconfig editRoute <lineId>")
     @Permission("bcts.ticket.editroute")
     public void editRoute(
@@ -95,7 +95,7 @@ public class ConfigEditCommand {
         WizardManager.start(new SystemWizard(player, systemId, editMode));
     }
 
-    @CommandDescription("删除一条线路配置（routes.yml）")
+    @CommandDescription("删除一条线路配置（railway_routes.yml）")
     @Command("ticketconfig delRoute <lineId>")
     @Permission("bcts.ticket.editroute")
     public void delRoute(

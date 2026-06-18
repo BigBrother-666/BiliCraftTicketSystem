@@ -15,7 +15,7 @@ import org.bukkit.util.Vector;
 @RequiredArgsConstructor
 public class GeoNodeLoc {
     /**
-     * 线路 id（routes.yml 中的键，如 "pr-cw"）。
+     * 线路 id（railway_routes.yml 中的键，如 "pr-cw"）。
      */
     private final String lineId;
     /**

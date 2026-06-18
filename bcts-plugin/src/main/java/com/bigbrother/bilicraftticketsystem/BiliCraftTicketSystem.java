@@ -149,7 +149,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         saveResourceIfAbsent(EnumConfig.GEO_CONFIG.getFileName());
         saveResourceIfAbsent(EnumConfig.MENU_CARD.getFileName());
         saveResourceIfAbsent(EnumConfig.MENU_SYSTEM.getFileName());
-        saveResourceIfAbsent(EnumConfig.ROUTES_CONFIG.getFileName());
+        saveResourceIfAbsent(EnumConfig.RAILWAY_ROUTES_CONFIG.getFileName());
         saveResourceIfAbsent(EnumConfig.RAILWAY_SYSTEM_CONFIG.getFileName());
     }
 
