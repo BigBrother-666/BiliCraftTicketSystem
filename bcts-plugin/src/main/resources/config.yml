@@ -111,6 +111,8 @@ lore:
     - '<!italic><gold>{startStationName} ===直达===＞ {endStationName}'
     - '<!italic><dark_purple><b>▶ 车票使用方法'
     - '<!italic><gold>前往国铁 [{startStationName}] , 使用标有 [{startRailwayName}] 的发车装置发车, 主手拿本车票上车'
+    - '<dark_purple><b>▶ 路线详情（只停起始站和终到站）'
+    - '{PathInfoLore}'
     - '<!italic><dark_purple><b>▶ 途经铁路'
     - '{RailwayInfoLore}'
     - '<!italic>{distance} km | 最大速度 {speed} km/h'

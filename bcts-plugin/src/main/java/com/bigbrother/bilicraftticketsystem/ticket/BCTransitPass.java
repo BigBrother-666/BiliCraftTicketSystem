@@ -174,6 +174,11 @@ public abstract class BCTransitPass {
             if (lineId == null || lineId.isEmpty()) {
                 continue;
             }
+            // 如果该lineId没有对应的铁路公司，不显示
+            String railwaySystemId = LineConfig.get(lineId).getRailwaySystemId();
+            if (railwaySystemId == null || railwaySystemId.isEmpty()) {
+                continue;
+            }
             // 相邻去重
             if (lineIds.isEmpty() || !lineIds.getLast().equals(lineId)) {
                 lineIds.add(lineId);
