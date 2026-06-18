@@ -1,6 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.wizard;
 
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
+import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemInfo;
 import net.kyori.adventure.text.Component;
@@ -136,14 +137,14 @@ public class SystemWizard extends ConfigWizard {
         }
 
         RailwaySystemConfig.upsert(systemId, name, members);
-        player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+        player.sendMessage(MainConfig.prefix.append(Component.text(
                 "已保存铁路系统 [%s]，正在重载配置...".formatted(systemId), NamedTextColor.GREEN)));
         try {
             RailwaySystemConfig.load(BiliCraftTicketSystem.plugin);
-            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+            player.sendMessage(MainConfig.prefix.append(Component.text(
                     "配置重载完成", NamedTextColor.GREEN)));
         } catch (Exception e) {
-            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+            player.sendMessage(MainConfig.prefix.append(Component.text(
                     "配置重载时发生错误：" + e.getMessage(), NamedTextColor.RED)));
         }
     }

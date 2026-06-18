@@ -5,7 +5,6 @@ import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bigbrother.bctsguardplugin.GuardListeners;
-import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRouteEngine;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRoutePath;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
@@ -92,7 +91,7 @@ public class BCCard extends BCTransitPass {
         ItemStack mainHand = player.getInventory().getItemInMainHand();
         BCCard card = fromItemStack(mainHand);
         if (card == null) {
-            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(CommonUtils.mmStr2Component(message.get("card-missing", "<red>主手没有检测到交通卡！"))));
+            player.sendMessage(MainConfig.prefix.append(CommonUtils.mmStr2Component(message.get("card-missing", "<red>主手没有检测到交通卡！"))));
             return null;
         }
         return card;
@@ -183,7 +182,7 @@ public class BCCard extends BCTransitPass {
                 // 余额充足？
                 double price = getPrice();
                 if (this.cardInfo.getBalance() < price) {
-                    usedPlayer.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+                    usedPlayer.sendMessage(MainConfig.prefix.append(
                             CommonUtils.mmStr2Component(message.get("card-not-enough-balance", "<red>交通卡余额不足！本次行程需要 <yellow>%.2f 银币<red>，余额 <yellow>%.2f 银币").formatted(price, this.cardInfo.getBalance())))
                     );
                     return false;
@@ -191,7 +190,7 @@ public class BCCard extends BCTransitPass {
                 return true;
             }
             // ???
-            usedPlayer.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+            usedPlayer.sendMessage(MainConfig.prefix.append(
                     CommonUtils.mmStr2Component(message.get("unknown-error", "发生未知错误！"))
             ));
             return false;
@@ -225,7 +224,7 @@ public class BCCard extends BCTransitPass {
             }
         } else {
             // 要求指定终点
-            usedPlayer.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+            usedPlayer.sendMessage(MainConfig.prefix.append(
                     CommonUtils.mmStr2Component(message.get("card-no-endstation", "请先指定想前往的终点站再上车！")).decoration(TextDecoration.ITALIC, false))
             );
             // 打开指定终点界面
@@ -236,7 +235,7 @@ public class BCCard extends BCTransitPass {
         // 余额充足？
         double price = getPrice();
         if (this.cardInfo.getBalance() < price) {
-            usedPlayer.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+            usedPlayer.sendMessage(MainConfig.prefix.append(
                     CommonUtils.mmStr2Component(message.get("card-not-enough-balance", "<red>交通卡余额不足！本次行程需要 <yellow>%.2f 银币<red>，余额 <yellow>%.2f 银币").formatted(price, this.cardInfo.getBalance())))
             );
             return false;
@@ -252,7 +251,7 @@ public class BCCard extends BCTransitPass {
             String pathLineId = pathInfo.getStartLineId();
             if (!trainStation.equals(pathInfo.getStartStationName())
                     || !trainLineId.equals(pathLineId == null ? "" : pathLineId)) {
-                usedPlayer.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+                usedPlayer.sendMessage(MainConfig.prefix.append(
                         CommonUtils.mmStr2Component(message.get("card-wrong-platform", "不能本站台使用交通卡，请核对交通卡的可使用站台和本站台上的信息是否一致")))
                 );
                 return false;
@@ -276,7 +275,7 @@ public class BCCard extends BCTransitPass {
         // 扣费
         this.addBalance(-price);
 
-        usedPlayer.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+        usedPlayer.sendMessage(MainConfig.prefix.append(
                 CommonUtils.mmStr2Component(message.get("card-used", "刷卡成功，扣费 %.2f 银币，剩余 %.2f 银币").formatted(price, this.cardInfo.getBalance()))
         ));
 
@@ -376,7 +375,7 @@ public class BCCard extends BCTransitPass {
         double maxCharge = MainConfig.cardConfig.get("max-signle-charge", 1000);
 
         if (chargeNum > maxCharge) {
-            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+            player.sendMessage(MainConfig.prefix.append(
                     CommonUtils.mmStr2Component(message.get("card-charge-reach-max", "单次最多充值 %.2f 银币！请重新输入或点击取消按钮。").formatted(maxCharge)).decoration(TextDecoration.ITALIC, false))
             );
             return true;
@@ -393,21 +392,21 @@ public class BCCard extends BCTransitPass {
 
         if (r.transactionSuccess()) {
             addBalance(r.amount);
-            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+            player.sendMessage(MainConfig.prefix.append(
                     CommonUtils.mmStr2Component(message.get("card-charge-success", "您成功向交通卡充值了 %.2f 银币，余额 %.2f 银币").formatted(r.amount, this.cardInfo.getBalance())).decoration(TextDecoration.ITALIC, false))
             );
             if (reachMax) {
-                player.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+                player.sendMessage(MainConfig.prefix.append(
                         CommonUtils.mmStr2Component(message.get("card-reach-max", "交通卡存储金额已经达到最大值")).decoration(TextDecoration.ITALIC, false))
                 );
             }
             // 记录log
-            Bukkit.getConsoleSender().sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("玩家 %s 成功向交通卡充值了 %.2f ".formatted(player.getName(), r.amount), NamedTextColor.GREEN)));
+            Bukkit.getConsoleSender().sendMessage(MainConfig.prefix.append(Component.text("玩家 %s 成功向交通卡充值了 %.2f ".formatted(player.getName(), r.amount), NamedTextColor.GREEN)));
             // 记录充值收入
             plugin.getTrainDatabaseManager().getRevenueService().recordCardCharge(
                     player.getUniqueId().toString(), player.getName(), r.amount, this.cardInfo.getCardUuid());
         } else {
-            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+            player.sendMessage(MainConfig.prefix.append(
                     CommonUtils.mmStr2Component(message.get("card-charge-failure", "充值失败：%s").formatted(r.errorMessage)).decoration(TextDecoration.ITALIC, false))
             );
         }
@@ -445,7 +444,7 @@ public class BCCard extends BCTransitPass {
     }
 
     private void sendNoPathMsg(Player player) {
-        player.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+        player.sendMessage(MainConfig.prefix.append(
                 CommonUtils.mmStr2Component(message.get("card-no-path", "本站台没有 <i><u>%s</i> 直达 <i><u>%s</i> 的路线").formatted(cardInfo.getStartStationString(), cardInfo.getEndStationString())).decoration(TextDecoration.ITALIC, false))
         );
     }

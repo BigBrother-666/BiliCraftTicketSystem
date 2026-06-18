@@ -31,7 +31,7 @@ perm-discount:
 # 交通卡
 card:
   # 物品名
-  name: '<gold><!italic>帕拉伦国有铁路交通卡'
+  name: '<gold><!italic>帕拉伦铁路交通卡'
   # 最大储蓄金额
   max-balance: 114514
   # 起步价
@@ -62,6 +62,8 @@ font:
 
 # 提示信息
 message:
+  # 车票系统前缀
+  ticket-system-prefix: '<gold>[帕拉伦铁路系统] '
   # 聊天栏
   ticket-buy-success: '<green>您成功花费 <bold>%.2f银币</bold> 购买了 <bold>%s</bold>'
   ticket-buy-failure: '<red>车票购买失败：%s'
@@ -89,7 +91,7 @@ message:
 
   forbidden-get-on: '<red>主手车票不正确或列车已经驶离起始站，禁止上车'
   quick-buy: '<green><underlined>点击花费 <bold>%.2f银币</bold> 快速购买一张此列车的单程票'
-  wiki: '<green><underlined><click:open_url:https://www.yuque.com/sasanarx/bilicraft/iunb5gkspevng8gf#>点击打开帕拉伦国有铁路wiki页面'
+  wiki: '<green><underlined><click:open_url:https://www.yuque.com/sasanarx/bilicraft/iunb5gkspevng8gf#>点击打开帕拉伦铁路wiki页面'
   # 直达车bossbar
   express-normal: '<green>%s <rainbow>======== 直达 ========＞</rainbow> %s</green>'
   express-end: '<rainbow>>>>> <gold>列车已到达终点站：<red>%s</red>，下车时，请您注意站台与列车之间的空隙</gold> <<<<</rainbow>'

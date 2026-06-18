@@ -1,6 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.listeners;
 
-import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
+import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuCard;
 import com.bigbrother.bilicraftticketsystem.ticket.BCCard;
 import net.kyori.adventure.text.Component;
@@ -54,7 +54,7 @@ public class CardListeners implements Listener {
                 try {
                     double chargeNum = Double.parseDouble(chatStr);
                     if (chargeNum <= 0) {
-                        player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("充值金额必须>0！请重新输入或点击取消按钮。")));
+                        player.sendMessage(MainConfig.prefix.append(Component.text("充值金额必须>0！请重新输入或点击取消按钮。")));
                         return;
                     }
                     if (!card.charge(chargeNum, player)) {
@@ -62,7 +62,7 @@ public class CardListeners implements Listener {
                         MenuCard.getMenu(player).open();
                     }
                 } catch (NumberFormatException e) {
-                    player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("不是有效的数字！请重新输入或点击取消按钮。")));
+                    player.sendMessage(MainConfig.prefix.append(Component.text("不是有效的数字！请重新输入或点击取消按钮。")));
                 }
             }
         }

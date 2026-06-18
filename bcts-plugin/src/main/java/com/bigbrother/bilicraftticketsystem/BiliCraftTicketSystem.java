@@ -46,7 +46,6 @@ import java.util.List;
 @Getter
 public final class BiliCraftTicketSystem extends JavaPlugin {
     public static BiliCraftTicketSystem plugin;
-    public static final Component PREFIX = Component.text("[帕拉伦国有铁路车票系统] ", NamedTextColor.GOLD);
     private Economy econ = null;
     private TrainDatabaseManager trainDatabaseManager;
     private GeoDatabaseManager geoDatabaseManager;

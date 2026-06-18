@@ -1,6 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.commands;
 
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
+import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.ticket.BCCard;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -31,16 +32,16 @@ public class CardCommand {
     ) {
         if (cardUUID == null) {
             player.getInventory().addItem(BCCard.getEmptyCard());
-            sender.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("成功给予玩家%s一张未开卡的交通卡".formatted(player.getName()), NamedTextColor.GREEN)));
+            sender.sendMessage(MainConfig.prefix.append(Component.text("成功给予玩家%s一张未开卡的交通卡".formatted(player.getName()), NamedTextColor.GREEN)));
         } else {
             BCCard bcCard = BCCard.fromUuid(cardUUID.toString());
             if (bcCard != null) {
                 bcCard.refreshCard();
                 player.getInventory().addItem(bcCard.getItemStack());
             } else {
-                sender.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("没有此uuid的交通卡！")));
+                sender.sendMessage(MainConfig.prefix.append(Component.text("没有此uuid的交通卡！")));
             }
-            sender.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("成功给予玩家%s一张交通卡（%s）".formatted(player.getName(), cardUUID), NamedTextColor.GREEN)));
+            sender.sendMessage(MainConfig.prefix.append(Component.text("成功给予玩家%s一张交通卡（%s）".formatted(player.getName(), cardUUID), NamedTextColor.GREEN)));
         }
     }
 
@@ -53,9 +54,9 @@ public class CardCommand {
     ) {
         int deleted = plugin.getTrainDatabaseManager().getCardInfoService().deleteByCardUuid(cardUUID.toString());
         if (deleted <= 0) {
-            sender.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("没有找到交通卡 %s".formatted(cardUUID), NamedTextColor.YELLOW)));
+            sender.sendMessage(MainConfig.prefix.append(Component.text("没有找到交通卡 %s".formatted(cardUUID), NamedTextColor.YELLOW)));
         } else {
-            sender.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("成功删除交通卡 %s".formatted(cardUUID), NamedTextColor.GREEN)));
+            sender.sendMessage(MainConfig.prefix.append(Component.text("成功删除交通卡 %s".formatted(cardUUID), NamedTextColor.GREEN)));
         }
     }
 }

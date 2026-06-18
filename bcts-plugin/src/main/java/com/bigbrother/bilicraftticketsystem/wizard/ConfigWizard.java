@@ -1,6 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.wizard;
 
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
+import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import lombok.Getter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
@@ -87,7 +88,7 @@ public abstract class ConfigWizard {
      */
     public void start() {
         this.steps = steps();
-        player.sendMessage(BiliCraftTicketSystem.PREFIX.append(title()));
+        player.sendMessage(MainConfig.prefix.append(title()));
         if (editMode) {
             player.sendMessage(Component.text("在聊天框依次输入各项配置；随时可点 ", NamedTextColor.GRAY)
                     .append(saveExitButton())
@@ -112,7 +113,7 @@ public abstract class ConfigWizard {
         WizardStep step = steps.get(index);
         WizardStep.Result result = step.getParser().apply(input);
         if (!result.isOk()) {
-            player.sendMessage(BiliCraftTicketSystem.PREFIX
+            player.sendMessage(MainConfig.prefix
                     .append(Component.text(result.getError(), NamedTextColor.RED)));
             player.sendMessage(Component.text("请重新输入。", NamedTextColor.GRAY));
             return;
@@ -130,7 +131,7 @@ public abstract class ConfigWizard {
         }
         WizardStep step = steps.get(index);
         if (!canSkip(step)) {
-            player.sendMessage(BiliCraftTicketSystem.PREFIX
+            player.sendMessage(MainConfig.prefix
                     .append(Component.text("该项为必填，不能跳过。", NamedTextColor.RED)));
             return;
         }
@@ -145,7 +146,7 @@ public abstract class ConfigWizard {
      * 取消向导（由 [退出]/[放弃] 按钮回调或掉线触发）。
      */
     public void cancel() {
-        player.sendMessage(BiliCraftTicketSystem.PREFIX
+        player.sendMessage(MainConfig.prefix
                 .append(Component.text("已放弃本次编辑。", NamedTextColor.YELLOW)));
     }
 
@@ -181,7 +182,7 @@ public abstract class ConfigWizard {
         try {
             onComplete(values);
         } catch (Exception e) {
-            player.sendMessage(BiliCraftTicketSystem.PREFIX
+            player.sendMessage(MainConfig.prefix
                     .append(Component.text("保存配置时出错：" + e, NamedTextColor.RED)));
             BiliCraftTicketSystem.plugin.getLogger().warning("向导保存配置失败：" + e);
         }
@@ -191,7 +192,7 @@ public abstract class ConfigWizard {
         WizardStep step = steps.get(index);
         Component header = Component.text("[%d/%d] ".formatted(index + 1, steps.size()), NamedTextColor.AQUA)
                 .append(step.getPrompt());
-        player.sendMessage(BiliCraftTicketSystem.PREFIX.append(header));
+        player.sendMessage(MainConfig.prefix.append(header));
 
         if (editMode) {
             String current = currentValueDisplay(step.getKey());

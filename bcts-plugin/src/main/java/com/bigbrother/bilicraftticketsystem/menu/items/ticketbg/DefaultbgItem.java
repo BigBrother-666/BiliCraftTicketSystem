@@ -1,6 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.ticketbg;
 
-import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
+import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.database.entity.TicketbgInfo;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
@@ -29,9 +29,9 @@ public class DefaultbgItem extends AbstractItem {
             plugin.getTrainDatabaseManager().getTicketbgService().updateUsageTicketbg(null, player.getUniqueId().toString());
             MenuTicketbg.getTicketbgUsageMapping().remove(player.getUniqueId());
             MenuTicketbg.updateAllWindows();
-            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("设置默认背景图成功", NamedTextColor.GREEN)));
+            player.sendMessage(MainConfig.prefix.append(Component.text("设置默认背景图成功", NamedTextColor.GREEN)));
         } else {
-            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("已经是默认背景图！", NamedTextColor.GREEN)));
+            player.sendMessage(MainConfig.prefix.append(Component.text("已经是默认背景图！", NamedTextColor.GREEN)));
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.wizard;
 
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
+import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
@@ -225,17 +226,17 @@ public class RouteWizard extends ConfigWizard {
         LineConfig.upsert(lineId, railwaySystem, lineName, lineColor, stations,
                 arrivalNotice, bossbarColor, noticeArrival, noticeDeparture);
 
-        player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+        player.sendMessage(MainConfig.prefix.append(Component.text(
                 "已保存线路 [%s]，正在重载配置...".formatted(lineId), NamedTextColor.GREEN)));
-        player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+        player.sendMessage(MainConfig.prefix.append(Component.text(
                 "提示：线路走向 / 车站若有变动，请用 /railgeo walkAll 重新遍历生成路由图。",
                 NamedTextColor.YELLOW)));
         try {
             LineConfig.load(BiliCraftTicketSystem.plugin);
-            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+            player.sendMessage(MainConfig.prefix.append(Component.text(
                     "配置重载完成", NamedTextColor.GREEN)));
         } catch (Exception e) {
-            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+            player.sendMessage(MainConfig.prefix.append(Component.text(
                     "配置重载时发生错误：" + e.getMessage(), NamedTextColor.RED)));
         }
     }

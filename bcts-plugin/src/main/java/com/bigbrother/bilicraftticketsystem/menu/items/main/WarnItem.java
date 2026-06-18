@@ -1,6 +1,5 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.main;
 
-import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuMain;
@@ -20,7 +19,7 @@ public class WarnItem extends AbstractItem {
 
     @Override
     public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent inventoryClickEvent) {
-        player.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+        player.sendMessage(MainConfig.prefix.append(
                 CommonUtils.mmStr2Component(MainConfig.message.get("wiki", "[这里什么也没有]"))
         ));
         MenuMain.getMenu(player).close();

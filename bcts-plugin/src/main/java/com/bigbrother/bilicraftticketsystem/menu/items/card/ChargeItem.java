@@ -1,6 +1,5 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.card;
 
-import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.listeners.CardListeners;
@@ -55,7 +54,7 @@ public class ChargeItem extends AbstractItem {
     public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent event) {
         player.showTitle(Title.title(Component.text("请在聊天框输入充值金额", NamedTextColor.GOLD), Component.text("单次最多充值%s".formatted(maxCharge), NamedTextColor.DARK_GRAY)));
         player.sendMessage(
-                BiliCraftTicketSystem.PREFIX
+                MainConfig.prefix
                         .append(Component.text("请输入充值金额，或", NamedTextColor.GREEN))
                         .append(Component.text(" [取消充值] ", NamedTextColor.RED).decoration(TextDecoration.UNDERLINED, true).clickEvent(ClickEvent.callback(this::quitInputMode)))
         );
@@ -66,7 +65,7 @@ public class ChargeItem extends AbstractItem {
     private void quitInputMode(Audience audience) {
         if (audience instanceof Player player && CardListeners.inputModePlayers.contains(player.getUniqueId())) {
             CardListeners.inputModePlayers.remove(player.getUniqueId());
-            audience.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("已取消充值", NamedTextColor.YELLOW)));
+            audience.sendMessage(MainConfig.prefix.append(Component.text("已取消充值", NamedTextColor.YELLOW)));
             MenuCard.getMenu(player).open();
         }
     }

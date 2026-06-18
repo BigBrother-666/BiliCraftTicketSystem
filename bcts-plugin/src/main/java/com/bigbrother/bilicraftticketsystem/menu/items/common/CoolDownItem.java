@@ -1,6 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.common;
 
-import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
+import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import lombok.Setter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -28,7 +28,7 @@ public abstract class CoolDownItem extends AbstractItem {
         long timeLeft = (lastUsedTime + (long) (1000 * cooldownTime)) - currentTime;
         if (timeLeft > 0) {
             double secondsLeft = timeLeft / 1000.0;
-            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("点击过于频繁，请过 %.1f 秒后再试！".formatted(secondsLeft), NamedTextColor.RED)));
+            player.sendMessage(MainConfig.prefix.append(Component.text("点击过于频繁，请过 %.1f 秒后再试！".formatted(secondsLeft), NamedTextColor.RED)));
             return true;
         }
         cooldowns.put(player.getUniqueId(), currentTime);

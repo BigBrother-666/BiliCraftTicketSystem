@@ -5,7 +5,6 @@ import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
-import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRouteEngine;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRoutePath;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
@@ -120,16 +119,16 @@ public class BCTicket extends BCTransitPass {
         String ticketName = getTicketName();
 
         if (r.transactionSuccess()) {
-            owner.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+            owner.sendMessage(MainConfig.prefix.append(
                     CommonUtils.mmStr2Component(message.get("ticket-buy-success", "您成功花费 %.2f 购买了 %s").formatted(r.amount, ticketName)).decoration(TextDecoration.ITALIC, false)
             ));
             this.give();
             // 记录log
-            Bukkit.getConsoleSender().sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("玩家 %s 成功花费 %.2f 购买了 %s".formatted(owner.getName(), r.amount, ticketName), NamedTextColor.GREEN)));
+            Bukkit.getConsoleSender().sendMessage(MainConfig.prefix.append(Component.text("玩家 %s 成功花费 %.2f 购买了 %s".formatted(owner.getName(), r.amount, ticketName), NamedTextColor.GREEN)));
             // 写入数据库
             plugin.getTrainDatabaseManager().getRevenueService().recordTicketPurchase(owner.getName(), owner.getUniqueId().toString(), r.amount, CommonItemStack.of(itemStack).getCustomData());
         } else {
-            owner.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+            owner.sendMessage(MainConfig.prefix.append(
                     CommonUtils.mmStr2Component(message.get("ticket-buy-failure", "车票购买失败：%s").formatted(r.errorMessage)).decoration(TextDecoration.ITALIC, false)
             ));
         }
@@ -167,7 +166,7 @@ public class BCTicket extends BCTransitPass {
         }
         HumanHand.setItemInMainHand(usedPlayer, commonItemStack.toBukkit());
 
-        usedPlayer.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+        usedPlayer.sendMessage(MainConfig.prefix.append(
                 CommonUtils.mmStr2Component(message.get("ticket-used", "成功使用一张（次）%s 车票").formatted(this.getTransitPassName()))
         ));
 
@@ -187,7 +186,7 @@ public class BCTicket extends BCTransitPass {
 
         // 其他玩家的车票
         if (!isTicketOwner(usedPlayer)) {
-            usedPlayer.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+            usedPlayer.sendMessage(MainConfig.prefix.append(
                     CommonUtils.mmStr2Component(message.get("ticket-owner-conflict", "不能使用其他玩家的车票"))
             ));
             return false;
@@ -195,7 +194,7 @@ public class BCTicket extends BCTransitPass {
 
         // 过期 / 失效的车票
         if (isTicketExpired() || pathInfo == null) {
-            usedPlayer.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+            usedPlayer.sendMessage(MainConfig.prefix.append(
                     CommonUtils.mmStr2Component(message.get("ticket-expired", "车票已过期"))
             ));
             return false;
@@ -203,7 +202,7 @@ public class BCTicket extends BCTransitPass {
 
         // 旧版本车票
         if (commonItemStack.getCustomData().getValue(KEY_TRANSIT_PASS_PLUGIN, "").equals("TrainCarts")) {
-            usedPlayer.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+            usedPlayer.sendMessage(MainConfig.prefix.append(
                     CommonUtils.mmStr2Component(message.get("ticket-old", "旧版车票已禁用"))
             ));
             return false;
@@ -216,7 +215,7 @@ public class BCTicket extends BCTransitPass {
         String ticketLineId = pathInfo.getStartLineId();
         if (!trainStation.equals(pathInfo.getStartStationName())
                 || !trainLineId.equals(ticketLineId == null ? "" : ticketLineId)) {
-            usedPlayer.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+            usedPlayer.sendMessage(MainConfig.prefix.append(
                     CommonUtils.mmStr2Component(message.get("ticket-wrong-platform", "此车票不能在本站台使用，请核对车票的可使用站台和本站台上的信息是否一致"))
             ));
             return false;
@@ -229,7 +228,7 @@ public class BCTicket extends BCTransitPass {
         // 已成型的直达车：要求本车票重算出的路线与列车正在行驶的导航路线<b>完全相同</b>才能上车
         // （逐节点比对 BcRouteProperty，而非仅起终点相同）
         if (!BcRouteNavigator.routeEquals(group, pathInfo.routeSteps())) {
-            usedPlayer.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+            usedPlayer.sendMessage(MainConfig.prefix.append(
                     CommonUtils.mmStr2Component(message.get("ticket-route-mismatch",
                             "此车票的路线与本趟列车不一致，无法乘坐"))
             ));

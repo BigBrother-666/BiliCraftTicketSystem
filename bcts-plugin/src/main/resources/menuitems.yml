@@ -162,7 +162,7 @@ ticketbg:
     minecraft:profile: '{id:[I;67411088,-739686879,-1666252800,-1432210090],name:"HeadDatabase",properties:[{name:"textures",value:"eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvM2MwZTVkNTZiNDNiNmQzOWI0YmViYTc5NTdmYjM5MWVlY2FjMTYxNmMyNDIzMDA2ZWRjZGE0YTk2MjNmYWVlIn19fQ=="}]}'
     minecraft:lore: '[{extra:[{bold:0b,color:"green",italic:0b,obfuscated:0b,strikethrough:0b,text:"点击查看自己上传和所有公开共享的的车票背景图。",underlined:0b}],text:""},{extra:[{bold:0b,color:"green",italic:0b,obfuscated:0b,strikethrough:0b,text:"可以共享自己上传的背景图供其他玩家使用。",underlined:0b}],text:""},{extra:[{bold:0b,color:"green",italic:0b,obfuscated:0b,strikethrough:0b,text:"也可使用
       /ticket bg 指令直接打开该界面。",underlined:0b}],text:""},{extra:[{bold:0b,color:"green",italic:0b,obfuscated:0b,strikethrough:0b,text:"",underlined:0b}],text:""},{extra:[{bold:0b,color:"green",italic:0b,obfuscated:0b,strikethrough:0b,text:"上传指令：",underlined:0b}],text:""},{extra:[{bold:0b,color:"green",italic:0b,obfuscated:0b,strikethrough:0b,text:"/ticket
-      uploadbg <图片链接> <自定义背景图名> [车票字体颜色(可选，格式#RRGGBB)]",underlined:0b}],text:""},{extra:[{bold:0b,color:"green",italic:0b,obfuscated:0b,strikethrough:0b,text:"详细使用方法见帕拉伦国有铁路wiki",underlined:0b}],text:""}]'
+      uploadbg <图片链接> <自定义背景图名> [车票字体颜色(可选，格式#RRGGBB)]",underlined:0b}],text:""},{extra:[{bold:0b,color:"green",italic:0b,obfuscated:0b,strikethrough:0b,text:"详细使用方法见帕拉伦铁路wiki",underlined:0b}],text:""}]'
     minecraft:custom_name: '{extra:[{bold:1b,color:"gold",italic:0b,obfuscated:0b,strikethrough:0b,text:"选择车票背景图",underlined:0b}],text:""}'
   schema_version: 1
 defaultbg:

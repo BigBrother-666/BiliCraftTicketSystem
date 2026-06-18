@@ -1,6 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.commands;
 
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
+import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
@@ -36,7 +37,7 @@ public class ConfigEditCommand {
             String lineId
     ) {
         if (WizardManager.isActive(player.getUniqueId())) {
-            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+            player.sendMessage(MainConfig.prefix.append(
                     Component.text("你正在进行另一项编辑，请先完成或退出。", NamedTextColor.RED)));
             return;
         }
@@ -46,13 +47,13 @@ public class ConfigEditCommand {
             String systemId = LineConfig.getSystemId(lineId);
             RailwaySystemInfo system = RailwaySystemConfig.get(systemId);
             if (system == null) {
-                player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+                player.sendMessage(MainConfig.prefix.append(Component.text(
                         "线路 [%s] 所属铁路系统 [%s] 不存在，无法校验权限。".formatted(lineId, systemId),
                         NamedTextColor.RED)));
                 return;
             }
             if (!system.isMember(player.getUniqueId())) {
-                player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+                player.sendMessage(MainConfig.prefix.append(Component.text(
                         "你不是该线路所属铁路系统 [%s] 的成员，无权修改。".formatted(systemId),
                         NamedTextColor.RED)));
                 return;
@@ -60,7 +61,7 @@ public class ConfigEditCommand {
         } else {
             // 新建模式：玩家必须至少属于一个铁路系统，才能把线路归入某系统
             if (RailwaySystemConfig.getSystemsOfMember(player.getUniqueId()).isEmpty()) {
-                player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+                player.sendMessage(MainConfig.prefix.append(Component.text(
                         "你还不属于任何铁路系统，无法新建线路。请先用 /ticket editSystem <id> 创建一个系统。",
                         NamedTextColor.RED)));
                 return;
@@ -78,7 +79,7 @@ public class ConfigEditCommand {
             String systemId
     ) {
         if (WizardManager.isActive(player.getUniqueId())) {
-            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+            player.sendMessage(MainConfig.prefix.append(
                     Component.text("你正在进行另一项编辑，请先完成或退出。", NamedTextColor.RED)));
             return;
         }
@@ -86,7 +87,7 @@ public class ConfigEditCommand {
         if (editMode) {
             RailwaySystemInfo system = RailwaySystemConfig.get(systemId);
             if (!system.isMember(player.getUniqueId())) {
-                player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+                player.sendMessage(MainConfig.prefix.append(Component.text(
                         "你不是铁路系统 [%s] 的成员，无权修改。".formatted(systemId),
                         NamedTextColor.RED)));
                 return;
@@ -104,12 +105,12 @@ public class ConfigEditCommand {
             String lineId
     ) {
         if (WizardManager.isActive(player.getUniqueId())) {
-            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+            player.sendMessage(MainConfig.prefix.append(
                     Component.text("你正在进行另一项编辑，请先完成或退出。", NamedTextColor.RED)));
             return;
         }
         if (!LineConfig.contains(lineId)) {
-            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+            player.sendMessage(MainConfig.prefix.append(Component.text(
                     "线路 [%s] 不存在。".formatted(lineId), NamedTextColor.RED)));
             return;
         }
@@ -117,13 +118,13 @@ public class ConfigEditCommand {
         String systemId = LineConfig.getSystemId(lineId);
         RailwaySystemInfo system = RailwaySystemConfig.get(systemId);
         if (system == null) {
-            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+            player.sendMessage(MainConfig.prefix.append(Component.text(
                     "线路 [%s] 所属铁路系统 [%s] 不存在，无法校验权限。".formatted(lineId, systemId),
                     NamedTextColor.RED)));
             return;
         }
         if (!system.isMember(player.getUniqueId())) {
-            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+            player.sendMessage(MainConfig.prefix.append(Component.text(
                     "你不是该线路所属铁路系统 [%s] 的成员，无权删除。".formatted(systemId),
                     NamedTextColor.RED)));
             return;
@@ -131,20 +132,20 @@ public class ConfigEditCommand {
         // 要求点击确认，点了才删除
         LineInfo line = LineConfig.get(lineId);
         String lineName = line == null ? lineId : line.getLineName();
-        player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+        player.sendMessage(MainConfig.prefix.append(Component.text(
                 "确认删除线路 %s (%s)？".formatted(lineName, lineId), NamedTextColor.YELLOW)));
-        player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("[点击确认删除]", NamedTextColor.RED)
+        player.sendMessage(MainConfig.prefix.append(Component.text("[点击确认删除]", NamedTextColor.RED)
                         .decoration(TextDecoration.UNDERLINED, true)
                         .clickEvent(ClickEvent.callback(audience -> {
                             // 点击时重新校验（线路是否仍存在 / 成员关系可能已变化）
                             if (!LineConfig.contains(lineId)) {
-                                player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+                                player.sendMessage(MainConfig.prefix.append(Component.text(
                                         "线路 [%s] 已不存在。".formatted(lineId), NamedTextColor.RED)));
                                 return;
                             }
                             RailwaySystemInfo latest = RailwaySystemConfig.get(LineConfig.getSystemId(lineId));
                             if (latest == null || !latest.isMember(player.getUniqueId())) {
-                                player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+                                player.sendMessage(MainConfig.prefix.append(Component.text(
                                         "你无权删除线路 [%s]。".formatted(lineId), NamedTextColor.RED)));
                                 return;
                             }
@@ -161,9 +162,9 @@ public class ConfigEditCommand {
      */
     private void performRouteDelete(Player player, String lineId) {
         LineConfig.delete(lineId);
-        player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+        player.sendMessage(MainConfig.prefix.append(Component.text(
                 "已删除线路 [%s]，正在重载配置...".formatted(lineId), NamedTextColor.GREEN)));
-        player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+        player.sendMessage(MainConfig.prefix.append(Component.text(
                 "提示：删除的线路如果在运营（包含在路由图中），请用 /railgeo walkAll 重新遍历生成路由图。",
                 NamedTextColor.YELLOW)));
         reloadConfig(player);
@@ -178,18 +179,18 @@ public class ConfigEditCommand {
             String systemId
     ) {
         if (WizardManager.isActive(player.getUniqueId())) {
-            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+            player.sendMessage(MainConfig.prefix.append(
                     Component.text("你正在进行另一项编辑，请先完成或退出。", NamedTextColor.RED)));
             return;
         }
         RailwaySystemInfo system = RailwaySystemConfig.get(systemId);
         if (system == null) {
-            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+            player.sendMessage(MainConfig.prefix.append(Component.text(
                     "铁路系统 [%s] 不存在。".formatted(systemId), NamedTextColor.RED)));
             return;
         }
         if (!system.isMember(player.getUniqueId())) {
-            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+            player.sendMessage(MainConfig.prefix.append(Component.text(
                     "你不是铁路系统 [%s] 的成员，无权删除。".formatted(systemId),
                     NamedTextColor.RED)));
             return;
@@ -202,7 +203,7 @@ public class ConfigEditCommand {
             return;
         }
         // 系统下有线路：列出「线路名(线路id)」并要求点击确认，点了才连带删除
-        player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+        player.sendMessage(MainConfig.prefix.append(Component.text(
                 "铁路系统 [%s] 下还有 %d 条线路，删除该系统将一并删除：".formatted(systemId, lineIds.size()),
                 NamedTextColor.YELLOW)));
         for (String lineId : lineIds) {
@@ -210,18 +211,18 @@ public class ConfigEditCommand {
             String lineName = line == null ? lineId : line.getLineName();
             player.sendMessage(Component.text("  - %s (%s)".formatted(lineName, lineId), NamedTextColor.GRAY));
         }
-        player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("[点击确认删除]", NamedTextColor.RED)
+        player.sendMessage(MainConfig.prefix.append(Component.text("[点击确认删除]", NamedTextColor.RED)
                         .decoration(TextDecoration.UNDERLINED, true)
                         .clickEvent(ClickEvent.callback(audience -> {
                             // 点击时重新校验（系统是否仍存在 / 成员关系可能已变化）
                             RailwaySystemInfo latest = RailwaySystemConfig.get(systemId);
                             if (latest == null) {
-                                player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+                                player.sendMessage(MainConfig.prefix.append(Component.text(
                                         "铁路系统 [%s] 已不存在。".formatted(systemId), NamedTextColor.RED)));
                                 return;
                             }
                             if (!latest.isMember(player.getUniqueId())) {
-                                player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+                                player.sendMessage(MainConfig.prefix.append(Component.text(
                                         "你不是铁路系统 [%s] 的成员，无权删除。".formatted(systemId), NamedTextColor.RED)));
                                 return;
                             }
@@ -243,14 +244,14 @@ public class ConfigEditCommand {
         }
         RailwaySystemConfig.delete(systemId);
         if (lineIds.isEmpty()) {
-            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+            player.sendMessage(MainConfig.prefix.append(Component.text(
                     "已删除铁路系统 [%s]，正在重载配置...".formatted(systemId), NamedTextColor.GREEN)));
         } else {
-            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+            player.sendMessage(MainConfig.prefix.append(Component.text(
                     "已删除铁路系统 [%s] 及其下 %d 条线路 %s，正在重载配置...".formatted(
                             systemId, lineIds.size(), lineIds), NamedTextColor.GREEN)));
         }
-        player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+        player.sendMessage(MainConfig.prefix.append(Component.text(
                 "提示：删除的铁路系统下如果包含正在运营的线路（包含在路由图中的线路），请用 /railgeo walkAll 重新遍历生成路由图。",
                 NamedTextColor.YELLOW)));
         reloadConfig(player);
@@ -265,10 +266,10 @@ public class ConfigEditCommand {
         try {
             RailwaySystemConfig.load(plugin);
             LineConfig.load(plugin);
-            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+            player.sendMessage(MainConfig.prefix.append(Component.text(
                     "配置重载完成", NamedTextColor.GREEN)));
         } catch (Exception e) {
-            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text(
+            player.sendMessage(MainConfig.prefix.append(Component.text(
                     "配置重载时发生错误：" + e.getMessage(), NamedTextColor.RED)));
         }
     }

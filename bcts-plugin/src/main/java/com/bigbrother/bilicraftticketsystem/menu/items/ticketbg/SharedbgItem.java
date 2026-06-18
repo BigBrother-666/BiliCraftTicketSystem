@@ -1,6 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.ticketbg;
 
-import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
+import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.database.entity.TicketbgInfo;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
@@ -84,16 +84,16 @@ public class SharedbgItem extends BgItem {
 
         if (clickType.isLeftClick() && !clickType.isShiftClick()) {
             if (isUseCurrTicketbg(player)) {
-                player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("当前正在使用此背景！", NamedTextColor.YELLOW)));
+                player.sendMessage(MainConfig.prefix.append(Component.text("当前正在使用此背景！", NamedTextColor.YELLOW)));
                 return;
             }
             plugin.getTrainDatabaseManager().getTicketbgService().updateUsageTicketbg(this.getTicketbgInfo().getId(), player.getUniqueId().toString());
             MenuTicketbg.getTicketbgUsageMapping().put(player.getUniqueId(), this.getTicketbgInfo());
             MenuTicketbg.updateAllWindows();
-            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("设置背景图成功", NamedTextColor.GREEN)));
+            player.sendMessage(MainConfig.prefix.append(Component.text("设置背景图成功", NamedTextColor.GREEN)));
         } else if (clickType.isShiftClick() && player.hasPermission("bcts.ticket.deletebg")) {
             plugin.getTrainDatabaseManager().getTicketbgService().deleteTicketbgLogical(this.getTicketbgInfo().getId());
-            player.sendMessage(BiliCraftTicketSystem.PREFIX.append(Component.text("删除背景图成功", NamedTextColor.GREEN)));
+            player.sendMessage(MainConfig.prefix.append(Component.text("删除背景图成功", NamedTextColor.GREEN)));
             MenuTicketbg.updateAllWindows();
         }
     }

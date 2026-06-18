@@ -7,7 +7,6 @@ import com.bergerkiller.bukkit.tc.events.GroupRemoveEvent;
 import com.bergerkiller.bukkit.tc.events.seat.MemberBeforeSeatEnterEvent;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
-import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.ticket.BCCard;
@@ -125,7 +124,7 @@ public class TrainListeners implements Listener {
         // 防止提示出现多次
         if (trainHintRecord.containsKey(group)) {
             if (!trainHintRecord.get(group).add(player.getUniqueId())) {
-                player.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+                player.sendMessage(MainConfig.prefix.append(
                         CommonUtils.mmStr2Component(message.get("forbidden-get-on", "")).decoration(TextDecoration.ITALIC, false)
                 ));
                 return;
@@ -136,7 +135,7 @@ public class TrainListeners implements Listener {
         }
 
         // 检票失败提示
-        player.sendMessage(BiliCraftTicketSystem.PREFIX.append(
+        player.sendMessage(MainConfig.prefix.append(
                 CommonUtils.mmStr2Component(message.get("ticket-check-failed", "")).decoration(TextDecoration.ITALIC, false)
         ));
 
@@ -162,7 +161,7 @@ public class TrainListeners implements Listener {
 
         double discountPrice = cloned.getPrice();
         // 发送购买按钮
-        player.sendMessage(BiliCraftTicketSystem.PREFIX.append(CommonUtils.mmStr2Component(message.get("quick-buy", "").formatted(discountPrice)))
+        player.sendMessage(MainConfig.prefix.append(CommonUtils.mmStr2Component(message.get("quick-buy", "").formatted(discountPrice)))
                 .decoration(TextDecoration.ITALIC, false)
                 .clickEvent(ClickEvent.callback(audience -> cloned.purchase())));
     }

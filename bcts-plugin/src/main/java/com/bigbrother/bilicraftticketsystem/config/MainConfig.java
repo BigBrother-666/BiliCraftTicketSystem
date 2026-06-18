@@ -3,13 +3,16 @@ package com.bigbrother.bilicraftticketsystem.config;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import lombok.Data;
+import net.kyori.adventure.text.Component;
 
 import java.util.Collections;
 import java.util.List;
 
 @Data
 public class MainConfig {
+    public static Component prefix;
     public static double maxSpeed;
     public static double minSpeed;
     public static double speedStep;
@@ -70,6 +73,7 @@ public class MainConfig {
         permDiscount = mainConfig.getNode("perm-discount");
 
         message = mainConfig.getNode("message");
+        prefix = CommonUtils.mmStr2Component(message.get("ticket-system-prefix", "<gold>[帕拉伦国有铁路车票系统]"));
 
         ConfigurationNode uses = mainConfig.getNode("uses");
         maxUses = uses.get("max", 50);
