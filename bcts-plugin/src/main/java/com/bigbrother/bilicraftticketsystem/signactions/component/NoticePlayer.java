@@ -3,6 +3,7 @@ package com.bigbrother.bilicraftticketsystem.signactions.component;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
+import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemInfo;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.utils.PlaceholderParser;
 import net.kyori.adventure.text.Component;
@@ -162,7 +163,8 @@ public final class NoticePlayer {
         map.put("line_color", line == null ? "<#FFFFFF>" : "<%s>".formatted(line.getLineColor()));
         map.put("next_station", nextStation == null ? CommonUtils.NOT_AVAILABLE_MM : nextStation);
         if (line != null) {
-            map.put("railway_system", line.getRailwaySystemId() != null ? RailwaySystemConfig.get(line.getRailwaySystemId()) : CommonUtils.NOT_AVAILABLE_MM);
+            RailwaySystemInfo railwaySystemInfo = RailwaySystemConfig.get(line.getRailwaySystemId());
+            map.put("railway_system", railwaySystemInfo != null ? railwaySystemInfo.getName() : CommonUtils.NOT_AVAILABLE_MM);
         } else {
             map.put("railway_system", CommonUtils.NOT_AVAILABLE_MM);
         }
