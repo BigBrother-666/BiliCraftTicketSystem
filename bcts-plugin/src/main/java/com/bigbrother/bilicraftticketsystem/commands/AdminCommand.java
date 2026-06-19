@@ -12,7 +12,10 @@ import com.bigbrother.bilicraftticketsystem.commands.argument.StatisticsType;
 import com.bigbrother.bilicraftticketsystem.database.OldDatabaseMigrator;
 import com.bigbrother.bilicraftticketsystem.listeners.TrainListeners;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoNode;
+import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRouteEngine;
+import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRouteGraph;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRoutePath;
+import com.bigbrother.bilicraftticketsystem.route.geograph.MermaidExporter;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteNavigator;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteProperty;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.SwitchTrace;
@@ -32,6 +35,8 @@ import org.incendo.cloud.annotations.CommandDescription;
 import org.incendo.cloud.annotations.Permission;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 import static com.bigbrother.bilicraftticketsystem.ticket.BCTicket.KEY_TICKET_OWNER_NAME;
@@ -174,7 +179,7 @@ public class AdminCommand {
 
     @CommandDescription("调试：输出当前所坐列车的信息（车型 / 线路 / 起点站 / 路线 / 导航）")
     @Command("ticketdebug traininfo")
-    @Permission("bcts.ticket.traininfo")
+    @Permission("bcts.ticket.debug")
     public void trainInfo(
             Player player
     ) {
@@ -259,7 +264,7 @@ public class AdminCommand {
 
     @CommandDescription("调试：开关道岔选向追踪（开启后列车每经过 bcswitcher 打印选向到控制台）")
     @Command("ticketdebug switchtrace <state>")
-    @Permission("bcts.ticket.traininfo")
+    @Permission("bcts.ticket.debug")
     public void switchTrace(
             CommandSender sender,
             @Argument(value = "state", description = "on / off", suggestions = "switchTraceState")
@@ -270,6 +275,35 @@ public class AdminCommand {
         sender.sendMessage(Component.text(
                 "道岔选向追踪已" + (on ? "开启（每辆列车经过 bcswitcher 会打印到控制台）" : "关闭"),
                 on ? NamedTextColor.GREEN : NamedTextColor.GRAY));
+    }
+
+    @CommandDescription("调试：把 geojson 构造的路由图与各线路子图导出为 Mermaid 文件(.mmd) 到 mermaid/ 目录")
+    @Command("ticketdebug exportmmd")
+    @Permission("bcts.ticket.debug")
+    public void exportMmd(
+            CommandSender sender
+    ) {
+        GeoRouteGraph graph = GeoRouteEngine.getGraph();
+        if (graph == null || graph.nodeCount() == 0) {
+            sender.sendMessage(Component.text("路由图为空（尚未加载 geojson），无法导出", NamedTextColor.RED));
+            return;
+        }
+        sender.sendMessage(Component.text("正在导出 Mermaid 文件...", NamedTextColor.AQUA));
+        File outDir = new File(plugin.getDataFolder(), "mermaid");
+        // 文件 IO 放异步，避免卡主线程
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                int files = MermaidExporter.exportAll(graph, outDir);
+                Bukkit.getScheduler().runTask(plugin, () -> sender.sendMessage(Component.text(
+                        "导出完成：共 %d 个文件（节点 %d，边 %d），位于 %s".formatted(
+                                files, graph.nodeCount(), graph.linkCount(), outDir.getAbsolutePath()),
+                        NamedTextColor.GREEN)));
+            } catch (IOException e) {
+                plugin.getComponentLogger().warn(Component.text("导出 Mermaid 失败：" + e.getMessage(), NamedTextColor.RED));
+                Bukkit.getScheduler().runTask(plugin, () -> sender.sendMessage(Component.text(
+                        "导出失败：" + e.getMessage() + "（详见控制台）", NamedTextColor.RED)));
+            }
+        });
     }
 
     @CommandDescription("查询n天内的某类型的统计信息")

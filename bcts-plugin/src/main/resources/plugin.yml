@@ -57,6 +57,9 @@ permissions:
   bcts.ticket.editsystem:
     description: "游戏内新建/修改铁路系统配置权限"
     default: op
+  bcts.ticket.debug:
+    description: "列车/图调试相关指令"
+    default: op
 
 libraries:
   - com.zaxxer:HikariCP:${hikari.version}
