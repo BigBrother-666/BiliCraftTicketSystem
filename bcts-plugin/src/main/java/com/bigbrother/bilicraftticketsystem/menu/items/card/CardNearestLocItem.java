@@ -24,7 +24,7 @@ import static com.bigbrother.bilicraftticketsystem.menu.items.location.NearestLo
 
 public class CardNearestLocItem extends CardLocationItem {
     private final Player viewer;
-    private PlatfromInfo nearestBcspawn = null;
+    private PlatfromInfo nearestPlatform = null;
 
     public CardNearestLocItem(Player viewer, MenuLocationCard fromMenu) {
         super(CommonUtils.loadItemFromFile("nearest"), fromMenu);
@@ -39,9 +39,9 @@ public class CardNearestLocItem extends CardLocationItem {
             return;
         }
 
-        if (nearestBcspawn != null) {
+        if (nearestPlatform != null) {
             MenuCard menu = MenuCard.getMenu(player);
-            Component name = StationProvider.stationNameComponent(nearestBcspawn.getStationName());
+            Component name = StationProvider.stationNameComponent(nearestPlatform.getStationName());
             if (fromMenu.isStart()) {
                 card.setStartStation(name);
             } else {
@@ -68,7 +68,7 @@ public class CardNearestLocItem extends CardLocationItem {
                         double distanceSquared = playerLocation.distanceSquared(bcspawnLocation);
                         if (minDistanceSquared > distanceSquared) {
                             minDistanceSquared = distanceSquared;
-                            nearestBcspawn = platfromInfo;
+                            nearestPlatform = platfromInfo;
                         }
                     }
                 }
@@ -77,11 +77,11 @@ public class CardNearestLocItem extends CardLocationItem {
             // 添加lore
             ItemMeta itemMeta = this.itemStack.getItemMeta();
             List<Component> lore = new ArrayList<>();
-            if (nearestBcspawn != null) {
+            if (nearestPlatform != null) {
                 lore.add(Component.text("距离最近的车站：%s(%.2fm)，位于(x=%d, z=%d, z=%d)附近"
-                        .formatted(nearestBcspawn.getStationName(), Math.sqrt(minDistanceSquared), nearestBcspawn.getCoordX(), nearestBcspawn.getFixedY(), nearestBcspawn.getCoordZ()), NamedTextColor.DARK_AQUA));
+                        .formatted(nearestPlatform.getStationName(), Math.sqrt(minDistanceSquared), nearestPlatform.getCoordX(), nearestPlatform.getFixedY(), nearestPlatform.getCoordZ()), NamedTextColor.DARK_AQUA));
             } else {
-                lore.add(Component.text("当前世界没有国铁车站", NamedTextColor.RED));
+                lore.add(Component.text("当前世界没有车站", NamedTextColor.RED));
             }
             itemMeta.lore(lore);
             this.itemStack.setItemMeta(itemMeta);

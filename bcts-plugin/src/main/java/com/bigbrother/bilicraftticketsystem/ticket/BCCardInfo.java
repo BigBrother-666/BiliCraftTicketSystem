@@ -2,6 +2,7 @@ package com.bigbrother.bilicraftticketsystem.ticket;
 
 import com.bigbrother.bilicraftticketsystem.database.entity.CardInfo;
 import com.bigbrother.bilicraftticketsystem.menu.PlayerOption;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import lombok.Getter;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.Nullable;
@@ -36,18 +37,20 @@ public class BCCardInfo extends PlayerOption {
         this.cardUuid = info.getCardUuid();
         this.speed = info.getMaxSpeed();
         this.balance = info.getBalance();
+        this.startStationSystem = info.getStartStationSystem() == null ? CommonUtils.NOT_AVAILABLE : info.getStartStationSystem();
+        this.endStationSystem = info.getEndStationSystem() == null ? CommonUtils.NOT_AVAILABLE : info.getEndStationSystem();
 
         cache.put(this.cardUuid, this);
         this.changed = false;
     }
 
-    public void setStartStation(Component startStation) {
-        super.setStartStation(startStation);
+    public void setStartStationComponent(Component startStationComponent) {
+        super.setStartStationComponent(startStationComponent);
         changed = true;
     }
 
-    public void setEndStation(Component endStation) {
-        super.setEndStation(endStation);
+    public void setEndStationComponent(Component endStationComponent) {
+        super.setEndStationComponent(endStationComponent);
         changed = true;
     }
 
@@ -75,8 +78,10 @@ public class BCCardInfo extends PlayerOption {
                 this.cardUuid,
                 this.getStartStationString(),
                 this.getMmStartStationName(),
+                this.startStationSystem,
                 this.getEndStationString(),
                 this.getMmEndStationName(),
+                this.endStationSystem,
                 this.speed,
                 this.balance
         ));
@@ -91,8 +96,10 @@ public class BCCardInfo extends PlayerOption {
                 this.cardUuid,
                 this.getStartStationString(),
                 this.getMmStartStationName(),
+                this.startStationSystem,
                 this.getEndStationString(),
                 this.getMmEndStationName(),
+                this.endStationSystem,
                 this.speed,
                 this.balance
         ));

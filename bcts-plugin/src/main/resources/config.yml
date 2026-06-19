@@ -98,30 +98,31 @@ message:
 
 lore:
   # 公共占位符：
-  # {startStationName} {startRailwayName}
-  # {endStationName}
+  # {start_station_name} {start_railway_name} {start_line_color} {start_railway_system}
+  # {end_station_name} {end_railway_system}
+  # {start_station_full} {end_station_full}  带色站名+(系统名)，站点为空显示N/A
   # {distance} {speed} {price}
-  # {PathInfoLore} {RailwayInfoLore} 必须放在单独一行
+  # {path_info_lore} {railway_info_lore} 必须放在单独一行
   # ticket独有：
-  # {maxUses} {ownerName}
+  # {max_uses} {owner_name}
   # card独有：
-  # {balance} {usePlatform}
+  # {balance} {use_platform}
   ticket:
-    - '<!italic><dark_purple><b>▶ 路线'
-    - '<!italic><gold>{startStationName} ===直达===＞ {endStationName}'
-    - '<!italic><dark_purple><b>▶ 车票使用方法'
-    - '<!italic><gold>前往国铁 [{startStationName}] , 使用标有 [{startRailwayName}] 的发车装置发车, 主手拿本车票上车'
-    - '<dark_purple><b>▶ 路线详情（只停起始站和终到站）'
-    - '{PathInfoLore}'
-    - '<!italic><dark_purple><b>▶ 途经铁路'
-    - '{RailwayInfoLore}'
-    - '<!italic>{distance} km | 最大速度 {speed} km/h'
+    - '<!italic><dark_purple>▶ 路线'
+    - '<italic>{start_station_full} <gold>====直达====＞ {end_station_full}'
+    - '<!italic><dark_purple>▶ 车票使用方法'
+    - '<italic><gold>前往 <gray>{start_railway_system} <gold>的 {start_line_color}{start_station_name}站 , <gold>使用标有 {start_line_color}{start_railway_name} <gold>的发车装置发车, 主手拿本车票上车'
+    - '<!italic><dark_purple>▶ 路线详情（只停起始站和终到站）'
+    - '{path_info_lore}'
+    - '<!italic><dark_purple>▶ 途经铁路'
+    - '{railway_info_lore}'
+    - '<italic>{distance} km | 最大速度 {speed} km/h'
   card:
-    - '<dark_purple><b><!italic>▶ 交通卡信息'
-    - '<gold><!italic>余额：<italic>{balance}</italic>'
-    - '<gold><!italic>起始站：<italic>{startStationName}</italic>'
-    - '<gold><!italic>终到站：<italic>{endStationName}</italic>'
-    - '<gold><!italic>可用站台：<italic>{usePlatform}</italic>'
+    - '<dark_purple><!italic>▶ 交通卡信息'
+    - '<gold><!italic>余额：<italic><dark_aqua>{balance}</italic>'
+    - '<gold><!italic>起始站：<italic>{start_station_full}</italic>'
+    - '<gold><!italic>终到站：<italic>{end_station_full}</italic>'
+    - '<gold><!italic>可用站台：<italic>{use_platform}</italic>'
   # 路线详情lore每行最多显示的车站数
   station-name-cnt-perrow: 7
   # 途经铁路lore每行最多显示的车站数

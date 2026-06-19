@@ -128,7 +128,7 @@ public final class PlaceholderParser {
 
         while (matcher.find()) {
             String key = matcher.group(1);
-            Object value = values.get(key);
+            Object value = values.get(key.toLowerCase());
 
             matcher.appendReplacement(
                     sb,

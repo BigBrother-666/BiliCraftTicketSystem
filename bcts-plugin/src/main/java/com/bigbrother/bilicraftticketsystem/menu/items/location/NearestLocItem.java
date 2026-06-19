@@ -27,7 +27,7 @@ public class NearestLocItem extends LocationItem {
     public static List<PlatfromInfo> platfromInfoList = new ArrayList<>();
 
     private final Player viewer;
-    private PlatfromInfo nearestBcspawn = null;
+    private PlatfromInfo nearestPlatform = null;
 
     public NearestLocItem(Player viewer) {
         super(CommonUtils.loadItemFromFile("nearest"));
@@ -36,13 +36,13 @@ public class NearestLocItem extends LocationItem {
 
     @Override
     public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent event) {
-        if (nearestBcspawn != null) {
+        if (nearestPlatform != null) {
             MenuMain menu = MenuMain.getMenu(player);
-            Component name = StationProvider.stationNameComponent(nearestBcspawn.getStationName());
+            Component name = StationProvider.stationNameComponent(nearestPlatform.getStationName());
             if (MenuLocation.getMenu(player).isStart()) {
-                menu.getPlayerOption().setStartStation(name);
+                menu.getPlayerOption().setStartStationComponent(name);
             } else {
-                menu.getPlayerOption().setEndStation(name);
+                menu.getPlayerOption().setEndStationComponent(name);
             }
             menu.clearTickets();
             menu.open();
@@ -66,7 +66,7 @@ public class NearestLocItem extends LocationItem {
                         double distanceSquared = playerLocation.distanceSquared(bcspawnLocation);
                         if (minDistanceSquared > distanceSquared) {
                             minDistanceSquared = distanceSquared;
-                            nearestBcspawn = platfromInfo;
+                            nearestPlatform = platfromInfo;
                         }
                     }
                 }
@@ -75,11 +75,11 @@ public class NearestLocItem extends LocationItem {
             // 添加lore
             ItemMeta itemMeta = this.itemStack.getItemMeta();
             List<Component> lore = new ArrayList<>();
-            if (nearestBcspawn != null) {
+            if (nearestPlatform != null) {
                 lore.add(Component.text("距离最近的车站：%s(%.2fm)，位于(x=%d, z=%d, z=%d)附近"
-                        .formatted(nearestBcspawn.getStationName(), Math.sqrt(minDistanceSquared), nearestBcspawn.getCoordX(), nearestBcspawn.getFixedY(), nearestBcspawn.getCoordZ()), NamedTextColor.DARK_AQUA));
+                        .formatted(nearestPlatform.getStationName(), Math.sqrt(minDistanceSquared), nearestPlatform.getCoordX(), nearestPlatform.getFixedY(), nearestPlatform.getCoordZ()), NamedTextColor.DARK_AQUA));
             } else {
-                lore.add(Component.text("当前世界没有国铁车站", NamedTextColor.RED));
+                lore.add(Component.text("当前世界没有车站", NamedTextColor.RED));
             }
             itemMeta.lore(lore);
             this.itemStack.setItemMeta(itemMeta);

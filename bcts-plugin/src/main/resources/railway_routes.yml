@@ -30,6 +30,7 @@ pr-cw:
   # 当前站 {curr_station}
   # 下一站 {next_station}
   # 线路名 {line_name}
+  # 铁路系统 {railway_system}
   # 线路16进制颜色（MiniMessage格式） {line_color}
   notice-arrival: # 进站提示，支持announce, sound...（选填）
     - "sound:noteblock.xxxx,0.56,0.5"

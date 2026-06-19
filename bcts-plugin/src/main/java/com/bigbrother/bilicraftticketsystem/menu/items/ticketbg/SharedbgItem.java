@@ -68,7 +68,8 @@ public class SharedbgItem extends BgItem {
                 lore.add(Component.text("左键使用此背景", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
             }
         }
-        itemMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+        //noinspection deprecation
+        itemMeta.addItemFlags(ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         itemMeta.lore(lore);
         itemStack.setItemMeta(itemMeta);
 

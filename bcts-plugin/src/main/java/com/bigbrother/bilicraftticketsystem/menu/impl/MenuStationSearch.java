@@ -5,16 +5,17 @@ import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import xyz.xenondevs.inventoryaccess.component.AdventureComponentWrapper;
 import xyz.xenondevs.invui.gui.Gui;
 import xyz.xenondevs.invui.item.ItemProvider;
 import xyz.xenondevs.invui.item.builder.ItemBuilder;
 import xyz.xenondevs.invui.item.impl.AbstractItem;
-import xyz.xenondevs.invui.item.impl.SimpleItem;
 import xyz.xenondevs.invui.window.AnvilWindow;
 
 import java.util.function.Consumer;
@@ -33,8 +34,8 @@ public class MenuStationSearch extends Menu {
     private String renameText = "";
 
     private MenuStationSearch(Player player, Consumer<String> onConfirm) {
-        // 输入槽（slot 0）：提示物品，物品名即重命名框初始文本
-        ItemBuilder inputItem = new ItemBuilder(CommonUtils.loadItemFromFile("search"))
+        // 输入槽（slot 0 1）：提示物品，物品名即重命名框初始文本
+        ItemBuilder inputItem = new ItemBuilder(new ItemStack(Material.BARRIER))
                 .setDisplayName(new AdventureComponentWrapper(
                         Component.text("输入要搜索的车站名", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false)));
 
@@ -53,13 +54,13 @@ public class MenuStationSearch extends Menu {
             public void handleClick(@NotNull ClickType clickType, @NotNull Player clicker, @NotNull InventoryClickEvent event) {
                 close();
                 onConfirm.accept(renameText);
+                event.setCancelled(true);
             }
         };
 
         Gui gui = Gui.normal()
-                .setStructure("a . b")
+                .setStructure("a a b")
                 .addIngredient('a', inputItem)
-                .addIngredient('.', new SimpleItem(new ItemBuilder(org.bukkit.Material.AIR)))
                 .addIngredient('b', confirmItem)
                 .build();
 

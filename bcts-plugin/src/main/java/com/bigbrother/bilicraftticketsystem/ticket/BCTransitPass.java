@@ -6,6 +6,8 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bigbrother.bctsguardplugin.GuardListeners;
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
+import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
+import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemInfo;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcLineIdProperty;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRoutePath;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteNavigator;
@@ -196,7 +198,7 @@ public abstract class BCTransitPass {
             if (i == lineIds.size() - 1) {
                 stationsLore = stationsLore.append(Component.text(lineName, color));
             } else {
-                stationsLore = stationsLore.append(Component.text(lineName + "→", color));
+                stationsLore = stationsLore.append(Component.text(lineName, color).append(Component.text("→", NamedTextColor.GOLD)));
             }
         }
         lore.add(stationsLore);
@@ -216,6 +218,17 @@ public abstract class BCTransitPass {
     }
 
     /**
+     * 线路 id → MiniMessage颜色字符串（例<#RRGGBB>，取 {@link LineConfig#getColor}，无效时回退金色）。
+     */
+    protected static String lineMiniMessageColor(String lineId) {
+        if (lineId == null) {
+            return "<gold>";
+        }
+        String color = LineConfig.getColor(lineId);
+        return color == null ? "<gold>" : "<%s>".formatted(color);
+    }
+
+    /**
      * 线路 id → 线路名（取 {@link LineConfig} 的 lineName，缺省回退 lineId 本身）。
      */
     protected static String lineName(String lineId) {
@@ -223,14 +236,51 @@ public abstract class BCTransitPass {
         return info == null || info.getLineName() == null ? lineId : info.getLineName();
     }
 
+    /**
+     * 组合「车站名 + 所属铁路系统」的展示串（MiniMessage）：
+     * {@code <线路标志色>车站名<gray>(<铁路系统名>)}。颜色与系统均取自<b>同一条</b>线路（行程实际线路）。
+     * <p>
+     * 站名为空 / NOT_AVAILABLE 时仅返回 {@link CommonUtils#NOT_AVAILABLE_MM}（不拼成 N/A(N/A)）；
+     * 该线路无所属系统时省略括号部分，只显示带色站名。
+     *
+     * @param stationName 车站名（MiniMessage 或纯文本）
+     * @param lineId      行程在该端实际所属线路 id（决定颜色与系统）
+     * @return 组合展示串
+     */
+    protected static String stationWithSystem(String stationName, String lineId) {
+        if (stationName == null || stationName.isEmpty() || CommonUtils.NOT_AVAILABLE.equals(stationName)) {
+            return CommonUtils.NOT_AVAILABLE_MM;
+        }
+        String systemId = LineConfig.getSystemId(lineId);
+        RailwaySystemInfo system = RailwaySystemConfig.get(systemId);
+        if (system == null) {
+            return "%s%s".formatted(lineMiniMessageColor(lineId), stationName);
+        }
+        return "%s%s<gray>(%s)".formatted(lineMiniMessageColor(lineId), stationName, system.getName());
+    }
+
     public List<Component> parseConfigLore(List<String> originLore, @NotNull Map<String, Object> initPlaceholders) {
         if (pathInfo != null) {
-            initPlaceholders.putIfAbsent("startStationName", pathInfo.getStartStationName());
-            initPlaceholders.putIfAbsent("startRailwayName", lineName(pathInfo.getStartLineId()));
-            initPlaceholders.putIfAbsent("endStationName", pathInfo.getEndStationName());
+            String startLineId = pathInfo.getStartLineId();
+            String endLineId = pathInfo.getEndLineId();
+            String startSystemId = LineConfig.getSystemId(startLineId);
+            String endSystemId = LineConfig.getSystemId(endLineId);
+            initPlaceholders.putIfAbsent("start_station_name", pathInfo.getStartStationName());
+            initPlaceholders.putIfAbsent("start_railway_name", lineName(startLineId));
+            if (startSystemId != null) {
+                initPlaceholders.putIfAbsent("start_railway_system", RailwaySystemConfig.get(startSystemId).getName());
+            }
+            initPlaceholders.putIfAbsent("start_line_color", lineMiniMessageColor(startLineId));
+            initPlaceholders.putIfAbsent("end_station_name", pathInfo.getEndStationName());
+            if (endSystemId != null) {
+                initPlaceholders.putIfAbsent("end_railway_system", RailwaySystemConfig.get(endSystemId).getName());
+            }
+            // 合成占位符：带色站名 + (系统名)，避免模板里硬编码括号在空值时显示 N/A(N/A)
+            initPlaceholders.putIfAbsent("start_station_full", stationWithSystem(pathInfo.getStartStationName(), startLineId));
+            initPlaceholders.putIfAbsent("end_station_full", stationWithSystem(pathInfo.getEndStationName(), endLineId));
 
-            initPlaceholders.putIfAbsent("PathInfoLore", getPathInfoLore(MainConfig.loreStationNameCntRow));
-            initPlaceholders.putIfAbsent("RailwayInfoLore", getRailwayInfoLore(MainConfig.loreRailwayNameCntRow));
+            initPlaceholders.putIfAbsent("path_info_lore", getPathInfoLore(MainConfig.loreStationNameCntRow));
+            initPlaceholders.putIfAbsent("railway_info_lore", getRailwayInfoLore(MainConfig.loreRailwayNameCntRow));
 
             initPlaceholders.putIfAbsent("distance", "%.2f".formatted(pathInfo.getDistance()));
             initPlaceholders.putIfAbsent("speed", "%.2f".formatted(this.getSpeedKph()));

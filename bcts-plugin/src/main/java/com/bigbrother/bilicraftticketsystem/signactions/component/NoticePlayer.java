@@ -2,6 +2,8 @@ package com.bigbrother.bilicraftticketsystem.signactions.component;
 
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
+import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.utils.PlaceholderParser;
 import net.kyori.adventure.text.Component;
 import org.bukkit.NamespacedKey;
@@ -155,10 +157,15 @@ public final class NoticePlayer {
     private static Map<String, Object> placeholders(LineInfo line, String currStation, String nextStationOverride) {
         String nextStation = nextStationOverride != null ? nextStationOverride : nextStation(line, currStation);
         Map<String, Object> map = new HashMap<>();
-        map.put("curr_station", currStation == null ? "" : currStation);
-        map.put("line_name", line == null ? "" : line.getLineName());
+        map.put("curr_station", currStation == null ? CommonUtils.NOT_AVAILABLE_MM : currStation);
+        map.put("line_name", line == null ? CommonUtils.NOT_AVAILABLE_MM : line.getLineName());
         map.put("line_color", line == null ? "<#FFFFFF>" : "<%s>".formatted(line.getLineColor()));
-        map.put("next_station", nextStation == null ? "" : nextStation);
+        map.put("next_station", nextStation == null ? CommonUtils.NOT_AVAILABLE_MM : nextStation);
+        if (line != null) {
+            map.put("railway_system", line.getRailwaySystemId() != null ? RailwaySystemConfig.get(line.getRailwaySystemId()) : CommonUtils.NOT_AVAILABLE_MM);
+        } else {
+            map.put("railway_system", CommonUtils.NOT_AVAILABLE_MM);
+        }
         return map;
     }
 

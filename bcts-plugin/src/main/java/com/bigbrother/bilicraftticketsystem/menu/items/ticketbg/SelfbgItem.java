@@ -4,6 +4,8 @@ import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.database.entity.TicketbgInfo;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuTicketbg;
+import io.papermc.paper.datacomponent.DataComponentTypes;
+import io.papermc.paper.datacomponent.item.TooltipDisplay;
 import lombok.Setter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -72,7 +74,8 @@ public class SelfbgItem extends BgItem {
         } else {
             lore.add(Component.text("左键使用此背景，右键共享/取消共享此背景，shift+左键删除此背景", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
         }
-        itemMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+        //noinspection deprecation
+        itemMeta.addItemFlags(ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         itemMeta.lore(lore);
         itemStack.setItemMeta(itemMeta);
 

@@ -9,7 +9,6 @@ import com.bigbrother.bilicraftticketsystem.menu.items.common.PrevpageItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.main.*;
 import lombok.Getter;
 import lombok.Setter;
-import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import xyz.xenondevs.invui.gui.PagedGui;
@@ -30,17 +29,7 @@ public class MenuMain extends Menu {
     private List<Item> menuTicketList;
 
     private MenuMain(Player player) {
-        this(player, null, null);
-    }
-
-    private MenuMain(Player player, Component startStation, Component endStation) {
         playerOption = new PlayerOption();
-        if (startStation != null) {
-            playerOption.setStartStation(startStation);
-        }
-        if (endStation != null) {
-            playerOption.setEndStation(endStation);
-        }
 
         FileConfiguration mainConfig = MenuConfig.getMainMenuConfig();
 

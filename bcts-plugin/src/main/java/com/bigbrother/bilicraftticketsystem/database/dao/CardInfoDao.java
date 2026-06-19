@@ -21,23 +21,25 @@ public class CardInfoDao extends BaseDao {
 
     public void insert(CardInfo cardInfo) {
         String sql = "INSERT INTO " + TrainDatabaseConstants.CARD_INFO_TABLE_NAME
-                + " (card_uuid, start_station, mm_start_station, end_station, mm_end_station, max_speed, balance)"
-                + " VALUES (?, ?, ?, ?, ?, ?, ?)";
+                + " (card_uuid, start_station, mm_start_station, start_station_system, end_station, mm_end_station, end_station_system, max_speed, balance)"
+                + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection connection = dataSource.getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, cardInfo.getCardUuid());
             stmt.setString(2, cardInfo.getStartStation());
             stmt.setString(3, cardInfo.getMmStartStation());
-            stmt.setString(4, cardInfo.getEndStation());
-            stmt.setString(5, cardInfo.getMmEndStation());
+            stmt.setString(4, cardInfo.getStartStationSystem());
+            stmt.setString(5, cardInfo.getEndStation());
+            stmt.setString(6, cardInfo.getMmEndStation());
+            stmt.setString(7, cardInfo.getEndStationSystem());
             if (cardInfo.getMaxSpeed() == null) {
-                stmt.setNull(6, Types.REAL);
+                stmt.setNull(8, Types.REAL);
             } else {
-                stmt.setDouble(6, cardInfo.getMaxSpeed());
+                stmt.setDouble(8, cardInfo.getMaxSpeed());
             }
             if (cardInfo.getBalance() == null) {
-                stmt.setNull(7, Types.REAL);
+                stmt.setNull(9, Types.REAL);
             } else {
-                stmt.setDouble(7, cardInfo.getBalance());
+                stmt.setDouble(9, cardInfo.getBalance());
             }
             stmt.executeUpdate();
         } catch (SQLException e) {
@@ -46,7 +48,7 @@ public class CardInfoDao extends BaseDao {
     }
 
     public CardInfo findByCardUuid(String cardUuid) {
-        String sql = "SELECT id, card_uuid, start_station, mm_start_station, end_station, mm_end_station, max_speed, balance"
+        String sql = "SELECT id, card_uuid, start_station, mm_start_station, start_station_system, end_station, mm_end_station, end_station_system, max_speed, balance"
                 + " FROM " + TrainDatabaseConstants.CARD_INFO_TABLE_NAME + " WHERE card_uuid = ?";
         try (Connection connection = dataSource.getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, cardUuid);
@@ -61,7 +63,7 @@ public class CardInfoDao extends BaseDao {
     }
 
     public List<CardInfo> findAll() {
-        String sql = "SELECT id, card_uuid, start_station, mm_start_station, end_station, mm_end_station, max_speed, balance"
+        String sql = "SELECT id, card_uuid, start_station, mm_start_station, start_station_system, end_station, mm_end_station, end_station_system, max_speed, balance"
                 + " FROM " + TrainDatabaseConstants.CARD_INFO_TABLE_NAME;
         List<CardInfo> result = new ArrayList<>();
         try (Connection connection = dataSource.getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -78,24 +80,26 @@ public class CardInfoDao extends BaseDao {
     @SuppressWarnings("UnusedReturnValue")
     public int updateByCardUuid(CardInfo cardInfo) {
         String sql = "UPDATE " + TrainDatabaseConstants.CARD_INFO_TABLE_NAME
-                + " SET start_station = ?, mm_start_station = ?, end_station = ?, mm_end_station = ?, max_speed = ?, balance = ?"
+                + " SET start_station = ?, mm_start_station = ?, start_station_system = ?, end_station = ?, mm_end_station = ?, end_station_system = ?, max_speed = ?, balance = ?"
                 + " WHERE card_uuid = ?";
         try (Connection connection = dataSource.getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, cardInfo.getStartStation());
             stmt.setString(2, cardInfo.getMmStartStation());
-            stmt.setString(3, cardInfo.getEndStation());
-            stmt.setString(4, cardInfo.getMmEndStation());
+            stmt.setString(3, cardInfo.getStartStationSystem());
+            stmt.setString(4, cardInfo.getEndStation());
+            stmt.setString(5, cardInfo.getMmEndStation());
+            stmt.setString(6, cardInfo.getEndStationSystem());
             if (cardInfo.getMaxSpeed() == null) {
-                stmt.setNull(5, Types.REAL);
+                stmt.setNull(7, Types.REAL);
             } else {
-                stmt.setDouble(5, cardInfo.getMaxSpeed());
+                stmt.setDouble(7, cardInfo.getMaxSpeed());
             }
             if (cardInfo.getBalance() == null) {
-                stmt.setNull(6, Types.REAL);
+                stmt.setNull(8, Types.REAL);
             } else {
-                stmt.setDouble(6, cardInfo.getBalance());
+                stmt.setDouble(8, cardInfo.getBalance());
             }
-            stmt.setString(7, cardInfo.getCardUuid());
+            stmt.setString(9, cardInfo.getCardUuid());
             return stmt.executeUpdate();
         } catch (SQLException e) {
             logSQLException(e);
@@ -120,8 +124,10 @@ public class CardInfoDao extends BaseDao {
                 rs.getString("card_uuid"),
                 rs.getString("start_station"),
                 rs.getString("mm_start_station"),
+                rs.getString("start_station_system"),
                 rs.getString("end_station"),
                 rs.getString("mm_end_station"),
+                rs.getString("end_station_system"),
                 getNullableDouble(rs, "max_speed"),
                 getNullableDouble(rs, "balance")
         );

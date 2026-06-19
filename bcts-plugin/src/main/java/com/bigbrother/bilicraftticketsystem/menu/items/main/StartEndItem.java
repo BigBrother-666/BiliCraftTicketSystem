@@ -39,14 +39,14 @@ public class StartEndItem extends AbstractItem {
         if (isStart) {
             itemMeta = startItemStack.getItemMeta();
             itemMeta.lore(List.of(
-                    Component.text("当前选择：", NamedTextColor.DARK_AQUA).append(menu.getPlayerOption().getStartStation().decoration(TextDecoration.ITALIC, true)),
+                    Component.text("当前选择：", NamedTextColor.DARK_AQUA).append(menu.getPlayerOption().getStartStationComponent().decoration(TextDecoration.ITALIC, true)),
                     Component.text("左键选择车站，Shift+左键搜索车站", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false)));
             startItemStack.setItemMeta(itemMeta);
             return new ItemBuilder(startItemStack);
         } else {
             itemMeta = endItemStack.getItemMeta();
             itemMeta.lore(List.of(
-                    Component.text("当前选择：", NamedTextColor.DARK_AQUA).append(menu.getPlayerOption().getEndStation().decoration(TextDecoration.ITALIC, true)),
+                    Component.text("当前选择：", NamedTextColor.DARK_AQUA).append(menu.getPlayerOption().getEndStationComponent().decoration(TextDecoration.ITALIC, true)),
                     Component.text("左键选择车站，Shift+左键搜索车站", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false)));
             endItemStack.setItemMeta(itemMeta);
             return new ItemBuilder(endItemStack);

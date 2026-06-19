@@ -262,8 +262,8 @@ public class BCTicket extends BCTransitPass {
         }
         // 更新lore
         Map<String, Object> placeholder = new HashMap<>();
-        placeholder.put("maxUses", maxUses);
-        placeholder.put("ownerName", owner.getName());
+        placeholder.put("max_uses", maxUses);
+        placeholder.put("owner_name", owner.getName());
         List<Component> lore = parseConfigLore(MainConfig.ticketLore, placeholder);
         if (addPrice) {
             lore.add(Component.text("===============================", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false));
@@ -291,7 +291,8 @@ public class BCTicket extends BCTransitPass {
      */
     private ItemStack createItem() {
         ItemStack mapItem = MapDisplay.createMapItem(BCTicketDisplay.class);
-        mapItem.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+        //noinspection deprecation
+        mapItem.addItemFlags(ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         return CommonItemStack.of(mapItem)
                 .updateCustomData(this::updateNbt).toBukkit();
     }

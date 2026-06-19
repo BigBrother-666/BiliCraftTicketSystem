@@ -32,10 +32,10 @@ public class GeoRoutePath {
     private final double distance;
 
     /**
-     * @param nodes          有序节点列表
-     * @param lineIdSequence 逐段 lineId 序列
+     * @param nodes                   有序节点列表
+     * @param lineIdSequence          逐段 lineId 序列
      * @param departDirectionSequence 逐段物理出向序列（与 lineIdSequence 平行）
-     * @param distance       总距离（km）
+     * @param distance                总距离（km）
      */
     public GeoRoutePath(List<GeoNode> nodes, List<String> lineIdSequence, List<String> departDirectionSequence,
                         double distance) {
@@ -201,7 +201,7 @@ public class GeoRoutePath {
     }
 
     /**
-     * 本次行程所属的营运线路 id：取逐段 lineId 序列中第一个非空的 lineId。
+     * 本次行程开始时所属的营运线路 id：取逐段 lineId 序列中第一个非空的 lineId。
      * <p>
      * 用于上车校验：车票 / 交通卡据此比对列车所属线路（列车的营运线 tag）。
      *
@@ -211,6 +211,20 @@ public class GeoRoutePath {
         for (String lineId : lineIdSequence) {
             if (lineId != null && !lineId.isEmpty()) {
                 return lineId;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 本次行程结束时所属的营运线路 id：倒序取逐段 lineId 序列中第一个非空的 lineId。
+     *
+     * @return 营运线路 id；无有效线段时返回 null
+     */
+    public String getEndLineId() {
+        for (int i = lineIdSequence.size() - 1; i >= 0; i--) {
+            if (lineIdSequence.get(i) != null && !lineIdSequence.get(i).isEmpty()) {
+                return lineIdSequence.get(i);
             }
         }
         return null;

@@ -2,6 +2,8 @@ package com.bigbrother.bilicraftticketsystem.menu.station;
 
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
+import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
+import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemInfo;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoNode;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRouteEngine;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
@@ -164,13 +166,17 @@ public class StationProvider {
                 .decoration(TextDecoration.ITALIC, false));
 
         List<Component> lore = new ArrayList<>();
+        lore.add(Component.text("途经此车站的铁路：", NamedTextColor.GRAY));
         for (String lineId : entry.lineIds()) {
             LineInfo line = LineConfig.get(lineId);
             if (line == null) {
                 continue;
             }
-            lore.add(Component.text("途径此车站的铁路：", NamedTextColor.GRAY));
-            lore.add(Component.text("● " + line.getLineName(), colorOf(lineId)));
+            RailwaySystemInfo systemInfo = RailwaySystemConfig.get(line.getRailwaySystemId());
+            if (systemInfo == null || systemInfo.getName() == null) {
+                continue;
+            }
+            lore.add(Component.text("● %s-%s".formatted(systemInfo.getName(), line.getLineName()), colorOf(lineId)));
         }
         if (!lore.isEmpty()) {
             meta.lore(lore);

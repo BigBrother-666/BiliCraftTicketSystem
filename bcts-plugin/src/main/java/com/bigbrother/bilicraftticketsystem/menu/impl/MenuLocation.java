@@ -66,7 +66,7 @@ public class MenuLocation extends Menu {
     public void setStations(List<StationProvider.StationEntry> stations) {
         List<Item> items = new ArrayList<>();
         for (StationProvider.StationEntry entry : stations) {
-            items.add(new LocationItem(StationProvider.buildIcon(entry)));
+            items.add(new LocationItem(StationProvider.buildIcon(entry), entry.name()));
         }
         gui.setContent(items);
     }

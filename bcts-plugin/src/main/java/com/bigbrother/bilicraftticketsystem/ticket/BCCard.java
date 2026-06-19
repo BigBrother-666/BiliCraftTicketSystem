@@ -5,6 +5,9 @@ import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bigbrother.bctsguardplugin.GuardListeners;
+import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
+import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
+import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemInfo;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRouteEngine;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRoutePath;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
@@ -145,6 +148,17 @@ public class BCCard extends BCTransitPass {
             List<GeoRoutePath> paths = GeoRouteEngine.findByStation(startStation, endStation);
             this.pathInfo = paths.isEmpty() ? null : paths.getFirst();
         }
+        // 按行程实际线路记录起/终点所属铁路系统名（无路径时清空，避免显示陈旧系统）
+        this.cardInfo.setStartStationSystem(pathInfo == null ? CommonUtils.NOT_AVAILABLE : systemNameOf(pathInfo.getStartLineId()));
+        this.cardInfo.setEndStationSystem(pathInfo == null ? CommonUtils.NOT_AVAILABLE : systemNameOf(pathInfo.getEndLineId()));
+    }
+
+    /**
+     * 线路 id → 所属铁路系统名；无系统 / 线路无效时返回 {@link CommonUtils#NOT_AVAILABLE}。
+     */
+    private static String systemNameOf(String lineId) {
+        RailwaySystemInfo system = RailwaySystemConfig.get(LineConfig.getSystemId(lineId));
+        return system == null ? CommonUtils.NOT_AVAILABLE : system.getName();
     }
 
     public void addBalance(double balance) {
@@ -160,13 +174,13 @@ public class BCCard extends BCTransitPass {
 
     public void setStartStation(Component startStation) {
         this.pathInfo = null;
-        this.cardInfo.setStartStation(startStation);
+        this.cardInfo.setStartStationComponent(startStation);
         refreshCard();
     }
 
     public void setEndStation(Component endStation) {
         this.pathInfo = null;
-        this.cardInfo.setEndStation(endStation);
+        this.cardInfo.setEndStationComponent(endStation);
         refreshCard();
     }
 
@@ -322,23 +336,59 @@ public class BCCard extends BCTransitPass {
         String mmStartStationName = cardInfo.getMmStartStationName();
         String mmEndStationName = cardInfo.getMmEndStationName();
         placeholder.put("balance", "%.2f".formatted(this.cardInfo.getBalance()));
-        placeholder.put("startStationName", cardInfo.getMmStartStationName());
-        placeholder.put("endStationName", cardInfo.getMmEndStationName());
+        placeholder.put("start_station_name", cardInfo.getMmStartStationName());
+        placeholder.put("end_station_name", cardInfo.getMmEndStationName());
+        // 合成占位符：带色站名 +（系统名）。站点为空只显示 N/A（不拼成 N/A(N/A)）；
+        // 有直达路径时按行程实际线路上色与取系统，否则只显示站名本身。
+        placeholder.put("start_station_full", stationFull(cardInfo.getMmStartStationName(),
+                cardInfo.isStartStationEmpty(), pathInfo == null ? null : pathInfo.getStartLineId(), cardInfo.getStartStationSystem()));
+        placeholder.put("end_station_full", stationFull(cardInfo.getMmEndStationName(),
+                cardInfo.isEndStationEmpty(), pathInfo == null ? null : pathInfo.getEndLineId(), cardInfo.getEndStationSystem()));
         if (cardInfo.isStartStationEmpty() && !cardInfo.isEndStationEmpty()) {
-            placeholder.put("usePlatform", "<dark_green>任意国铁站台");
+            placeholder.put("use_platform", "<dark_green>任意国铁站台");
         } else if (cardInfo.isStationNotEmpty()) {
             if (pathInfo != null) {
                 // 起点站 + 起点驶出段所属线路名（替代旧的 railwayName/direction）
-                String startLineId = pathInfo.getLineIdSequence().isEmpty() ? null : pathInfo.getLineIdSequence().getFirst();
-                placeholder.put("usePlatform", "<dark_green>[%s<dark_green>] 标有 [<blue>%s</blue><dark_green>] 的站台".formatted(mmStartStationName, lineName(startLineId)));
+                String startLineId = pathInfo.getStartLineId();
+                RailwaySystemInfo startRailwaySystemInfo = RailwaySystemConfig.get(LineConfig.getSystemId(startLineId));
+                placeholder.put("use_platform", "<gray>%s %s%s站<dark_green> 标有 %s%s <dark_green>的站台".formatted(
+                        startRailwaySystemInfo != null ? startRailwaySystemInfo.getName() + "的" : "",
+                        lineMiniMessageColor(startLineId),
+                        mmStartStationName,
+                        lineMiniMessageColor(startLineId),
+                        lineName(startLineId)
+                ));
             } else {
-                placeholder.put("usePlatform", "<red>暂无 %s <red>到 %s <red>的直达车".formatted(mmStartStationName, mmEndStationName));
+                placeholder.put("use_platform", "<red>暂无 %s <red>到 %s <red>的直达车".formatted(mmStartStationName, mmEndStationName));
             }
         }
 
         List<Component> lore = parseConfigLore(MainConfig.cardLore, placeholder);
 
         itemStack.editMeta(itemMeta -> itemMeta.lore(lore));
+    }
+
+    /**
+     * 组合「车站名 +（所属铁路系统名）」展示串（MiniMessage）：{@code <线路标志色>车站名<gray>(系统名)}。
+     * <p>
+     * 站点未选时只返回 {@link CommonUtils#NOT_AVAILABLE_MM}（不拼成 N/A(N/A)）；
+     * 有直达路径则按行程实际线路 {@code lineId} 上色；系统名取已记录的 {@code systemName}（来自行程实际线路，
+     * 无系统时为 {@link CommonUtils#NOT_AVAILABLE}，此时省略括号）。
+     *
+     * @param mmStationName 车站名（MiniMessage）
+     * @param empty         该站是否未选
+     * @param lineId        行程在该端实际所属线路 id（决定颜色，可能为 null）
+     * @param systemName    已记录的所属系统名
+     * @return 组合展示串
+     */
+    private static String stationFull(String mmStationName, boolean empty, String lineId, String systemName) {
+        if (empty) {
+            return CommonUtils.NOT_AVAILABLE_MM;
+        }
+        if (systemName == null || CommonUtils.NOT_AVAILABLE.equals(systemName)) {
+            return "%s%s".formatted(lineMiniMessageColor(lineId), mmStationName);
+        }
+        return "%s%s<gray>(%s)".formatted(lineMiniMessageColor(lineId), mmStationName, systemName);
     }
 
     private void refreshDisplay() {
@@ -359,9 +409,9 @@ public class BCCard extends BCTransitPass {
     @Override
     public String getTransitPassName() {
         if (cardInfo.isStartStationEmpty() && !cardInfo.isEndStationEmpty()) {
-            return "%s → %s".formatted("ANY", cardInfo.getClearEndStationName());
+            return "%s → %s".formatted("ANY", cardInfo.getEndStationString());
         }
-        return "%s → %s".formatted(cardInfo.getClearStartStationName(), cardInfo.getClearEndStationName());
+        return "%s → %s".formatted(cardInfo.getStartStationString(), cardInfo.getEndStationString());
     }
 
     /**
@@ -415,7 +465,8 @@ public class BCCard extends BCTransitPass {
 
     private void createItem() {
         ItemStack mapItem = MapDisplay.createMapItem(BCTicketDisplay.class);
-        mapItem.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+        //noinspection deprecation
+        mapItem.addItemFlags(ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         this.itemStack = CommonItemStack.of(mapItem)
                 .updateCustomData(tag -> {
                     tag.putValue(KEY_TRANSIT_PASS_TYPE, PassType.CARD.getId());
@@ -431,7 +482,8 @@ public class BCCard extends BCTransitPass {
 
     private void createItemFromCardInfo() {
         ItemStack mapItem = MapDisplay.createMapItem(BCTicketDisplay.class);
-        mapItem.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+        //noinspection deprecation
+        mapItem.addItemFlags(ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         this.itemStack = CommonItemStack.of(mapItem)
                 .updateCustomData(tag -> {
                     tag.putValue(KEY_TRANSIT_PASS_TYPE, PassType.CARD.getId());

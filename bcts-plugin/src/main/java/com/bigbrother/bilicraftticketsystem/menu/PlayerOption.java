@@ -9,10 +9,14 @@ import net.kyori.adventure.text.format.TextDecoration;
 @Data
 public class PlayerOption {
     @Getter
-    protected Component startStation;
+    protected Component startStationComponent;
     @Getter
-    protected Component endStation;
+    protected Component endStationComponent;
+    protected String startStationSystem;
+    protected String endStationSystem;
+    @Getter
     protected String startStationString;
+    @Getter
     protected String endStationString;
 
     protected double speed;
@@ -24,37 +28,39 @@ public class PlayerOption {
         this(CommonUtils.mmStr2Component(mmStartStation), CommonUtils.mmStr2Component(mmEndStation));
     }
 
-    public PlayerOption(Component startStation, Component endStation) {
-        setStartStation(startStation);
-        setEndStation(endStation);
+    public PlayerOption(Component startStationComponent, Component endStationComponent) {
+        setStartStationComponent(startStationComponent);
+        setEndStationComponent(endStationComponent);
     }
 
     public PlayerOption() {
-        this.startStation = CommonUtils.NOT_AVAILABLE_COMPONENT;
-        this.endStation = CommonUtils.NOT_AVAILABLE_COMPONENT;
+        this.startStationComponent = CommonUtils.NOT_AVAILABLE_COMPONENT;
+        this.endStationComponent = CommonUtils.NOT_AVAILABLE_COMPONENT;
+        this.startStationSystem = CommonUtils.NOT_AVAILABLE;
+        this.endStationSystem = CommonUtils.NOT_AVAILABLE;
         this.startStationString = CommonUtils.NOT_AVAILABLE;
         this.endStationString = CommonUtils.NOT_AVAILABLE;
         this.speed = 4.0;
         this.uses = 1;
     }
 
-    public void setStartStation(Component startStation) {
-        if (startStation != null) {
-            this.startStation = startStation;
-            this.startStationString = CommonUtils.component2Str(startStation);
+    public void setStartStationComponent(Component startStationComponent) {
+        if (startStationComponent != null) {
+            this.startStationComponent = startStationComponent;
+            this.startStationString = CommonUtils.component2Str(startStationComponent);
         } else {
-            this.startStation = CommonUtils.NOT_AVAILABLE_COMPONENT;
+            this.startStationComponent = CommonUtils.NOT_AVAILABLE_COMPONENT;
             this.startStationString = CommonUtils.NOT_AVAILABLE;
         }
 
     }
 
-    public void setEndStation(Component endStation) {
-        if (endStation != null) {
-            this.endStation = endStation;
-            this.endStationString = CommonUtils.component2Str(endStation);
+    public void setEndStationComponent(Component endStationComponent) {
+        if (endStationComponent != null) {
+            this.endStationComponent = endStationComponent;
+            this.endStationString = CommonUtils.component2Str(endStationComponent);
         } else {
-            this.endStation = CommonUtils.NOT_AVAILABLE_COMPONENT;
+            this.endStationComponent = CommonUtils.NOT_AVAILABLE_COMPONENT;
             this.endStationString = CommonUtils.NOT_AVAILABLE;
         }
     }
@@ -71,25 +77,11 @@ public class PlayerOption {
         return getEndStationString().equals(CommonUtils.NOT_AVAILABLE);
     }
 
-    public String getClearStartStationName() {
-        if (startStationString.endsWith("站"))
-            return startStationString.substring(0, startStationString.length() - 1);
-        else
-            return startStationString;
-    }
-
-    public String getClearEndStationName() {
-        if (endStationString.endsWith("站"))
-            return endStationString.substring(0, endStationString.length() - 1);
-        else
-            return endStationString;
-    }
-
     public String getMmStartStationName() {
-        return CommonUtils.component2MmStr(startStation.decoration(TextDecoration.ITALIC, TextDecoration.State.NOT_SET));
+        return CommonUtils.component2MmStr(startStationComponent.decoration(TextDecoration.ITALIC, TextDecoration.State.NOT_SET));
     }
 
     public String getMmEndStationName() {
-        return CommonUtils.component2MmStr(endStation.decoration(TextDecoration.ITALIC, TextDecoration.State.NOT_SET));
+        return CommonUtils.component2MmStr(endStationComponent.decoration(TextDecoration.ITALIC, TextDecoration.State.NOT_SET));
     }
 }

@@ -130,8 +130,10 @@ public class TrainDatabaseManager {
                                 card_uuid VARCHAR(36) UNIQUE,
                                 start_station VARCHAR(100),
                                 mm_start_station VARCHAR(100),
+                                start_station_system VARCHAR(100),
                                 end_station VARCHAR(100),
                                 mm_end_station VARCHAR(100),
+                                end_station_system VARCHAR(100),
                                 max_speed REAL,
                                 balance REAL
                     );

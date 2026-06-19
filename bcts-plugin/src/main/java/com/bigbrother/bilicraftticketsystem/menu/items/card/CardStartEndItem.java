@@ -39,7 +39,7 @@ public class CardStartEndItem extends CoolDownItem {
         if (isStart) {
             itemMeta = startItemStack.getItemMeta();
             itemMeta.lore(List.of(
-                    Component.text("当前选择：", NamedTextColor.DARK_AQUA).append(card != null ? card.getCardInfo().getStartStation().decoration(TextDecoration.ITALIC, true) : CommonUtils.NOT_AVAILABLE_COMPONENT),
+                    Component.text("当前选择：", NamedTextColor.DARK_AQUA).append(card != null ? card.getCardInfo().getStartStationComponent().decoration(TextDecoration.ITALIC, true) : CommonUtils.NOT_AVAILABLE_COMPONENT),
                     Component.text(""),
                     Component.text("左键选择起始站，右键清除选择", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false),
                     Component.text("Shift+左键搜索车站", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false)
@@ -49,7 +49,7 @@ public class CardStartEndItem extends CoolDownItem {
         } else {
             itemMeta = endItemStack.getItemMeta();
             itemMeta.lore(List.of(
-                    Component.text("当前选择：", NamedTextColor.DARK_AQUA).append(card != null ? card.getCardInfo().getEndStation().decoration(TextDecoration.ITALIC, true) : CommonUtils.NOT_AVAILABLE_COMPONENT),
+                    Component.text("当前选择：", NamedTextColor.DARK_AQUA).append(card != null ? card.getCardInfo().getEndStationComponent().decoration(TextDecoration.ITALIC, true) : CommonUtils.NOT_AVAILABLE_COMPONENT),
                     Component.text(""),
                     Component.text("左键选择终到站，右键清除选择", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false),
                     Component.text("Shift+左键搜索车站", NamedTextColor.BLUE).decoration(TextDecoration.ITALIC, false)
