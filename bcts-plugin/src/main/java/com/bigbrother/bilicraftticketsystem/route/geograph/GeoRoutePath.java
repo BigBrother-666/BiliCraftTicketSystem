@@ -170,12 +170,16 @@ public class GeoRoutePath {
      * @return 车站步骤有序列表
      */
     public List<StationStep> stationSteps() {
-        LinkedHashSet<StationStep> result = new LinkedHashSet<>();
+        List<StationStep> result = new ArrayList<>();
         for (int i = 0; i < nodes.size(); i++) {
             GeoNode node = nodes.get(i);
             if (node.isStation() && node.getName() != null) {
                 String lineId = i < lineIdSequence.size() ? lineIdSequence.get(i) : (i > 0 ? lineIdSequence.get(i - 1) : null);
-                result.add(new StationStep(node.getName(), lineId));
+                if (!result.isEmpty() && !result.getLast().stationName.equals(node.getName())) {
+                    result.add(new StationStep(node.getName(), lineId));
+                } else if (result.isEmpty()) {
+                    result.add(new StationStep(node.getName(), lineId));
+                }
             } else {
                 // 含有正线的车站获车站名
                 // 寻找进站道岔直接出边连接的车站节点
@@ -183,7 +187,11 @@ public class GeoRoutePath {
                 if (stationName != null) {
                     String lineId = i < lineIdSequence.size() ? lineIdSequence.get(i) : null;
                     if (lineId != null) {
-                        result.add(new StationStep(stationName, lineId));
+                        if (!result.isEmpty() && !result.getLast().stationName.equals(stationName)) {
+                            result.add(new StationStep(stationName, lineId));
+                        } else if (result.isEmpty()) {
+                            result.add(new StationStep(node.getName(), lineId));
+                        }
                     }
                 }
             }

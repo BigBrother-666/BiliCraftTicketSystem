@@ -15,8 +15,10 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -200,5 +202,96 @@ public class GeoRouteEngineTest {
         GeoRoutePath viaContact = GeoRouteEngine.findFromNode("nA", "B");
         assertNotNull(viaContact);
         assertEquals("L1", viaContact.getStartLineId());
+    }
+
+    @Test
+    void findByStationReturnsKShortestSortedAndDeduped() {
+        GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(fc));
+        // A→B 候选：nA2(11) / nA 经 contact(25) / nA 经 L2 直达(100)，按距离升序
+        List<GeoRoutePath> top2 = GeoRouteEngine.findByStation("A", "B", 2);
+        assertEquals(2, top2.size(), "限制 2 条");
+        assertTrue(top2.get(0).getDistance() <= top2.get(1).getDistance(), "按距离升序");
+        assertEquals(11.0 / 1000, top2.get(0).getDistance(), 1e-9);
+
+        // 不限制：拿到全部去重后的候选，且每条 departDirectionSequence 互不相同
+        List<GeoRoutePath> all = GeoRouteEngine.findByStation("A", "B", 0);
+        assertTrue(all.size() >= 2);
+        Set<List<String>> dirs = new HashSet<>();
+        for (GeoRoutePath p : all) {
+            assertTrue(dirs.add(p.getDepartDirectionSequence()), "departDirectionSequence 应唯一（已去重）");
+        }
+    }
+
+    @Test
+    void sameStationLoopsBackOnRingLine() {
+        // 环线 fixture：A(nR) --R,10--> sx --R,10--> A(nR2)，两个站台都叫 "R"
+        FeatureCollection f = new FeatureCollection();
+        f.add(point("nR", "station", "R", 0, 64, 0));
+        f.add(point("sx", "switch", null, 10, 64, 0));
+        f.add(point("nR2", "station", "R", 20, 64, 0));
+        f.add(line("e.R.nR__sx", "nR", "sx", "R", 10, "e"));
+        f.add(line("e.R.sx__nR2", "sx", "nR2", "R", 10, "e"));
+        GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(f));
+
+        // 起终点同站名 R：应绕到同名另一站台（非零长路径），而非报无解
+        GeoRoutePath path = GeoRouteEngine.findFromNode("nR", "R");
+        assertNotNull(path, "同站名应能绕行回到同名车站");
+        assertEquals(20.0 / 1000, path.getDistance(), 1e-9);
+        assertEquals("R", path.getStartStationName());
+        assertEquals("R", path.getEndStationName());
+        assertEquals("nR2", path.getEndNode().getId());
+
+        // 按站名入口同样可用
+        assertFalse(GeoRouteEngine.findByStation("R", "R").isEmpty());
+    }
+
+    @Test
+    void sameStationClosesLoopBackToStartNode() {
+        // 单站台环线：nL(站台 L) --c1--c2--> 回到 nL 自身（首尾节点相同）
+        FeatureCollection f = new FeatureCollection();
+        f.add(point("nL", "station", "L", 0, 64, 0));
+        f.add(point("c1", "switch", null, 10, 64, 0));
+        f.add(point("c2", "switch", null, 0, 64, 10));
+        f.add(line("e.L.nL__c1", "nL", "c1", "L", 10, "e"));
+        f.add(line("e.L.c1__c2", "c1", "c2", "L", 10, "s"));
+        f.add(line("e.L.c2__nL", "c2", "nL", "L", 10, "w")); // 闭合回起点节点
+        GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(f));
+
+        GeoRoutePath path = GeoRouteEngine.findFromNode("nL", "L");
+        assertNotNull(path, "首尾节点相同的环线应可成路");
+        assertEquals(30.0 / 1000, path.getDistance(), 1e-9);
+        List<String> ids = path.getNodes().stream().map(GeoNode::getId).toList();
+        // 首尾均为起点节点 nL，中途 c1/c2 各一次，无其它重复
+        assertEquals(List.of("nL", "c1", "c2", "nL"), ids);
+        assertEquals(ids.getFirst(), ids.getLast(), "首尾节点相同");
+    }
+
+    @Test
+    void routesNeverRepeatANode() {
+        // 带环图：nA --L,10--> c1 --L,10--> c2 --L,10--> c1(回边) ; c2 --L,10--> nB
+        // 回边 c2->c1 构成环，但无环约束应让任何路线都不重复经过 c1 / c2。
+        FeatureCollection f = new FeatureCollection();
+        f.add(point("nA", "station", "A", 0, 64, 0));
+        f.add(point("c1", "switch", null, 10, 64, 0));
+        f.add(point("c2", "switch", null, 20, 64, 0));
+        f.add(point("nB", "station", "B", 30, 64, 0));
+        f.add(line("e.L.nA__c1", "nA", "c1", "L", 10, "e"));
+        f.add(line("e.L.c1__c2", "c1", "c2", "L", 10, "e"));
+        f.add(line("e.L.c2__c1", "c2", "c1", "L", 10, "w")); // 回边，制造环
+        f.add(line("e.L.c2__nB", "c2", "nB", "L", 10, "e"));
+        GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(f));
+
+        List<GeoRoutePath> paths = GeoRouteEngine.findByStation("A", "B", 0);
+        assertFalse(paths.isEmpty());
+        for (GeoRoutePath p : paths) {
+            List<String> ids = p.getNodes().stream().map(GeoNode::getId).toList();
+            // 允许首尾节点相同（闭合环线），但除此之外不得有任何重复节点
+            List<String> interior = ids.subList(0, ids.size() - 1);
+            assertEquals(interior.size(), new HashSet<>(interior).size(),
+                    "除首尾外不得重复经过同一节点：" + ids);
+        }
+        // 唯一无环路线：nA -> c1 -> c2 -> nB
+        assertEquals(List.of("nA", "c1", "c2", "nB"),
+                paths.getFirst().getNodes().stream().map(GeoNode::getId).toList());
     }
 }

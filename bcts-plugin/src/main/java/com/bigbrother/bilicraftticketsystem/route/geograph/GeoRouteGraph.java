@@ -1,5 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.route.geograph;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -82,6 +84,24 @@ public class GeoRouteGraph {
      */
     public List<GeoNode> stationNodes(String stationName) {
         return stationIndex.getOrDefault(stationName, Collections.emptyList());
+    }
+
+    /**
+     * 获取某个线路对应某车站的车站节点
+     * 保证一个线路只经过某个特定车站一次，因此某个线路对应的某车站节点唯一
+     *
+     * @param stationName 车站名
+     * @param lineId      线路名
+     * @return 车站节点，没找到返回null
+     */
+    @Nullable
+    public GeoNode getNode(String stationName, String lineId) {
+        for (GeoNode stationNode : stationNodes(stationName)) {
+            if (stationNode.getLineIds().contains(lineId)) {
+                return stationNode;
+            }
+        }
+        return null;
     }
 
     /**

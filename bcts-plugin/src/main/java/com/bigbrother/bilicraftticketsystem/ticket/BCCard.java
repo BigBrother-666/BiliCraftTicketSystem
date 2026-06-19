@@ -224,11 +224,12 @@ public class BCCard extends BCTransitPass {
                 return false;
             }
         } else if (!cardInfo.isEndStationEmpty()) {
-            // 只指定了终点：以列车记录的起点车站名为起点，寻路到终点站（任意站台上车）
+            // 只指定了终点：起点站台在上车这一刻才固定——以列车当前所在线路的站台为起点
+            // 用 起点站名 + 列车 lineId 唯一定位站台节点。
             String startStation = BCTransitPass.getTrainStartStationName(group);
+            String lineId = BCTransitPass.getTrainLineId(group);
             if (!startStation.isEmpty()) {
-                List<GeoRoutePath> paths = GeoRouteEngine.findByStation(startStation, cardInfo.getEndStationString());
-                this.pathInfo = paths.isEmpty() ? null : paths.getFirst();
+                this.pathInfo = GeoRouteEngine.findFromStationNode(startStation, lineId, cardInfo.getEndStationString());
             }
 
             if (pathInfo == null) {

@@ -58,16 +58,15 @@ public class SearchItem extends AbstractItem {
         // 异步计算路径并显示结果
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             List<Item> tickets = new ArrayList<>();
-            List<GeoRoutePath> pathInfoList = GeoRouteEngine.findByStation(option.getStartStationString(), option.getEndStationString());
+            // 起点任意站台 → 终点任意站台，求最短的 max-search-results 条路线
+            List<GeoRoutePath> pathInfoList = GeoRouteEngine.findByStation(
+                    option.getStartStationString(), option.getEndStationString(), MainConfig.maxSearchResults);
             if (pathInfoList.isEmpty()) {
                 menu.setTickets(tickets);
                 return;
             } else {
-                // 显示车票：findByStation 已按距离升序，取最短的前 N 条（max-search-results，<=0 不限制）
-                int max = MainConfig.maxSearchResults;
-                int limit = max > 0 ? Math.min(max, pathInfoList.size()) : pathInfoList.size();
-                for (int i = 0; i < limit; i++) {
-                    BCTicket ticket = new BCTicket(option, pathInfoList.get(i), player);
+                for (GeoRoutePath path : pathInfoList) {
+                    BCTicket ticket = new BCTicket(option, path, player);
                     tickets.add(new TicketItem(ticket));
                 }
             }

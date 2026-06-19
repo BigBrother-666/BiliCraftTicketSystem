@@ -26,6 +26,16 @@ public class GeoRouteEngine {
     private static volatile GeoRouteGraph graph = new GeoRouteGraph();
 
     /**
+     * 未限制条数时，每个起点站台 K-最短路的安全上限（防止复杂图上候选过多）。
+     */
+    private static final int KSP_SAFETY_CAP = 16;
+
+    /**
+     * 单次 {@link #kShortest} 的出队总数封顶，兜底防止超大图上枚举过久（无环约束已使路径有限，此为额外保险）。
+     */
+    private static final int KSP_MAX_POPS = 200_000;
+
+    /**
      * 从 geojson 目录加载 / 重载路由图，整体替换当前图。
      *
      * @param geodataDir geojson 目录
@@ -36,34 +46,81 @@ public class GeoRouteEngine {
     }
 
     /**
-     * 按起点站名 + 终点站名寻路：枚举起点站名下所有站台节点，各跑一次最短路到任一终点站台，
-     * 按距离升序返回（去重相同站台起点的重复结果）。
+     * 按起点站名 + 终点站名寻路：枚举起点站名下所有站台节点，各求最短的 K 条路线，汇总后按距离升序、
+     * 按 {@code departDirectionSequence} 去重，最终取最短的前 {@code maxResults} 条。
+     * <p>
+     * {@code maxResults <= 0} 表示不限制条数（仍受每站台 {@link #KSP_SAFETY_CAP} 安全上限约束）。
+     * 支持起终点站相同，见 {@link #kShortest}。
      *
      * @param startStation 起点站名
      * @param endStation   终点站名
-     * @return 路径列表（按距离升序），无解返回空列表
+     * @param maxResults   最多返回条数（<=0 不限制）
+     * @return 路径列表（按距离升序、已去重），无解返回空列表
      */
-    public static List<GeoRoutePath> findByStation(String startStation, String endStation) {
-        List<GeoRoutePath> results = new ArrayList<>();
+    public static List<GeoRoutePath> findByStation(String startStation, String endStation, int maxResults) {
+        // 每个起点站台各求 K 条最短路；K 取请求条数，未限制时退到安全上限
+        int kPerPlatform = maxResults > 0 ? maxResults : KSP_SAFETY_CAP;
+        List<GeoRoutePath> all = new ArrayList<>();
         for (GeoNode start : graph.stationNodes(startStation)) {
-            GeoRoutePath path = dijkstra(start.getId(), endStation);
-            if (path != null) {
-                results.add(path);
+            all.addAll(kShortest(start.getId(), endStation, kPerPlatform));
+        }
+        all.sort(Comparator.comparingDouble(GeoRoutePath::getDistance));
+        // 去重：departDirectionSequence 相同视为重复路线，保留先出现（即最短）的一条
+        List<GeoRoutePath> deduped = new ArrayList<>();
+        Set<List<String>> seen = new HashSet<>();
+        for (GeoRoutePath path : all) {
+            if (seen.add(path.getDepartDirectionSequence())) {
+                deduped.add(path);
             }
         }
-        results.sort(Comparator.comparingDouble(GeoRoutePath::getDistance));
-        return results;
+        if (maxResults > 0 && deduped.size() > maxResults) {
+            return new ArrayList<>(deduped.subList(0, maxResults));
+        }
+        return deduped;
     }
 
     /**
-     * 按起点站台节点 id + 终点站名寻路（交通卡：玩家在任意站台上车，按当前站台算最近路径）。
+     * 按起点站名 + 终点站名寻路（不限条数，等价 {@code findByStation(start, end, 0)}）。
+     *
+     * @param startStation 起点站名
+     * @param endStation   终点站名
+     * @return 路径列表（按距离升序、已去重），无解返回空列表
+     */
+    public static List<GeoRoutePath> findByStation(String startStation, String endStation) {
+        return findByStation(startStation, endStation, 0);
+    }
+
+    /**
+     * 按起点站台节点 id + 终点站名寻路，取最短一条（交通卡：玩家在任意站台上车，按当前站台算最近路径）。
+     * 起终点同站名时支持绕环线一圈回到同名车站。
      *
      * @param startNodeId 起点站台节点 id
      * @param endStation  终点站名
      * @return 最短路径，无解返回 null
      */
     public static GeoRoutePath findFromNode(String startNodeId, String endStation) {
-        return dijkstra(startNodeId, endStation);
+        List<GeoRoutePath> paths = kShortest(startNodeId, endStation, 1);
+        return paths.isEmpty() ? null : paths.getFirst();
+    }
+
+    /**
+     * 按「起点站名 + 列车所属 lineId」定位<b>确切的上车站台节点</b>，再寻路到终点站，取最短一条。
+     * <p>
+     * 用于交通卡「只指定终点」上车：此时起点站台在玩家上车那一刻已固定为列车当前所在线路的站台，
+     * 不能按站名枚举所有站台（那会算出别的站台的路径）。借 {@link GeoRouteGraph#getNode(String, String)}
+     * 用站名 + lineId 唯一确定该站台节点（一条线路只经过某车站一次）。
+     *
+     * @param startStation 起点站名（列车 {@code BcStartNodeProperty}）
+     * @param lineId       列车所属营运线 id（列车 {@code BcLineIdProperty}）
+     * @param endStation   终点站名
+     * @return 最短路径；站台节点定位不到 / 无解返回 null
+     */
+    public static GeoRoutePath findFromStationNode(String startStation, String lineId, String endStation) {
+        GeoNode startNode = graph.getNode(startStation, lineId);
+        if (startNode == null) {
+            return null;
+        }
+        return findFromNode(startNode.getId(), endStation);
     }
 
     /**
@@ -106,114 +163,146 @@ public class GeoRouteEngine {
     }
 
     /**
-     * 从单一起点节点跑 Dijkstra，到第一个（距离最近的）名为 endStation 的 station 节点。
+     * 从单一起点节点求最短的 K 条<b>无环</b>路线，终点为任一名为 {@code endStation} 的 station 节点。
+     * <p>
+     * 规则：一条路线<b>不得重复经过同一节点</b>（simple path）。采用按累计距离排序的优先队列逐条扩展，
+     * 扩展时跳过「已在当前路径回溯链中」的下一节点以保证无环；每弹出一个「终点站名 station 节点且已走过
+     * 至少一段」即记一条路线，直到凑满 K 条或队列耗尽。由此支持：
+     * <ul>
+     *   <li>同一起点站台到任一终点站台的多条无环候选（K 条）；</li>
+     *   <li>起终点同站名时「绕到同名车站的<b>另一个</b>站台节点」——终点节点与沿途节点均不重复。</li>
+     * </ul>
+     * 无环约束 + 有限节点数使路径数有限；另设 {@link #KSP_MAX_POPS} 出队总数封顶兜底，保证终止。
      *
      * @param startNodeId 起点节点 id
      * @param endStation  终点站名
-     * @return 路径，无解 / 起点不存在返回 null
+     * @param k           最多求多少条（>=1）
+     * @return 按距离升序的至多 K 条无环路径；起点不存在 / 无解返回空列表
      */
-    private static GeoRoutePath dijkstra(String startNodeId, String endStation) {
+    private static List<GeoRoutePath> kShortest(String startNodeId, String endStation, int k) {
         GeoRouteGraph g = graph;
-        if (g.getNode(startNodeId) == null || endStation == null) {
-            return null;
+        List<GeoRoutePath> results = new ArrayList<>();
+        if (g.getNode(startNodeId) == null || endStation == null || k < 1) {
+            return results;
         }
-        Map<String, Double> dist = new HashMap<>();
-        Map<String, GeoLink> prevLink = new HashMap<>();
-        Set<String> settled = new HashSet<>();
-        PriorityQueue<String> pq = new PriorityQueue<>(Comparator.comparingDouble(a -> dist.getOrDefault(a, Double.MAX_VALUE)));
-        dist.put(startNodeId, 0.0);
-        pq.add(startNodeId);
+        PriorityQueue<Entry> pq = new PriorityQueue<>(Comparator.comparingDouble(Entry::dist));
+        pq.add(new Entry(startNodeId, 0.0, null, null));
 
-        String endNodeId = null;
-        while (!pq.isEmpty()) {
-            String cur = pq.poll();
-            if (!settled.add(cur)) {
-                // 已确定最短距离的旧队列条目，跳过
+        int pops = 0;
+        while (!pq.isEmpty() && results.size() < k && pops < KSP_MAX_POPS) {
+            Entry cur = pq.poll();
+            pops++;
+
+            GeoNode curNode = g.getNode(cur.nodeId());
+            // 到达终点站名的 station 节点且已走过至少一段（起点零长不算）→ 记一条路线，不再从此继续扩展
+            if (curNode != null && curNode.isStation() && endStation.equals(curNode.getName())
+                    && cur.prevLink() != null) {
+                results.add(buildPath(g, startNodeId, cur));
                 continue;
             }
-            double curDist = dist.getOrDefault(cur, Double.MAX_VALUE);
-            GeoNode curNode = g.getNode(cur);
-            // 到达终点站名的 station 节点即停（起点本身不算终点，避免起终同站零长路径）
-            if (curNode != null && curNode.isStation() && endStation.equals(curNode.getName())
-                    && !cur.equals(startNodeId)) {
-                endNodeId = cur;
-                break;
-            }
-            for (GeoLink link : g.links(cur)) {
-                String next = link.getToNodeId();
-                GeoNode nextNode = g.getNode(next);
-                if (nextNode == null || settled.contains(next)) {
+            for (GeoLink link : g.links(cur.nodeId())) {
+                String nextId = link.getToNodeId();
+                GeoNode nextNode = g.getNode(nextId);
+                if (nextNode == null) {
                     continue;
                 }
-                // 中途站避让正线：若 next 是非终点的 station 节点，且当前节点 cur 存在正线绕行
-                // （结构判定：cur 同时有通往「道岔」的出边和通往「车站」的出边——前者是正线跨站、
-                // 后者是进停靠线），则放弃穿越该 station，让寻路改走正线跨站。
-                // 终点 station 不避让（要在此停车）；本站无正线时正常进站。
-                if (nextNode.isStation() && !endStation.equals(nextNode.getName()) && hasMainlineBypass(g, cur)) {
+                // 无环约束：下一节点若已在当前路径中，跳过——避免重复经过同一节点。
+                // 例外：允许最后一步回到起点节点以支持首尾节点相同的环线
+                if (inPath(cur, nextId)) {
+                    boolean closesLoop = nextId.equals(startNodeId)
+                            && nextNode.isStation() && endStation.equals(nextNode.getName());
+                    if (!closesLoop) {
+                        continue;
+                    }
+                }
+                // 中途站避让正线：next 是非终点的 station 节点，且 cur 存在正线绕行时，放弃穿越该 station。
+                if (nextNode.isStation() && !endStation.equals(nextNode.getName()) && hasMainlineBypass(g, cur.nodeId(), nextNode)) {
                     continue;
                 }
-                double nd = curDist + link.getDistance();
-                if (nd < dist.getOrDefault(next, Double.MAX_VALUE)) {
-                    dist.put(next, nd);
-                    prevLink.put(next, link);
-                    pq.add(next);
-                }
+                pq.add(new Entry(nextId, cur.dist() + link.getDistance(), link, cur));
             }
         }
-        if (endNodeId == null) {
-            return null;
-        }
-        return buildPath(g, startNodeId, endNodeId, dist.get(endNodeId), prevLink);
+        return results;
     }
+
+    /**
+     * 判断节点 {@code nodeId} 是否已出现在 {@code entry} 的回溯链（当前路径前缀）中。
+     * 用于强制无环：沿 {@link Entry#prev()} 向起点回溯逐一比对。调用方对「回到起点闭合环线」单独放行。
+     *
+     * @param entry  当前路径条目
+     * @param nodeId 待加入的下一节点 id
+     * @return true 表示已在路径中
+     */
+    private static boolean inPath(Entry entry, String nodeId) {
+        for (Entry e = entry; e != null; e = e.prev()) {
+            if (e.nodeId().equals(nodeId)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * KSP 的搜索条目：到达某节点的一条具体路径前缀（无环）。
+     * 用 {@link #prev()} 串成链表回溯整条路径（不能用全局 prevLink，因不同路径前缀各异）。
+     */
+    private record Entry(String nodeId, double dist, GeoLink prevLink, Entry prev) {
+    }
+
 
     /**
      * 结构判定某节点是否存在「正线绕行」——即该处有正线可越过停靠线车站。
      * <p>
-     * 不再依赖 {@code default} 特殊 lineId（遍历已取消正线 / 联络线概念）。改按图结构判断：
-     * 一个道岔节点若<b>同时</b>有一条出边通往<b>道岔</b>节点（正线，跨站直行）、又有一条出边通往
-     * <b>车站</b>节点（停靠线进站），即视为有正线绕行。两条出边通常归属同一条线（共用 lineId）。
+     * 车站节点和进站道岔节点连接了同一个节点（出站道岔），即为有正线
      *
-     * @param g      路由图
-     * @param nodeId 节点 id（一般是 station 前一个 switcher）
+     * @param g                 路由图
+     * @param nodeId            节点 id（一般是 station 前一个 switcher）
+     * @param targetStationNode 进站道岔对应的车站节点
      * @return true 表示存在正线绕行
      */
-    private static boolean hasMainlineBypass(GeoRouteGraph g, String nodeId) {
-        boolean toSwitch = false;
-        boolean toStation = false;
-        for (GeoLink link : g.links(nodeId)) {
-            GeoNode to = g.getNode(link.getToNodeId());
-            if (to == null) {
-                continue;
-            }
-            if (to.isStation()) {
-                toStation = true;
-            } else {
-                toSwitch = true;
+    private static boolean hasMainlineBypass(GeoRouteGraph g, String nodeId, GeoNode targetStationNode) {
+        List<GeoLink> links = g.links(targetStationNode.getId());
+        if (links.size() != 1) {
+            // 车站节点只有一个出边
+            return false;
+        } else {
+            for (GeoLink link : g.links(nodeId)) {
+                GeoNode to = g.getNode(link.getToNodeId());
+                if (to.equals(g.getNode(links.getFirst().getToNodeId()))) {
+                    // 连接了同一个出站道岔
+                    return true;
+                }
             }
         }
-        return toSwitch && toStation;
+        return false;
     }
 
     /**
-     * 从 Dijkstra 的前驱链回溯，构建有序节点列表、逐段 lineId 序列与逐段物理出向序列。
+     * 从 KSP 的 {@link Entry} 回溯链构建有序节点列表、逐段 lineId 序列与逐段物理出向序列。
+     * <p>
+     * 沿 {@link Entry#prev} 从终点回溯到起点（链表自带每段所走的 {@link Entry#prevLink}，支持节点重复经过）。
+     *
+     * @param g           路由图
+     * @param startNodeId 起点节点 id
+     * @param endEntry    终点条目（回溯链尾）
+     * @return 路径对象（距离换算为 km）
      */
-    private static GeoRoutePath buildPath(GeoRouteGraph g, String startNodeId, String endNodeId,
-                                          double distance, Map<String, GeoLink> prevLink) {
+    private static GeoRoutePath buildPath(GeoRouteGraph g, String startNodeId, Entry endEntry) {
         List<GeoNode> nodes = new ArrayList<>();
         List<String> lineIds = new ArrayList<>();
         List<String> departDirs = new ArrayList<>();
-        String cur = endNodeId;
-        while (cur != null && !cur.equals(startNodeId)) {
-            nodes.add(g.getNode(cur));
-            GeoLink link = prevLink.get(cur);
-            lineIds.add(link == null ? null : link.getLineId());
-            departDirs.add(link == null ? null : link.getDepartDirection());
-            cur = link == null ? null : link.getFromNodeId();
+        Entry cur = endEntry;
+        // 回溯到起点条目（prev == null 即起点，其 prevLink 也为 null）
+        while (cur != null && cur.prev != null) {
+            nodes.add(g.getNode(cur.nodeId));
+            lineIds.add(cur.prevLink == null ? null : cur.prevLink.getLineId());
+            departDirs.add(cur.prevLink == null ? null : cur.prevLink.getDepartDirection());
+            cur = cur.prev;
         }
         nodes.add(g.getNode(startNodeId));
         Collections.reverse(nodes);
         Collections.reverse(lineIds);
         Collections.reverse(departDirs);
-        return new GeoRoutePath(nodes, lineIds, departDirs, distance / 1000);
+        return new GeoRoutePath(nodes, lineIds, departDirs, (endEntry != null ? endEntry.dist : 0) / 1000);
     }
 }
