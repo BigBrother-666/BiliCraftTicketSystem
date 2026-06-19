@@ -85,13 +85,15 @@ public class SignActionPlatform extends SignAction {
             }
             // 导航：当前步骤为车站则推进指针（使无正线中途站也能推进到终点）。
             // 推进属于导航逻辑，不受 BOSSBAR 功能位影响；bossbar 显示刷新交由 onLeave 多态处理。
+            // 按节点 id 去重：同一铁轨方块挂多块控制牌重复触发时只推进一次。
             if (BcRouteNavigator.hasRoute(group)) {
+                String nodeId = info.getRails() == null ? null : NodeId.ofBlock(info.getRails());
                 if (SwitchTrace.isEnabled()) {
                     int[] progress = BcRouteNavigator.progress(group);
-                    SwitchTrace.logPlatform(group, NodeId.ofBlock(info.getRails()), stationName,
+                    SwitchTrace.logPlatform(group, nodeId, stationName,
                             progress[0], progress[1], "出站");
                 }
-                BcRouteNavigator.advance(group);
+                BcRouteNavigator.advance(group, nodeId);
             }
             // 运行时转线（仅普通车）：离开本线终点站且本线配置了 nextLineId 时，把列车所属线路改为
             // 下一线。出站提示仍属本线（到达本线终点），但下一站用转线后的进入站名；bossbar 重建为

@@ -94,6 +94,14 @@ public class SignActionBcswitcher extends SignAction {
             return;
         }
 
+        // 一个铁轨方块可能挂多个 bcswitcher（或与其它控制牌共块），会各自触发一次 GROUP_ENTER。
+        // 若本物理节点上次已推进过，说明同块的另一块牌已完成选向 + 推进：此时指针已前移，
+        // 再读当前步骤会读成下一步、切错道岔，故整体跳过。
+        String nodeId = info.getRails() == null ? null : NodeId.ofBlock(info.getRails());
+        if (BcRouteNavigator.hasRoute(group) && BcRouteNavigator.alreadyAdvancedAt(group, nodeId)) {
+            return;
+        }
+
         List<BcSwitcherBranch> branches = parseBranches(info);
         // 选向优先级：带导航(直达)按 S:出向；无导航在进站道岔按结构判定的到发线出向；再回退 lineId/tag。
         String navDir = BcRouteNavigator.currentSwitchDirection(group);
@@ -131,10 +139,12 @@ public class SignActionBcswitcher extends SignAction {
 
         // 列车经过本道岔，导航指针推进一格（节点步骤序列里 bcswitcher 对应一个 S 步骤）。
         // 仅在列车带有导航序列且当前指针确实指向道岔步骤时推进，避免与 platform 推进错位。
+        // 按节点 id 去重：同一铁轨方块上多块控制牌重复触发时只推进一次。
         if (BcRouteNavigator.hasRoute(group) && BcRouteNavigator.isAtSwitchStep(group)) {
-            BcRouteNavigator.advance(group);
-            // 直达车 bossbar 进度随节点推进刷新
-            BcRouteNavigator.refreshExpressBossbar(group);
+            if (BcRouteNavigator.advance(group, nodeId)) {
+                // 直达车 bossbar 进度随节点推进刷新
+                BcRouteNavigator.refreshExpressBossbar(group);
+            }
         }
     }
 

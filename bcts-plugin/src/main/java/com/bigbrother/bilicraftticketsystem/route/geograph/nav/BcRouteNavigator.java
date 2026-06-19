@@ -41,6 +41,7 @@ public final class BcRouteNavigator {
         TrainProperties props = group.getProperties();
         props.set(BcRouteProperty.INSTANCE, routeSteps);
         props.set(BcRouteIndexProperty.INSTANCE, 0);
+        props.set(BcLastAdvanceNodeProperty.INSTANCE, "");
     }
 
     /**
@@ -111,6 +112,55 @@ public final class BcRouteNavigator {
         }
         int index = props.get(BcRouteIndexProperty.INSTANCE);
         props.set(BcRouteIndexProperty.INSTANCE, index + 1);
+    }
+
+    /**
+     * 按<b>节点 id 去重</b>推进指针一格：仅当 {@code nodeId} 与上次推进的节点不同才推进。
+     * <p>
+     * 解决「一个铁轨方块挂多个控制牌」（多个 bcswitcher 共块、道岔与车站共块）导致同一物理节点
+     * 触发多次 GROUP_ENTER/LEAVE、指针被重复推进的问题——保证一个物理节点只推进一格。
+     * 环线安全见 {@link BcLastAdvanceNodeProperty}。
+     *
+     * @param group  列车
+     * @param nodeId 当前控制牌所在节点 id（{@link com.bigbrother.bilicraftticketsystem.route.NodeId#ofBlock}）
+     * @return true 表示本次确实推进了；false 表示同一节点重复触发被忽略
+     */
+    public static boolean advance(MinecartGroup group, String nodeId) {
+        if (group == null) {
+            return false;
+        }
+        TrainProperties props = group.getProperties();
+        List<String> route = props.get(BcRouteProperty.INSTANCE);
+        if (route == null || route.isEmpty()) {
+            return false;
+        }
+        if (nodeId != null && nodeId.equals(props.get(BcLastAdvanceNodeProperty.INSTANCE))) {
+            // 同一物理节点的另一块控制牌重复触发，已推进过，忽略
+            return false;
+        }
+        int index = props.get(BcRouteIndexProperty.INSTANCE);
+        props.set(BcRouteIndexProperty.INSTANCE, index + 1);
+        if (nodeId != null) {
+            props.set(BcLastAdvanceNodeProperty.INSTANCE, nodeId);
+        }
+        return true;
+    }
+
+    /**
+     * 当前物理节点是否已被推进过（同一节点的另一块控制牌重复触发时为 true）。
+     * <p>
+     * 道岔选向逻辑用它判断：重复触发时指针已前移，不能再读「当前步骤」选向（会读成下一步、切错道岔），
+     * 应整体跳过本次选向 + 推进。
+     *
+     * @param group  列车
+     * @param nodeId 当前控制牌所在节点 id
+     * @return true 表示该节点上次已推进过
+     */
+    public static boolean alreadyAdvancedAt(MinecartGroup group, String nodeId) {
+        if (group == null || nodeId == null) {
+            return false;
+        }
+        return nodeId.equals(group.getProperties().get(BcLastAdvanceNodeProperty.INSTANCE));
     }
 
     /**

@@ -17,6 +17,7 @@ import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.database.TrainDatabaseManager;
 import com.bigbrother.bilicraftticketsystem.menu.Menu;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRouteEngine;
+import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcLastAdvanceNodeProperty;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcLineIdProperty;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteIndexProperty;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteProperty;
@@ -197,6 +198,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         // 注册列车导航属性（TC 自动随存档持久化，重启/重载后恢复）
         TrainCarts.plugin.getPropertyRegistry().register(BcRouteProperty.INSTANCE);
         TrainCarts.plugin.getPropertyRegistry().register(BcRouteIndexProperty.INSTANCE);
+        TrainCarts.plugin.getPropertyRegistry().register(BcLastAdvanceNodeProperty.INSTANCE);
         TrainCarts.plugin.getPropertyRegistry().register(BcStartNodeProperty.INSTANCE);
         TrainCarts.plugin.getPropertyRegistry().register(BcLineIdProperty.INSTANCE);
         this.getComponentLogger().info(Component.text("列车导航属性注册成功", NamedTextColor.GOLD));
