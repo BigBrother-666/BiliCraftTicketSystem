@@ -4,6 +4,8 @@ package com.bigbrother.bilicraftticketsystem.menu;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bigbrother.bilicraftticketsystem.menu.impl.*;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
+import com.bigbrother.bilicraftticketsystem.utils.PlaceholderParser;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -19,6 +21,8 @@ import xyz.xenondevs.invui.item.impl.SimpleItem;
 import xyz.xenondevs.invui.window.Window;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -108,6 +112,35 @@ public abstract class Menu {
      */
     protected static AdventureComponentWrapper title(FileConfiguration config) {
         return new AdventureComponentWrapper(CommonUtils.mmStr2Component(config.get("title", String.class, "")));
+    }
+
+    /**
+     * 解析菜单标题并替换其中的占位符（如 {@code {railway_system}}）。
+     * <p>
+     * 用 {@link PlaceholderParser#parse} 解析模板（同时支持占位符、MiniMessage 与 legacy 代码），
+     * 取首行作为标题。供需要在标题里展示动态内容的菜单使用。
+     *
+     * @param config       菜单配置（取标题模板）
+     * @param placeholders 占位符键值
+     * @return 标题包装
+     */
+    protected static AdventureComponentWrapper title(FileConfiguration config, Map<String, Object> placeholders) {
+        String template = config.get("title", String.class, "");
+        List<Component> parsed = PlaceholderParser.parse(List.of(template), placeholders);
+        Component title = parsed.isEmpty() ? Component.empty() : parsed.getFirst();
+        return new AdventureComponentWrapper(title);
+    }
+
+    /**
+     * 以占位符重算标题并应用到已构建的窗口（窗口在构造时不知道占位符值，打开前调用本方法刷新标题）。
+     *
+     * @param config       菜单配置（取标题模板）
+     * @param placeholders 占位符键值
+     */
+    protected void applyTitle(FileConfiguration config, Map<String, Object> placeholders) {
+        if (window != null) {
+            window.changeTitle(title(config, placeholders));
+        }
     }
 
     /**

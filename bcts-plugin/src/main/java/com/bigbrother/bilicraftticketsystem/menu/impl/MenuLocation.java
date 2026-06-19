@@ -71,6 +71,15 @@ public class MenuLocation extends Menu {
         gui.setContent(items);
     }
 
+    /**
+     * 用 {@code railway_system} 占位符值刷新标题：系统名（按系统选择进入）或「关键词: 搜索词」（搜索进入）。
+     *
+     * @param railwaySystem 占位符值
+     */
+    public void updateTitle(String railwaySystem) {
+        applyTitle(MenuConfig.getLocationMenuConfig(), Map.of("railway_system", railwaySystem));
+    }
+
     @Override
     public void open() {
         super.open();

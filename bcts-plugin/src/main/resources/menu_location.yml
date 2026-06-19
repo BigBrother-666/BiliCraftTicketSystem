@@ -1,4 +1,7 @@
-title: <#FF8C00>车站选择
+# 可用占位符{railway_system}
+# 如果玩家是选择的系统进入该界面，则是系统名；
+# 如果玩家通过搜索进入该页面，则是 关键词: 搜索的关键词
+title: <#FF8C00>车站选择-{railway_system}
 
 structure:
   - ". . . . . . . . u"

@@ -1,5 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.menu.items.card;
 
+import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
+import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemInfo;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuLocationCard;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuStationSearch;
@@ -74,11 +76,11 @@ public class CardStartEndItem extends CoolDownItem {
         if (clickType == ClickType.SHIFT_LEFT) {
             // shift+左键：铁砧搜索车站，确认后打开搜索结果车站列表
             MenuStationSearch.open(player, keyword ->
-                    openStations(player, StationProvider.searchStations(keyword)));
+                    openStations(player, StationProvider.searchStations(keyword), "关键词: " + keyword));
         } else if (clickType.isLeftClick()) {
             // 左键：先选铁路系统（系统数 ≤ 1 时自动跳过），再打开该系统的车站列表
             MenuSystem.openOrSkip(player, systemId ->
-                    openStations(player, StationProvider.listStationsOfSystem(systemId)));
+                    openStations(player, StationProvider.listStationsOfSystem(systemId), systemDisplayName(systemId)));
         } else if (clickType.isRightClick()) {
             if (isStart) {
                 card.setStartStation(null);
@@ -90,11 +92,25 @@ public class CardStartEndItem extends CoolDownItem {
     }
 
     /**
-     * 用指定车站列表打开交通卡的车站选择界面。
+     * 系统 id → 标题展示用系统名；id 为 null（无系统、展示全部）时回退 {@link CommonUtils#NOT_AVAILABLE}。
      */
-    private void openStations(Player player, java.util.List<StationProvider.StationEntry> stations) {
+    private static String systemDisplayName(String systemId) {
+        if (systemId == null) {
+            return CommonUtils.NOT_AVAILABLE;
+        }
+        RailwaySystemInfo system = RailwaySystemConfig.get(systemId);
+        return system != null ? system.getName() : CommonUtils.NOT_AVAILABLE;
+    }
+
+    /**
+     * 用指定车站列表打开交通卡的车站选择界面，并按入口刷新标题占位符。
+     *
+     * @param railwaySystem 标题 {@code railway_system} 占位符值（系统名 / 关键词）
+     */
+    private void openStations(Player player, java.util.List<StationProvider.StationEntry> stations, String railwaySystem) {
         MenuLocationCard menu = MenuLocationCard.getMenu(player, isStart);
         menu.setStations(stations);
+        menu.updateTitle(railwaySystem);
         menu.open();
     }
 }
