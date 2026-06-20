@@ -166,7 +166,7 @@ public class StationProvider {
                 .decoration(TextDecoration.ITALIC, false));
 
         List<Component> lore = new ArrayList<>();
-        lore.add(Component.text("途经此车站的铁路：", NamedTextColor.GRAY));
+        lore.add(Component.text("途经此车站的铁路：", NamedTextColor.AQUA));
         for (String lineId : entry.lineIds()) {
             LineInfo line = LineConfig.get(lineId);
             if (line == null) {

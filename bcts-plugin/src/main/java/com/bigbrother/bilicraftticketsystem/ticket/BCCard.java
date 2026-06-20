@@ -360,7 +360,7 @@ public class BCCard extends BCTransitPass {
                 // 起点站 + 起点驶出段所属线路名（替代旧的 railwayName/direction）
                 String startLineId = pathInfo.getStartLineId();
                 RailwaySystemInfo startRailwaySystemInfo = RailwaySystemConfig.get(LineConfig.getSystemId(startLineId));
-                placeholder.put("use_platform", "<gray>%s %s%s站<dark_green> 标有 %s%s <dark_green>的站台".formatted(
+                placeholder.put("use_platform", "<gold>%s %s%s站<dark_green> 标有 %s%s <dark_green>的站台".formatted(
                         startRailwaySystemInfo != null ? startRailwaySystemInfo.getName() + "的" : "",
                         lineMiniMessageColor(startLineId),
                         mmStartStationName,
@@ -397,7 +397,7 @@ public class BCCard extends BCTransitPass {
         if (systemName == null || CommonUtils.NOT_AVAILABLE.equals(systemName)) {
             return "%s%s".formatted(lineMiniMessageColor(lineId), mmStationName);
         }
-        return "%s%s<gray>(%s)".formatted(lineMiniMessageColor(lineId), mmStationName, systemName);
+        return "%s%s<gold>(%s)".formatted(lineMiniMessageColor(lineId), mmStationName, systemName);
     }
 
     private void refreshDisplay() {

@@ -289,7 +289,7 @@ public abstract class BCTransitPass {
         if (system == null) {
             return "%s%s".formatted(lineMiniMessageColor(lineId), stationName);
         }
-        return "%s%s<gray>(%s)".formatted(lineMiniMessageColor(lineId), stationName, system.getName());
+        return "%s%s<gold>(%s)".formatted(lineMiniMessageColor(lineId), stationName, system.getName());
     }
 
     public List<Component> parseConfigLore(List<String> originLore, @NotNull Map<String, Object> initPlaceholders) {

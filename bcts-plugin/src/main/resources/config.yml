@@ -116,21 +116,21 @@ lore:
     - '<!italic><dark_purple>▶ 路线'
     - '<italic>{start_station_full} <gold>====直达====＞ {end_station_full}'
     - '<!italic><dark_purple>▶ 车票使用方法'
-    - '<italic><gold>前往 <gray>{start_railway_system} <gold>的 {start_line_color}{start_station_name}站 , <gold>使用标有 {start_line_color}{start_railway_name} <gold>的发车装置发车, 主手拿本车票上车'
+    - '<italic><gold>前往 {start_railway_system} <gold>的 {start_line_color}{start_station_name}站 , <gold>使用标有 {start_line_color}{start_railway_name} <gold>的发车装置发车, 主手拿本车票上车'
     - '<!italic><dark_purple>▶ 路线详情（只停起始站和终到站）'
     - '{path_info_lore}'
     - '<!italic><dark_purple>▶ 途经铁路'
     - '{railway_info_lore}'
-    - '<italic>{distance} km | 最大速度 {speed} km/h'
+    - '<italic><light_purple>{distance} km | 最大速度 {speed} km/h'
   # 这部分lore会在购买后移除
   ticket-price:
     - '<!italic><dark_gray>======================================'
-    - '<!italic><dark_purple>▶ 各铁路系统收费详情'
+    - '<!italic><dark_purple>▶ 各铁路系统收费详情(不含折扣)'
     - '{distance_info_lore}'
     - ''
-    - '<!italic><dark_purple>总价(含折扣)：{price}银币     点击购买'
+    - '<!italic><light_purple>总价(含折扣)：{price}银币     点击购买'
   # 每行{distance_info_lore}的具体格式
-  distance-info-lore: '<gold>{railway_system} <dark_aqua>{system_distance}km <dark_purple>{system_price}银币'
+  distance-info-lore: '<gold>{railway_system} <dark_aqua>{system_distance}km <aqua>{system_price}银币'
 
   # ================== 交通卡lore相关 ==================
   card:
