@@ -4,11 +4,13 @@ import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.database.dao.BcspawnRecordDao;
 import com.bigbrother.bilicraftticketsystem.database.dao.CardInfoDao;
 import com.bigbrother.bilicraftticketsystem.database.dao.RevenueDao;
+import com.bigbrother.bilicraftticketsystem.database.dao.SlowdownCacheDao;
 import com.bigbrother.bilicraftticketsystem.database.dao.TransitPassDao;
 import com.bigbrother.bilicraftticketsystem.database.dao.TicketbgDao;
 import com.bigbrother.bilicraftticketsystem.database.service.BcspawnService;
 import com.bigbrother.bilicraftticketsystem.database.service.CardInfoService;
 import com.bigbrother.bilicraftticketsystem.database.service.RevenueService;
+import com.bigbrother.bilicraftticketsystem.database.service.SlowdownCacheService;
 import com.bigbrother.bilicraftticketsystem.database.service.TransitPassService;
 import com.bigbrother.bilicraftticketsystem.database.service.TicketbgService;
 import com.zaxxer.hikari.HikariConfig;
@@ -32,6 +34,7 @@ public class TrainDatabaseManager {
     private final CardInfoDao cardInfoDao;
     private final BcspawnRecordDao bcspawnRecordDao;
     private final RevenueDao revenueDao;
+    private final SlowdownCacheDao slowdownCacheDao;
     @Getter
     private final TicketbgService ticketbgService;
     @Getter
@@ -42,6 +45,8 @@ public class TrainDatabaseManager {
     private final CardInfoService cardInfoService;
     @Getter
     private final RevenueService revenueService;
+    @Getter
+    private final SlowdownCacheService slowdownCacheService;
 
     public TrainDatabaseManager(BiliCraftTicketSystem plugin) {
         this.plugin = plugin;
@@ -60,12 +65,14 @@ public class TrainDatabaseManager {
         this.bcspawnRecordDao = new BcspawnRecordDao(plugin, ds);
         this.cardInfoDao = new CardInfoDao(plugin, ds);
         this.revenueDao = new RevenueDao(plugin, ds);
+        this.slowdownCacheDao = new SlowdownCacheDao(plugin, ds);
 
         this.ticketbgService = new TicketbgService(plugin, ticketbgDao);
         this.transitPassService = new TransitPassService(plugin, transitPassDao);
         this.bcspawnService = new BcspawnService(plugin, bcspawnRecordDao);
         this.cardInfoService = new CardInfoService(plugin, cardInfoDao);
         this.revenueService = new RevenueService(plugin, revenueDao);
+        this.slowdownCacheService = new SlowdownCacheService(plugin, slowdownCacheDao);
     }
 
     private void createTables() {
@@ -151,6 +158,22 @@ public class TrainDatabaseManager {
                     );
                     """.formatted(TrainDatabaseConstants.REVENUE_TABLE_NAME));
             statement.execute("CREATE INDEX IF NOT EXISTS idx_%s_time ON %s (time);".formatted(TrainDatabaseConstants.REVENUE_TABLE_NAME, TrainDatabaseConstants.REVENUE_TABLE_NAME));
+
+            // slowdown 控制牌减速距离缓存：每次计算开销较大，结果持久化到此表。
+            // 唯一键 (world,x,y,z,train_type,station) 区分同一控制牌对不同车种 / 到达车站的减速距离。
+            statement.execute("""
+                    CREATE TABLE IF NOT EXISTS %s (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                world VARCHAR(64),
+                                x INTEGER,
+                                y INTEGER,
+                                z INTEGER,
+                                train_type VARCHAR(16),
+                                station VARCHAR(100),
+                                distance REAL,
+                                UNIQUE(world, x, y, z, train_type, station)
+                    );
+                    """.formatted(TrainDatabaseConstants.SLOWDOWN_CACHE_TABLE_NAME));
         } catch (SQLException e) {
             plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
         }

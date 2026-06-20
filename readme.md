@@ -69,6 +69,7 @@
 | ticketdebug nbt \<key> \[value]             | bcts.ticket.nbt           | 查看/设置乘车凭证的 nbt，已定义的 nbt 见第 7 节                     |
 | ticketdebug traininfo                       | bcts.ticket.debug         | 调试：输出当前所坐列车的信息                                     |
 | ticketdebug switchtrace \<on/off>           | bcts.ticket.debug         | 调试：开关道岔选向追踪，开启后列车每经过 bcswitcher 打印选向到控制台           |
+| ticketdebug slowdowntrace \<on/off>         | bcts.ticket.debug         | 调试：开关 slowdown 减速追踪，开启后列车经过 slowdown 打印预测与减速决策到控制台 |
 | ticketdebug exportmmd                       | bcts.ticket.debug         | 调试：把 geojson 路由图与各线路子图导出为 Mermaid(.mmd) 到 mermaid/ |
 | ticketconfig editRoute \<lineId>            | bcts.ticket.editroute     | 游戏内新建 / 修改线路配置（railway_routes.yml）                 |
 | ticketconfig delRoute \<lineId>             | bcts.ticket.editroute     | 删除一条线路配置（railway_routes.yml）                       |
@@ -77,6 +78,7 @@
 | 建立 bcspawn 控制牌                              | bcts.buildsign.bcspawn    |                                                    |
 | 建立 platform 控制牌                             | bcts.buildsign.platform   |                                                    |
 | 建立 bcswitcher 控制牌                           | bcts.buildsign.bcswitcher |                                                    |
+| 建立 slowdown 控制牌                             | bcts.buildsign.slowdown   |                                                    |
 
 ## 5. 自定义菜单界面（menu_*.yml）
 
@@ -211,6 +213,22 @@ bossbar 分两种：
 ### 8.5 spawn
 
 重写 build 方法，生成模型车不再检查 attachment editor 权限。
+
+### 8.6 slowdown
+
+减速控制牌，放在进站前、列车需要开始减速的位置，使列车到达前方 platform 时恰好减到设定速度。控制牌格式如下：
+
+- 第一行：\[+train\]（也可指定方向等，用法同其他控制牌第一行）
+- 第二行：slowdown
+- 第三行：\[到达 platform 时的速度，支持 traincarts 的 launch 速度语法（如 `0.5`、`20km/h`），默认 0.2 block/tick\]
+
+功能：列车经过本控制牌时，向前**预测**其将行驶的路径，直到找到 platform 控制牌，取 slowdown 到 platform 的距离，用一段 launch 动作让列车在这段距离内平滑减速到设定速度，恰好在
+platform 处达到该速度。**只改速度不改最大速度**。
+
+- 预测途中若先遇到**另一个 slowdown** 控制牌，则停止流程（减速由后者负责）。
+- 超过 `config.yml` 的 `slowdown-max-detect-distance`（默认 500 格）仍未找到 platform 则不减速，防止 slowdown 放得过远导致的性能问题。
+- **普通车**站站停车，固定减速到下一个 platform。
+- **直达车**跨站直达，需额外判断：预测到达的 platform 站名必须与列车**终点车站名**一致才减速，防止在中途经过的 platform 处被误减速；取不到终点信息则不减速。
 
 ## 9. 地理信息(GEO) / 实时数据模块
 

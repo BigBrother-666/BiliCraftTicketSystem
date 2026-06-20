@@ -19,6 +19,11 @@ public class MainConfig {
     public static String expressTicketName;
     public static String expressTicketBgimage;
     public static double pricePerKm;
+    /**
+     * slowdown 控制牌预测 platform 的最大检测距离（block），超出仍未找到 platform 则不减速，
+     * 防止玩家把 slowdown 放得过远导致的性能问题。
+     */
+    public static double slowdownMaxDetectDistance;
     public static ConfigurationNode font;
     public static ConfigurationNode message;
     public static ConfigurationNode permDiscount;
@@ -64,6 +69,8 @@ public class MainConfig {
         expressTicketName = mainConfig.get("express-ticket-name", "express");
         expressTicketBgimage = mainConfig.get("express-ticket-bgimage", "");
         pricePerKm = mainConfig.get("price-per-km", 0.3);
+
+        slowdownMaxDetectDistance = mainConfig.get("slowdown-max-detect-distance", 500.0);
 
         font = mainConfig.getNode("font");
 

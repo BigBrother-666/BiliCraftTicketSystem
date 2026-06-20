@@ -7,6 +7,7 @@ import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRoutePath;
 import com.bigbrother.bilicraftticketsystem.signactions.component.BossbarManager;
 import com.bigbrother.bilicraftticketsystem.signactions.component.RouteBossbarBase;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -55,12 +56,140 @@ public final class BcRouteNavigator {
      * @return 当前道岔应走出向（e/s/w/n 或 f/b/l/r）；非道岔步骤 / 无导航 / 已走完 / 载荷空返回 null
      */
     public static String currentSwitchDirection(MinecartGroup group) {
+        // 预测模拟进行中：返回模拟游标当前 S 步骤的出向（peek，不推进）。真正的「按道岔方块推进」
+        // 由 predictPathFinding 经 {@link #predictionSwitchDirection(String)} 驱动。
+        if (predictionSim.get() != null) {
+            return predictionSim.get().peekDirection();
+        }
         String step = currentStep(group);
         if (step != null && step.startsWith(GeoRoutePath.ROUTE_STEP_SWITCH_PREFIX)) {
             String dir = step.substring(GeoRoutePath.ROUTE_STEP_SWITCH_PREFIX.length());
             return dir.isEmpty() ? null : dir;
         }
         return null;
+    }
+
+    /**
+     * 预测寻路时的「道岔出向模拟游标」（线程局部）。
+     * <p>
+     * 问题：{@link com.bigbrother.bilicraftticketsystem.signactions.SignActionBcswitcher#predictPathFinding}
+     * 故意不推进列车真实导航指针（预测会被 TC 反复调用）。但用 {@code setFollowPredictedPath} 沿列车
+     * 路径向前走（如 slowdown 减速距离预测）跨<b>多个</b>道岔时，每个 bcswitcher 都读列车真实指针所指的
+     * <b>同一</b>步骤，导致第二个及之后的道岔选错向、预测路径偏离列车实际路径。
+     * <p>
+     * 解法：在预测行走期间装一个本地模拟游标（{@link #beginPredictionSim} / {@link #endPredictionSim}），
+     * 快照列车当前指针起的剩余道岔出向序列，<b>每跨到一个新道岔铁轨方块</b>读取下一格出向，从而正确逐个
+     * 选向，且不触碰列车真实导航状态。仅在主线程的预测行走中使用，故用 ThreadLocal 隔离。
+     * <p>
+     * 同一铁轨方块挂多块 bcswitcher（共块）会就同一物理道岔多次调用 predictPathFinding——参照真实
+     * 执行用 {@link BcLastAdvanceNodeProperty} 的方块去重（见 {@code SignActionBcswitcher.execute} 顶部
+     * {@code alreadyAdvancedAt} 整体跳过），本游标按<b>道岔方块</b>消重：同一方块的多次调用读同一格出向，
+     * 只在方块变化时才前进一格，避免指针超前移动。
+     */
+    private static final ThreadLocal<PredictionSim> predictionSim = new ThreadLocal<>();
+
+    /**
+     * 道岔出向模拟游标：持有从某起点开始的剩余道岔出向序列，按<b>道岔铁轨方块</b>逐个推进。
+     */
+    private static final class PredictionSim {
+        private final List<String> switchDirs;
+        /**
+         * 当前所指出向下标。初值 -1 表示「尚未定位到任一道岔方块」，第一次跨入新方块时前进到 0。
+         */
+        private int index = -1;
+        /**
+         * 上次定位到的道岔铁轨方块去重 key（同一方块多块牌 / 重复调用读同一格）。
+         */
+        private String lastBlockKey = null;
+
+        private PredictionSim(List<String> switchDirs) {
+            this.switchDirs = switchDirs;
+        }
+
+        /**
+         * 读取当前游标所指出向（peek，不推进）。越界 / 尚未定位返回 null（道岔回退 lineId / tag 选向）。
+         *
+         * @return 当前出向；无则 null
+         */
+        private String peekDirection() {
+            if (index < 0 || index >= switchDirs.size()) {
+                return null;
+            }
+            String dir = switchDirs.get(index);
+            return dir == null || dir.isEmpty() ? null : dir;
+        }
+
+        /**
+         * 在一个道岔铁轨方块处取出向：仅当 {@code blockKey} 与上次不同（跨到新道岔方块）才前进一格，
+         * 同一方块的多块牌 / 重复调用读同一格出向，避免指针超前。读取在前进判断<b>之后</b>，
+         * 保证同方块多次调用一致。
+         *
+         * @param blockKey 道岔铁轨方块去重 key
+         * @return 该道岔应走出向；无则 null
+         */
+        private String directionForBlock(String blockKey) {
+            if (!java.util.Objects.equals(blockKey, lastBlockKey)) {
+                lastBlockKey = blockKey;
+                index++;
+            }
+            return peekDirection();
+        }
+    }
+
+    /**
+     * 开始一次预测寻路模拟：以列车当前导航指针为起点，快照其后所有道岔（{@code S:}）步骤的出向序列，
+     * 装入线程局部游标。必须与 {@link #endPredictionSim} 配对（用 try/finally）。
+     * <p>
+     * 列车无导航序列时不装游标（{@link #currentSwitchDirection} 走原逻辑，对普通车无影响）。
+     *
+     * @param group 列车
+     */
+    public static void beginPredictionSim(MinecartGroup group) {
+        if (group == null) {
+            return;
+        }
+        List<String> route = group.getProperties().get(BcRouteProperty.INSTANCE);
+        if (route == null || route.isEmpty()) {
+            return;
+        }
+        int index = group.getProperties().get(BcRouteIndexProperty.INSTANCE);
+        List<String> switchDirs = new ArrayList<>();
+        for (int i = Math.max(0, index); i < route.size(); i++) {
+            String step = route.get(i);
+            if (step != null && step.startsWith(GeoRoutePath.ROUTE_STEP_SWITCH_PREFIX)) {
+                switchDirs.add(step.substring(GeoRoutePath.ROUTE_STEP_SWITCH_PREFIX.length()));
+            }
+        }
+        predictionSim.set(new PredictionSim(switchDirs));
+    }
+
+    /**
+     * 结束预测寻路模拟，清除线程局部游标。
+     */
+    public static void endPredictionSim() {
+        predictionSim.remove();
+    }
+
+    /**
+     * 预测寻路在一个道岔方块处取应走出向（仅当预测模拟进行中有效）。供 bcswitcher 的
+     * {@code predictPathFinding} 选向时调用：按道岔方块消重逐格推进，使下一个道岔读到下一步出向，
+     * 同一方块的多块牌读同一格（不超前）。
+     *
+     * @param blockKey 道岔铁轨方块去重 key（{@link com.bigbrother.bilicraftticketsystem.route.NodeId#ofBlock}）
+     * @return 该道岔应走出向；无导航模拟 / 越界 / 载荷空返回 null
+     */
+    public static String predictionSwitchDirection(String blockKey) {
+        PredictionSim sim = predictionSim.get();
+        return sim == null ? null : sim.directionForBlock(blockKey);
+    }
+
+    /**
+     * 预测寻路模拟是否进行中。
+     *
+     * @return true 表示当前线程正在进行预测模拟
+     */
+    public static boolean isPredictionSim() {
+        return predictionSim.get() != null;
     }
 
     /**

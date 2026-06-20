@@ -59,6 +59,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     private final CustomSignActionSpawn customSignActionSpawn = new CustomSignActionSpawn();
     private final SignActionPlatform signActionPlatform = new SignActionPlatform();
     private final SignActionBcswitcher signActionBcswitcher = new SignActionBcswitcher();
+    private final SignActionSlowdown signActionSlowdown = new SignActionSlowdown();
 
     // Command
     private final AdminCommand adminCommand = new AdminCommand(this);
@@ -193,6 +194,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         SignAction.register(customSignActionSpawn, true);
         SignAction.register(signActionPlatform, true);
         SignAction.register(signActionBcswitcher, true);
+        SignAction.register(signActionSlowdown, true);
         this.getComponentLogger().info(Component.text("控制牌注册成功", NamedTextColor.GOLD));
 
         // 注册列车导航属性（TC 自动随存档持久化，重启/重载后恢复）
@@ -249,6 +251,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         SignAction.unregister(customSignActionSpawn);
         SignAction.unregister(signActionPlatform);
         SignAction.unregister(signActionBcswitcher);
+        SignAction.unregister(signActionSlowdown);
 
         Bukkit.getScheduler().cancelTasks(plugin);
 

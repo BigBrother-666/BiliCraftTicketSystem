@@ -19,6 +19,7 @@ import com.bigbrother.bilicraftticketsystem.route.geograph.MermaidExporter;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteNavigator;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteProperty;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.SwitchTrace;
+import com.bigbrother.bilicraftticketsystem.signactions.component.SlowdownTrace;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTransitPass;
 import net.kyori.adventure.text.Component;
@@ -274,6 +275,21 @@ public class AdminCommand {
         SwitchTrace.setEnabled(on);
         sender.sendMessage(Component.text(
                 "道岔选向追踪已" + (on ? "开启（每辆列车经过 bcswitcher 会打印到控制台）" : "关闭"),
+                on ? NamedTextColor.GREEN : NamedTextColor.GRAY));
+    }
+
+    @CommandDescription("调试：开关 slowdown 减速追踪（开启后列车经过 slowdown 控制牌打印预测与减速决策到控制台）")
+    @Command("ticketdebug slowdowntrace <state>")
+    @Permission("bcts.ticket.debug")
+    public void slowdownTrace(
+            CommandSender sender,
+            @Argument(value = "state", description = "on / off", suggestions = "switchTraceState")
+            String state
+    ) {
+        boolean on = state.equalsIgnoreCase("on") || state.equalsIgnoreCase("true") || state.equals("1");
+        SlowdownTrace.setEnabled(on);
+        sender.sendMessage(Component.text(
+                "slowdown 减速追踪已" + (on ? "开启（列车经过 slowdown 控制牌会打印预测与减速决策到控制台）" : "关闭"),
                 on ? NamedTextColor.GREEN : NamedTextColor.GRAY));
     }
 

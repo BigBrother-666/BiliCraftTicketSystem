@@ -173,7 +173,15 @@ public class SignActionBcswitcher extends SignAction {
             return;
         }
         // 带导航：按当前道岔步骤的物理出向直接选向（与 execute 一致，消除共用 lineId 歧义）。
-        String navDir = BcRouteNavigator.currentSwitchDirection(group);
+        // 预测模拟进行中（如 slowdown 跨多道岔预测）：按道岔铁轨方块消重逐格取出向，使下一个道岔读到
+        // 下一步出向、同一方块的多块牌读同一格（不超前），而非重复读列车真实指针所指的同一步。
+        String navDir;
+        if (BcRouteNavigator.isPredictionSim()) {
+            String blockKey = info.getRails() == null ? null : NodeId.ofBlock(info.getRails());
+            navDir = BcRouteNavigator.predictionSwitchDirection(blockKey);
+        } else {
+            navDir = BcRouteNavigator.currentSwitchDirection(group);
+        }
         if (navDir != null) {
             prediction.setSwitchedJunction(info.findJunction(Direction.parse(navDir)));
             return;

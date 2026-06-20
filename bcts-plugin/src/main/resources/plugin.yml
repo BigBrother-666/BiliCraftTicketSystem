@@ -48,6 +48,9 @@ permissions:
   bcts.buildsign.bcswitcher:
     description: "放置bcswitcher道岔控制牌权限"
     default: op
+  bcts.buildsign.slowdown:
+    description: "放置slowdown减速控制牌权限"
+    default: op
   bcts.ticket.getcard:
     description: "获取交通卡权限"
     default: op

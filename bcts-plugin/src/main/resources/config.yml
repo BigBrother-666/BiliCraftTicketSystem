@@ -1,6 +1,11 @@
 # 默认每公里价格
 price-per-km: 0.2
 
+# slowdown 减速控制牌预测 platform 的最大检测距离（block）。
+# 列车经过 slowdown 控制牌时，向前预测寻找 platform 控制牌；超出此距离仍未找到则不减速，
+# 防止玩家把 slowdown 放得过远导致的性能问题。
+slowdown-max-detect-distance: 500.0
+
 # 跨站车车票名（需要在tc插件新建，用于识别使用本车票系统的列车）
 express-ticket-name: 'express'
 
