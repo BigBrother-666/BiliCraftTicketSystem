@@ -35,6 +35,8 @@ public class MainConfig {
     public static int loreStationNameCntRow;
     public static int loreRailwayNameCntRow;
     public static List<String> ticketLore;
+    public static List<String> ticketPriceLore;
+    public static String distanceInfoLore;
     public static List<String> cardLore;
 
     /**
@@ -88,6 +90,8 @@ public class MainConfig {
         loreStationNameCntRow = lore.get("station-name-cnt-perrow", 7);
         loreRailwayNameCntRow = lore.get("railway-name-cnt-perrow", 4);
         ticketLore = lore.getList("ticket", String.class, Collections.emptyList());
+        ticketPriceLore = lore.getList("ticket-price", String.class, Collections.emptyList());
+        distanceInfoLore = lore.get("distance-info-lore", "<gold>{railway_system} <dark_aqua>{system_distance} <dark_purple>{system_price}");
         cardLore = lore.getList("card", String.class, Collections.emptyList());
 
         ConfigurationNode bossbar = mainConfig.getNode("bossbar");

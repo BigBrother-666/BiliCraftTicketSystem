@@ -23,6 +23,7 @@ import java.util.UUID;
  * <ol>
  *   <li>{@code name}：系统显示名称（必填）。</li>
  *   <li>{@code members}：成员，输入玩家名（仅在线可用）或 UUID，逗号分隔（选填）。</li>
+ *   <li>{@code price-per-km}：每公里价格（选填）；跳过则沿用 config.yml 的全局 price-per-km。</li>
  * </ol>
  * 新建模式下创建者自动加入成员。完成后写回 railway_system.yml 并自动重载配置。
  */
@@ -42,6 +43,9 @@ public class SystemWizard extends ConfigWizard {
             if (info != null) {
                 values.put("name", info.getName());
                 values.put("members", new LinkedHashSet<>(info.getMembersView()));
+                if (info.getPricePerKm() != null) {
+                    values.put("price-per-km", info.getPricePerKm());
+                }
             }
         }
     }
@@ -65,7 +69,26 @@ public class SystemWizard extends ConfigWizard {
                         NamedTextColor.WHITE),
                 false,
                 this::parseMembers));
+        steps.add(new WizardStep("price-per-km",
+                Component.text("输入本系统每公里价格（数字）；跳过则使用全局默认价格（%.2f/km）".formatted(MainConfig.pricePerKm), NamedTextColor.WHITE),
+                false,
+                this::parsePricePerKm));
         return steps;
+    }
+
+    /**
+     * 解析每公里价格：必须为非负数字。
+     */
+    private WizardStep.Result parsePricePerKm(String input) {
+        try {
+            double value = Double.parseDouble(input.trim());
+            if (value < 0) {
+                return WizardStep.Result.error("每公里价格不能为负数");
+            }
+            return WizardStep.Result.ok(value);
+        } catch (NumberFormatException e) {
+            return WizardStep.Result.error("\"" + input + "\" 不是合法数字");
+        }
     }
 
     @Override
@@ -136,7 +159,12 @@ public class SystemWizard extends ConfigWizard {
             members.add(player.getUniqueId());
         }
 
-        RailwaySystemConfig.upsert(systemId, name, members);
+        // 跳过 / 未填则为 null，计费时回退到全局 price-per-km
+        Double pricePerKm = collected.get("price-per-km") instanceof Number n ? n.doubleValue() : null;
+
+        // 新建模式写入创建者；修改模式传 null，upsert 保留原创建者不动
+        UUID creator = editMode ? null : player.getUniqueId();
+        RailwaySystemConfig.upsert(systemId, name, members, pricePerKm, creator);
         player.sendMessage(MainConfig.prefix.append(Component.text(
                 "已保存铁路系统 [%s]，正在重载配置...".formatted(systemId), NamedTextColor.GREEN)));
         try {

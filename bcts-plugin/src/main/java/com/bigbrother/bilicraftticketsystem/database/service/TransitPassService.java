@@ -22,7 +22,7 @@ public class TransitPassService {
         this.transitPassDao = transitPassDao;
     }
 
-    public void addTicketUsage(String playerUuid, String playerName, Double price, String passType, CommonTagCompound ticketNbt, String startNodeId) {
+    public void addTicketUsage(String playerUuid, String playerName, String priceJson, String passType, CommonTagCompound ticketNbt, String startNodeId) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             transitPassDao.updatePlayerNameByUuid(playerUuid, playerName);
             transitPassDao.insertTransitPassUsage(
@@ -33,7 +33,7 @@ public class TransitPassService {
                     startNodeId,
                     ticketNbt.getValue(BCTicket.KEY_TICKET_END_STATION, null),
                     ticketNbt.getValue(BCTicket.KEY_TICKET_MAX_SPEED, null),
-                    price,
+                    priceJson,
                     passType,
                     null
             );
@@ -41,7 +41,7 @@ public class TransitPassService {
     }
 
     public void addCardUsage(String playerUuid, String playerName, String startStation, String startNodeId,
-                             String endStation, Double maxSpeed, Double price, String passType, String cardUuid) {
+                             String endStation, Double maxSpeed, String priceJson, String passType, String cardUuid) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> transitPassDao.insertTransitPassUsage(
                 playerUuid,
                 playerName,
@@ -50,7 +50,7 @@ public class TransitPassService {
                 startNodeId,
                 endStation,
                 maxSpeed,
-                price,
+                priceJson,
                 passType,
                 cardUuid
         ));
@@ -70,14 +70,13 @@ public class TransitPassService {
 
     private Component getTransitPassUsageRecordsByDate(String date) {
         Component header = CommonUtils.legacyStr2Component(
-                "%-26s &7|&6 %-25s &7|&6 %-18s &7|&6 %-18s &7|&6 %-18s &7|&6 %-12s &7|&6 %-10s &7|&6 %-8s".formatted(
+                "%-26s &7|&6 %-25s &7|&6 %-18s &7|&6 %-18s &7|&6 %-18s &7|&6 %-12s &7|&6 %-8s".formatted(
                         "&6player",
                         "boarding time",
                         "start",
                         "start node",
                         "end",
                         "max speed",
-                        "price",
                         "type"
                 )
         );
@@ -85,14 +84,12 @@ public class TransitPassService {
         Component result = header;
         for (TransitPassDao.UsageRecordRow row : rows) {
             String maxSpeed = row.maxSpeed() == null ? "-" : "%.2fkm/h".formatted(row.getSpeedKph());
-            String price = row.price() == null ? "-" : "%.2f".formatted(row.price());
             result = result.append(CommonUtils.legacyStr2Component("\n%-16s &7|&6 ".formatted(row.playerName())))
                     .append(CommonUtils.legacyStr2Component("%-20s &7|&6 ".formatted(row.boardingTime())))
                     .append(CommonUtils.legacyStr2Component("%-8s &7|&6 ".formatted(row.startStation())))
                     .append(CommonUtils.legacyStr2Component("%-8s &7|&6 ".formatted(row.startNodeId())))
                     .append(CommonUtils.legacyStr2Component("%-8s &7|&6 ".formatted(row.endStation())))
                     .append(CommonUtils.legacyStr2Component("%-5s &7|&6 ".formatted(maxSpeed)))
-                    .append(CommonUtils.legacyStr2Component("%-5s &7|&6".formatted(price)))
                     .append(CommonUtils.legacyStr2Component("%-3s".formatted(row.passType())));
         }
         return result;

@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.common.map.MapDisplay;
 import com.bergerkiller.bukkit.common.nbt.CommonTagCompound;
 import com.bergerkiller.bukkit.common.wrappers.HumanHand;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRouteEngine;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRoutePath;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
@@ -49,6 +50,7 @@ public class BCTicket extends BCTransitPass {
 
     public BCTicket(PlayerOption option, GeoRoutePath pathInfo, Player owner) {
         this.owner = owner;
+        this.payerUuid = owner == null ? null : owner.getUniqueId();
         this.pathInfo = pathInfo;
         this.maxUses = option.getUses();
         this.maxSpeed = option.getSpeed();
@@ -58,6 +60,7 @@ public class BCTicket extends BCTransitPass {
 
     public BCTicket(int maxUses, double maxSpeed, GeoRoutePath pathInfo, Player owner) {
         this.owner = owner;
+        this.payerUuid = owner == null ? null : owner.getUniqueId();
         this.pathInfo = pathInfo;
         this.maxUses = maxUses;
         this.maxSpeed = maxSpeed;
@@ -74,6 +77,7 @@ public class BCTicket extends BCTransitPass {
 
         CommonTagCompound nbt = commonItemStack.getCustomData();
         this.owner = Bukkit.getPlayer(nbt.getValue(KEY_TICKET_OWNER_UUID, ""));
+        this.payerUuid = nbt.containsKey(KEY_TICKET_OWNER_UUID) ? nbt.getUUID(KEY_TICKET_OWNER_UUID) : null;
         this.maxUses = nbt.getValue(KEY_TICKET_MAX_NUMBER_OF_USES, 1);
         this.maxSpeed = nbt.getValue(KEY_TICKET_MAX_SPEED, 4.0);
 
@@ -125,6 +129,8 @@ public class BCTicket extends BCTransitPass {
             this.give();
             // 记录log
             Bukkit.getConsoleSender().sendMessage(MainConfig.prefix.append(Component.text("玩家 %s 成功花费 %.2f 购买了 %s".formatted(owner.getName(), r.amount, ticketName), NamedTextColor.GREEN)));
+            // 按段所属铁路系统分摊实付金额，实时累加各系统收入（车票在购买时一次性结算全部次数）
+            RailwaySystemConfig.addIncome(allocateIncome(r.amount, 0.0));
             // 写入数据库
             plugin.getTrainDatabaseManager().getRevenueService().recordTicketPurchase(owner.getName(), owner.getUniqueId().toString(), r.amount, CommonItemStack.of(itemStack).getCustomData());
         } else {
@@ -170,10 +176,13 @@ public class BCTicket extends BCTransitPass {
                 CommonUtils.mmStr2Component(message.get("ticket-used", "成功使用一张（次）%s 车票").formatted(this.getTransitPassName()))
         ));
 
+        // 单次行程实付价：购票总价（含次数倍数与折扣）按次均摊，再按段所属系统分摊写入明细。
+        // 各次记录之和与购票时一次性计入各系统的收入一致（账目闭合）。
+        double perTripPaid = maxUses > 0 ? getPrice() / maxUses : getPrice();
         plugin.getTrainDatabaseManager().getTransitPassService().addTicketUsage(
                 usedPlayer.getUniqueId().toString(),
                 usedPlayer.getName(),
-                getPrice(),
+                toPriceJson(allocateIncome(perTripPaid, 0.0), rawSegmentDistances()),
                 PassType.TICKET.getId(),
                 nbt,
                 pathInfo.getStartNode().getId()
@@ -266,8 +275,9 @@ public class BCTicket extends BCTransitPass {
         placeholder.put("owner_name", owner.getName());
         List<Component> lore = parseConfigLore(MainConfig.ticketLore, placeholder);
         if (addPrice) {
-            lore.add(Component.text("===============================", NamedTextColor.DARK_PURPLE).decoration(TextDecoration.ITALIC, false));
-            lore.add(Component.text("售价：%.2f银币       左键点击购买".formatted(this.getPrice()), NamedTextColor.DARK_PURPLE));
+            placeholder.put("distance_info_lore", getDistanceInfoLore());
+            lore.addAll(parseConfigLore(MainConfig.ticketPriceLore, placeholder));
+
         }
         itemStack.editMeta(itemMeta -> {
             itemMeta.lore(lore);

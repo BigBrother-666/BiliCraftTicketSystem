@@ -186,6 +186,8 @@ public class BCCard extends BCTransitPass {
 
     @Override
     public boolean verify(Player usedPlayer, MinecartGroup group) {
+        // 刷卡者作为支付方：用于按段免除其所属铁路系统的票价
+        this.payerUuid = usedPlayer.getUniqueId();
         if (!BCTransitPass.isNewPRTrain(group)) {
             // 已经是快速车，获取快速车对应的凭证
             BCTransitPass bcTransitPass = TrainListeners.trainTicketInfo.get(group);
@@ -290,6 +292,12 @@ public class BCCard extends BCTransitPass {
         // 扣费
         this.addBalance(-price);
 
+        // 按段分摊实付金额（起步价 base-fare 归起点系统；起点段所属系统成员免起步价），
+        // 实时累加各系统收入并写入按系统价格明细
+        double baseFare = effectiveBaseFare();
+        Map<String, Double> perSystem = allocateIncome(price, baseFare);
+        RailwaySystemConfig.addIncome(perSystem);
+
         usedPlayer.sendMessage(MainConfig.prefix.append(
                 CommonUtils.mmStr2Component(message.get("card-used", "刷卡成功，扣费 %.2f 银币，剩余 %.2f 银币").formatted(price, this.cardInfo.getBalance()))
         ));
@@ -311,7 +319,7 @@ public class BCCard extends BCTransitPass {
                 pathInfo.getStartNode().getId(),
                 pathInfo.getEndStationName(),
                 maxSpeed,
-                price,
+                toPriceJson(perSystem, rawSegmentDistances()),
                 PassType.CARD.getId(),
                 cardInfo.getCardUuid()
         );
@@ -404,7 +412,22 @@ public class BCCard extends BCTransitPass {
      */
     @Override
     public double getPrice() {
-        return cardConfig.get("base-fare", 0.0) + calculateFare(pathInfo.getDistance());
+        return effectiveBaseFare() + calculateFare(pathInfo.getDistance());
+    }
+
+    /**
+     * 本次行程实际收取的起步价：刷卡者若是行程<b>起点段</b>所属铁路系统的成员，则免除起步价（返回 0），
+     * 否则返回 config.yml 的 {@code card.base-fare}。
+     *
+     * @return 实际起步价
+     */
+    private double effectiveBaseFare() {
+        double baseFare = cardConfig.get("base-fare", 0.0);
+        if (payerUuid == null || pathInfo == null) {
+            return baseFare;
+        }
+        RailwaySystemInfo startSystem = RailwaySystemConfig.get(LineConfig.getSystemId(pathInfo.getStartLineId()));
+        return startSystem != null && startSystem.isMember(payerUuid) ? 0.0 : baseFare;
     }
 
     @Override

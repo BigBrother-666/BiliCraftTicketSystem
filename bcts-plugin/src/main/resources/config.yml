@@ -1,4 +1,4 @@
-# 每公里价格
+# 默认每公里价格
 price-per-km: 0.2
 
 # 跨站车车票名（需要在tc插件新建，用于识别使用本车票系统的列车）
@@ -87,6 +87,8 @@ message:
   card-used: '<green>刷卡成功，扣费 %.2f 银币，剩余 %.2f 银币'
   card-missing: '<red>主手没有检测到交通卡！'
 
+  system-income-collected: '<green>铁路系统 <gold>%s</gold> 收入已到账：<gold>%.2f</gold> 银币'
+
   unknown-error: '<red>发生未知错误！'
 
   forbidden-get-on: '<red>主手车票不正确或列车已经驶离起始站，禁止上车'
@@ -102,11 +104,14 @@ lore:
   # {end_station_name} {end_railway_system}
   # {start_station_full} {end_station_full}  带色站名+(系统名)，站点为空显示N/A
   # {distance} {speed} {price}
-  # {path_info_lore} {railway_info_lore} 必须放在单独一行
+  # {path_info_lore} {railway_info_lore} {distance_info_lore} 必须放在单独一行
   # ticket独有：
   # {max_uses} {owner_name}
+  # distance_info_lore独有：
+  # {railway_system} {system_distance} {system_price} {system_price_per_km}
   # card独有：
   # {balance} {use_platform}
+  # ================== 车票lore相关 ==================
   ticket:
     - '<!italic><dark_purple>▶ 路线'
     - '<italic>{start_station_full} <gold>====直达====＞ {end_station_full}'
@@ -117,6 +122,17 @@ lore:
     - '<!italic><dark_purple>▶ 途经铁路'
     - '{railway_info_lore}'
     - '<italic>{distance} km | 最大速度 {speed} km/h'
+  # 这部分lore会在购买后移除
+  ticket-price:
+    - '<!italic><dark_gray>======================================'
+    - '<!italic><dark_purple>▶ 各铁路系统收费详情'
+    - '{distance_info_lore}'
+    - ''
+    - '<!italic><dark_purple>总价(含折扣)：{price}银币     点击购买'
+  # 每行{distance_info_lore}的具体格式
+  distance-info-lore: '<gold>{railway_system} <dark_aqua>{system_distance}km <dark_purple>{system_price}银币'
+
+  # ================== 交通卡lore相关 ==================
   card:
     - '<dark_purple><!italic>▶ 交通卡信息'
     - '<gold><!italic>余额：<italic><dark_aqua>{balance}</italic>'

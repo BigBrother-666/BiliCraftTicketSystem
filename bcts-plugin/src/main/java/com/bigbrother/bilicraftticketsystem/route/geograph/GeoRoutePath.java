@@ -27,6 +27,11 @@ public class GeoRoutePath {
      */
     private final List<String> departDirectionSequence;
     /**
+     * 每段轨道的长度（km），与 {@link #lineIdSequence} 平行、一一对应（size = nodes.size()-1）。
+     * 用于按段所属铁路系统分别计费。
+     */
+    private final List<Double> distanceSequence;
+    /**
      * 总距离（沿途各段边权之和），单位：km。
      */
     private final double distance;
@@ -35,13 +40,15 @@ public class GeoRoutePath {
      * @param nodes                   有序节点列表
      * @param lineIdSequence          逐段 lineId 序列
      * @param departDirectionSequence 逐段物理出向序列（与 lineIdSequence 平行）
+     * @param distanceSequence        逐段长度序列（km，与 lineIdSequence 平行）
      * @param distance                总距离（km）
      */
     public GeoRoutePath(List<GeoNode> nodes, List<String> lineIdSequence, List<String> departDirectionSequence,
-                        double distance) {
+                        List<Double> distanceSequence, double distance) {
         this.nodes = nodes;
         this.lineIdSequence = lineIdSequence;
         this.departDirectionSequence = departDirectionSequence;
+        this.distanceSequence = distanceSequence;
         this.distance = distance;
     }
 

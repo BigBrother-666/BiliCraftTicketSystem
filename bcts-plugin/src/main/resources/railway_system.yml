@@ -1,10 +1,22 @@
 # 铁路系统配置，每个铁路系统下包含多条属于该系统的线路，线路配置在railway_routes.yml
 # 玩家在游戏内创建线路前，必须先属于至少一个铁路系统（用 /ticket editSystem <id> 创建）。
+#
+# 以下字段由插件自动维护，请勿手动修改：
+#   creator   : 系统创建者 UUID，游戏内创建时写入，之后不可更改
+#   income    : 累计收入（购票 / 刷卡实付按段分摊到本系统的部分），实时累加
+#   withdrawn : 已发放给创建者的金额；创建者上线时自动补发 income-withdrawn 并对齐到 income
 
 # 铁路系统id，不可重复
 paralon-railway:
   # 铁路系统名称，必填
   name: "帕拉伦国有铁路"
+  # 每公里价格（选填）；不填则使用 config.yml 的全局 price-per-km
+  price-per-km: 0.2
+  # 系统创建者 UUID（自动维护，勿改）
+  creator: "5bc8940f-2e0e-4a30-a2c3-5552744f5d19"
+  # 累计收入 / 已取出（自动维护，勿改）
+  income: 0.0
+  withdrawn: 0.0
   # 成员UUID
   members:
     - "5bc8940f-2e0e-4a30-a2c3-5552744f5d19"

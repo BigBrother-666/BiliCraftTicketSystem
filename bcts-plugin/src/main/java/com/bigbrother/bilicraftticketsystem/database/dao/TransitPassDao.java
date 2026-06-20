@@ -25,7 +25,7 @@ public class TransitPassDao extends BaseDao {
     }
 
     public void insertTransitPassUsage(String playerUuid, String playerName, String boardingTime, String startStation,
-                                       String startNodeId, String endStation, Double maxSpeed, Double price, String passType, String cardUuid) {
+                                       String startNodeId, String endStation, Double maxSpeed, String priceJson, String passType, String cardUuid) {
         String sql = "INSERT INTO " + TrainDatabaseConstants.TRANSIT_PASS_USAGE_TABLE_NAME
                 + " (`player_uuid`, `player_name`, `boarding_time`, `start_station`, `start_node_id`, `end_station`, `max_speed`, `price`, `pass_type`, `card_uuid`)"
                 + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -45,10 +45,10 @@ public class TransitPassDao extends BaseDao {
             } else {
                 preparedStatement.setDouble(7, maxSpeed);
             }
-            if (price == null) {
-                preparedStatement.setNull(8, Types.REAL);
+            if (priceJson == null) {
+                preparedStatement.setNull(8, Types.VARCHAR);
             } else {
-                preparedStatement.setDouble(8, price);
+                preparedStatement.setString(8, priceJson);
             }
             preparedStatement.setString(9, passType);
             preparedStatement.setString(10, cardUuid);
@@ -101,7 +101,7 @@ public class TransitPassDao extends BaseDao {
                         rs.getString("start_node_id"),
                         rs.getString("end_station"),
                         getNullableDouble(rs, "max_speed"),
-                        getNullableDouble(rs, "price"),
+                        rs.getString("price"),
                         rs.getString("pass_type")
                 ));
             }
@@ -113,6 +113,7 @@ public class TransitPassDao extends BaseDao {
         return result;
     }
 
+    @SuppressWarnings("SameParameterValue")
     private Double getNullableDouble(ResultSet rs, String columnLabel) throws SQLException {
         double value = rs.getDouble(columnLabel);
         return rs.wasNull() ? null : value;
@@ -122,7 +123,7 @@ public class TransitPassDao extends BaseDao {
     }
 
     public record UsageRecordRow(String playerName, String playerUuid, String boardingTime, String startStation,
-                                 String startNodeId, String endStation, Double maxSpeed, Double price, String passType) {
+                                 String startNodeId, String endStation, Double maxSpeed, String price, String passType) {
         public double getSpeedKph() {
             return CommonUtils.mpt2Kph(maxSpeed);
         }

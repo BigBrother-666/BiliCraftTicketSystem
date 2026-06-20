@@ -53,7 +53,10 @@ public class SystemItem extends AbstractItem {
                 .decoration(TextDecoration.ITALIC, false));
         meta.lore(List.of(
                 Component.text("线路数量：" + lines.size(), NamedTextColor.DARK_AQUA),
-                Component.text("车站数量：" + StationProvider.listStationsOfSystem(system.getId()).size(), NamedTextColor.DARK_AQUA)
+                Component.text("车站数量：" + StationProvider.listStationsOfSystem(system.getId()).size(), NamedTextColor.DARK_AQUA),
+                Component.text("", NamedTextColor.DARK_AQUA),
+                Component.text("每公里价格：%.2f".formatted(system.getPricePerKm()), NamedTextColor.DARK_PURPLE)
+
         ));
         item.setItemMeta(meta);
         return new ItemBuilder(item);

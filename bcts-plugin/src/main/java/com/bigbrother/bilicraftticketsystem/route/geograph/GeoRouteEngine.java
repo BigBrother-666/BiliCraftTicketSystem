@@ -291,18 +291,22 @@ public class GeoRouteEngine {
         List<GeoNode> nodes = new ArrayList<>();
         List<String> lineIds = new ArrayList<>();
         List<String> departDirs = new ArrayList<>();
+        List<Double> distances = new ArrayList<>();
         Entry cur = endEntry;
         // 回溯到起点条目（prev == null 即起点，其 prevLink 也为 null）
         while (cur != null && cur.prev != null) {
             nodes.add(g.getNode(cur.nodeId));
             lineIds.add(cur.prevLink == null ? null : cur.prevLink.getLineId());
             departDirs.add(cur.prevLink == null ? null : cur.prevLink.getDepartDirection());
+            // 段长换算为 km，与总距离单位一致
+            distances.add(cur.prevLink == null ? 0.0 : cur.prevLink.getDistance() / 1000);
             cur = cur.prev;
         }
         nodes.add(g.getNode(startNodeId));
         Collections.reverse(nodes);
         Collections.reverse(lineIds);
         Collections.reverse(departDirs);
-        return new GeoRoutePath(nodes, lineIds, departDirs, (endEntry != null ? endEntry.dist : 0) / 1000);
+        Collections.reverse(distances);
+        return new GeoRoutePath(nodes, lineIds, departDirs, distances, (endEntry != null ? endEntry.dist : 0) / 1000);
     }
 }

@@ -118,7 +118,7 @@ public class TrainDatabaseManager {
                                 start_node_id VARCHAR(100),
                                 end_station VARCHAR(100),
                                 max_speed REAL,
-                                price REAL,
+                                price TEXT,
                                 pass_type VARCHAR(16),
                                 card_uuid VARCHAR(36)
                     );

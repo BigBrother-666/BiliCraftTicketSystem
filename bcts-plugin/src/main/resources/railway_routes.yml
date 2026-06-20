@@ -2,6 +2,7 @@
 
 # 联络线
 contact:
+  railway-system: "contact" # 特殊id，不存在于railway_system.yml
   line-name: "联络线"
   line-color: "#868686"
 
