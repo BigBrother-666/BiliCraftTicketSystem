@@ -4,6 +4,10 @@ import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bigbrother.bctsguardplugin.GuardListeners;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
+import com.bigbrother.bilicraftticketsystem.deprecated.CustomSignActionStation;
+import com.bigbrother.bilicraftticketsystem.deprecated.RailwayRoutesConfig;
+import com.bigbrother.bilicraftticketsystem.deprecated.RouteCommand;
+import com.bigbrother.bilicraftticketsystem.deprecated.SignActionShowroute;
 import com.bigbrother.bilicraftticketsystem.listeners.*;
 import com.bigbrother.bilicraftticketsystem.menu.items.location.NearestLocItem;
 import com.bigbrother.bilicraftticketsystem.database.GeoDatabaseManager;
@@ -43,6 +47,7 @@ import org.incendo.cloud.paper.LegacyPaperCommandManager;
 import java.io.File;
 import java.util.List;
 
+@SuppressWarnings("deprecation")
 @Slf4j
 @Getter
 public final class BiliCraftTicketSystem extends JavaPlugin {
@@ -68,6 +73,11 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     private final CardCommand cardCommand = new CardCommand(this);
     private final GeoCommand geoCommand = new GeoCommand(this);
     private final ConfigEditCommand configEditCommand = new ConfigEditCommand(this);
+
+    // 将要移除
+    private final CustomSignActionStation customSignActionStation = new CustomSignActionStation();
+    private final SignActionShowroute signActionShowroute = new SignActionShowroute();
+    private final RouteCommand routeCommand = new RouteCommand(this);
 
 
     @Override
@@ -97,6 +107,9 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
      */
     public void loadConfig(CommandSender sender) {
         try {
+            // 将要移除
+            RailwayRoutesConfig.load(this);
+
             MainConfig.loadMainConfig(this);
             RailwaySystemConfig.load(this);
             LineConfig.load(this);
@@ -171,6 +184,11 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         AnnotationParser<C> annotationParser = new AnnotationParser(commandManager, CommandSender.class);
         annotationParser.parse(new CommandSuggestions(), new CommandParsers());
         annotationParser.parse(adminCommand, ticketbgCommand, baseCommand, geoCommand, cardCommand, configEditCommand);
+
+        // 将要移除
+        annotationParser.parse(new com.bigbrother.bilicraftticketsystem.deprecated.CommandSuggestions());
+        annotationParser.parse(routeCommand);
+
         this.getComponentLogger().info(Component.text("指令注册成功", NamedTextColor.GOLD));
     }
 
@@ -182,6 +200,10 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new WizardListeners(), this);
         Bukkit.getPluginManager().registerEvents(new GuardListeners(), this);
         Bukkit.getPluginManager().registerEvents(new BossbarManager(), this);
+
+        // 将要移除
+        Bukkit.getPluginManager().registerEvents(signActionShowroute, this);
+
         this.getComponentLogger().info(Component.text("监听器注册成功", NamedTextColor.GOLD));
     }
 
@@ -192,6 +214,11 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         SignAction.register(signActionPlatform, true);
         SignAction.register(signActionBcswitcher, true);
         SignAction.register(signActionSlowdown, true);
+
+        // 将要移除
+        SignAction.register(customSignActionStation, true);
+        SignAction.register(signActionShowroute);
+
         this.getComponentLogger().info(Component.text("控制牌注册成功", NamedTextColor.GOLD));
 
         // 注册列车导航属性（TC 自动随存档持久化，重启/重载后恢复）
