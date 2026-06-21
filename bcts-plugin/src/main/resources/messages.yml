@@ -1,0 +1,56 @@
+# 提示信息配置：每条消息为一个根节点，支持 MiniMessage 标签与 legacy & 颜色代码。
+
+# 车票系统前缀
+ticket-system-prefix: '<gold>[帕拉伦铁路系统] '
+
+# ================== 聊天栏 ==================
+ticket-buy-success: '<green>您成功花费 <bold>%.2f银币</bold> 购买了 <bold>%s</bold>'
+ticket-buy-failure: '<red>车票购买失败：%s'
+ticket-check-failed: '<red>检票失败！主手没有本次列车的车票。本次列车的车票信息：'
+ticket-old: '<red>旧版车票已禁用'
+ticket-not-support: '<red>不支持该车票'
+ticket-expired: '<red>车票已过期'
+ticket-owner-conflict: '<red>不能使用其他玩家的车票'
+ticket-wrong-platform: '<red>此车票不能在本站台使用，请核对车票的可使用站台和本站台上的信息是否一致'
+ticket-route-mismatch: '<red>此车票的路线与本趟列车不一致，无法乘坐'
+ticket-used: '<green>成功使用一张（次）%s 车票'
+
+card-charge-success: '<green>您成功向交通卡充值了 <bold>%.2f</bold> 银币，余额 <bold>%.2f</bold> 银币'
+card-charge-failure: '<red>充值失败：%s'
+card-reach-max: '<yellow>交通卡存储金额已经达到最大值'
+card-charge-reach-max: '<yellow>单次最多充值 %.2f 银币！请重新输入或点击取消按钮。'
+card-no-path: '<yellow>本站台没有 <i><u>%s</i> 直达 <i><u>%s</i> 的路线'
+card-no-endstation: '<red>请指定想前往的车站'
+card-wrong-platform: '<red>不能本站台使用交通卡，请核对交通卡的可使用站台和本站台上的信息是否一致'
+card-not-enough-balance: '<red>交通卡余额不足！本次行程需要 <yellow>%.2f 银币<red>，余额 <yellow>%.2f 银币'
+card-used: '<green>刷卡成功，扣费 %.2f 银币，剩余 %.2f 银币'
+card-missing: '<red>主手没有检测到交通卡！'
+
+system-income-collected: '<green>铁路系统 <gold>%s</gold> 收入已到账：<gold>%.2f</gold> 银币'
+
+unknown-error: '<red>发生未知错误！'
+
+forbidden-get-on: '<red>主手车票不正确或列车已经驶离起始站，禁止上车'
+quick-buy: '<green><underlined>点击花费 <bold>%.2f银币</bold> 快速购买一张此列车的单程票'
+wiki: '<green><underlined><click:open_url:https://www.yuque.com/sasanarx/bilicraft/iunb5gkspevng8gf#>点击打开帕拉伦铁路wiki页面'
+
+# 直达车bossbar
+express-normal: '<green>%s <rainbow>======== 直达 ========＞</rainbow> %s</green>'
+express-end: '<rainbow>>>>> <gold>列车已到达终点站：<red>%s</red>，下车时，请您注意站台与列车之间的空隙</gold> <<<<</rainbow>'
+
+# 铁轨遍历期间使用车票/交通卡上车时的提示（普通车不受影响）
+traversal-ticket-blocked: '<red>铁路系统正在进行铁轨遍历，暂停车票/交通卡使用，请稍后再试'
+# 已有遍历正在进行时再次发起的提示
+traversal-already-running: '<red>已有一个铁轨遍历任务正在进行，请等待其完成，或使用 /railgeo stopWalk 停止'
+# 处于冷却期时发起的提示（%d 为剩余冷却秒数）
+traversal-cooling-down: '<red>铁轨遍历正在冷却中，请 %d 秒后再试'
+# 发起停止当前遍历任务时的提示
+traversal-stop-requested: '<yellow>已请求停止当前铁轨遍历任务...'
+# 没有正在进行的遍历任务时发起停止的提示
+traversal-no-running: '<red>当前没有正在进行的铁轨遍历任务'
+# 铁轨遍历期间使用 ticketconfig 线路/铁路系统配置指令时的提示
+traversal-config-blocked: '<red>铁路系统正在进行铁轨遍历，暂停线路/铁路系统配置指令，请稍后再试'
+# 有玩家正在进行线路/铁路系统配置向导时发起遍历的提示
+traversal-wizard-active: '<red>有玩家正在进行线路/铁路系统配置，请等其完成后再发起遍历'
+
+

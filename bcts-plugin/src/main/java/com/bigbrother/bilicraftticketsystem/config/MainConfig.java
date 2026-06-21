@@ -81,7 +81,10 @@ public class MainConfig {
 
         permDiscount = mainConfig.getNode("perm-discount");
 
-        message = mainConfig.getNode("message");
+        // 提示信息独立到 messages.yml
+        FileConfiguration messagesConfig = new FileConfiguration(plugin, EnumConfig.MESSAGES_CONFIG.getFileName());
+        messagesConfig.load();
+        message = messagesConfig;
         prefix = CommonUtils.mmStr2Component(message.get("ticket-system-prefix", "<gold>[帕拉伦国有铁路车票系统]"));
 
         ConfigurationNode uses = mainConfig.getNode("uses");

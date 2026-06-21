@@ -63,6 +63,12 @@ permissions:
   bcts.ticket.debug:
     description: "列车/图调试相关指令"
     default: op
+  bcts.railgeo:
+    description: "铁轨遍历（railgeo）相关指令权限"
+    default: op
+  bcts.railgeo.bypasscooldown:
+    description: "绕过铁轨遍历全局冷却的权限（绕过执行不刷新冷却）"
+    default: op
 
 libraries:
   - com.zaxxer:HikariCP:${hikari.version}

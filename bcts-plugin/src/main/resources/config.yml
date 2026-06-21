@@ -65,44 +65,6 @@ font:
   size: 8.0
   bold: true
 
-# 提示信息
-message:
-  # 车票系统前缀
-  ticket-system-prefix: '<gold>[帕拉伦铁路系统] '
-  # 聊天栏
-  ticket-buy-success: '<green>您成功花费 <bold>%.2f银币</bold> 购买了 <bold>%s</bold>'
-  ticket-buy-failure: '<red>车票购买失败：%s'
-  ticket-check-failed: '<red>检票失败！主手没有本次列车的车票。本次列车的车票信息：'
-  ticket-old: '<red>旧版车票已禁用'
-  ticket-not-support: '<red>不支持该车票'
-  ticket-expired: '<red>车票已过期'
-  ticket-owner-conflict: '<red>不能使用其他玩家的车票'
-  ticket-wrong-platform: '<red>此车票不能在本站台使用，请核对车票的可使用站台和本站台上的信息是否一致'
-  ticket-route-mismatch: '<red>此车票的路线与本趟列车不一致，无法乘坐'
-  ticket-used: '<green>成功使用一张（次）%s 车票'
-
-  card-charge-success: '<green>您成功向交通卡充值了 <bold>%.2f</bold> 银币，余额 <bold>%.2f</bold> 银币'
-  card-charge-failure: '<red>充值失败：%s'
-  card-reach-max: '<yellow>交通卡存储金额已经达到最大值'
-  card-charge-reach-max: '<yellow>单次最多充值 %.2f 银币！请重新输入或点击取消按钮。'
-  card-no-path: '<yellow>本站台没有 <i><u>%s</i> 直达 <i><u>%s</i> 的路线'
-  card-no-endstation: '<red>请指定想前往的车站'
-  card-wrong-platform: '<red>不能本站台使用交通卡，请核对交通卡的可使用站台和本站台上的信息是否一致'
-  card-not-enough-balance: '<red>交通卡余额不足！本次行程需要 <yellow>%.2f 银币<red>，余额 <yellow>%.2f 银币'
-  card-used: '<green>刷卡成功，扣费 %.2f 银币，剩余 %.2f 银币'
-  card-missing: '<red>主手没有检测到交通卡！'
-
-  system-income-collected: '<green>铁路系统 <gold>%s</gold> 收入已到账：<gold>%.2f</gold> 银币'
-
-  unknown-error: '<red>发生未知错误！'
-
-  forbidden-get-on: '<red>主手车票不正确或列车已经驶离起始站，禁止上车'
-  quick-buy: '<green><underlined>点击花费 <bold>%.2f银币</bold> 快速购买一张此列车的单程票'
-  wiki: '<green><underlined><click:open_url:https://www.yuque.com/sasanarx/bilicraft/iunb5gkspevng8gf#>点击打开帕拉伦铁路wiki页面'
-  # 直达车bossbar
-  express-normal: '<green>%s <rainbow>======== 直达 ========＞</rainbow> %s</green>'
-  express-end: '<rainbow>>>>> <gold>列车已到达终点站：<red>%s</red>，下车时，请您注意站台与列车之间的空隙</gold> <<<<</rainbow>'
-
 lore:
   # 公共占位符：
   # {start_station_name} {start_railway_name} {start_line_color} {start_railway_system}

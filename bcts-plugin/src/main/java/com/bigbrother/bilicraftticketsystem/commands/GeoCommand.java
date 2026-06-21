@@ -24,6 +24,15 @@ public class GeoCommand {
         new GeoTraversalTask(plugin, commandSender).runAll();
     }
 
+    @CommandDescription("停止当前正在进行的铁轨遍历任务")
+    @Command("railgeo stopWalk")
+    @Permission("bcts.railgeo")
+    public void stopWalk(
+            CommandSender commandSender
+    ) {
+        GeoTraversalTask.stopWalk(commandSender);
+    }
+
     @CommandDescription("登记某线路的遍历起点，以玩家所在铁轨为起点坐标、面朝方向为起点方向")
     @Command("railgeo setStartPos <lineId>")
     @Permission("bcts.railgeo")

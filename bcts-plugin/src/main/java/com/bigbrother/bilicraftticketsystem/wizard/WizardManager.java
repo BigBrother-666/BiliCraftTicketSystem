@@ -46,6 +46,16 @@ public final class WizardManager {
     }
 
     /**
+     * 当前是否有任意玩家在进行配置向导。铁轨遍历发起前据此判断：有人正在编辑线路 / 铁路系统
+     * 配置时不应遍历（配置可能改到一半，遍历结果会不一致）。
+     *
+     * @return true 表示至少有一个向导在进行
+     */
+    public static boolean hasAnyActive() {
+        return !active.isEmpty();
+    }
+
+    /**
      * 取玩家当前向导。
      *
      * @param uuid 玩家 UUID

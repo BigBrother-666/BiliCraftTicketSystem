@@ -123,26 +123,23 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
             Menu.reloadAll();
             BCCardInfo.reloadAllCache();
         } catch (Exception e) {
-            if (sender instanceof ConsoleCommandSender) {
-                plugin.getComponentLogger().error(Component.text("加载配置时发生错误：" + e, NamedTextColor.RED));
-            } else {
-                plugin.getComponentLogger().error(Component.text("加载配置时发生错误：" + e, NamedTextColor.RED));
+            plugin.getComponentLogger().error(Component.text("加载配置时发生错误：" + e, NamedTextColor.RED));
+            if (sender != null && !(sender instanceof ConsoleCommandSender)) {
                 sender.sendMessage(Component.text("加载配置时发生错误：" + e, NamedTextColor.RED));
             }
             return;
         }
 
-        if (sender instanceof ConsoleCommandSender) {
-            plugin.getComponentLogger().info(Component.text("所有配置加载完成", NamedTextColor.GOLD));
-        } else {
+        plugin.getComponentLogger().info(Component.text("所有配置加载完成", NamedTextColor.GOLD));
+        if (sender != null && !(sender instanceof ConsoleCommandSender)) {
             sender.sendMessage(Component.text("所有配置加载完成", NamedTextColor.GOLD));
-            plugin.getComponentLogger().info(Component.text("所有配置加载完成", NamedTextColor.GOLD));
         }
     }
 
     private void copyResources() {
         this.getComponentLogger().info(Component.text("拷贝配置文件...", NamedTextColor.GOLD));
         saveResourceIfAbsent(EnumConfig.MAIN_CONFIG.getFileName());
+        saveResourceIfAbsent(EnumConfig.MESSAGES_CONFIG.getFileName());
         saveResourceIfAbsent(EnumConfig.MENU_MAIN.getFileName());
         saveResourceIfAbsent(EnumConfig.MENU_LOCATION.getFileName());
         saveResourceIfAbsent(EnumConfig.MENU_ITEMS.getFileName());

@@ -6,6 +6,8 @@ import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemInfo;
+import com.bigbrother.bilicraftticketsystem.route.geodata.traversal.GeoTraversalTask;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.wizard.RouteWizard;
 import com.bigbrother.bilicraftticketsystem.wizard.SystemWizard;
 import com.bigbrother.bilicraftticketsystem.wizard.WizardManager;
@@ -28,6 +30,22 @@ public class ConfigEditCommand {
         this.plugin = plugin;
     }
 
+    /**
+     * 铁轨遍历期间禁止线路/铁路系统配置：遍历依赖当前配置，配置中途变化会让遍历结果不一致。
+     *
+     * @param player 操作玩家
+     * @return 正在遍历返回 true（已向玩家提示），调用方应直接返回
+     */
+    private boolean blockedByTraversal(Player player) {
+        if (GeoTraversalTask.isTraversalRunning()) {
+            player.sendMessage(MainConfig.prefix.append(CommonUtils.mmStr2Component(
+                    MainConfig.message.get("traversal-config-blocked",
+                            "<red>铁路系统正在进行铁轨遍历，暂停线路/铁路系统配置指令，请稍后再试"))));
+            return true;
+        }
+        return false;
+    }
+
     @CommandDescription("游戏内新建 / 修改线路配置（railway_routes.yml）")
     @Command("ticketconfig editRoute <lineId>")
     @Permission("bcts.ticket.editroute")
@@ -36,6 +54,9 @@ public class ConfigEditCommand {
             @Argument(value = "lineId", description = "线路 id", suggestions = "lineId")
             String lineId
     ) {
+        if (blockedByTraversal(player)) {
+            return;
+        }
         if (WizardManager.isActive(player.getUniqueId())) {
             player.sendMessage(MainConfig.prefix.append(
                     Component.text("你正在进行另一项编辑，请先完成或退出。", NamedTextColor.RED)));
@@ -78,6 +99,9 @@ public class ConfigEditCommand {
             @Argument(value = "systemId", description = "铁路系统 id", suggestions = "systemId")
             String systemId
     ) {
+        if (blockedByTraversal(player)) {
+            return;
+        }
         if (WizardManager.isActive(player.getUniqueId())) {
             player.sendMessage(MainConfig.prefix.append(
                     Component.text("你正在进行另一项编辑，请先完成或退出。", NamedTextColor.RED)));
@@ -104,6 +128,9 @@ public class ConfigEditCommand {
             @Argument(value = "lineId", description = "线路 id", suggestions = "lineId")
             String lineId
     ) {
+        if (blockedByTraversal(player)) {
+            return;
+        }
         if (WizardManager.isActive(player.getUniqueId())) {
             player.sendMessage(MainConfig.prefix.append(
                     Component.text("你正在进行另一项编辑，请先完成或退出。", NamedTextColor.RED)));
@@ -137,6 +164,9 @@ public class ConfigEditCommand {
         player.sendMessage(MainConfig.prefix.append(Component.text("[点击确认删除]", NamedTextColor.RED)
                         .decoration(TextDecoration.UNDERLINED, true)
                         .clickEvent(ClickEvent.callback(audience -> {
+                            if (blockedByTraversal(player)) {
+                                return;
+                            }
                             // 点击时重新校验（线路是否仍存在 / 成员关系可能已变化）
                             if (!LineConfig.contains(lineId)) {
                                 player.sendMessage(MainConfig.prefix.append(Component.text(
@@ -178,6 +208,9 @@ public class ConfigEditCommand {
             @Argument(value = "systemId", description = "铁路系统 id", suggestions = "systemId")
             String systemId
     ) {
+        if (blockedByTraversal(player)) {
+            return;
+        }
         if (WizardManager.isActive(player.getUniqueId())) {
             player.sendMessage(MainConfig.prefix.append(
                     Component.text("你正在进行另一项编辑，请先完成或退出。", NamedTextColor.RED)));
@@ -214,6 +247,9 @@ public class ConfigEditCommand {
         player.sendMessage(MainConfig.prefix.append(Component.text("[点击确认删除]", NamedTextColor.RED)
                         .decoration(TextDecoration.UNDERLINED, true)
                         .clickEvent(ClickEvent.callback(audience -> {
+                            if (blockedByTraversal(player)) {
+                                return;
+                            }
                             // 点击时重新校验（系统是否仍存在 / 成员关系可能已变化）
                             RailwaySystemInfo latest = RailwaySystemConfig.get(systemId);
                             if (latest == null) {

@@ -2,3 +2,13 @@ geo-data:
   # 实时列车位置信息
   real-time-data: true
 
+# 铁轨遍历（railgeo walkAll）配置
+traversal:
+  # 单边行走最多记录的铁轨格数
+  max-edges-per-walk: 50000
+  # 整次遍历最多展开的铁路边数
+  max-total-nodes: 20000
+  # 每隔多少秒向发起者反馈一次当前进度（已遍历节点数），<=0 表示不反馈
+  progress-interval-seconds: 5
+  # 一次遍历完成后的全局冷却（秒），冷却期间不能再次发起遍历
+  cooldown-seconds: 3600

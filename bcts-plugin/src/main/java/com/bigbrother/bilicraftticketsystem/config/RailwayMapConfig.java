@@ -1,14 +1,43 @@
 package com.bigbrother.bilicraftticketsystem.config;
 
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
+import lombok.Getter;
 
 public class RailwayMapConfig {
     private static FileConfiguration railwayGeoConfig;
 
+    /**
+     * 单段行走最多记录的铁轨格数。
+     */
+    @Getter
+    private static int traversalMaxEdgesPerWalk;
+    /**
+     * 整次遍历最多展开的段数（跨所有起点，兜底防环）。
+     */
+    @Getter
+    private static int traversalMaxTotalNodes;
+    /**
+     * 每隔多少秒向发起者反馈一次遍历进度，{@code <=0} 表示不反馈。
+     */
+    @Getter
+    private static int traversalProgressIntervalSeconds;
+    /**
+     * 一次遍历完成后的全局冷却（秒）。
+     */
+    @Getter
+    private static int traversalCooldownSeconds;
+
     public static void loadRailwayGeoConfig(BiliCraftTicketSystem plugin) {
         railwayGeoConfig = new FileConfiguration(plugin, EnumConfig.GEO_CONFIG.getFileName());
         railwayGeoConfig.load();
+
+        ConfigurationNode traversal = railwayGeoConfig.getNode("traversal");
+        traversalMaxEdgesPerWalk = traversal.get("max-edges-per-walk", 5000);
+        traversalMaxTotalNodes = traversal.get("max-total-nodes", 100000);
+        traversalProgressIntervalSeconds = traversal.get("progress-interval-seconds", 5);
+        traversalCooldownSeconds = traversal.get("cooldown-seconds", 3600);
     }
 
     public static void saveRailwayGeoConfig() {

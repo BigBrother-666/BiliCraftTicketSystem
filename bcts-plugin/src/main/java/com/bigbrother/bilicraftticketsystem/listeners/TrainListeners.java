@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.tc.properties.CartProperties;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
+import com.bigbrother.bilicraftticketsystem.route.geodata.traversal.GeoTraversalTask;
 import com.bigbrother.bilicraftticketsystem.ticket.BCCard;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicket;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTransitPass;
@@ -87,6 +88,17 @@ public class TrainListeners implements Listener {
                 // else 2.不持凭证上快速车，弹出快速购买
             } else {
                 // =============================== 有凭证 ===============================
+                // 铁轨遍历期间暂停车票/交通卡使用：遍历会临时改写沿途列车 tag，凭证导航易被干扰。
+                // 普通车不持凭证、不进本分支，不受影响。
+                if (GeoTraversalTask.isTraversalRunning()) {
+                    event.setCancelled(true);
+                    player.sendMessage(MainConfig.prefix.append(
+                            CommonUtils.mmStr2Component(message.get("traversal-ticket-blocked",
+                                    "<red>铁路系统正在进行铁轨遍历，暂停车票/交通卡使用，请稍后再试"))
+                                    .decoration(TextDecoration.ITALIC, false)
+                    ));
+                    return;
+                }
                 // 验证坐车凭证是否可使用
                 if (!transitPass.verify(player, group)) {
                     event.setCancelled(true);

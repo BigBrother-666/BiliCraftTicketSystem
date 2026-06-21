@@ -17,6 +17,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 全图 BFS 遍历驱动器（取代旧的按线行走 LineWalk）。
@@ -37,6 +38,7 @@ import java.util.Set;
  * 仍用实体矿车行走（{@link TrackWalker}）以正确触发沿途原版 switcher 的 addtag / remtag。
  */
 public class GraphWalk {
+    @Getter
     private final TraversalCollector collector;
     private final GeoTraversalLogger log;
     private final int maxNodes;
@@ -54,8 +56,19 @@ public class GraphWalk {
     private final Map<String, Set<String>> visitedStationsByLine = new LinkedHashMap<>();
     /**
      * 整次遍历累计处理的段数（跨所有起点），用于兜底防环。
+     * 用 {@link AtomicInteger}：主线程递增，异步进度反馈线程读取（见 GeoTraversalTask 的进度反馈）。
      */
-    private int processed = 0;
+    private final AtomicInteger processed = new AtomicInteger(0);
+    /**
+     * 是否已因异常情况（达到段数上限）中止。中止后整次遍历应停止并放弃写文件。
+     */
+    @Getter
+    private boolean aborted = false;
+    /**
+     * 中止原因（含停止位置等调试信息），供反馈给发起者。
+     */
+    @Getter
+    private String abortReason = null;
 
     /**
      * @param collector       结果收集器（跨起点共享）
@@ -97,15 +110,41 @@ public class GraphWalk {
         Deque<WalkState> queue = new ArrayDeque<>();
         queue.add(new WalkState(null, startRail, startDirection, null, startLineId));
 
-        while (!queue.isEmpty()) {
-            if (processed >= maxNodes) {
-                log.warn("达到段数上限 " + maxNodes + "，可能存在配置缺失或异常环路，提前停止");
+        WalkState st;
+        while ((st = queue.poll()) != null) {
+            if (aborted) {
                 break;
             }
-            WalkState st = queue.poll();
-            processed++;
+            if (processed.get() >= maxNodes) {
+                String pos = String.valueOf(st.rail().getLocation());
+                abort("达到段数上限 " + maxNodes + "，可能存在配置缺失或异常环路。当前线路 "
+                        + st.lineId() + "，停止位置 " + pos);
+                break;
+            }
+            processed.incrementAndGet();
             walkSegment(st, queue);
         }
+    }
+
+    /**
+     * 当前累计已展开的段数。供异步进度反馈线程读取。
+     *
+     * @return 已展开段数
+     */
+    public int getProcessed() {
+        return processed.get();
+    }
+
+    /**
+     * 标记整次遍历因异常情况中止：记录原因并写日志。调用后 {@link #walkFrom} 的循环会尽快退出，
+     * 上层据 {@link #isAborted()} 放弃写文件并把 {@link #getAbortReason()} 反馈给发起者。
+     *
+     * @param reason 中止原因（含调试信息）
+     */
+    public void abort(String reason) {
+        this.aborted = true;
+        this.abortReason = reason;
+        log.error("遍历中止：" + reason, null);
     }
 
     /**
