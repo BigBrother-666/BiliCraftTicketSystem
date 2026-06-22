@@ -1,14 +1,19 @@
 package com.bigbrother.bilicraftticketsystem.wizard;
 
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
+import com.bigbrother.bilicraftticketsystem.config.GeoConfig;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemInfo;
+import com.bigbrother.bilicraftticketsystem.utils.ImageUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -73,7 +78,85 @@ public class SystemWizard extends ConfigWizard {
                 Component.text("输入本系统每公里价格（数字）；跳过则使用全局默认价格（%.2f/km）".formatted(MainConfig.pricePerKm), NamedTextColor.WHITE),
                 false,
                 this::parsePricePerKm));
+        steps.add(new WizardStep("web-logo-path",
+                Component.text("输入本系统的logo图片直链，该图片会在网页端显示，图片分辨率会统一设置为%s*%s"
+                        .formatted(GeoConfig.getWebLogoDim(), GeoConfig.getWebLogoDim()), NamedTextColor.WHITE),
+                false,
+                this::parseWebImageUrl));
+        steps.add(new WizardStep("mc-logo-path",
+                Component.text("输入本系统的logo图片直链，该图片作为系统图标在车票系统内显示，图片分辨率会统一设置为%d*%d，不填则使用网页端logo"
+                        .formatted(GeoConfig.getMcLogoDim(), GeoConfig.getMcLogoDim()), NamedTextColor.WHITE),
+                false,
+                this::parseMcImageUrl));
         return steps;
+    }
+
+    private WizardStep.Result parseWebImageUrl(String imageUrl) {
+        return downloadImage(imageUrl, true);
+    }
+
+    private WizardStep.Result parseMcImageUrl(String imageUrl) {
+        return downloadImage(imageUrl, false);
+    }
+
+    private WizardStep.Result downloadImage(String imageUrl, boolean isWeb) {
+        try {
+            // 获取图片大小
+            long contentLength = ImageUtils.getImageSize(imageUrl);
+            if (contentLength == -1) {
+                return WizardStep.Result.error("无法获取图片大小！");
+            }
+
+            // 检查图片大小（<= 5MB）
+            if (contentLength > 3000 * 1024) {
+                return WizardStep.Result.error("图片大小不能超过3MB，当前大小：" + (contentLength / 1024 / 1024) + " MB");
+            }
+
+            // 接收文件
+            byte[] imageBytes = ImageUtils.getImageBytes(imageUrl);
+
+            // 保存图片
+            // 保存web logo
+            if (isWeb) {
+                byte[] webImageBytes;
+                try {
+                    webImageBytes = ImageUtils.convertTonxn(imageBytes, GeoConfig.getWebLogoDim());
+                    if (webImageBytes == null) {
+                        return WizardStep.Result.error("图片尺寸转化失败");
+                    }
+                } catch (IOException e) {
+                    return WizardStep.Result.error("图片格式不支持或图片损坏！错误信息：" + e.getMessage());
+                }
+
+                File imageWeb = ImageUtils.getSystemImageFileWeb(systemId);
+                if (!imageWeb.getParentFile().exists()) {
+                    imageWeb.getParentFile().mkdirs();
+                }
+                Files.write(imageWeb.toPath(), webImageBytes);
+            }
+
+            if (!isWeb || !ImageUtils.getSystemImageFileMc(systemId).exists()) {
+                // 保存游戏内logo
+                byte[] mcImageBytes;
+                try {
+                    mcImageBytes = ImageUtils.convertTonxn(imageBytes, GeoConfig.getMcLogoDim());
+                    if (mcImageBytes == null) {
+                        return WizardStep.Result.error("图片尺寸转化失败");
+                    }
+                } catch (IOException e) {
+                    return WizardStep.Result.error("图片格式不支持或图片损坏！错误信息：" + e.getMessage());
+                }
+                File imageMc = ImageUtils.getSystemImageFileMc(systemId);
+                if (!imageMc.getParentFile().exists()) {
+                    imageMc.getParentFile().mkdirs();
+                }
+                Files.write(imageMc.toPath(), mcImageBytes);
+            }
+
+            return WizardStep.Result.ok(null);
+        } catch (Exception e) {
+            return WizardStep.Result.error("上传或处理图片时发生错误：" + e.getMessage());
+        }
     }
 
     /**
@@ -103,6 +186,11 @@ public class SystemWizard extends ConfigWizard {
                 return names.isEmpty() ? "（无）" : String.join(", ", names);
             }
             return "（无）";
+        } else if (key.equals("web-logo-path")) {
+            // 图片不显示路径
+            return ImageUtils.getSystemImageFileWeb(systemId).exists() ? "已上传" : "未上传";
+        } else if (key.equals("mc-logo-path")) {
+            return ImageUtils.getSystemImageFileMc(systemId).exists() ? "已上传" : "未上传";
         }
         return super.currentValueDisplay(key);
     }

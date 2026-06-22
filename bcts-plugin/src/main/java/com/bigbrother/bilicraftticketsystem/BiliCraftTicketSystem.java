@@ -115,7 +115,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
             LineConfig.load(this);
             ItemsConfig.loadItemsConfig(this);
             MenuConfig.loadMenuConfig(this);
-            RailwayMapConfig.loadRailwayGeoConfig(this);
+            GeoConfig.loadRailwayGeoConfig(this);
             plugin.getComponentLogger().info(Component.text("成功加载配置文件", NamedTextColor.GOLD));
 
             BCTicketDisplay.loadFont();

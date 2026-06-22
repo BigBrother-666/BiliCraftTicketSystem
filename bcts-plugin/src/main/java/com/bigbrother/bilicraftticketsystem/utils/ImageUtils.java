@@ -16,11 +16,43 @@ public class ImageUtils {
         return new File(BiliCraftTicketSystem.plugin.getDataFolder(), "images");
     }
 
+    public static File getLogoFolder() {
+        return new File(getImageFolder(), "logo");
+    }
+
     public static File getPlayerTicketbgFolder(Player player) {
         return new File(getImageFolder(), player.getUniqueId().toString());
     }
 
-    public static byte[] convertTo128x128(byte[] imageBytes) throws IOException {
+    /**
+     * 获取铁路系统WebUI界面logo图片的显示路径
+     *
+     * @param systemId 铁路系统id
+     * @return 图片路径
+     */
+    public static File getSystemImageFileMc(String systemId) {
+        return new File(getLogoFolder(), "web" + File.separator + systemId + ".png");
+    }
+
+    /**
+     * 获取铁路系统WebUI界面logo图片的显示路径
+     *
+     * @param systemId 铁路系统id
+     * @return 图片路径
+     */
+    public static File getSystemImageFileWeb(String systemId) {
+        return new File(getLogoFolder(), "mc" + File.separator + systemId + ".png");
+    }
+
+    /**
+     * 将图片转化为n x n的图片，其余位置用透明像素填充
+     *
+     * @param imageBytes 图片
+     * @param n          转化后的图片边长
+     * @return 转化后的图片
+     * @throws IOException 不是合法的图片
+     */
+    public static byte[] convertTonxn(byte[] imageBytes, int n) throws IOException {
         // 读取图片文件
         BufferedImage originalImage = ImageIO.read(new ByteArrayInputStream(imageBytes));
         if (originalImage == null) {
@@ -32,17 +64,16 @@ public class ImageUtils {
         int originalHeight = originalImage.getHeight();
 
         // 计算缩放比例，缩放到最短边为128像素
-        int targetSize = 128;
         int newWidth;
         int newHeight;
 
         // 按比例缩放，使长宽等比
         if (originalWidth > originalHeight) {
-            newWidth = targetSize;
-            newHeight = (int) (originalHeight * (targetSize / (double) originalWidth));
+            newWidth = n;
+            newHeight = (int) (originalHeight * (n / (double) originalWidth));
         } else {
-            newHeight = targetSize;
-            newWidth = (int) (originalWidth * (targetSize / (double) originalHeight));
+            newHeight = n;
+            newWidth = (int) (originalWidth * (n / (double) originalHeight));
         }
 
         // 创建一个缩放后的图片
@@ -55,16 +86,16 @@ public class ImageUtils {
         g2d.dispose();
 
         // 创建一个 128x128 的透明背景图片
-        BufferedImage finalImage = new BufferedImage(targetSize, targetSize, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage finalImage = new BufferedImage(n, n, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = finalImage.createGraphics();
 
         // 填充透明背景
         g.setColor(new Color(0, 0, 0, 0)); // 透明
-        g.fillRect(0, 0, targetSize, targetSize);
+        g.fillRect(0, 0, n, n);
 
         // 计算位置，使得缩放后的图像居中
-        int xOffset = (targetSize - newWidth) / 2;
-        int yOffset = (targetSize - newHeight) / 2;
+        int xOffset = (n - newWidth) / 2;
+        int yOffset = (n - newHeight) / 2;
 
         // 将缩放后的图片绘制到中心位置
         g.drawImage(scaledBufferedImage, xOffset, yOffset, null);

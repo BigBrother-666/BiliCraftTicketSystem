@@ -5,7 +5,7 @@ import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import lombok.Getter;
 
-public class RailwayMapConfig {
+public class GeoConfig {
     private static FileConfiguration railwayGeoConfig;
 
     /**
@@ -28,6 +28,16 @@ public class RailwayMapConfig {
      */
     @Getter
     private static int traversalCooldownSeconds;
+    /**
+     * 网页端logo边长（像素）
+     */
+    @Getter
+    private static int webLogoDim;
+    /**
+     * 游戏内logo边长（像素）
+     */
+    @Getter
+    private static int mcLogoDim;
 
     public static void loadRailwayGeoConfig(BiliCraftTicketSystem plugin) {
         railwayGeoConfig = new FileConfiguration(plugin, EnumConfig.GEO_CONFIG.getFileName());
@@ -38,6 +48,10 @@ public class RailwayMapConfig {
         traversalMaxTotalNodes = traversal.get("max-total-nodes", 100000);
         traversalProgressIntervalSeconds = traversal.get("progress-interval-seconds", 5);
         traversalCooldownSeconds = traversal.get("cooldown-seconds", 3600);
+
+        ConfigurationNode logo = railwayGeoConfig.getNode("logo");
+        webLogoDim = logo.get("web-logo-dim", 128);
+        mcLogoDim = logo.get("mc-logo-dim", 32);
     }
 
     public static void saveRailwayGeoConfig() {
