@@ -2,16 +2,20 @@ package com.bigbrother.bilicraftticketsystem.wizard;
 
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import lombok.Getter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 聊天分步配置向导基类：依次引导玩家在聊天框输入若干配置项，收集完成后写回配置。
@@ -41,6 +45,10 @@ public abstract class ConfigWizard {
 
     private List<WizardStep> steps;
     private int index = 0;
+    /**
+     * 是否有异步步骤正在处理（如图片下载）。处理期间忽略玩家的后续聊天输入，避免重复触发。
+     */
+    private volatile boolean asyncRunning = false;
 
     /**
      * @param player   发起向导的玩家
@@ -106,12 +114,84 @@ public abstract class ConfigWizard {
     /**
      * 处理玩家一行聊天输入。必须在主线程调用（由 {@link com.bigbrother.bilicraftticketsystem.listeners.WizardListeners}
      * 切回主线程后调用）。
+     * <p>
+     * 同步步骤直接在主线程解析；{@link WizardStep#isAsync() 异步步骤}（如网络下载图片）则把解析函数
+     * 放到独立线程执行，受超时保护，完成 / 超时后切回主线程处理结果，避免阻塞服务器主线程。
      *
      * @param input 玩家输入（已 trim）
      */
     public void handleInput(String input) {
         WizardStep step = steps.get(index);
+        if (step.isAsync()) {
+            handleAsyncInput(step, input);
+            return;
+        }
         WizardStep.Result result = step.getParser().apply(input);
+        applyResult(result);
+    }
+
+    /**
+     * 异步步骤处理：先发「处理中」提示，再开线程执行解析函数（带超时），结束后切回主线程推进。
+     * 处理期间忽略玩家的后续输入（{@link #asyncRunning} 置位），防止重复触发。
+     *
+     * @param step  当前异步步骤
+     * @param input 玩家输入
+     */
+    private void handleAsyncInput(WizardStep step, String input) {
+        if (asyncRunning) {
+            player.sendMessage(MainConfig.prefix
+                    .append(Component.text("正在处理上一次输入，请稍候...", NamedTextColor.GRAY)));
+            return;
+        }
+        asyncRunning = true;
+        player.sendMessage(MainConfig.prefix.append(CommonUtils.mmStr2Component(
+                MainConfig.message.get("wizard-async-processing", "<gray>正在处理，请稍候..."))));
+
+        long timeout = step.getTimeoutMillis();
+        BiliCraftTicketSystem plugin = BiliCraftTicketSystem.plugin;
+        // 标记本次异步任务，超时回调与正常完成回调通过它判断谁先到，确保结果只处理一次
+        AtomicBoolean settled = new AtomicBoolean(false);
+
+        // 超时兜底：到点仍未完成则放弃本次处理，提示玩家重输
+        BukkitTask timeoutTask = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (settled.compareAndSet(false, true)) {
+                asyncRunning = false;
+                player.sendMessage(MainConfig.prefix.append(CommonUtils.mmStr2Component(
+                        MainConfig.message.get("wizard-async-timeout", "<red>处理超时，请重新输入。"))));
+            }
+        }, Math.max(1L, timeout / 50L));
+
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            WizardStep.Result result;
+            try {
+                result = step.getParser().apply(input);
+            } catch (Exception e) {
+                result = WizardStep.Result.error("处理时发生错误：" + e.getMessage());
+            }
+            WizardStep.Result finalResult = result;
+            // 切回主线程：判断是否已超时，未超时才取消超时任务并处理结果
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (!settled.compareAndSet(false, true)) {
+                    return; // 已超时处理过，丢弃迟到结果
+                }
+                timeoutTask.cancel();
+                asyncRunning = false;
+                // 玩家可能在处理期间已退出向导
+                if (!WizardManager.isActive(player.getUniqueId()) || WizardManager.get(player.getUniqueId()) != this) {
+                    return;
+                }
+                applyResult(finalResult);
+            });
+        });
+    }
+
+    /**
+     * 处理一步的解析结果：成功则存值并推进，失败则提示重输。须在主线程调用。
+     *
+     * @param result 解析结果
+     */
+    private void applyResult(WizardStep.Result result) {
+        WizardStep step = steps.get(index);
         if (!result.isOk()) {
             player.sendMessage(MainConfig.prefix
                     .append(Component.text(result.getError(), NamedTextColor.RED)));

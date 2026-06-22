@@ -5,6 +5,7 @@ import com.bigbrother.bilicraftticketsystem.config.GeoConfig;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemInfo;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.utils.ImageUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -33,6 +34,12 @@ import java.util.UUID;
  * 新建模式下创建者自动加入成员。完成后写回 railway_system.yml 并自动重载配置。
  */
 public class SystemWizard extends ConfigWizard {
+    /**
+     * logo 图片下载步骤的超时时间（毫秒）。包含 HEAD 取大小 + GET 下载，
+     * 略大于 {@link ImageUtils} 内部连接/读取超时（5s+5s）之和，留出处理余量。
+     */
+    private static final long DOWNLOAD_TIMEOUT_MILLIS = 15000L;
+
     private final String systemId;
 
     /**
@@ -82,12 +89,14 @@ public class SystemWizard extends ConfigWizard {
                 Component.text("输入本系统的logo图片直链，该图片会在网页端显示，图片分辨率会统一设置为%s*%s"
                         .formatted(GeoConfig.getWebLogoDim(), GeoConfig.getWebLogoDim()), NamedTextColor.WHITE),
                 false,
-                this::parseWebImageUrl));
+                this::parseWebImageUrl,
+                DOWNLOAD_TIMEOUT_MILLIS));
         steps.add(new WizardStep("mc-logo-path",
                 Component.text("输入本系统的logo图片直链，该图片作为系统图标在车票系统内显示，图片分辨率会统一设置为%d*%d，不填则使用网页端logo"
                         .formatted(GeoConfig.getMcLogoDim(), GeoConfig.getMcLogoDim()), NamedTextColor.WHITE),
                 false,
-                this::parseMcImageUrl));
+                this::parseMcImageUrl,
+                DOWNLOAD_TIMEOUT_MILLIS));
         return steps;
     }
 
@@ -153,6 +162,9 @@ public class SystemWizard extends ConfigWizard {
                 Files.write(imageMc.toPath(), mcImageBytes);
             }
 
+            // 下载 + 处理成功，提示玩家（player.sendMessage 线程安全，可在异步线程调用）
+            player.sendMessage(MainConfig.prefix.append(CommonUtils.mmStr2Component(
+                    MainConfig.message.get("wizard-logo-download-success", "<green>logo 图片处理完成"))));
             return WizardStep.Result.ok(null);
         } catch (Exception e) {
             return WizardStep.Result.error("上传或处理图片时发生错误：" + e.getMessage());

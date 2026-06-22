@@ -31,7 +31,7 @@ public class ImageUtils {
      * @return 图片路径
      */
     public static File getSystemImageFileMc(String systemId) {
-        return new File(getLogoFolder(), "web" + File.separator + systemId + ".png");
+        return new File(getLogoFolder(), "mc" + File.separator + systemId + ".png");
     }
 
     /**
@@ -41,7 +41,7 @@ public class ImageUtils {
      * @return 图片路径
      */
     public static File getSystemImageFileWeb(String systemId) {
-        return new File(getLogoFolder(), "mc" + File.separator + systemId + ".png");
+        return new File(getLogoFolder(), "web" + File.separator + systemId + ".png");
     }
 
     /**
