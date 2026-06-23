@@ -115,6 +115,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
             RailwaySystemConfig.load(this);
             LineConfig.load(this);
             ItemsConfig.loadItemsConfig(this);
+            StationIconConfig.load(this);
             MenuConfig.loadMenuConfig(this);
             GeoConfig.loadRailwayGeoConfig(this);
             plugin.getComponentLogger().info(Component.text("成功加载配置文件", NamedTextColor.GOLD));
@@ -157,6 +158,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         saveResourceIfAbsent(EnumConfig.MENU_MAIN.getFileName());
         saveResourceIfAbsent(EnumConfig.MENU_LOCATION.getFileName());
         saveResourceIfAbsent(EnumConfig.MENU_ITEMS.getFileName());
+        saveResourceIfAbsent(EnumConfig.ICON_ITEMS.getFileName());
         saveResourceIfAbsent(EnumConfig.MENU_TICKETBG.getFileName());
         saveResourceIfAbsent(EnumConfig.GEO_CONFIG.getFileName());
         saveResourceIfAbsent(EnumConfig.MENU_CARD.getFileName());

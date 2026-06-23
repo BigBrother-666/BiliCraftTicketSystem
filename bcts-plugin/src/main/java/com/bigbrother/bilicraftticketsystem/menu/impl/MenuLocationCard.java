@@ -43,7 +43,7 @@ public class MenuLocationCard extends Menu {
                 .build();
 
         // 默认展示全部车站（拼音正序）；调用方可在 open 前用 setStations 注入过滤后的列表
-        setStations(StationProvider.listStations());
+        setStations(StationProvider.listStations(), null);
 
         this.window = buildSingleWindow(player, locationConfig, gui);
     }
@@ -52,11 +52,13 @@ public class MenuLocationCard extends Menu {
      * 动态设置本界面展示的车站列表（按系统过滤 / 铁砧搜索结果 / 全部）。
      *
      * @param stations 车站条目列表
+     * @param systemId 当前所属铁路系统 id（系统入口已知；搜索入口为 null）；决定图标取哪个系统的自定义旗帜，
+     *                 以及成员拖旗帜时把图标存到哪个系统名下
      */
-    public void setStations(List<StationProvider.StationEntry> stations) {
+    public void setStations(List<StationProvider.StationEntry> stations, String systemId) {
         List<Item> items = new ArrayList<>();
         for (StationProvider.StationEntry entry : stations) {
-            items.add(new CardLocationItem(StationProvider.buildIcon(entry), this, entry.name()));
+            items.add(new CardLocationItem(StationProvider.buildIcon(entry, systemId), this, entry.name(), systemId));
         }
         gui.setContent(items);
     }

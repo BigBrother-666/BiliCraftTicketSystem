@@ -14,6 +14,7 @@ public enum EnumConfig {
     MENU_CARD("menu_card.yml"),
     MENU_SYSTEM("menu_system.yml"),
     MENU_ITEMS("menuitems.yml"),
+    ICON_ITEMS("iconitems.yml"),
 
     RAILWAY_ROUTES_CONFIG("railway_routes.yml"),
     RAILWAY_SYSTEM_CONFIG("railway_system.yml");
