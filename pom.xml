@@ -21,6 +21,7 @@
         <paper.version>1.21.11-R0.1-SNAPSHOT</paper.version>
         <traincarts.version>1.21.11-v1</traincarts.version>
         <vault.version>1.7</vault.version>
+        <oraxen.version>1.213.0</oraxen.version>
         <hikari.version>5.0.1</hikari.version>
         <invui.version>1.49</invui.version>
         <geojson.version>1.14</geojson.version>
@@ -53,6 +54,11 @@
         <repository>
             <id>xenondevs</id>
             <url>https://repo.xenondevs.xyz/releases</url>
+        </repository>
+        <repository>
+            <id>oraxen</id>
+            <name>Oraxen Repository</name>
+            <url>https://repo.oraxen.com/releases</url>
         </repository>
     </repositories>
 
