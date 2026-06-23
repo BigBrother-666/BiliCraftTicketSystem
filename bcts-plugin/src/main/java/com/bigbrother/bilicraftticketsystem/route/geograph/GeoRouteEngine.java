@@ -1,5 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.route.geograph;
 
+import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import lombok.Getter;
 import lombok.Setter;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
@@ -215,9 +216,16 @@ public class GeoRouteEngine {
                         continue;
                     }
                 }
-                // 中途站避让正线：next 是非终点的 station 节点，且 cur 存在正线绕行时，放弃穿越该 station。
-                if (nextNode.isStation() && !endStation.equals(nextNode.getName()) && hasMainlineBypass(g, cur.nodeId(), nextNode)) {
-                    continue;
+                // 下一个节点是非终点的车站节点
+                if (nextNode.isStation() && !endStation.equals(nextNode.getName())) {
+                    // 中途站避让正线：存在正线绕行时，放弃穿越该 station。
+                    if (hasMainlineBypass(g, cur.nodeId(), nextNode)) {
+                        continue;
+                    }
+                    // 下一个节点是折返站节点
+                    if (LineInfo.isReverseStation(link.getLineId(), nextNode.getName())) {
+                        continue;
+                    }
                 }
                 pq.add(new Entry(nextId, cur.dist() + link.getDistance(), link, cur));
             }
