@@ -69,6 +69,7 @@ public class GeojsonBuilder {
         Map<String, Object> props = new LinkedHashMap<>();
         props.put("id", node.getId());
         props.put("type", node.getType().getValue());
+        props.put("world", node.getRailBlock().getWorld().getName());
         if (node.isStation() && node.getStationName() != null) {
             props.put("name", node.getStationName());
         }
@@ -98,6 +99,7 @@ public class GeojsonBuilder {
         props.put("from", edge.getFromNodeId());
         props.put("to", edge.getToNodeId());
         props.put("lineId", edge.getLineId());
+        props.put("world", edge.getWorld());
         // 区间所属铁路系统 id；未配置时为 null，此时省略该属性
         if (edge.getRailwaySystemId() != null) {
             props.put("railwaySystemId", edge.getRailwaySystemId());

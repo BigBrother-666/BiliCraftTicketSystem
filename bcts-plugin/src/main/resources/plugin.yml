@@ -4,6 +4,7 @@ author: BigBrother
 main: com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem
 api-version: '1.20'
 depend: [ Train_Carts, BKCommonLib, Vault ]
+softdepend: [ Oraxen ]
 
 permissions:
   bcts.ticket.open:

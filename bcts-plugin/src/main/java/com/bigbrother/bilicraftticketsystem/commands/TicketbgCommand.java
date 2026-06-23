@@ -143,7 +143,7 @@ public class TicketbgCommand {
 
             // 转化图片
             try {
-                imageBytes = ImageUtils.convertTo128x128(imageBytes);
+                imageBytes = ImageUtils.convertTonxn(imageBytes, 128);
                 if (imageBytes == null) {
                     return false;
                 }

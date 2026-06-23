@@ -63,14 +63,14 @@ public class TraversalCollector {
      */
     public void recordEdge(String fileKey, String fromNodeId, String toNodeId, String lineId,
                            String railwaySystemId, String color, List<LngLatAlt> coords, double length,
-                           String departDirection) {
+                           String departDirection, String world) {
         Map<String, RailEdge> group = edgeGroups.computeIfAbsent(fileKey, k -> new LinkedHashMap<>());
         String edgeId = com.bigbrother.bilicraftticketsystem.route.NodeId.ofEdge(fromNodeId, toNodeId, lineId);
         if (group.containsKey(edgeId)) {
             return;
         }
         group.put(edgeId, new RailEdge(fromNodeId, toNodeId, lineId, railwaySystemId, coords, color, length, 0,
-                departDirection));
+                departDirection, world));
     }
 
     /**

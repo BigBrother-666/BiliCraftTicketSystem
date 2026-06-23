@@ -5,7 +5,7 @@ import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.utils.GeoUtils;
 import com.bigbrother.bilicraftticketsystem.route.geodata.entity.GeoNodeLoc;
-import com.bigbrother.bilicraftticketsystem.config.RailwayMapConfig;
+import com.bigbrother.bilicraftticketsystem.config.GeoConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import com.bigbrother.bilicraftticketsystem.wizard.WizardManager;
@@ -40,7 +40,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * 遍历在主线程执行（需读取实时轨道数据）。
  * <p>
  * 全局约束：同一时刻只允许一个遍历任务（{@link #RUNNING}），且完成后有全局冷却
- * （{@link RailwayMapConfig#getTraversalCooldownSeconds()}）。遍历期间车票/交通卡使用被暂停
+ * （{@link GeoConfig#getTraversalCooldownSeconds()}）。遍历期间车票/交通卡使用被暂停
  * （见 {@code TrainListeners}，靠 {@link #isTraversalRunning()} 判断）。可用 {@link #stopWalk(CommandSender)}
  * 提前停止当前任务。持 {@link #PERM_BYPASS_COOLDOWN} 权限者可绕过冷却，且其执行不刷新冷却。
  */
@@ -118,7 +118,7 @@ public class GeoTraversalTask {
         }
 
         // 冷却校验（不抢锁）；有 bypass 权限则跳过
-        int cooldownSec = RailwayMapConfig.getTraversalCooldownSeconds();
+        int cooldownSec = GeoConfig.getTraversalCooldownSeconds();
         long remainMs = lastFinishTime + cooldownSec * 1000L - System.currentTimeMillis();
         if (!bypassCooldown && cooldownSec > 0 && lastFinishTime > 0 && remainMs > 0) {
             sendConfigMessage(msg("traversal-cooling-down", "<red>铁轨遍历正在冷却中，请 %d 秒后再试")
@@ -134,7 +134,7 @@ public class GeoTraversalTask {
 
         GeoTraversalLogger log = new GeoTraversalLogger(plugin, sender);
         GraphWalk walk = new GraphWalk(new TraversalCollector(), log, new java.util.HashSet<>(),
-                RailwayMapConfig.getTraversalMaxTotalNodes(), RailwayMapConfig.getTraversalMaxEdgesPerWalk());
+                GeoConfig.getTraversalMaxTotalNodes(), GeoConfig.getTraversalMaxEdgesPerWalk());
         runningWalk = walk;
         // 进度反馈在异步线程跑：主线程在遍历期间被阻塞，无法用主线程定时任务交错反馈。
         BukkitTask progressTask = startProgressFeedback(walk, log);
@@ -182,7 +182,7 @@ public class GeoTraversalTask {
      * @return 反馈定时任务（遍历结束须取消）；不反馈时为 null
      */
     private BukkitTask startProgressFeedback(GraphWalk walk, GeoTraversalLogger log) {
-        int intervalSec = RailwayMapConfig.getTraversalProgressIntervalSeconds();
+        int intervalSec = GeoConfig.getTraversalProgressIntervalSeconds();
         if (intervalSec <= 0) {
             return null;
         }

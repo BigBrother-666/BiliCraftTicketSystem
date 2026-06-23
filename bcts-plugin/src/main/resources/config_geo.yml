@@ -12,3 +12,11 @@ traversal:
   progress-interval-seconds: 5
   # 一次遍历完成后的全局冷却（秒），冷却期间不能再次发起遍历
   cooldown-seconds: 3600
+
+
+logo:
+  # 网页端logo边长（像素）
+  web-logo-dim: 256
+  # 游戏内logo边长（像素）
+  mc-logo-dim: 32
+

@@ -16,18 +16,22 @@ import xyz.xenondevs.invui.item.builder.ItemBuilder;
 import xyz.xenondevs.invui.item.impl.AbstractItem;
 
 public class CardLocationItem extends AbstractItem {
-    protected final ItemStack itemStack;
+    protected ItemStack itemStack;
     protected final MenuLocationCard fromMenu;
     /**
      * 车站真实站名（== geojson 站名）。设站以此为准，不读图标 displayName。
      */
     protected final String stationName;
+    /**
+     * 当前车站列表所属铁路系统 id（系统入口已知；搜索入口为 null）。成员拖旗帜覆盖图标时归到此系统名下。
+     */
+    protected final String systemId;
 
     public CardLocationItem(ItemStack itemStack, MenuLocationCard fromMenu) {
-        this(itemStack, fromMenu, null);
+        this(itemStack, fromMenu, null, null);
     }
 
-    public CardLocationItem(ItemStack itemStack, MenuLocationCard fromMenu, String stationName) {
+    public CardLocationItem(ItemStack itemStack, MenuLocationCard fromMenu, String stationName, String systemId) {
         this.fromMenu = fromMenu;
         ItemMeta itemMeta = itemStack.getItemMeta();
         //noinspection deprecation
@@ -35,6 +39,7 @@ public class CardLocationItem extends AbstractItem {
         itemStack.setItemMeta(itemMeta);
         this.itemStack = itemStack;
         this.stationName = stationName;
+        this.systemId = systemId;
     }
 
     @Override
@@ -45,6 +50,12 @@ public class CardLocationItem extends AbstractItem {
     @Override
     public void handleClick(@NotNull ClickType clickType, @NotNull Player player, @NotNull InventoryClickEvent inventoryClickEvent) {
         if (stationName == null) {
+            return;
+        }
+        // 铁路系统成员把旗帜拖到车站按钮上：覆盖图标（不消耗旗帜），不进入选站逻辑
+        if (StationProvider.tryApplyBannerIcon(player, systemId, stationName, inventoryClickEvent.getCursor())) {
+            this.itemStack = StationProvider.buildIcon(stationName, systemId);
+            notifyWindows();
             return;
         }
         BCCard card = BCCard.fromHeldItem(player);

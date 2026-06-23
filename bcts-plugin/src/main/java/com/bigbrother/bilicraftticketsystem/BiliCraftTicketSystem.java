@@ -9,6 +9,7 @@ import com.bigbrother.bilicraftticketsystem.deprecated.RailwayRoutesConfig;
 import com.bigbrother.bilicraftticketsystem.deprecated.RouteCommand;
 import com.bigbrother.bilicraftticketsystem.deprecated.SignActionShowroute;
 import com.bigbrother.bilicraftticketsystem.listeners.*;
+import com.bigbrother.bilicraftticketsystem.oraxen.OraxenLogoPack;
 import com.bigbrother.bilicraftticketsystem.menu.items.location.NearestLocItem;
 import com.bigbrother.bilicraftticketsystem.database.GeoDatabaseManager;
 import com.bigbrother.bilicraftticketsystem.signactions.*;
@@ -95,7 +96,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         // 注册控制牌
         initSignActions();
         // 加载配置文件
-        this.getComponentLogger().info(Component.text("开始异步读取配置文件...", NamedTextColor.GOLD));
+        this.getComponentLogger().info(Component.text("开始异步读取配置文件...", NamedTextColor.DARK_AQUA));
         Bukkit.getScheduler().runTaskAsynchronously(this, sender -> loadConfig(Bukkit.getConsoleSender()));
     }
 
@@ -114,8 +115,9 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
             RailwaySystemConfig.load(this);
             LineConfig.load(this);
             ItemsConfig.loadItemsConfig(this);
+            StationIconConfig.load(this);
             MenuConfig.loadMenuConfig(this);
-            RailwayMapConfig.loadRailwayGeoConfig(this);
+            GeoConfig.loadRailwayGeoConfig(this);
             plugin.getComponentLogger().info(Component.text("成功加载配置文件", NamedTextColor.GOLD));
 
             BCTicketDisplay.loadFont();
@@ -150,12 +152,13 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     }
 
     private void copyResources() {
-        this.getComponentLogger().info(Component.text("拷贝配置文件...", NamedTextColor.GOLD));
+        this.getComponentLogger().info(Component.text("拷贝配置文件...", NamedTextColor.DARK_AQUA));
         saveResourceIfAbsent(EnumConfig.MAIN_CONFIG.getFileName());
         saveResourceIfAbsent(EnumConfig.MESSAGES_CONFIG.getFileName());
         saveResourceIfAbsent(EnumConfig.MENU_MAIN.getFileName());
         saveResourceIfAbsent(EnumConfig.MENU_LOCATION.getFileName());
         saveResourceIfAbsent(EnumConfig.MENU_ITEMS.getFileName());
+        saveResourceIfAbsent(EnumConfig.ICON_ITEMS.getFileName());
         saveResourceIfAbsent(EnumConfig.MENU_TICKETBG.getFileName());
         saveResourceIfAbsent(EnumConfig.GEO_CONFIG.getFileName());
         saveResourceIfAbsent(EnumConfig.MENU_CARD.getFileName());
@@ -200,6 +203,12 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new WizardListeners(), this);
         Bukkit.getPluginManager().registerEvents(new GuardListeners(), this);
         Bukkit.getPluginManager().registerEvents(new BossbarManager(), this);
+
+        // 安装了 Oraxen 时，注册 logo 资源包注入监听（把各系统 logo 作为带模型的物品图标分发）
+        if (Bukkit.getPluginManager().getPlugin("Oraxen") != null) {
+            Bukkit.getPluginManager().registerEvents(new OraxenLogoPack(), this);
+            this.getComponentLogger().info(Component.text("成功Hook Oraxen 系统 logo 资源包注入", NamedTextColor.GOLD));
+        }
 
         // 将要移除
         Bukkit.getPluginManager().registerEvents(signActionShowroute, this);

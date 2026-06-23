@@ -53,4 +53,12 @@ traversal-config-blocked: '<red>铁路系统正在进行铁轨遍历，暂停线
 # 有玩家正在进行线路/铁路系统配置向导时发起遍历的提示
 traversal-wizard-active: '<red>有玩家正在进行线路/铁路系统配置，请等其完成后再发起遍历'
 
+# ================== 配置向导 ==================
+# 向导异步步骤开始处理时的提示
+wizard-async-processing: '<gray>正在处理，请稍候...'
+# 向导异步步骤超时的提示
+wizard-async-timeout: '<red>处理超时（可能是图片直链无法访问或网络较慢），请重新输入。'
+# 铁路系统 logo 图片下载并处理成功的提示
+wizard-logo-download-success: '<green>logo 图片下载并处理完成'
+
 

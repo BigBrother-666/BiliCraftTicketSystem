@@ -150,6 +150,24 @@ public class LineInfo {
     }
 
     /**
+     * 判断某个线路上的某个车站是否是折返站
+     *
+     * @param lineId      线路Id
+     * @param stationName 该线路上的车站名
+     * @return true 表示该站为折返站
+     */
+    public static boolean isReverseStation(String lineId, String stationName) {
+        if (stationName == null) {
+            return false;
+        }
+        LineInfo lineInfo = LineConfig.get(lineId);
+        if (lineInfo == null) {
+            return false;
+        }
+        return lineInfo.isReverseStationByName(stationName);
+    }
+
+    /**
      * 判断该线路是否为环线（bossbar 车站列表首尾相同）。
      *
      * @return true 表示环线

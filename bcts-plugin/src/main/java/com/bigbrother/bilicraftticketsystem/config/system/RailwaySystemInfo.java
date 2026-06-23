@@ -25,7 +25,7 @@ public class RailwaySystemInfo {
      * 系统 id（railway_system.yml 中的键，如 "paralon-railway"）。
      */
     private final String id;
-    /**`
+    /**
      * 系统显示名称，如 "帕拉伦国有铁路"。
      */
     private final String name;

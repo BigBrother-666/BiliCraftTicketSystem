@@ -2,6 +2,7 @@ package com.bigbrother.bilicraftticketsystem.menu.station;
 
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
+import com.bigbrother.bilicraftticketsystem.config.StationIconConfig;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemInfo;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoNode;
@@ -11,6 +12,8 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.Material;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -154,12 +157,16 @@ public class StationProvider {
 
     /**
      * 为车站构建菜单图标：统一图标 + 站名（按首个营运线路标志色上色）+ 线路 lore。
+     * <p>
+     * 若该车站已被铁路系统成员设置了自定义旗帜图标（{@link StationIconConfig}），则以该旗帜物品
+     * 为底覆盖默认的车站物品图标（默认 MINECART），仍保留站名 displayName 与线路 lore。
      *
-     * @param entry 车站条目
+     * @param entry    车站条目
+     * @param systemId 当前所属铁路系统 id；为 null（搜索入口，系统未知）时取该车站首个读取到的图标
      * @return 图标物品
      */
-    public static ItemStack buildIcon(StationEntry entry) {
-        ItemStack item = CommonUtils.loadItemFromFile(STATION_ITEM_KEY);
+    public static ItemStack buildIcon(StationEntry entry, String systemId) {
+        ItemStack item = customIconOrDefault(entry.name(), systemId);
         ItemMeta meta = item.getItemMeta();
 
         meta.displayName(Component.text(entry.name(), stationColor(entry))
@@ -183,6 +190,66 @@ public class StationProvider {
         }
         item.setItemMeta(meta);
         return item;
+    }
+
+    /**
+     * 按站名重建图标（聚合该站的 lineIds 现取）。用于成员拖旗帜覆盖图标后刷新按钮显示。
+     *
+     * @param stationName 车站名
+     * @param systemId    当前所属铁路系统 id（null 表示搜索入口）
+     * @return 图标物品
+     */
+    public static ItemStack buildIcon(String stationName, String systemId) {
+        return buildIcon(new StationEntry(stationName, lineIdsOf(stationName)), systemId);
+    }
+
+    /**
+     * 尝试把光标上的旗帜物品设为某车站在某系统下的自定义图标：校验玩家是该系统成员、光标物品是旗帜，
+     * 通过则克隆（数量置 1）保存到 {@link StationIconConfig}（不消耗玩家物品）。
+     * <p>
+     * {@code systemId} 为 null（搜索入口，系统未知）时无法确定归属系统，直接拒绝。
+     *
+     * @param player      操作玩家
+     * @param systemId    车站所属系统 id
+     * @param stationName 车站名
+     * @param cursor      光标上的物品（可能为 null / AIR）
+     * @return true 表示已保存图标；false 表示不满足条件（非旗帜 / 非成员 / 系统未知）
+     */
+    public static boolean tryApplyBannerIcon(Player player, String systemId, String stationName, ItemStack cursor) {
+        if (systemId == null || cursor == null || !isBanner(cursor.getType())) {
+            return false;
+        }
+        RailwaySystemInfo system = RailwaySystemConfig.get(systemId);
+        if (system == null || !system.isMember(player.getUniqueId())) {
+            return false;
+        }
+        ItemStack icon = cursor.clone();
+        icon.setAmount(1);
+        StationIconConfig.save(systemId, stationName, icon);
+        return true;
+    }
+
+    /**
+     * 判断材质是否为旗帜（任意颜色 / 图案）。
+     */
+    public static boolean isBanner(Material material) {
+        return material != null && material.name().endsWith("_BANNER");
+    }
+
+    /**
+     * 取车站图标底物品：优先用成员设置的自定义旗帜图标，否则回退默认车站物品（缺失再回退 RAIL）。
+     * <p>
+     * {@code systemId} 非 null 时按「该系统下该车站」精确取；为 null（搜索入口，系统未知）时取该车站
+     * 首个读取到的图标。返回的物品是<b>克隆</b>，可安全设置 meta 而不影响配置缓存。
+     */
+    private static ItemStack customIconOrDefault(String stationName, String systemId) {
+        ItemStack custom = systemId == null
+                ? StationIconConfig.getFirstForStation(stationName)
+                : StationIconConfig.get(systemId, stationName);
+        if (custom != null) {
+            return custom.clone();
+        }
+        return CommonUtils.loadItemFromFile(STATION_ITEM_KEY);
     }
 
     /**

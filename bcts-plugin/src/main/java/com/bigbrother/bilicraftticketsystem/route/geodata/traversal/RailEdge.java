@@ -62,6 +62,13 @@ public class RailEdge {
      */
     private final String departDirection;
 
+
+    /**
+     * 本区间所在的世界名
+     * 保证一个区间只在一个世界
+     */
+    private final String world;
+
     /**
      * @param fromNodeId      起点节点 id
      * @param toNodeId        终点节点 id
@@ -81,7 +88,8 @@ public class RailEdge {
                     String color,
                     double length,
                     int layer,
-                    String departDirection) {
+                    String departDirection,
+                    String world) {
         this.id = NodeId.ofEdge(fromNodeId, toNodeId, lineId);
         this.fromNodeId = fromNodeId;
         this.toNodeId = toNodeId;
@@ -92,5 +100,6 @@ public class RailEdge {
         this.length = length;
         this.layer = layer;
         this.departDirection = departDirection;
+        this.world = world;
     }
 }
