@@ -195,7 +195,7 @@ public class GraphWalk {
             // 作为本段物理出向写入，供运行时道岔对带导航的列车直接选向。
             if (st.prevNodeId() != null && !st.prevNodeId().equals(node.getId())) {
                 collector.recordEdge(lineId, st.prevNodeId(), node.getId(), lineId, railwaySystemId, color,
-                        GeoUtils.simplifyLineString(coords), result.length(), st.forcedDir());
+                        GeoUtils.simplifyLineString(coords), result.length(), st.forcedDir(), node.getRailBlock().getWorld().getName());
             }
 
             if (result.reason() == TrackWalker.StopReason.PLATFORM) {

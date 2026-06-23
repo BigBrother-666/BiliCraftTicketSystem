@@ -307,8 +307,8 @@ platform 处达到该速度。**只改速度不改最大速度**。
 
 **geojson 结构**：
 
-- **Point**（节点）属性：`id`、`type`（`station` / `switch`）、`name`（仅 station）、`lineIds`（经过的线路 id 数组）、`prev` / `next`（前后相邻节点 id）。
-- **LineString**（区间）属性：`id`、`from`、`to`、`lineId`、`color`、`length`、`layer`（webUI显示层级）`departDir`（从from节点选择什么方向可以到达这条线）。
+- **Point**（节点）属性：`id`、`type`（`station` / `switch`）、`world`、`name`（仅 station）、`lineIds`（经过的线路 id 数组）、`prev` / `next`（前后相邻节点 id）。
+- **LineString**（区间）属性：`id`、`from`、`to`、`lineId`、`world`、`color`、`length`、`layer`（webUI显示层级）`departDir`（从from节点选择什么方向可以到达这条线）。
 
 ### 9.6 标准车站格式
 
