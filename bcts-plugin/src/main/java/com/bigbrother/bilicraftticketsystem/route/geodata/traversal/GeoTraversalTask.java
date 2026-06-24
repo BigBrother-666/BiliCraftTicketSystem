@@ -16,13 +16,12 @@ import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.geojson.FeatureCollection;
 
 import java.io.File;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -31,13 +30,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * 流程：
  * <ol>
  *   <li>从数据库读出所有登记起点（{@link GeoNodeLoc}，含 lineId + 坐标 + 方向）。</li>
- *   <li>建一个共享 {@link TraversalCollector} 与共享去重集合，对每个起点调用 {@link GraphWalk#walkFrom}：
+ *   <li>建一个共享 {@link TraversalCollector} 与共享去重集合，把每个起点 {@link GraphWalk#seed} 进共享队列，
+ *       再用主线程定时任务每 tick 调 {@link GraphWalk#stepBatch} 分片展开：
  *       以 bcswitcher / platform 为节点、其间铁路为有向边做全图展开。矿车携带「当前 lineId」沿途更新
  *       （离开道岔出向时改写），决定每段边归属；一个起点即可覆盖其连通子网，后续起点撞到已访问状态即停。</li>
  *   <li>每条线路一个 {@code <lineId>.geojson}（共用轨道在各线文件中均完整）。</li>
  *   <li>遍历后按线把实际到达车站与配置 {@code bossbar-stations} 比对，报告缺失 / 多余。</li>
  * </ol>
- * 遍历在主线程执行（需读取实时轨道数据）。
+ * 遍历在主线程<b>分片</b>执行（需读取实时轨道数据）：每 tick 只展开
+ * {@link GeoConfig#getTraversalSegmentsPerTick()} 段后让出主线程，避免一次性展开整张图卡死服务器、
+ * 影响其它玩家。
  * <p>
  * 全局约束：同一时刻只允许一个遍历任务（{@link #RUNNING}），且完成后有全局冷却
  * （{@link GeoConfig#getTraversalCooldownSeconds()}）。遍历期间车票/交通卡使用被暂停
@@ -65,6 +67,10 @@ public class GeoTraversalTask {
 
     private final BiliCraftTicketSystem plugin;
     private final CommandSender sender;
+    /**
+     * 本次遍历所有登记起点的线路 id（seed 阶段填充），供展开结束后的车站校验覆盖到起点登记线。
+     */
+    private final Set<String> startLineIds = new LinkedHashSet<>();
 
     /**
      * @param plugin 插件实例
@@ -133,31 +139,134 @@ public class GeoTraversalTask {
         }
 
         GeoTraversalLogger log = new GeoTraversalLogger(plugin, sender);
-        GraphWalk walk = new GraphWalk(new TraversalCollector(), log, new java.util.HashSet<>(),
+        GraphWalk walk = new GraphWalk(new TraversalCollector(), log, new HashSet<>(),
                 GeoConfig.getTraversalMaxTotalNodes(), GeoConfig.getTraversalMaxEdgesPerWalk());
         runningWalk = walk;
-        // 进度反馈在异步线程跑：主线程在遍历期间被阻塞，无法用主线程定时任务交错反馈。
+        // 进度反馈在异步线程跑：分片遍历期间主线程被一段段占用，异步线程只读 walk 的计数器汇报进度。
         BukkitTask progressTask = startProgressFeedback(walk, log);
 
+        // 分片遍历：在主线程上每 tick 只展开有限段，处理完即让出主线程，避免一次性展开整张图卡死服务器。
+        // 全程在主线程执行，TC 实时寻路 / 区块访问均线程安全（不会出现 chunk area 未及时更新的告警）。
+        startSlicedTraversal(log, walk, bypassCooldown, progressTask);
+    }
+
+    /**
+     * 收尾：取消进度反馈、关闭日志、刷新冷却、释放单运行锁。所有退出路径（正常结束 / 中止 / 异常）都经此。
+     *
+     * @param log            日志
+     * @param progressTask   进度反馈任务（可为 null）
+     * @param bypassCooldown 是否绕过冷却（绕过者结束不刷新冷却时间）
+     */
+    private void finishTraversal(GeoTraversalLogger log, BukkitTask progressTask, boolean bypassCooldown) {
+        if (progressTask != null) {
+            progressTask.cancel();
+        }
+        log.close();
+        // bypass 执行不刷新冷却时间
+        if (!bypassCooldown) {
+            lastFinishTime = System.currentTimeMillis();
+        }
+        runningWalk = null;
+        RUNNING.set(false);
+    }
+
+    /**
+     * 在主线程把整次遍历分片到多个 tick 执行：
+     * <ol>
+     *   <li>先读取并 seed 所有登记起点（读起点铁轨方块，需主线程）；</li>
+     *   <li>用定时任务每 tick 调一次 {@link GraphWalk#stepBatch}，每批最多展开
+     *       {@link GeoConfig#getTraversalSegmentsPerTick()} 段，队列空（或中止）后停止；</li>
+     *   <li>展开结束后做车站校验、层级计算、写文件、重载配置。</li>
+     * </ol>
+     * 每段的行走矿车都在单个 tick 内生成并销毁，不跨 tick 持有，避免 keep-loaded 区块区域与遍历推进
+     * 抢状态导致的告警。
+     *
+     * @param log            日志
+     * @param walk           遍历驱动器
+     * @param bypassCooldown 是否绕过冷却（透传给收尾）
+     * @param progressTask   进度反馈任务（透传给收尾）
+     */
+    private void startSlicedTraversal(GeoTraversalLogger log, GraphWalk walk, boolean bypassCooldown, BukkitTask progressTask) {
+        // 起点 seed 与后续每 tick 的展开都必须在主线程。先在一个主线程任务里 seed，再启动分片定时任务。
         Bukkit.getScheduler().runTask(plugin, () -> {
             try {
-                walkAndSave(log, walk);
+                if (!seedStarts(log, walk)) {
+                    // seed 阶段已中止（无起点 / 起点无轨道）或没有可展开内容
+                    if (walk.isAborted()) {
+                        log.message("遍历已中止，未写入任何文件：" + walk.getAbortReason(), NamedTextColor.RED);
+                    }
+                    finishTraversal(log, progressTask, bypassCooldown);
+                    return;
+                }
             } catch (Exception e) {
-                log.error("遍历失败", e);
+                log.error("遍历起点初始化失败", e);
                 log.message("遍历失败：" + e, NamedTextColor.RED);
-            } finally {
-                if (progressTask != null) {
-                    progressTask.cancel();
-                }
-                log.close();
-                // bypass 执行不刷新冷却时间
-                if (!bypassCooldown) {
-                    lastFinishTime = System.currentTimeMillis();
-                }
-                runningWalk = null;
-                RUNNING.set(false);
+                finishTraversal(log, progressTask, bypassCooldown);
+                return;
             }
+
+            int segmentsPerTick = GeoConfig.getTraversalSegmentsPerTick();
+            // 每 tick 展开一批；展开完毕（或中止）后取消自身并切到收尾流程。runTaskTimer 保证全程在主线程。
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    if (walk.hasPending()) {
+                        try {
+                            walk.stepBatch(segmentsPerTick);
+                        } catch (Exception e) {
+                            log.error("遍历展开失败", e);
+                            log.message("遍历失败：" + e, NamedTextColor.RED);
+                            cancel();
+                            finishTraversal(log, progressTask, bypassCooldown);
+                            return;
+                        }
+                        // 本 tick 展开后队列可能仍有剩余，等下一 tick 继续；中止则下次进入收尾分支
+                        if (walk.hasPending()) {
+                            return;
+                        }
+                    }
+                    // 队列已空或已中止：停止分片，做校验 / 写文件 / 重载
+                    cancel();
+                    try {
+                        finalizeAndSave(log, walk);
+                    } catch (Exception e) {
+                        log.error("遍历收尾失败", e);
+                        log.message("遍历失败：" + e, NamedTextColor.RED);
+                    } finally {
+                        finishTraversal(log, progressTask, bypassCooldown);
+                    }
+                }
+            }.runTaskTimer(plugin, 1L, 1L);
         });
+    }
+
+    /**
+     * 读取所有登记起点并 seed 进遍历队列（读起点铁轨方块，须主线程）。
+     * 任一起点坐标处无轨道则中止整次遍历。
+     *
+     * @param log  日志
+     * @param walk 遍历驱动器
+     * @return 成功 seed 了至少一个起点返回 true；无起点 / 已中止返回 false
+     */
+    private boolean seedStarts(GeoTraversalLogger log, GraphWalk walk) {
+        List<GeoNodeLoc> starts = plugin.getGeoDatabaseManager().getAllGeoNodeLoc();
+        if (starts.isEmpty()) {
+            log.message("没有已登记的线路起点，请先用 /railgeo setStartPos <lineId> 登记", NamedTextColor.RED);
+            return false;
+        }
+        log.message("开始遍历，共 " + starts.size() + " 个登记起点...", NamedTextColor.DARK_AQUA);
+        for (GeoNodeLoc start : starts) {
+            Block startRail = resolveStartRail(start.getStartLocation());
+            if (startRail == null) {
+                walk.abort("起点 " + start.getLineId() + " 坐标处没有铁轨（坐标 " + start.getStartLocation()
+                        + "）。请检查该线路登记的起点是否仍在轨道上，如果该起点已废弃，请使用/railgeo delStartPos <lineId>删除");
+                return false;
+            }
+            startLineIds.add(start.getLineId());
+            log.info("从起点 " + start.getLineId() + " @ " + start.getStartLocation() + " 展开");
+            walk.seed(start.getLineId(), startRail, start.getStartDirection());
+        }
+        return true;
     }
 
     /**
@@ -198,40 +307,14 @@ public class GeoTraversalTask {
     }
 
     /**
-     * 执行遍历主流程：展开所有起点、校验车站、计算层级并写文件。
-     * 中途若 {@link GraphWalk#isAborted()}（如达到段数上限）或校验发现配置不一致，则中止且不写文件。
+     * 分片展开结束后的收尾：校验车站、计算层级、写文件、重载配置。
+     * 若遍历已中止（达到段数上限 / 用户停止 / 起点异常），则只反馈中止原因，不写任何文件。
+     * 在主线程调用（由分片定时任务在队列排空后触发）。
      *
      * @param log  日志
      * @param walk 遍历驱动器
      */
-    private void walkAndSave(GeoTraversalLogger log, GraphWalk walk) {
-        List<GeoNodeLoc> starts = plugin.getGeoDatabaseManager().getAllGeoNodeLoc();
-        if (starts.isEmpty()) {
-            log.message("没有已登记的线路起点，请先用 /railgeo setStartPos <lineId> 登记", NamedTextColor.RED);
-            return;
-        }
-        log.message("开始遍历，共 " + starts.size() + " 个登记起点...", NamedTextColor.DARK_AQUA);
-
-        // 整次遍历共享一个收集器与去重集合：一个起点即可覆盖其连通子网，
-        // 后续起点撞到已访问状态立即终止（多起点用于覆盖不连通子网）。
-        TraversalCollector collector = walk.getCollector();
-        java.util.Set<String> startLineIds = new java.util.LinkedHashSet<>();
-        for (GeoNodeLoc start : starts) {
-            Block startRail = resolveStartRail(start.getStartLocation());
-            if (startRail == null) {
-                // 起点坐标处无轨道：中止整次遍历，不写文件，反馈详细信息便于排查
-                walk.abort("起点 " + start.getLineId() + " 坐标处没有铁轨（坐标 " + start.getStartLocation()
-                        + "）。请检查该线路登记的起点是否仍在轨道上，如果该起点已废弃，请使用/railgeo delStartPos <lineId>删除");
-                break;
-            }
-            startLineIds.add(start.getLineId());
-            log.info("从起点 " + start.getLineId() + " @ " + start.getStartLocation() + " 展开");
-            walk.walkFrom(start.getLineId(), startRail, start.getStartDirection());
-            if (walk.isAborted()) {
-                break;
-            }
-        }
-
+    private void finalizeAndSave(GeoTraversalLogger log, GraphWalk walk) {
         if (walk.isAborted()) {
             log.message("遍历已中止，未写入任何文件：" + walk.getAbortReason(), NamedTextColor.RED);
             return;
@@ -239,12 +322,13 @@ public class GeoTraversalTask {
 
         log.message("遍历完成，校验车站和配置是否对应...", NamedTextColor.DARK_AQUA);
 
+        TraversalCollector collector = walk.getCollector();
         // 按线校验：覆盖所有起点登记线 + 遍历中实际到达过车站的线。
         Map<String, Set<String>> byLine = walk.getVisitedStationsByLine();
-        java.util.Set<String> linesToCheck = new java.util.LinkedHashSet<>(startLineIds);
+        Set<String> linesToCheck = new LinkedHashSet<>(startLineIds);
         linesToCheck.addAll(byLine.keySet());
         for (String lineId : linesToCheck) {
-            if (!validateStationOrder(lineId, byLine.getOrDefault(lineId, java.util.Collections.emptySet()), walk, log)) {
+            if (!validateStationOrder(lineId, byLine.getOrDefault(lineId, Collections.emptySet()), walk, log)) {
                 log.message("遍历已中止，未写入任何文件：" + walk.getAbortReason(), NamedTextColor.RED);
                 return;
             }
@@ -260,7 +344,6 @@ public class GeoTraversalTask {
         // 重载配置
         log.message("重载配置文件...", NamedTextColor.DARK_AQUA);
         plugin.loadConfig(null);
-        // 重载配置
         log.message("重载配置完成", NamedTextColor.GREEN);
     }
 
@@ -294,7 +377,7 @@ public class GeoTraversalTask {
         if (info == null || info.getBossbarStations().isEmpty()) {
             return true;
         }
-        Set<String> expected = new java.util.LinkedHashSet<>(info.getBossbarStations());
+        Set<String> expected = new LinkedHashSet<>(info.getBossbarStations());
         for (String want : expected) {
             if (!visited.contains(want)) {
                 walk.abort("线路 " + lineId + " 校验：配置车站 \"" + want

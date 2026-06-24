@@ -51,6 +51,11 @@ public class GraphWalk {
      */
     private final Set<String> visited;
     /**
+     * 待展开的段队列（跨所有起点共享）。分片执行：每个 tick 只弹出有限段处理（见 {@link #stepBatch}），
+     * 处理完一批就让出主线程，避免一次性展开整张图把服务器卡死。
+     */
+    private final Deque<WalkState> queue = new ArrayDeque<>();
+    /**
      * 每条线遍历实际到达的车站名（按首次到达顺序），供事后与配置站序比对。
      */
     @Getter
@@ -100,31 +105,55 @@ public class GraphWalk {
     }
 
     /**
-     * 从一个起点把其连通子网 BFS 展开（与其它起点共享 {@code visited} / {@code collector}）。
-     * 必须在主线程调用。
+     * 把一个起点的首段压入共享队列（不立即展开）。实际展开由 {@link #stepBatch} 分片驱动。
+     * 与其它起点共享 {@code visited} / {@code collector} / 队列：一个起点即可覆盖其连通子网，
+     * 后续起点的首段撞到已访问状态时在 {@link #stepBatch} 里被跳过（多起点用于覆盖不连通子网）。
      *
      * @param startLineId    起点登记的线路 id（首段及之后未经道岔改写前的当前 lineId）
      * @param startRail      起点铁轨
      * @param startDirection 起点方向
      */
-    public void walkFrom(String startLineId, Block startRail, Vector startDirection) {
-        Deque<WalkState> queue = new ArrayDeque<>();
+    public void seed(String startLineId, Block startRail, Vector startDirection) {
         queue.add(new WalkState(null, startRail, startDirection, null, startLineId));
+    }
 
-        WalkState st;
-        while ((st = queue.poll()) != null) {
+    /**
+     * 分片展开：从共享队列里最多弹出 {@code batchSize} 段处理，处理完即返回，把主线程让给其它玩家。
+     * 必须在主线程调用，由上层每 tick 调用一次直到 {@link #hasPending()} 为 false。
+     * <p>
+     * 每段在本方法内同步生成并销毁行走矿车（不跨 tick 持有），故不会出现矿车 keep-loaded 区块区域
+     * 与异步推进抢状态导致的 {@code chunk area wasn't up to date} 问题。
+     *
+     * @param batchSize 本 tick 最多展开的段数（{@code <=0} 视为 1）
+     */
+    public void stepBatch(int batchSize) {
+        int limit = Math.max(1, batchSize);
+        for (int i = 0; i < limit; i++) {
             if (aborted) {
-                break;
+                return;
+            }
+            WalkState st = queue.poll();
+            if (st == null) {
+                return;
             }
             if (processed.get() >= maxNodes) {
                 String pos = String.valueOf(st.rail().getLocation());
                 abort("达到段数上限 " + maxNodes + "，可能存在配置缺失或异常环路。当前线路 "
                         + st.lineId() + "，停止位置 " + pos);
-                break;
+                return;
             }
             processed.incrementAndGet();
             walkSegment(st, queue);
         }
+    }
+
+    /**
+     * 队列里是否还有待展开的段。供上层判断分片遍历是否结束。
+     *
+     * @return 还有待展开段且未中止时返回 true
+     */
+    public boolean hasPending() {
+        return !aborted && !queue.isEmpty();
     }
 
     /**
@@ -137,7 +166,7 @@ public class GraphWalk {
     }
 
     /**
-     * 标记整次遍历因异常情况中止：记录原因并写日志。调用后 {@link #walkFrom} 的循环会尽快退出，
+     * 标记整次遍历因异常情况中止：记录原因并写日志。调用后 {@link #stepBatch} 的循环会尽快退出，
      * 上层据 {@link #isAborted()} 放弃写文件并把 {@link #getAbortReason()} 反馈给发起者。
      *
      * @param reason 中止原因（含调试信息）

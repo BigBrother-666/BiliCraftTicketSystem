@@ -19,6 +19,11 @@ public class GeoConfig {
     @Getter
     private static int traversalMaxTotalNodes;
     /**
+     * 分片遍历：每个 tick（主线程）最多展开的段数。值越小对其它玩家影响越小、但遍历越慢。
+     */
+    @Getter
+    private static int traversalSegmentsPerTick;
+    /**
      * 每隔多少秒向发起者反馈一次遍历进度，{@code <=0} 表示不反馈。
      */
     @Getter
@@ -46,6 +51,7 @@ public class GeoConfig {
         ConfigurationNode traversal = railwayGeoConfig.getNode("traversal");
         traversalMaxEdgesPerWalk = traversal.get("max-edges-per-walk", 5000);
         traversalMaxTotalNodes = traversal.get("max-total-nodes", 100000);
+        traversalSegmentsPerTick = traversal.get("segments-per-tick", 20);
         traversalProgressIntervalSeconds = traversal.get("progress-interval-seconds", 5);
         traversalCooldownSeconds = traversal.get("cooldown-seconds", 3600);
 
