@@ -239,7 +239,9 @@ platform 处达到该速度。**只改速度不改最大速度**。
 - 预测途中若先遇到**另一个 slowdown** 控制牌，则停止流程（减速由后者负责）。
 - 超过 `config.yml` 的 `slowdown-max-detect-distance`（默认 500 格）仍未找到 platform 则不减速，防止 slowdown 放得过远导致的性能问题。
 - **普通车**站站停车，固定减速到下一个 platform。
-- **直达车**跨站直达，需额外判断：预测到达的 platform 站名必须与列车**终点车站名**一致才减速，防止在中途经过的 platform 处被误减速；取不到终点信息则不减速。
+- **直达车**跨站直达，需额外判断终点：取列车**终点站台节点坐标**与预测到的 platform 铁轨坐标比对（用坐标而非站名——同站各站台 platform 站名相同，站名不可靠），相同才减速，防止在中途经过的 platform 处被误减速；取不到终点信息（如重启后内存丢失）则不减速。
+
+**缓存机制**：每次预测开销较大，结果按车种缓存到数据库 `slowdown_cache` 表，启动与重载时载入内存。字段：slowdown 铁轨坐标 `world,x,y,z`、车种 `train_type`（express/common）、到达车站名 `station`、到达的 platform 铁轨坐标 `platform_x/y/z`、减速距离 `distance`。
 
 ## 9. 地理信息(GEO) / 实时数据模块
 

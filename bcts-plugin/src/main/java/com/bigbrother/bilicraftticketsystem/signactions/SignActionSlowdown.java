@@ -11,6 +11,7 @@ import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.database.service.SlowdownCacheService;
 import com.bigbrother.bilicraftticketsystem.listeners.TrainListeners;
+import com.bigbrother.bilicraftticketsystem.route.geograph.GeoNode;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRoutePath;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteNavigator;
 import com.bigbrother.bilicraftticketsystem.signactions.component.SlowdownPredictor;
@@ -96,7 +97,7 @@ public class SignActionSlowdown extends SignAction {
     private void handleCommon(MinecartMember<?> member, Block rail, double targetSpeed,
                               SlowdownCacheService cacheService) {
         MinecartGroup group = member.getGroup();
-        SlowdownCacheService.CommonResult cached = cacheService.getCommon(rail);
+        SlowdownCacheService.Entry cached = cacheService.getCommon(rail);
         if (cached != null) {
             SlowdownTrace.log(group, rail, "普通车：缓存命中 站名=%s 距离=%.2f → 减速"
                     .formatted(cached.station(), cached.distance()));
@@ -109,7 +110,7 @@ public class SignActionSlowdown extends SignAction {
         if (result.reason() == SlowdownPredictor.Reason.PLATFORM) {
             SlowdownTrace.log(group, rail, "普通车：预测到 platform 站名=%s 距离=%.2f → 写缓存并减速"
                     .formatted(result.station(), result.distance()));
-            cacheService.putCommon(rail, result.station(), result.distance());
+            cacheService.putCommon(rail, result.station(), result.platformRail(), result.distance());
             applySlowdown(member, result.distance(), targetSpeed);
         } else {
             SlowdownTrace.log(group, rail, "普通车：预测结果=%s → 不减速".formatted(result.reason()));
@@ -118,7 +119,16 @@ public class SignActionSlowdown extends SignAction {
     }
 
     /**
-     * 直达车减速：仅当预测到达的 platform 站名与列车终点车站名一致时减速（防止在中途站被误减速）。
+     * 直达车减速：跨站直达，需防止在中途经过的 platform 处被误减速。三层判断（从快到慢）：
+     * <ol>
+     *   <li><b>站名快速排除</b>：一个 slowdown 物理上只通向一个车站，取其任意一条缓存记录的站名
+     *       （普通车记的也行）；若该 slowdown 已有缓存且记录站名 != 列车终点站名，则本牌指向中间站，
+     *       直接跳过、<b>不探测</b>。</li>
+     *   <li><b>直达车缓存命中</b>：站名相符（或尚无缓存）时，按 {@code (slowdown 坐标, 终点站台节点坐标)}
+     *       精确查直达车缓存——同站多站台站名相同，必须用坐标区分；命中即用缓存距离减速、不探测。</li>
+     *   <li><b>探测</b>：以上都没命中才探测；探测到 platform 后验证「终点站台节点坐标 == 预测到的 platform
+     *       坐标」，相同才减速并写缓存（含 platform 坐标）。</li>
+     * </ol>
      * 取不到终点信息（如重启后内存丢失）时跳过不减速。
      *
      * @param group        列车
@@ -134,37 +144,55 @@ public class SignActionSlowdown extends SignAction {
             SlowdownTrace.log(group, rail, "直达车：取不到车票/路径信息（重启后内存丢失？）→ 不减速");
             return;
         }
-        String destStation = pass.getPathInfo().getEndStationName();
-        if (destStation == null) {
-            SlowdownTrace.log(group, rail, "直达车：终点站名为空 → 不减速");
+        GeoRoutePath pathInfo = pass.getPathInfo();
+        String destStation = pathInfo.getEndStationName();
+        GeoNode destNode = pathInfo.getEndNode();
+        if (destStation == null || destNode == null) {
+            SlowdownTrace.log(group, rail, "直达车：终点站名/节点为空 → 不减速");
+            return;
+        }
+        int destX = (int) destNode.getX();
+        int destY = (int) destNode.getY();
+        int destZ = (int) destNode.getZ();
+
+        // 1. 站名快速排除：该 slowdown 已有缓存且记录站名 != 终点站名 → 中间站，跳过、不探测
+        String cachedStation = cacheService.getAnyStation(rail);
+        if (cachedStation != null && !cachedStation.equals(destStation)) {
+            SlowdownTrace.log(group, rail, "直达车：本牌通向 %s（≠终点 %s，中间站）→ 跳过、不探测"
+                    .formatted(cachedStation, destStation));
             return;
         }
 
-        // 缓存按 (铁轨, 终点站名) 命中：缓存只存「到达站名 == 终点」的成功结果，命中即说明本牌为本车终点减速
-        Double cachedDistance = cacheService.getExpress(rail, destStation);
-        if (cachedDistance != null) {
+        // 2. 直达车缓存命中（按 slowdown 坐标 + 终点站台节点坐标精确匹配）
+        SlowdownCacheService.Entry cached = cacheService.getExpress(rail, destX, destY, destZ);
+        if (cached != null) {
             SlowdownTrace.log(group, rail, "直达车：缓存命中 终点=%s 距离=%.2f → 减速"
-                    .formatted(destStation, cachedDistance));
-            applySlowdown(member, cachedDistance, targetSpeed);
+                    .formatted(destStation, cached.distance()));
+            applySlowdown(member, cached.distance(), targetSpeed);
             return;
         }
 
-        SlowdownTrace.log(group, rail, "直达车：缓存未命中 终点=%s，开始预测（最大检测距离=%.1f）"
-                .formatted(destStation, MainConfig.slowdownMaxDetectDistance));
+        // 3. 探测：验证终点站台节点坐标 == 预测到的 platform 坐标，相同才减速并写缓存
+        SlowdownTrace.log(group, rail, "直达车：缓存未命中 终点=%s(%d,%d,%d)，开始预测（最大检测距离=%.1f）"
+                .formatted(destStation, destX, destY, destZ, MainConfig.slowdownMaxDetectDistance));
         SlowdownPredictor.Result result = SlowdownPredictor.predict(member, MainConfig.slowdownMaxDetectDistance);
-        if (result.reason() == SlowdownPredictor.Reason.PLATFORM && destStation.equals(result.station())) {
-            // 预测到的 platform 正是本车终点：减速并缓存
-            SlowdownTrace.log(group, rail, "直达车：预测到终点 platform 站名=%s 距离=%.2f → 写缓存并减速"
-                    .formatted(result.station(), result.distance()));
-            cacheService.putExpress(rail, result.station(), result.distance());
-            applySlowdown(member, result.distance(), targetSpeed);
-        } else if (result.reason() == SlowdownPredictor.Reason.PLATFORM) {
-            SlowdownTrace.log(group, rail, "直达车：预测到 platform 站名=%s（≠终点 %s，中途站）距离=%.2f → 不减速"
-                    .formatted(result.station(), destStation, result.distance()));
+        if (result.reason() == SlowdownPredictor.Reason.PLATFORM) {
+            Block platformRail = result.platformRail();
+            boolean match = platformRail.getX() == destX && platformRail.getY() == destY && platformRail.getZ() == destZ;
+            if (match) {
+                SlowdownTrace.log(group, rail, "直达车：预测到终点 platform 站名=%s 坐标=(%d,%d,%d) 距离=%.2f → 写缓存并减速"
+                        .formatted(result.station(), platformRail.getX(), platformRail.getY(), platformRail.getZ(),
+                                result.distance()));
+                cacheService.putExpress(rail, result.station(), platformRail, result.distance());
+                applySlowdown(member, result.distance(), targetSpeed);
+            } else {
+                SlowdownTrace.log(group, rail, "直达车：预测到 platform 坐标=(%d,%d,%d)≠终点(%d,%d,%d)（中途站）→ 不减速"
+                        .formatted(platformRail.getX(), platformRail.getY(), platformRail.getZ(), destX, destY, destZ));
+            }
         } else {
             SlowdownTrace.log(group, rail, "直达车：预测结果=%s → 不减速".formatted(result.reason()));
         }
-        // 到达的 platform 非本车终点（中途经过）/ ANOTHER_SLOWDOWN / NOT_FOUND：不减速、不缓存
+        // 非终点 / ANOTHER_SLOWDOWN / NOT_FOUND：不减速、不缓存
     }
 
     /**

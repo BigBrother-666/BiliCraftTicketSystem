@@ -160,7 +160,13 @@ public class TrainDatabaseManager {
             statement.execute("CREATE INDEX IF NOT EXISTS idx_%s_time ON %s (time);".formatted(TrainDatabaseConstants.REVENUE_TABLE_NAME, TrainDatabaseConstants.REVENUE_TABLE_NAME));
 
             // slowdown 控制牌减速距离缓存：每次计算开销较大，结果持久化到此表。
-            // 唯一键 (world,x,y,z,train_type,station) 区分同一控制牌对不同车种 / 到达车站的减速距离。
+            // 记录 slowdown 铁轨坐标 (world,x,y,z)、车种、到达车站名 station、到达的 platform 铁轨坐标
+            // (platform_x/y/z) 与减速距离。
+            // - station：一个 slowdown 物理上只通向一个车站，供直达车「中间站快速跳过」省去探测
+            //   （终点站名 != 记录站名即中间站）。
+            // - platform 坐标：同站多站台 platform 站名相同，站名验证不准；直达车据「终点站台节点坐标
+            //   == platform 坐标」精确判断本牌是否为本车终点减速。
+            // 唯一键含 platform 坐标：普通车站站停下一站固定（仅一条），直达车不同终点对应不同 platform（各一条）。
             statement.execute("""
                     CREATE TABLE IF NOT EXISTS %s (
                                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -170,8 +176,11 @@ public class TrainDatabaseManager {
                                 z INTEGER,
                                 train_type VARCHAR(16),
                                 station VARCHAR(100),
+                                platform_x INTEGER,
+                                platform_y INTEGER,
+                                platform_z INTEGER,
                                 distance REAL,
-                                UNIQUE(world, x, y, z, train_type, station)
+                                UNIQUE(world, x, y, z, train_type, platform_x, platform_y, platform_z)
                     );
                     """.formatted(TrainDatabaseConstants.SLOWDOWN_CACHE_TABLE_NAME));
         } catch (SQLException e) {
