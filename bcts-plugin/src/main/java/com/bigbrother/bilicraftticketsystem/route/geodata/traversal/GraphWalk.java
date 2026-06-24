@@ -1,5 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.route.geodata.traversal;
 
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import com.bigbrother.bilicraftticketsystem.utils.GeoUtils;
@@ -246,9 +247,14 @@ public class GraphWalk {
     @SuppressWarnings("unused")
     private void expandSwitcher(RailNode node, String lineId, TrackWalker walker, TrackWalker.WalkResult result,
                                 Vector arrival, String arrivalFace, Deque<WalkState> queue) {
-        List<BcSwitcherBranch> branches = walker.collectSwitcherBranches(result.sign().getRail());
+        RailPiece rail = result.sign().getRail();
+        List<BcSwitcherBranch> branches = walker.collectSwitcherBranches(rail);
         for (BcSwitcherBranch branch : branches) {
             for (String outLineId : branch.getLineIds()) {
+                if (!LineConfig.getLines().containsKey(outLineId)) {
+                    log.info("bcswitcher(%s)的道岔lineId %s 不存在，跳过该分支".formatted(rail.block().getLocation(), outLineId));
+                    continue;
+                }
                 // 出向 key 用 (方向, 出向lineId)：共用出向按线拆 fork，各挂单一 tag 各走各记。
                 tryEnqueue(node, arrivalFace, branch.getDirectionStr(), outLineId, queue,
                         new WalkState(node.getId(), node.getRailBlock(), arrival.clone(),

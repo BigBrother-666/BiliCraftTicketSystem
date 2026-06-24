@@ -174,11 +174,12 @@ public abstract class BCTransitPass {
         List<String> lineIds = new ArrayList<>();
 
         for (String lineId : pathInfo.getLineIdSequence()) {
-            if (lineId == null || lineId.isEmpty()) {
+            LineInfo lineInfo = LineConfig.get(lineId);
+            if (lineId == null || lineId.isEmpty() || lineInfo == null) {
                 continue;
             }
             // 如果该lineId没有对应的铁路公司，不显示
-            String railwaySystemId = LineConfig.get(lineId).getRailwaySystemId();
+            String railwaySystemId = lineInfo.getRailwaySystemId();
             if (railwaySystemId == null || railwaySystemId.isEmpty() || RailwaySystemConfig.get(railwaySystemId) == null) {
                 continue;
             }
