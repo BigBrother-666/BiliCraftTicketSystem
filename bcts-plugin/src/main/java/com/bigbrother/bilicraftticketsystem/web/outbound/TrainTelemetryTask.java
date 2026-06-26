@@ -3,6 +3,7 @@ package com.bigbrother.bilicraftticketsystem.web.outbound;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.config.MapConfig;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoNode;
@@ -28,7 +29,7 @@ import org.bukkit.scheduler.BukkitRunnable;
  * 受 telemetry.enabled 约束。
  */
 public class TrainTelemetryTask extends BukkitRunnable {
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "FieldCanBeLocal"})
     private final BiliCraftTicketSystem plugin;
     private final WebLinkClient client;
 
@@ -92,8 +93,8 @@ public class TrainTelemetryTask extends BukkitRunnable {
         headNode.put("y", loc.getY());
         headNode.put("z", loc.getZ());
         headNode.put("yaw", loc.getYaw());
-
-        dto.put("speedKph", CommonUtils.mpt2Kph(group.getAverageForce()));
+        TrainProperties properties = group.getProperties();
+        dto.put("speedKph", CommonUtils.mpt2Kph(properties.hasHolder() ? properties.getHolder().head().getRealSpeedLimited() : 0.0));
         dto.put("cartCount", group.size());
         dto.set("passengers", passengers);
 
