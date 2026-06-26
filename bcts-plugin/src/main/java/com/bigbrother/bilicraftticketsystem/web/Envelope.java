@@ -24,6 +24,10 @@ public class Envelope {
     public long ts;
     public JsonNode data;
 
+    @SuppressWarnings("unused")
+    public Envelope() {
+    }
+
     public Envelope(String type, String id, long ts, JsonNode data) {
         this.type = type;
         this.id = id;
