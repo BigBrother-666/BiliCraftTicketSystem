@@ -64,6 +64,11 @@ public class SignActionPlatform extends SignAction {
         Set<PlatformFeature> enabled = PlatformFeature.parseEnabled(info.getLine(3));
         String stationName = info.getLine(2).trim();
 
+        if (info.isAction(SignActionType.GROUP_UPDATE)) {
+            // 玩家上下车，发送数据
+            publishRideEvent(group, info.getRails() == null ? null : NodeId.ofBlock(info.getRails()), stationName);
+        }
+
         if (info.isAction(SignActionType.GROUP_ENTER)) {
             // 调试追踪：列车进入站台
             if (SwitchTrace.isEnabled()) {
@@ -84,7 +89,6 @@ public class SignActionPlatform extends SignAction {
                 group.destroy();
                 return;
             }
-            publishRideEvent(group, info.getRails() == null ? null : NodeId.ofBlock(info.getRails()), stationName);
             // 导航：当前步骤为车站则推进指针（使无正线中途站也能推进到终点）。
             // 推进属于导航逻辑，不受 BOSSBAR 功能位影响；bossbar 显示刷新交由 onLeave 多态处理。
             // 按节点 id 去重：同一铁轨方块挂多块控制牌重复触发时只推进一次。
