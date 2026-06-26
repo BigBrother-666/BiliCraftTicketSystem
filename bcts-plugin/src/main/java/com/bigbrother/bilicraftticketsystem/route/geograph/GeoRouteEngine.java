@@ -65,19 +65,47 @@ public class GeoRouteEngine {
         for (GeoNode start : graph.stationNodes(startStation)) {
             all.addAll(kShortest(start.getId(), endStation, kPerPlatform));
         }
-        all.sort(Comparator.comparingDouble(GeoRoutePath::getDistance));
+
         // 去重：departDirectionSequence 相同视为重复路线，保留先出现（即最短）的一条
-        List<GeoRoutePath> deduped = new ArrayList<>();
-        Set<List<String>> seen = new HashSet<>();
+        Map<List<String>, GeoRoutePath> deduped = new HashMap<>();
         for (GeoRoutePath path : all) {
-            if (seen.add(path.getDepartDirectionSequence())) {
-                deduped.add(path);
+            List<String> departDirectionSequence = path.getDepartDirectionSequence();
+            if (!deduped.containsKey(departDirectionSequence)) {
+                deduped.put(departDirectionSequence, path);
+            } else {
+                // departDirectionSequence 相同 则 优先保留转线次数少的
+                List<String> oldLineIdSeq = deduped.get(departDirectionSequence).getLineIdSequence();
+                if (getLineTransferCnt(oldLineIdSeq) > getLineTransferCnt(path.getLineIdSequence())) {
+                    deduped.put(departDirectionSequence, path);
+                }
             }
         }
+
+        List<GeoRoutePath> ret = new ArrayList<>(deduped.values().stream().toList());
+        ret.sort(Comparator.comparingDouble(GeoRoutePath::getDistance));
         if (maxResults > 0 && deduped.size() > maxResults) {
-            return new ArrayList<>(deduped.subList(0, maxResults));
+            return new ArrayList<>(ret.subList(0, maxResults));
         }
-        return deduped;
+        return ret;
+    }
+
+    /**
+     * 根据lineId列表获取过转线次数（列表相邻两元素不同的数量）
+     *
+     * @param lineIdSeq 路线每段的lineId
+     * @return 转线次数
+     */
+    private static int getLineTransferCnt(List<String> lineIdSeq) {
+        if (lineIdSeq.size() < 2) {
+            return 0;
+        }
+        int cnt = 0;
+        for (int i = 0; i < lineIdSeq.size() - 1; i++) {
+            if (!lineIdSeq.get(i).equals(lineIdSeq.get(i + 1))) {
+                cnt += 1;
+            }
+        }
+        return cnt;
     }
 
     /**
