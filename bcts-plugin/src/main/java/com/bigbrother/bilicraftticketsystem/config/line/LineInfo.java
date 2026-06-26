@@ -150,6 +150,21 @@ public class LineInfo {
     }
 
     /**
+     * 返回本线路所有折返站的干净站名集合（供向 web 暴露，前端寻路据此跳过折返站）。
+     *
+     * @return 折返站名集合（可能为空）
+     */
+    public java.util.Set<String> getReverseStationNames() {
+        java.util.Set<String> names = new java.util.LinkedHashSet<>();
+        for (int index : reverseStationIndices) {
+            if (index >= 0 && index < bossbarStations.size()) {
+                names.add(bossbarStations.get(index));
+            }
+        }
+        return names;
+    }
+
+    /**
      * 判断某个线路上的某个车站是否是折返站
      *
      * @param lineId      线路Id

@@ -2,10 +2,10 @@ package com.bigbrother.bilicraftticketsystem.route.geodata.traversal;
 
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
+import com.bigbrother.bilicraftticketsystem.config.MapConfig;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.utils.GeoUtils;
 import com.bigbrother.bilicraftticketsystem.route.geodata.entity.GeoNodeLoc;
-import com.bigbrother.bilicraftticketsystem.config.GeoConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import com.bigbrother.bilicraftticketsystem.wizard.WizardManager;
@@ -38,11 +38,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *   <li>遍历后按线把实际到达车站与配置 {@code bossbar-stations} 比对，报告缺失 / 多余。</li>
  * </ol>
  * 遍历在主线程<b>分片</b>执行（需读取实时轨道数据）：每 tick 只展开
- * {@link GeoConfig#getTraversalSegmentsPerTick()} 段后让出主线程，避免一次性展开整张图卡死服务器、
+ * {@link MapConfig#getTraversalSegmentsPerTick()} 段后让出主线程，避免一次性展开整张图卡死服务器、
  * 影响其它玩家。
  * <p>
  * 全局约束：同一时刻只允许一个遍历任务（{@link #RUNNING}），且完成后有全局冷却
- * （{@link GeoConfig#getTraversalCooldownSeconds()}）。遍历期间车票/交通卡使用被暂停
+ * （{@link MapConfig#getTraversalCooldownSeconds()}）。遍历期间车票/交通卡使用被暂停
  * （见 {@code TrainListeners}，靠 {@link #isTraversalRunning()} 判断）。可用 {@link #stopWalk(CommandSender)}
  * 提前停止当前任务。持 {@link #PERM_BYPASS_COOLDOWN} 权限者可绕过冷却，且其执行不刷新冷却。
  */
@@ -124,7 +124,7 @@ public class GeoTraversalTask {
         }
 
         // 冷却校验（不抢锁）；有 bypass 权限则跳过
-        int cooldownSec = GeoConfig.getTraversalCooldownSeconds();
+        int cooldownSec = MapConfig.getTraversalCooldownSeconds();
         long remainMs = lastFinishTime + cooldownSec * 1000L - System.currentTimeMillis();
         if (!bypassCooldown && cooldownSec > 0 && lastFinishTime > 0 && remainMs > 0) {
             sendConfigMessage(msg("traversal-cooling-down", "<red>铁轨遍历正在冷却中，请 %d 秒后再试")
@@ -140,7 +140,7 @@ public class GeoTraversalTask {
 
         GeoTraversalLogger log = new GeoTraversalLogger(plugin, sender);
         GraphWalk walk = new GraphWalk(new TraversalCollector(), log, new HashSet<>(),
-                GeoConfig.getTraversalMaxTotalNodes(), GeoConfig.getTraversalMaxEdgesPerWalk());
+                MapConfig.getTraversalMaxTotalNodes(), MapConfig.getTraversalMaxEdgesPerWalk());
         runningWalk = walk;
         // 进度反馈在异步线程跑：分片遍历期间主线程被一段段占用，异步线程只读 walk 的计数器汇报进度。
         BukkitTask progressTask = startProgressFeedback(walk, log);
@@ -175,7 +175,7 @@ public class GeoTraversalTask {
      * <ol>
      *   <li>先读取并 seed 所有登记起点（读起点铁轨方块，需主线程）；</li>
      *   <li>用定时任务每 tick 调一次 {@link GraphWalk#stepBatch}，每批最多展开
-     *       {@link GeoConfig#getTraversalSegmentsPerTick()} 段，队列空（或中止）后停止；</li>
+     *       {@link MapConfig#getTraversalSegmentsPerTick()} 段，队列空（或中止）后停止；</li>
      *   <li>展开结束后做车站校验、层级计算、写文件、重载配置。</li>
      * </ol>
      * 每段的行走矿车都在单个 tick 内生成并销毁，不跨 tick 持有，避免 keep-loaded 区块区域与遍历推进
@@ -205,7 +205,7 @@ public class GeoTraversalTask {
                 return;
             }
 
-            int segmentsPerTick = GeoConfig.getTraversalSegmentsPerTick();
+            int segmentsPerTick = MapConfig.getTraversalSegmentsPerTick();
             // 每 tick 展开一批；展开完毕（或中止）后取消自身并切到收尾流程。runTaskTimer 保证全程在主线程。
             new BukkitRunnable() {
                 @Override
@@ -291,7 +291,7 @@ public class GeoTraversalTask {
      * @return 反馈定时任务（遍历结束须取消）；不反馈时为 null
      */
     private BukkitTask startProgressFeedback(GraphWalk walk, GeoTraversalLogger log) {
-        int intervalSec = GeoConfig.getTraversalProgressIntervalSeconds();
+        int intervalSec = MapConfig.getTraversalProgressIntervalSeconds();
         if (intervalSec <= 0) {
             return null;
         }
@@ -345,6 +345,12 @@ public class GeoTraversalTask {
         log.message("重载配置文件...", NamedTextColor.DARK_AQUA);
         plugin.loadConfig(null);
         log.message("重载配置完成", NamedTextColor.GREEN);
+
+        // 遍历产出新 geojson，若已连后端则推送 geo 快照
+        if (plugin.getWebLink() != null && plugin.getWebLink().getClient().isConnected()) {
+            plugin.getWebLink().getSnapshotPublisher().publishGeo();
+            log.message("已向线路图后端推送 geojson 快照", NamedTextColor.GREEN);
+        }
     }
 
     /**

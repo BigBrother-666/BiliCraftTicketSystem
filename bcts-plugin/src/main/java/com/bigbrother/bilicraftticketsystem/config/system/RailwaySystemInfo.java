@@ -100,4 +100,22 @@ public class RailwaySystemInfo {
     public Set<UUID> getMembersView() {
         return Collections.unmodifiableSet(members);
     }
+
+    /**
+     * 导出向 Web 后端 / 前端公开的字段白名单（{@code id} / {@code name} / {@code pricePerKm} /
+     * {@code logoUrl}）。<b>刻意剔除</b> creator / income / withdrawn / members 等内部财务与隐私数据，
+     * 杜绝误推（见 docs/PLUGIN_ADDENDUM.md §4.3）。
+     * <p>
+     * {@code logoUrl} 当前预留为 null（Oraxen logo 暂无可访问 URL）。
+     *
+     * @return 公开字段的有序 Map
+     */
+    public java.util.Map<String, Object> toPublicDto() {
+        java.util.Map<String, Object> dto = new java.util.LinkedHashMap<>();
+        dto.put("id", id);
+        dto.put("name", name);
+        dto.put("pricePerKm", pricePerKm);
+        dto.put("logoUrl", null);
+        return dto;
+    }
 }

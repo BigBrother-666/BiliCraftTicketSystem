@@ -294,4 +294,65 @@ public class GeoRouteEngineTest {
         assertEquals(List.of("nA", "c1", "c2", "nB"),
                 paths.getFirst().getNodes().stream().map(GeoNode::getId).toList());
     }
+
+    @Test
+    void validatePathRebuildsValidRoute() {
+        GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(fc));
+        // 合法路线 nA -> s1 -> s2 -> nB（L1 / contact / L1），与 findFromNode 同构
+        GeoRoutePath path = GeoRouteEngine.validatePath(
+                List.of("nA", "s1", "s2", "nB"), List.of("L1", "contact", "L1"));
+        assertNotNull(path);
+        assertEquals(25.0 / 1000, path.getDistance(), 1e-9);
+        assertEquals(List.of("L1", "contact", "L1"), path.getLineIdSequence());
+        assertEquals("A", path.getStartStationName());
+        assertEquals("B", path.getEndStationName());
+    }
+
+    @Test
+    void validatePathWithoutLineIdSequenceTakesFirstMatch() {
+        GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(fc));
+        // 不带 lineIdSequence 也能校验（无平行边时唯一）
+        GeoRoutePath path = GeoRouteEngine.validatePath(List.of("nA2", "s2", "nB"), null);
+        assertNotNull(path);
+        assertEquals(11.0 / 1000, path.getDistance(), 1e-9);
+    }
+
+    @Test
+    void validatePathRejectsNonAdjacentNodes() {
+        GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(fc));
+        // nA 与 s2 之间无直接边
+        assertNull(GeoRouteEngine.validatePath(List.of("nA", "s2", "nB"), null));
+    }
+
+    @Test
+    void validatePathRejectsWrongLineIdOnParallelEdge() {
+        // 平行边：c 到 d 同时有 L1 与 L2 两条边，lineIdSequence 必须匹配正确那条
+        FeatureCollection f = new FeatureCollection();
+        f.add(point("c", "station", "C", 0, 64, 0));
+        f.add(point("d", "station", "D", 10, 64, 0));
+        f.add(line("e.L1.c__d", "c", "d", "L1", 10));
+        f.add(line("e.L2.c__d", "c", "d", "L2", 20));
+        GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(f));
+
+        GeoRoutePath l1 = GeoRouteEngine.validatePath(List.of("c", "d"), List.of("L1"));
+        assertNotNull(l1);
+        assertEquals(10.0 / 1000, l1.getDistance(), 1e-9);
+        GeoRoutePath l2 = GeoRouteEngine.validatePath(List.of("c", "d"), List.of("L2"));
+        assertNotNull(l2);
+        assertEquals(20.0 / 1000, l2.getDistance(), 1e-9);
+        // 不存在的 lineId
+        assertNull(GeoRouteEngine.validatePath(List.of("c", "d"), List.of("L3")));
+    }
+
+    @Test
+    void validatePathRejectsNonStationEndpointsAndBadInput() {
+        GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(fc));
+        // 终点是道岔 s2，非车站
+        assertNull(GeoRouteEngine.validatePath(List.of("nA", "s1", "s2"), List.of("L1", "contact")));
+        // 节点不存在
+        assertNull(GeoRouteEngine.validatePath(List.of("nA", "nope", "nB"), null));
+        // 不足两个节点 / null
+        assertNull(GeoRouteEngine.validatePath(List.of("nA"), null));
+        assertNull(GeoRouteEngine.validatePath(null, null));
+    }
 }

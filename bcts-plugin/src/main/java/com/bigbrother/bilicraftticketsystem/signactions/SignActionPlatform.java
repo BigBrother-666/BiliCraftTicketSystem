@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
+import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.signactions.component.*;
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
@@ -83,6 +84,7 @@ public class SignActionPlatform extends SignAction {
                 group.destroy();
                 return;
             }
+            publishRideEvent(group, info.getRails() == null ? null : NodeId.ofBlock(info.getRails()), stationName);
             // 导航：当前步骤为车站则推进指针（使无正线中途站也能推进到终点）。
             // 推进属于导航逻辑，不受 BOSSBAR 功能位影响；bossbar 显示刷新交由 onLeave 多态处理。
             // 按节点 id 去重：同一铁轨方块挂多块控制牌重复触发时只推进一次。
@@ -264,6 +266,13 @@ public class SignActionPlatform extends SignAction {
      */
     private LineInfo resolveLine(MinecartGroup group) {
         return LineConfig.get(BcLineIdProperty.read(group));
+    }
+
+    private void publishRideEvent(MinecartGroup group, String nodeId, String stationName) {
+        var webLink = BiliCraftTicketSystem.plugin.getWebLink();
+        if (webLink != null) {
+            webLink.getRideEventPublisher().publish(group, nodeId, stationName);
+        }
     }
 
     @Override

@@ -1,0 +1,47 @@
+# 铁轨遍历（railgeo walkAll）配置
+traversal:
+  # 单边行走最多记录的铁轨格数
+  max-edges-per-walk: 50000
+  # 整次遍历最多展开的铁路边数
+  max-total-nodes: 20000
+  # 分片遍历：每 tick（主线程）最多展开的铁路边数。遍历在主线程分多个 tick 执行，
+  # 该值越小对其它玩家的影响越小、但整次遍历耗时越长；越大遍历越快、但每 tick 占用主线程时间越多。
+  segments-per-tick: 20
+  # 每隔多少秒向发起者反馈一次当前进度（已遍历节点数），<=0 表示不反馈
+  progress-interval-seconds: 5
+  # 一次遍历完成后的全局冷却（秒），冷却期间不能再次发起遍历
+  cooldown-seconds: 3600
+
+logo:
+  # 网页端logo边像素数
+  web-logo-dim: 256
+  # 游戏内logo边像素数
+  mc-logo-dim: 32
+
+web-link:
+  # 是否启用 Web 后端对接。
+  enabled: false
+  # 后端内部 WebSocket 端点
+  backend-url: "wss://localhost:8080/internal/plugin"
+  # 与后端一致的预共享密钥
+  shared-token: "change-me"
+  # 多服标识
+  server-id: "paralon"
+  # 断线重连间隔（秒）
+  reconnect-seconds: 5
+  # 列车实时遥测
+  telemetry:
+    # 是否推送列车遥测
+    enabled: true
+    # 遥测推送间隔
+    interval-ticks: 5
+    # 是否推送无乘客的列车
+    include-empty-trains: false
+  # 网页在线购票
+  purchase:
+    # 是否接受网页在线购票
+    enabled: true
+    # 网页单次下单允许的最大次数（受 config.yml uses.max 约束）
+    max-uses: 1
+    # 仅玩家在线时可购票
+    require-online: true

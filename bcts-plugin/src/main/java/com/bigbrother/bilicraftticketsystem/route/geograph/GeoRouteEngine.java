@@ -164,6 +164,75 @@ public class GeoRouteEngine {
     }
 
     /**
+     * 校验给定的有序节点序列是否构成图上一条合法路线，合法则重建 {@link GeoRoutePath}。
+     * <p>
+     * 用于<b>网页在线购票</b>：路线在前端已选定，插件不重新寻路，只逐对校验相邻节点间存在对应出边，
+     * 然后按既有图结构重建路径（与私有 {@link #buildPath} 同构的产物，下游票价 / lore / 导航逻辑零改动）。
+     * <p>
+     * 校验规则：
+     * <ul>
+     *   <li>{@code nodeIds} 至少含起点与终点两个节点，且首尾都是 station 节点（与车票语义一致）。</li>
+     *   <li>逐对 {@code nodeIds[i] -> nodeIds[i+1]} 须存在一条出边（{@link GeoRouteGraph#links}）；</li>
+     *   <li>两节点间存在多条平行边（共用轨道、不同 lineId）时，用 {@code lineIdSequence[i]} 消歧；
+     *       {@code lineIdSequence} 为 null 时取首条匹配边。</li>
+     * </ul>
+     * 任一步无匹配边 / 节点不存在 / 起终点非车站 → 返回 null（非法）。
+     *
+     * @param nodeIds        有序节点 id 列表（含起点与终点站台）
+     * @param lineIdSequence 逐段 lineId（size 应为 nodeIds.size()-1），平行边消歧用；可为 null
+     * @return 合法时返回重建的路径；非法返回 null
+     */
+    public static GeoRoutePath validatePath(List<String> nodeIds, List<String> lineIdSequence) {
+        GeoRouteGraph g = graph;
+        if (nodeIds == null || nodeIds.size() < 2) {
+            return null;
+        }
+        GeoNode startNode = g.getNode(nodeIds.getFirst());
+        GeoNode endNode = g.getNode(nodeIds.getLast());
+        if (startNode == null || endNode == null || !startNode.isStation() || !endNode.isStation()) {
+            return null;
+        }
+
+        List<GeoNode> nodes = new ArrayList<>();
+        List<String> lineIds = new ArrayList<>();
+        List<String> departDirs = new ArrayList<>();
+        List<Double> distances = new ArrayList<>();
+        nodes.add(startNode);
+        double total = 0.0;
+
+        for (int i = 0; i < nodeIds.size() - 1; i++) {
+            String fromId = nodeIds.get(i);
+            String toId = nodeIds.get(i + 1);
+            String wantLine = lineIdSequence != null && i < lineIdSequence.size() ? lineIdSequence.get(i) : null;
+            GeoLink matched = null;
+            for (GeoLink link : g.links(fromId)) {
+                if (!link.getToNodeId().equals(toId)) {
+                    continue;
+                }
+                if (wantLine != null && !wantLine.equals(link.getLineId())) {
+                    continue;
+                }
+                matched = link;
+                break;
+            }
+            if (matched == null) {
+                return null;
+            }
+            GeoNode toNode = g.getNode(toId);
+            if (toNode == null) {
+                return null;
+            }
+            nodes.add(toNode);
+            lineIds.add(matched.getLineId());
+            departDirs.add(matched.getDepartDirection());
+            // 段长换算为 km，与 buildPath 一致
+            distances.add(matched.getDistance() / 1000);
+            total += matched.getDistance();
+        }
+        return new GeoRoutePath(nodes, lineIds, departDirs, distances, total / 1000);
+    }
+
+    /**
      * 从单一起点节点求最短的 K 条<b>无环</b>路线，终点为任一名为 {@code endStation} 的 station 节点。
      * <p>
      * 规则：一条路线<b>不得重复经过同一节点</b>（simple path）。采用按累计距离排序的优先队列逐条扩展，

@@ -100,6 +100,15 @@ public class RailwaySystemConfig {
     }
 
     /**
+     * 获取所有铁路系统（按配置顺序的只读视图）。
+     *
+     * @return 系统信息集合
+     */
+    public static java.util.Collection<RailwaySystemInfo> allSystems() {
+        return java.util.Collections.unmodifiableCollection(systems.values());
+    }
+
+    /**
      * 判断给定系统 id 是否存在。
      *
      * @param systemId 系统 id

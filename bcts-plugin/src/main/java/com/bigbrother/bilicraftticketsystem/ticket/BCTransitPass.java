@@ -81,6 +81,10 @@ public abstract class BCTransitPass {
      */
     public abstract double getPrice();
 
+    public double getRideHistoryFare() {
+        return getPrice();
+    }
+
     protected void initPdc() {
         ItemMeta itemMeta = this.itemStack.getItemMeta();
         if (itemMeta != null && !itemMeta.getPersistentDataContainer().has(GuardListeners.KEY_TRANSIT_PASS)) {
@@ -213,7 +217,7 @@ public abstract class BCTransitPass {
      *
      * @return lore
      */
-    public List<Component> getDistanceInfoLore() {
+    public List<Component> getPriceInfoLore() {
         List<Component> lore = new ArrayList<>();
         Map<String, Double> segmentDistances = rawSegmentDistances();
 

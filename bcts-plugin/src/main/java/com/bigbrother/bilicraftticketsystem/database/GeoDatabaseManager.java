@@ -14,6 +14,7 @@ import java.sql.*;
 
 public class GeoDatabaseManager {
     private final static String geoNodeLocTableName = "geo_traversal_start";
+    private final static String boundPlayerTableName = "web_bound_player";
 
     private final BiliCraftTicketSystem plugin;
     private final HikariDataSource ds;
@@ -23,6 +24,7 @@ public class GeoDatabaseManager {
         this.ds = plugin.getTrainDatabaseManager().getDs();
 
         createTable();
+        createBoundPlayerTable();
     }
 
     private void createTable() {
@@ -39,6 +41,95 @@ public class GeoDatabaseManager {
         } catch (SQLException e) {
             plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.RED));
         }
+    }
+
+    private void createBoundPlayerTable() {
+        try (Connection connection = ds.getConnection(); Statement statement = connection.createStatement()) {
+            String sql = """
+                    CREATE TABLE IF NOT EXISTS %s (
+                                uuid VARCHAR(36) PRIMARY KEY,
+                                name VARCHAR(64),
+                                bound_time BIGINT
+                    );
+                    """.formatted(boundPlayerTableName);
+            statement.execute(sql);
+        } catch (SQLException e) {
+            plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.RED));
+        }
+    }
+
+    /**
+     * 登记 / 更新一个网页登录绑定玩家。
+     *
+     * @param uuid 玩家 UUID
+     * @param name 玩家名
+     */
+    public void upsertBoundPlayer(String uuid, String name) {
+        String sql = "INSERT OR REPLACE INTO %s (uuid, name, bound_time) VALUES (?, ?, ?)"
+                .formatted(boundPlayerTableName);
+        try (Connection conn = ds.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, uuid);
+            ps.setString(2, name);
+            ps.setLong(3, System.currentTimeMillis());
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.RED));
+        }
+    }
+
+    /**
+     * 删除一个网页登录绑定。
+     *
+     * @param uuid 玩家 UUID
+     * @return 删除条数
+     */
+    public int deleteBoundPlayer(String uuid) {
+        String sql = "DELETE FROM %s WHERE uuid = ?".formatted(boundPlayerTableName);
+        try (Connection conn = ds.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, uuid);
+            return ps.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.RED));
+        }
+        return 0;
+    }
+
+    /**
+     * 判断某玩家是否已绑定网页登录。
+     *
+     * @param uuid 玩家 UUID
+     * @return true 表示已绑定
+     */
+    public boolean isBoundPlayer(String uuid) {
+        String sql = "SELECT 1 FROM %s WHERE uuid = ?".formatted(boundPlayerTableName);
+        try (Connection conn = ds.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, uuid);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.RED));
+        }
+        return false;
+    }
+
+    /**
+     * 取所有已绑定玩家（uuid → name），供重连后向后端全量重推。
+     *
+     * @return uuid → name 映射
+     */
+    public java.util.Map<String, String> getAllBoundPlayers() {
+        java.util.Map<String, String> result = new java.util.LinkedHashMap<>();
+        String sql = "SELECT uuid, name FROM %s".formatted(boundPlayerTableName);
+        try (Connection conn = ds.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                result.put(rs.getString("uuid"), rs.getString("name"));
+            }
+        } catch (SQLException e) {
+            plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.RED));
+        }
+        return result;
     }
 
     /**

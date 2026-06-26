@@ -1,8 +1,8 @@
 package com.bigbrother.bilicraftticketsystem.wizard;
 
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
-import com.bigbrother.bilicraftticketsystem.config.GeoConfig;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
+import com.bigbrother.bilicraftticketsystem.config.MapConfig;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemInfo;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
@@ -87,13 +87,13 @@ public class SystemWizard extends ConfigWizard {
                 this::parsePricePerKm));
         steps.add(new WizardStep("web-logo-path",
                 Component.text("输入本系统的logo图片直链，该图片会在网页端显示，图片分辨率会统一设置为%s*%s"
-                        .formatted(GeoConfig.getWebLogoDim(), GeoConfig.getWebLogoDim()), NamedTextColor.WHITE),
+                        .formatted(MapConfig.getWebLogoDim(), MapConfig.getWebLogoDim()), NamedTextColor.WHITE),
                 false,
                 this::parseWebImageUrl,
                 DOWNLOAD_TIMEOUT_MILLIS));
         steps.add(new WizardStep("mc-logo-path",
                 Component.text("输入本系统的logo图片直链，该图片作为系统图标在车票系统内显示，图片分辨率会统一设置为%d*%d，不填则使用网页端logo"
-                        .formatted(GeoConfig.getMcLogoDim(), GeoConfig.getMcLogoDim()), NamedTextColor.WHITE),
+                        .formatted(MapConfig.getMcLogoDim(), MapConfig.getMcLogoDim()), NamedTextColor.WHITE),
                 false,
                 this::parseMcImageUrl,
                 DOWNLOAD_TIMEOUT_MILLIS));
@@ -129,7 +129,7 @@ public class SystemWizard extends ConfigWizard {
             if (isWeb) {
                 byte[] webImageBytes;
                 try {
-                    webImageBytes = ImageUtils.convertTonxn(imageBytes, GeoConfig.getWebLogoDim());
+                    webImageBytes = ImageUtils.convertTonxn(imageBytes, MapConfig.getWebLogoDim());
                     if (webImageBytes == null) {
                         return WizardStep.Result.error("图片尺寸转化失败");
                     }
@@ -148,7 +148,7 @@ public class SystemWizard extends ConfigWizard {
                 // 保存游戏内logo
                 byte[] mcImageBytes;
                 try {
-                    mcImageBytes = ImageUtils.convertTonxn(imageBytes, GeoConfig.getMcLogoDim());
+                    mcImageBytes = ImageUtils.convertTonxn(imageBytes, MapConfig.getMcLogoDim());
                     if (mcImageBytes == null) {
                         return WizardStep.Result.error("图片尺寸转化失败");
                     }
