@@ -90,15 +90,15 @@ public class BCTicket extends BCTransitPass {
             // 旧格式 NBT 车票（无新字段）直接作废
             this.pathInfo = null;
             commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TICKET_EXPIRATION_TIME, 0));
-            return;
         }
-        this.pathInfo = GeoRouteEngine.findClosestByDistance(startStation, endStation, distance);
-        if (pathInfo == null) {
-            // 找不到路线，标记为过期
-            commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TICKET_EXPIRATION_TIME, 0));
-        } else {
-            refreshTicketMeta(false);
-        }
+        // 车票拿在手中时不再 refresh，上车时再计算路径
+//        this.pathInfo = GeoRouteEngine.findClosestByDistance(startStation, endStation, distance);
+//        if (pathInfo == null) {
+//            // 找不到路线，标记为过期
+//            commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TICKET_EXPIRATION_TIME, 0));
+//        } else {
+//            refreshTicketMeta(false);
+//        }
     }
 
     @Nullable
@@ -208,6 +208,19 @@ public class BCTicket extends BCTransitPass {
     @Override
     public boolean verify(Player usedPlayer, MinecartGroup group) {
         CommonItemStack commonItemStack = CommonItemStack.of(itemStack);
+        CommonTagCompound nbt = commonItemStack.getCustomData();
+        String startStation = nbt.getValue(KEY_TICKET_START_STATION, "");
+        String endStation = nbt.getValue(KEY_TICKET_END_STATION, "");
+        double distance = nbt.getValue(KEY_TICKET_DISTANCE, -1.0);
+        if (pathInfo == null) {
+            this.pathInfo = GeoRouteEngine.findClosestByDistance(startStation, endStation, distance);
+            if (pathInfo == null) {
+                // 找不到路线，标记为过期
+                commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TICKET_EXPIRATION_TIME, 0));
+            } else {
+                refreshTicketMeta(false);
+            }
+        }
 
         // 其他玩家的车票
         if (!isTicketOwner(usedPlayer)) {
