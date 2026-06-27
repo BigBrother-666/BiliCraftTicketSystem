@@ -179,6 +179,10 @@ public class GeoRouteEngine {
      * @return 距离最接近的路径，无解返回 null
      */
     public static GeoRoutePath findClosestByDistance(String startStation, String endStation, double targetDistance) {
+        if (startStation == null || startStation.isEmpty() || endStation == null || endStation.isEmpty() || targetDistance <= 0) {
+            return null;
+        }
+
         GeoRoutePath best = null;
         double bestDiff = Double.MAX_VALUE;
         for (GeoRoutePath path : findByStation(startStation, endStation)) {
@@ -366,15 +370,15 @@ public class GeoRouteEngine {
      * @return true 表示存在正线绕行
      */
     private static boolean hasMainlineBypass(GeoRouteGraph g, String nodeId, GeoNode targetStationNode) {
-        List<GeoLink> links = g.links(targetStationNode.getId());
-        if (links.size() != 1) {
-            // 车站节点只有一个出边
+        List<GeoLink> stationLinks = g.links(targetStationNode.getId());
+        if (stationLinks.isEmpty()) {
             return false;
         } else {
             for (GeoLink link : g.links(nodeId)) {
                 GeoNode to = g.getNode(link.getToNodeId());
-                if (to.equals(g.getNode(links.getFirst().getToNodeId()))) {
-                    // 连接了同一个出站道岔
+                if (to.coordEquals(g.getNode(stationLinks.getFirst().getToNodeId()))) {
+                    // 连接了同一个坐标的出站道岔
+                    // 这里用坐标不用id，是因为考虑两线共线情况
                     return true;
                 }
             }

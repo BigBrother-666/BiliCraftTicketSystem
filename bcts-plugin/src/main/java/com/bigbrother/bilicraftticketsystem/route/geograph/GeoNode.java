@@ -91,4 +91,11 @@ public class GeoNode {
             lineIds.add(lineId);
         }
     }
+
+    /**
+     * 判断两个node对应铁轨坐标是否相同
+     */
+    public boolean coordEquals(GeoNode other) {
+        return Double.compare(this.x, other.x) == 0 && Double.compare(this.y, other.y) == 0 && Double.compare(this.z, other.z) == 0;
+    }
 }
