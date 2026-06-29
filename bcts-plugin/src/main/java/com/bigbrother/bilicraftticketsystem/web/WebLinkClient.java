@@ -65,6 +65,12 @@ public class WebLinkClient {
      */
     private final StringBuilder textBuffer = new StringBuilder();
 
+    /**
+     * 重连次数
+     */
+    private int retryCount;
+
+
     public WebLinkClient(BiliCraftTicketSystem plugin,
                          Supplier<JsonNode> helloDataSupplier,
                          Runnable onWelcome,
@@ -95,12 +101,16 @@ public class WebLinkClient {
                     .buildAsync(URI.create(url), new Listener())
                     .whenComplete((ws, err) -> {
                         if (err != null) {
-                            log("连接后端失败：" + err.getMessage(), NamedTextColor.RED);
+                            if (retryCount < 5) {
+                                log("连接后端失败：" + err.getMessage(), NamedTextColor.RED);
+                            }
                             scheduleReconnect();
                         }
                     });
         } catch (Exception e) {
-            log("连接后端异常：" + e.getMessage(), NamedTextColor.RED);
+            if (retryCount < 5) {
+                log("连接后端异常：" + e.getMessage(), NamedTextColor.RED);
+            }
             scheduleReconnect();
         }
     }
@@ -156,9 +166,27 @@ public class WebLinkClient {
             return;
         }
         connected = false;
-        long ticks = Math.max(1L, MapConfig.getReconnectSeconds()) * 20L;
-        Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, this::connect, ticks);
+        // 指数退避
+        long delay = Math.min(
+                1L << Math.min(retryCount, 10),
+                MapConfig.getMaxReconnectSeconds()
+        );
+        retryCount++;
+        Bukkit.getScheduler().runTaskLaterAsynchronously(
+                plugin,
+                this::connect,
+                delay * 20L
+        );
     }
+
+//    private void scheduleReconnect() {
+//        if (closing) {
+//            return;
+//        }
+//        connected = false;
+//        long ticks = Math.max(1L, MapConfig.getReconnectSeconds()) * 20L;
+//        Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, this::connect, ticks);
+//    }
 
     private void log(String msg, NamedTextColor color) {
         plugin.getComponentLogger().info(Component.text("[WebLink] " + msg, color));
@@ -172,6 +200,7 @@ public class WebLinkClient {
         public void onOpen(WebSocket ws) {
             webSocket = ws;
             connected = true;
+            retryCount = 0;
             log("已连接后端，发送 hello", NamedTextColor.GREEN);
             try {
                 send(Envelope.of(MsgType.HELLO, helloDataSupplier.get()));

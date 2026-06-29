@@ -27,8 +27,8 @@ web-link:
   shared-token: "change-me"
   # 多服标识
   server-id: "paralon"
-  # 断线重连间隔（秒）
-  reconnect-seconds: 5
+  # 最大断线重连间隔（秒），指数退避 1，2，4...max-reconnect-seconds...
+  max-reconnect-seconds: 60
   # 列车实时遥测
   telemetry:
     # 是否推送列车遥测

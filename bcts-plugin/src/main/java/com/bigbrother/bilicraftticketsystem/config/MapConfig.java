@@ -38,7 +38,7 @@ public class MapConfig {
      * 断线重连间隔（秒）。
      */
     @Getter
-    private static int reconnectSeconds;
+    private static int maxReconnectSeconds;
 
     /**
      * 是否推送列车遥测。
@@ -119,7 +119,7 @@ public class MapConfig {
         backendUrl = root.get("backend-url", "");
         sharedToken = root.get("shared-token", "");
         serverId = root.get("server-id", "paralon");
-        reconnectSeconds = root.get("reconnect-seconds", 5);
+        maxReconnectSeconds = root.get("reconnect-seconds", 5);
 
         ConfigurationNode telemetry = root.getNode("telemetry");
         telemetryEnabled = telemetry.get("enabled", true);
