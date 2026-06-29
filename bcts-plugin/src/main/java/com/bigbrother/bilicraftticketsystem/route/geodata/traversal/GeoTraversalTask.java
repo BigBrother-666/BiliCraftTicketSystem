@@ -15,7 +15,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.geojson.FeatureCollection;
@@ -99,12 +98,12 @@ public class GeoTraversalTask {
         GraphWalk walk = runningWalk;
         if (!RUNNING.get() || walk == null) {
             sender.sendMessage(MainConfig.prefix.append(
-                    CommonUtils.mmStr2Component(msg("traversal-no-running", "<red>当前没有正在进行的铁轨遍历任务"))));
+                    CommonUtils.mmStr2Component(msg("traversal-no-running", "<red>当前没有正在进行的构建铁路图任务"))));
             return;
         }
-        walk.abort("用户 " + sender.getName() + " 手动停止了遍历");
+        walk.abort("用户 " + sender.getName() + " 手动停止了构建铁路图任务");
         sender.sendMessage(MainConfig.prefix.append(
-                CommonUtils.mmStr2Component(msg("traversal-stop-requested", "<yellow>已请求停止当前铁轨遍历任务..."))));
+                CommonUtils.mmStr2Component(msg("traversal-stop-requested", "<yellow>已请求停止当前构建铁路图任务..."))));
     }
 
     /**
@@ -119,7 +118,7 @@ public class GeoTraversalTask {
         // 有玩家正在进行线路/铁路系统配置向导时不遍历：配置可能改到一半，遍历结果会不一致
         if (WizardManager.hasAnyActive()) {
             sendConfigMessage(msg("traversal-wizard-active",
-                    "<red>有玩家正在进行线路/铁路系统配置，请等其完成后再发起遍历"));
+                    "<red>有玩家正在进行线路/铁路系统配置，请等其完成后再发起构建铁路图任务"));
             return;
         }
 
@@ -127,14 +126,14 @@ public class GeoTraversalTask {
         int cooldownSec = MapConfig.getTraversalCooldownSeconds();
         long remainMs = lastFinishTime + cooldownSec * 1000L - System.currentTimeMillis();
         if (!bypassCooldown && cooldownSec > 0 && lastFinishTime > 0 && remainMs > 0) {
-            sendConfigMessage(msg("traversal-cooling-down", "<red>铁轨遍历正在冷却中，请 %d 秒后再试")
+            sendConfigMessage(msg("traversal-cooling-down", "<red>构建铁路图任务正在冷却中，请 %d 秒后再试")
                     .formatted((remainMs + 999) / 1000));
             return;
         }
         // 抢单运行锁：已有任务在跑则拒绝
         if (!RUNNING.compareAndSet(false, true)) {
             sendConfigMessage(msg("traversal-already-running",
-                    "<red>已有一个铁轨遍历任务正在进行，请等待其完成，或使用 /railgeo stopWalk 停止"));
+                    "<red>已有一个构建铁路图任务正在进行，请等待其完成，或使用 /railgeo stopWalk 停止"));
             return;
         }
 
@@ -142,7 +141,7 @@ public class GeoTraversalTask {
         GraphWalk walk = new GraphWalk(new TraversalCollector(), log, new HashSet<>(),
                 MapConfig.getTraversalMaxTotalNodes(), MapConfig.getTraversalMaxEdgesPerWalk());
         runningWalk = walk;
-        // 进度反馈在异步线程跑：分片遍历期间主线程被一段段占用，异步线程只读 walk 的计数器汇报进度。
+        // 分片遍历期间主线程被一段段占用，异步线程只读 walk 的计数器汇报进度。
         BukkitTask progressTask = startProgressFeedback(walk, log);
 
         // 分片遍历：在主线程上每 tick 只展开有限段，处理完即让出主线程，避免一次性展开整张图卡死服务器。
@@ -193,14 +192,14 @@ public class GeoTraversalTask {
                 if (!seedStarts(log, walk)) {
                     // seed 阶段已中止（无起点 / 起点无轨道）或没有可展开内容
                     if (walk.isAborted()) {
-                        log.message("遍历已中止，未写入任何文件：" + walk.getAbortReason(), NamedTextColor.RED);
+                        log.message("构建铁路图任务已中止，未写入任何文件：" + walk.getAbortReason(), NamedTextColor.RED);
                     }
                     finishTraversal(log, progressTask, bypassCooldown);
                     return;
                 }
             } catch (Exception e) {
                 log.error("遍历起点初始化失败", e);
-                log.message("遍历失败：" + e, NamedTextColor.RED);
+                log.message("构建铁路图任务失败：" + e, NamedTextColor.RED);
                 finishTraversal(log, progressTask, bypassCooldown);
                 return;
             }
@@ -215,7 +214,7 @@ public class GeoTraversalTask {
                             walk.stepBatch(segmentsPerTick);
                         } catch (Exception e) {
                             log.error("遍历展开失败", e);
-                            log.message("遍历失败：" + e, NamedTextColor.RED);
+                            log.message("构建铁路图任务失败：" + e, NamedTextColor.RED);
                             cancel();
                             finishTraversal(log, progressTask, bypassCooldown);
                             return;
@@ -230,8 +229,8 @@ public class GeoTraversalTask {
                     try {
                         finalizeAndSave(log, walk);
                     } catch (Exception e) {
-                        log.error("遍历收尾失败", e);
-                        log.message("遍历失败：" + e, NamedTextColor.RED);
+                        log.error("构建铁路图任务收尾失败", e);
+                        log.message("构建铁路图任务失败：" + e, NamedTextColor.RED);
                     } finally {
                         finishTraversal(log, progressTask, bypassCooldown);
                     }
@@ -254,7 +253,7 @@ public class GeoTraversalTask {
             log.message("没有已登记的线路起点，请先用 /railgeo setStartPos <lineId> 登记", NamedTextColor.RED);
             return false;
         }
-        log.message("开始遍历，共 " + starts.size() + " 个登记起点...", NamedTextColor.DARK_AQUA);
+        log.message("开始构建铁路图，共 " + starts.size() + " 个登记起点...", NamedTextColor.DARK_AQUA);
         for (GeoNodeLoc start : starts) {
             Block startRail = resolveStartRail(start.getStartLocation());
             if (startRail == null) {
@@ -281,12 +280,12 @@ public class GeoTraversalTask {
     }
 
     /**
-     * 启动异步进度反馈：每隔 {@code progress-interval-seconds} 秒把当前已展开段数发给发起者，
+     * 启动进度反馈：每隔 {@code progress-interval-seconds} 秒把当前进度发给发起者，
      * 让其知道遍历没有卡住。间隔 {@code <=0} 则不反馈，返回 null。
      * <p>
      * 发起者非控制台时，进度同时打到控制台后台，方便管理员观察。
      *
-     * @param walk 遍历驱动器（读取已展开段数）
+     * @param walk 遍历驱动器
      * @param log  日志（同时写入日志文件）
      * @return 反馈定时任务（遍历结束须取消）；不反馈时为 null
      */
@@ -295,14 +294,12 @@ public class GeoTraversalTask {
         if (intervalSec <= 0) {
             return null;
         }
-        boolean alsoConsole = !(sender instanceof ConsoleCommandSender);
         long periodTicks = intervalSec * 20L;
-        return Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
-            String text = "遍历进行中，当前已遍历 " + walk.getProcessed() + " 个节点...";
+        return Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            String text = "正在构建铁路图，当前已构建 " + walk.getCollector().totalNodes() + " 个节点，" +
+                    walk.getCollector().totalEdges() + " 条边，" +
+                    "%.2fkm ...".formatted(walk.getCollector().totalDistance());
             log.message(text, NamedTextColor.GRAY);
-            if (alsoConsole) {
-                plugin.getComponentLogger().info(net.kyori.adventure.text.Component.text(text, NamedTextColor.GRAY));
-            }
         }, periodTicks, periodTicks);
     }
 
@@ -316,11 +313,11 @@ public class GeoTraversalTask {
      */
     private void finalizeAndSave(GeoTraversalLogger log, GraphWalk walk) {
         if (walk.isAborted()) {
-            log.message("遍历已中止，未写入任何文件：" + walk.getAbortReason(), NamedTextColor.RED);
+            log.message("构建铁路图任务已中止，未写入任何文件：" + walk.getAbortReason(), NamedTextColor.RED);
             return;
         }
 
-        log.message("遍历完成，校验车站和配置是否对应...", NamedTextColor.DARK_AQUA);
+        log.message("构建铁路图任务已完成，校验车站和配置是否对应...", NamedTextColor.DARK_AQUA);
 
         TraversalCollector collector = walk.getCollector();
         // 按线校验：覆盖所有起点登记线 + 遍历中实际到达过车站的线。
@@ -329,7 +326,7 @@ public class GeoTraversalTask {
         linesToCheck.addAll(byLine.keySet());
         for (String lineId : linesToCheck) {
             if (!validateStationOrder(lineId, byLine.getOrDefault(lineId, Collections.emptySet()), walk, log)) {
-                log.message("遍历已中止，未写入任何文件：" + walk.getAbortReason(), NamedTextColor.RED);
+                log.message("构建铁路图任务已中止，未写入任何文件：" + walk.getAbortReason(), NamedTextColor.RED);
                 return;
             }
         }
@@ -338,7 +335,7 @@ public class GeoTraversalTask {
         log.message("验证完成，开始计算LineString层级...", NamedTextColor.DARK_AQUA);
         collector.assignLayers();
         int files = saveAll(collector, log);
-        log.message("遍历完成：共 %d 个节点、%d 条区间，写入 %d 个文件".formatted(
+        log.message("构建铁路图任务已完成：共 %d 个节点、%d 条区间，写入 %d 个文件".formatted(
                 collector.totalNodes(), collector.totalEdges(), files), NamedTextColor.GREEN);
 
         // 重载配置

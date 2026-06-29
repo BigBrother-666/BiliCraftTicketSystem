@@ -18,7 +18,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 全图 BFS 遍历驱动器（取代旧的按线行走 LineWalk）。
@@ -62,9 +61,8 @@ public class GraphWalk {
     private final Map<String, Set<String>> visitedStationsByLine = new LinkedHashMap<>();
     /**
      * 整次遍历累计处理的段数（跨所有起点），用于兜底防环。
-     * 用 {@link AtomicInteger}：主线程递增，异步进度反馈线程读取（见 GeoTraversalTask 的进度反馈）。
      */
-    private final AtomicInteger processed = new AtomicInteger(0);
+    private int processed = 0;
     /**
      * 是否已因异常情况（达到段数上限）中止。中止后整次遍历应停止并放弃写文件。
      */
@@ -136,13 +134,12 @@ public class GraphWalk {
             if (st == null) {
                 return;
             }
-            if (processed.get() >= maxNodes) {
+            if (processed >= maxNodes) {
                 String pos = String.valueOf(st.rail().getLocation());
-                abort("达到段数上限 " + maxNodes + "，可能存在配置缺失或异常环路。当前线路 "
-                        + st.lineId() + "，停止位置 " + pos);
+                abort("达到段数上限 " + maxNodes + "，可能存在配置缺失或异常环路。当前线路 " + st.lineId() + "，停止位置 " + pos);
                 return;
             }
-            processed.incrementAndGet();
+            processed++;
             walkSegment(st, queue);
         }
     }
@@ -154,15 +151,6 @@ public class GraphWalk {
      */
     public boolean hasPending() {
         return !aborted && !queue.isEmpty();
-    }
-
-    /**
-     * 当前累计已展开的段数。供异步进度反馈线程读取。
-     *
-     * @return 已展开段数
-     */
-    public int getProcessed() {
-        return processed.get();
     }
 
     /**
@@ -187,6 +175,7 @@ public class GraphWalk {
         String lineId = st.lineId();
         String color = LineConfig.getColor(lineId);
         String railwaySystemId = LineConfig.getSystemId(lineId);
+        String logPrefix = " [%s/%s] ".formatted(railwaySystemId, lineId);
         TrackWalker walker = new TrackWalker(st.rail(), st.direction());
         walker.setLineTag(lineId);
         walker.setForcedDirection(st.forcedDir());
@@ -201,7 +190,7 @@ public class GraphWalk {
             });
 
             if (result.reason() == TrackWalker.StopReason.END) {
-                log.info("线路 " + lineId + " 轨道结束（断轨/死路 @ " + result.railBlock().getLocation() + "）");
+                log.info(logPrefix + "线路 " + lineId + " 轨道结束（断轨/死路 @ " + result.railBlock().getLocation() + "）");
                 return;
             }
 
@@ -213,10 +202,10 @@ public class GraphWalk {
                 String stationName = result.sign().getLine(2).trim();
                 node = collector.resolveNode(RailNode.Type.STATION, result.railBlock(), stationName);
                 visitedStationsByLine.computeIfAbsent(lineId, k -> new LinkedHashSet<>()).add(stationName);
-                log.info("  到达车站 " + stationName + " @ " + node.getId());
+                log.info(logPrefix + "到达车站 " + stationName + " @ " + node.getId());
             } else {
                 node = collector.resolveNode(RailNode.Type.SWITCH, result.railBlock(), null);
-                log.info("  经过道岔 @ " + node.getId());
+                log.info(logPrefix + "经过道岔 @ " + node.getId());
             }
             node.addLineId(lineId);
             node.addRailwaySystemId(railwaySystemId);
@@ -229,9 +218,9 @@ public class GraphWalk {
             }
 
             if (result.reason() == TrackWalker.StopReason.PLATFORM) {
-                expandPlatform(node, lineId, arrival, arrivalFace, queue);
+                expandPlatform(node, lineId, arrival, arrivalFace, queue, logPrefix);
             } else {
-                expandSwitcher(node, lineId, walker, result, arrival, arrivalFace, queue);
+                expandSwitcher(node, lineId, walker, result, arrival, arrivalFace, queue, logPrefix);
             }
         } finally {
             walker.destroy();
@@ -248,12 +237,12 @@ public class GraphWalk {
      * @param arrivalFace 到达方向的面 key（入向）
      * @param queue       待展开队列
      */
-    private void expandPlatform(RailNode node, String lineId, Vector arrival, String arrivalFace, Deque<WalkState> queue) {
+    private void expandPlatform(RailNode node, String lineId, Vector arrival, String arrivalFace, Deque<WalkState> queue, String logPrefix) {
         LineInfo lineInfo = LineConfig.get(lineId);
         boolean reverse = lineInfo != null && lineInfo.isReverseStationByName(node.getStationName());
         Vector outDir = reverse ? arrival.clone().multiply(-1) : arrival.clone();
         if (reverse) {
-            log.info("    折返站 " + node.getStationName() + "，反向驶出");
+            log.info(logPrefix + "折返站 " + node.getStationName() + "，反向驶出");
         }
         String outFace = faceKey(outDir);
         tryEnqueue(node, arrivalFace, outFace, lineId, queue,
@@ -275,13 +264,13 @@ public class GraphWalk {
      */
     @SuppressWarnings("unused")
     private void expandSwitcher(RailNode node, String lineId, TrackWalker walker, TrackWalker.WalkResult result,
-                                Vector arrival, String arrivalFace, Deque<WalkState> queue) {
+                                Vector arrival, String arrivalFace, Deque<WalkState> queue, String logPrefix) {
         RailPiece rail = result.sign().getRail();
         List<BcSwitcherBranch> branches = walker.collectSwitcherBranches(rail);
         for (BcSwitcherBranch branch : branches) {
             for (String outLineId : branch.getLineIds()) {
                 if (!LineConfig.getLines().containsKey(outLineId)) {
-                    log.info("bcswitcher(%s)的道岔lineId %s 不存在，跳过该分支".formatted(rail.block().getLocation(), outLineId));
+                    log.info(logPrefix + "bcswitcher(%s)的道岔lineId %s 不存在，跳过该分支".formatted(rail.block().getLocation(), outLineId));
                     continue;
                 }
                 // 出向 key 用 (方向, 出向lineId)：共用出向按线拆 fork，各挂单一 tag 各走各记。

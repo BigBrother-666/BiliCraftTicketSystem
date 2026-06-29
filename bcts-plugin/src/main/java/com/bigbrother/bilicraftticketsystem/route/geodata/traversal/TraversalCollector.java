@@ -51,15 +51,16 @@ public class TraversalCollector {
      * <p>
      * layer 初始置 0，待所有区间收集完毕后由 {@link #assignLayers()} 按空间交叉关系统一重算。
      *
-     * @param fileKey    输出文件键（lineId）
-     * @param fromNodeId 起点节点 id
-     * @param toNodeId   终点节点 id
-     * @param lineId     区间所属线路 id
+     * @param fileKey         输出文件键（lineId）
+     * @param fromNodeId      起点节点 id
+     * @param toNodeId        终点节点 id
+     * @param lineId          区间所属线路 id
      * @param railwaySystemId 区间所属铁路系统 id
-     * @param color      显示颜色
-     * @param coords     轨道坐标（已简化）
-     * @param length     区间沿轨道的真实长度（{@link TrackWalker} 按 RailPath 实际移动距离计）
+     * @param color           显示颜色
+     * @param coords          轨道坐标（已简化）
+     * @param length          区间沿轨道的真实长度（{@link TrackWalker} 按 RailPath 实际移动距离计）
      * @param departDirection 本段物理出向（离开起点道岔的方向；无道岔决策传 null）
+     * @param world           区间所在世界名
      */
     public void recordEdge(String fileKey, String fromNodeId, String toNodeId, String lineId,
                            String railwaySystemId, String color, List<LngLatAlt> coords, double length,
@@ -152,5 +153,18 @@ public class TraversalCollector {
             sum += g.size();
         }
         return sum;
+    }
+
+    /**
+     * 总长度（用于汇总提示，单位km）。
+     *
+     * @return 总长度
+     */
+    public double totalDistance() {
+        double total = 0;
+        for (Map<String, RailEdge> g : edgeGroups.values()) {
+            total += g.values().stream().mapToDouble(RailEdge::getLength).sum();
+        }
+        return total / 1000;
     }
 }

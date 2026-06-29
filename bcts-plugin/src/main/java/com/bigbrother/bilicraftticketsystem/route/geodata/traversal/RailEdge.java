@@ -79,6 +79,7 @@ public class RailEdge {
      * @param length          区间长度
      * @param layer           叠层层级
      * @param departDirection 物理出向（无道岔决策传 null）
+     * @param world           区间所在世界名
      */
     public RailEdge(String fromNodeId,
                     String toNodeId,
