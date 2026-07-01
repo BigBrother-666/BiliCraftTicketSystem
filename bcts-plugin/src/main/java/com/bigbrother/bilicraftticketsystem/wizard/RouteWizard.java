@@ -103,16 +103,16 @@ public class RouteWizard extends ConfigWizard {
                 this::parseBossbarColor));
 
         steps.add(new WizardStep("notice-arrival",
-                Component.text("输入进站提示，多条用英文逗号 , 分隔（支持 sound:... / announce:...）",
+                Component.text("输入进站提示，多条用双竖线 || 分隔（支持 sound:... / announce:...）",
                         NamedTextColor.WHITE),
                 false,
-                this::parseCommaList));
+                this::parseList));
 
         steps.add(new WizardStep("notice-departure",
-                Component.text("输入出站提示，多条用英文逗号 , 分隔（支持 sound:... / announce:...）",
+                Component.text("输入出站提示，多条用双竖线 || 分隔（支持 sound:... / announce:...）",
                         NamedTextColor.WHITE),
                 false,
-                this::parseCommaList));
+                this::parseList));
 
         return steps;
     }
@@ -174,9 +174,9 @@ public class RouteWizard extends ConfigWizard {
         }
     }
 
-    private WizardStep.Result parseCommaList(String input) {
+    private WizardStep.Result parseList(String input) {
         List<String> list = new ArrayList<>();
-        for (String part : input.split(",")) {
+        for (String part : input.split("\\|\\|")) {
             String s = part.trim();
             if (!s.isEmpty()) {
                 list.add(s);
