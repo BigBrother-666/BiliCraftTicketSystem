@@ -23,7 +23,7 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * 铁路系统编辑向导（{@code /ticket editSystem <systemID>}）。
+ * 铁路系统编辑向导（{@code /ticketconfig editSystem <systemID>}）。
  * <p>
  * 步骤（最小配置，便于以后扩展）：
  * <ol>

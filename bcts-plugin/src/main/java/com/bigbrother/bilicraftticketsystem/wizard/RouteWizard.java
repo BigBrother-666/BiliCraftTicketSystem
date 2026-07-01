@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 线路编辑向导（{@code /ticket editRoute <lineId>}）。
+ * 线路编辑向导（{@code /ticketconfig editRoute <lineId>}）。
  * <p>
  * 按 railway_routes.yml 字段顺序引导填写：所属铁路系统、线路名、标志色（必填），bossbar 车站列表（必填，
  * 以 {@code ->} 分隔），到站提示、bossbar 颜色、进/出站提示（选填，进出站提示以 {@code ,} 分隔）。
@@ -132,7 +132,7 @@ public class RouteWizard extends ConfigWizard {
             return WizardStep.Result.error("铁路系统 id 不能为空");
         }
         if (!RailwaySystemConfig.contains(id)) {
-            return WizardStep.Result.error("铁路系统 [" + id + "] 不存在，请先用 /ticket editSystem 创建");
+            return WizardStep.Result.error("铁路系统 [" + id + "] 不存在，请先用 /ticketconfig editSystem 创建");
         }
         RailwaySystemInfo info = RailwaySystemConfig.get(id);
         if (!info.isMember(player.getUniqueId())) {
