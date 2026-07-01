@@ -4,7 +4,10 @@ import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
+import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
+import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemInfo;
 import com.bigbrother.bilicraftticketsystem.signactions.SignActionPlatform;
+import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.utils.PlaceholderParser;
 import lombok.Getter;
 import net.kyori.adventure.bossbar.BossBar;
@@ -117,8 +120,11 @@ public class CommonRouteBossbar extends RouteBossbarBase {
             // 走统一占位符解析（同时支持 MiniMessage 与 & 代码），便于以后扩展更多占位符
             Map<String, Object> placeholders = new HashMap<>();
             placeholders.put("curr_station", stations.get(nextStationIdx));
+            placeholders.put("next_station", nextStationIdx + 1 < stations.size() ? stations.get(nextStationIdx + 1) : CommonUtils.NOT_AVAILABLE_MM);
             placeholders.put("line_name", lineName);
             placeholders.put("line_color", lineInfo == null ? "<#FFFFFF>" : "<%s>".formatted(lineInfo.getLineColor()));
+            RailwaySystemInfo railwaySystemInfo = lineInfo == null ? null : RailwaySystemConfig.get(lineInfo.getRailwaySystemId());
+            placeholders.put("railway_system", railwaySystemInfo != null ? railwaySystemInfo.getName() : CommonUtils.NOT_AVAILABLE_MM);
             List<Component> parsed = PlaceholderParser.parse(List.of(arrivalNotice), placeholders);
             bossBar.name(parsed.isEmpty() ? buildScrollTitle() : parsed.getFirst());
         }
