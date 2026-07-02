@@ -272,6 +272,8 @@ platform 处达到该速度。**只改速度不改最大速度**。
 | railgeo setStartPos \<lineId> | 登记某线路的遍历起点，以玩家所在铁轨为起点坐标、面朝方向为起点方向 |
 | railgeo delStartPos \<lineId> | 删除某线路已登记的遍历起点                     |
 
+> `setStartPos` / `delStartPos` 仅允许该线路所属**铁路系统的成员**执行（避免非本系统成员改动线路遍历数据）。
+>
 > 有 `bcts.railgeo.bypasscooldown` 权限者发起 `walkAll` 可**绕过全局冷却**。
 
 ### 9.4 线路配置（railway_routes.yml）
