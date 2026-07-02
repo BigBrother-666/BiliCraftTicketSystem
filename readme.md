@@ -85,6 +85,7 @@
 | 建立 platform 控制牌                              | bcts.buildsign.platform   |                                                    |
 | 建立 bcswitcher 控制牌                            | bcts.buildsign.bcswitcher |                                                    |
 | 建立 slowdown 控制牌                              | bcts.buildsign.slowdown   |                                                    |
+| 建立 showroute 控制牌                             | bcts.buildsign.showroute  |                                                    |
 
 ## 5. 自定义菜单界面（menu_*.yml）
 
