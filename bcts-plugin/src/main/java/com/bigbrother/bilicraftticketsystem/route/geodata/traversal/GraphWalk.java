@@ -98,8 +98,9 @@ public class GraphWalk {
      * @param direction  本段起始方向
      * @param forcedDir  离开起始 bcswitcher 时的强制出向（platform 续行 / 起点首段为 null）
      * @param lineId     本段携带的当前线路 id（决定本段边归属及矿车导向 tag）
+     * @param prevNode   上一个节点
      */
-    private record WalkState(String prevNodeId, Block rail, Vector direction, String forcedDir, String lineId) {
+    private record WalkState(String prevNodeId, Block rail, Vector direction, String forcedDir, String lineId, RailNode prevNode) {
     }
 
     /**
@@ -112,7 +113,7 @@ public class GraphWalk {
      * @param startDirection 起点方向
      */
     public void seed(String startLineId, Block startRail, Vector startDirection) {
-        queue.add(new WalkState(null, startRail, startDirection, null, startLineId));
+        queue.add(new WalkState(null, startRail, startDirection, null, startLineId, null));
     }
 
     /**
@@ -212,7 +213,9 @@ public class GraphWalk {
 
             // 记录入边（起点首段 prevNodeId 为 null，无边可记）。st.forcedDir() 即离开上一道岔所用出向，
             // 作为本段物理出向写入，供运行时道岔对带导航的列车直接选向。
-            if (st.prevNodeId() != null && !st.prevNodeId().equals(node.getId())) {
+            // 如果上一个节点是车站节点 且 车站节点的下一个节点包含当前lineId 才添加
+            if (st.prevNodeId() != null && !st.prevNodeId().equals(node.getId()) ||
+                    st.prevNode() != null && st.prevNode().getType().equals(RailNode.Type.STATION) && node.getLineIds().contains(lineId)) {
                 collector.recordEdge(lineId, st.prevNodeId(), node.getId(), lineId, railwaySystemId, color,
                         GeoUtils.simplifyLineString(coords), result.length(), st.forcedDir(), node.getRailBlock().getWorld().getName());
             }
@@ -246,7 +249,7 @@ public class GraphWalk {
         }
         String outFace = faceKey(outDir);
         tryEnqueue(node, arrivalFace, outFace, lineId, queue,
-                new WalkState(node.getId(), node.getRailBlock(), outDir, null, lineId));
+                new WalkState(node.getId(), node.getRailBlock(), outDir, null, lineId, node));
     }
 
     /**
@@ -276,7 +279,7 @@ public class GraphWalk {
                 // 出向 key 用 (方向, 出向lineId)：共用出向按线拆 fork，各挂单一 tag 各走各记。
                 tryEnqueue(node, arrivalFace, branch.getDirectionStr(), outLineId, queue,
                         new WalkState(node.getId(), node.getRailBlock(), arrival.clone(),
-                                branch.getDirectionStr(), outLineId));
+                                branch.getDirectionStr(), outLineId, node));
             }
         }
     }
