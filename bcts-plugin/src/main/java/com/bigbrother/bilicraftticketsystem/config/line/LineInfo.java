@@ -4,7 +4,9 @@ import lombok.Getter;
 import lombok.ToString;
 
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 一条线路的配置信息（对应 railway_routes.yml 中的一个线路 id）。
@@ -154,8 +156,8 @@ public class LineInfo {
      *
      * @return 折返站名集合（可能为空）
      */
-    public java.util.Set<String> getReverseStationNames() {
-        java.util.Set<String> names = new java.util.LinkedHashSet<>();
+    public Set<String> getReverseStationNames() {
+        Set<String> names = new LinkedHashSet<>();
         for (int index : reverseStationIndices) {
             if (index >= 0 && index < bossbarStations.size()) {
                 names.add(bossbarStations.get(index));
@@ -190,5 +192,16 @@ public class LineInfo {
     public boolean isRing() {
         return bossbarStations.size() > 1
                 && bossbarStations.getFirst().equals(bossbarStations.getLast());
+    }
+
+    /**
+     * 获取除了转线车站的车站列表（如果有）
+     */
+    public List<String> getLineStations() {
+        if (nextLineId != null) {
+            return bossbarStations.subList(0, Math.max(0, bossbarStations.size() - 1));
+        } else {
+            return bossbarStations;
+        }
     }
 }
