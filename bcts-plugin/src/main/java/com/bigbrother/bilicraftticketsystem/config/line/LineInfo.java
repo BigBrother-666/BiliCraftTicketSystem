@@ -193,15 +193,4 @@ public class LineInfo {
         return bossbarStations.size() > 1
                 && bossbarStations.getFirst().equals(bossbarStations.getLast());
     }
-
-    /**
-     * 获取除了转线车站的车站列表（如果有）
-     */
-    public List<String> getLineStations() {
-        if (nextLineId != null) {
-            return bossbarStations.subList(0, Math.max(0, bossbarStations.size() - 1));
-        } else {
-            return bossbarStations;
-        }
-    }
 }

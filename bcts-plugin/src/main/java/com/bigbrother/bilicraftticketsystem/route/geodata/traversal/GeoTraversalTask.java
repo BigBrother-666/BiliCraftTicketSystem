@@ -380,7 +380,7 @@ public class GeoTraversalTask {
         if (info == null || info.getBossbarStations().isEmpty()) {
             return true;
         }
-        Set<String> expected = new LinkedHashSet<>(info.getLineStations());
+        Set<String> expected = new LinkedHashSet<>(info.getBossbarStations());
         for (String want : expected) {
             if (!visited.contains(want)) {
                 walk.abort("线路 " + lineId + " 校验：配置车站 \"" + want
