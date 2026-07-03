@@ -1,6 +1,12 @@
 # 默认每公里价格
 price-per-km: 0.2
 
+# 创建 / 修改铁路系统时，允许设置的每公里价格范围（含边界）。
+# 系统在配置向导中输入的 price-per-km 必须落在此区间内。
+price-per-km-range:
+  min: 0.0
+  max: 10.0
+
 # slowdown 减速控制牌预测 platform 的最大检测距离（block）。
 # 列车经过 slowdown 控制牌时，向前预测寻找 platform 控制牌；超出此距离仍未找到则不减速，
 # 防止玩家把 slowdown 放得过远导致的性能问题。
