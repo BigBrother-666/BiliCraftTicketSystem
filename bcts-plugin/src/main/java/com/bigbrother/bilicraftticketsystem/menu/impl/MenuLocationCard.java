@@ -5,6 +5,7 @@ import com.bigbrother.bilicraftticketsystem.config.MenuConfig;
 import com.bigbrother.bilicraftticketsystem.menu.Menu;
 import com.bigbrother.bilicraftticketsystem.menu.items.card.CardLocationItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.card.CardNearestLocItem;
+import com.bigbrother.bilicraftticketsystem.menu.items.common.BackItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.common.ScrollDownItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.common.ScrollUpItem;
 import com.bigbrother.bilicraftticketsystem.menu.station.StationProvider;
@@ -26,6 +27,12 @@ public class MenuLocationCard extends Menu {
     @Getter
     @Setter
     private boolean isStart;
+    /**
+     * 「返回」按钮的目标动作，随入口变化：系统入口→重开系统选择界面；搜索入口→重开搜索界面。
+     * 点击时才现取（见 {@link BackItem}）。
+     */
+    @Setter
+    private Runnable backAction;
 
     private MenuLocationCard(Player player, boolean isStart) {
         this.isStart = isStart;
@@ -38,6 +45,7 @@ public class MenuLocationCard extends Menu {
                     case "scrollup" -> new ScrollUpItem();
                     case "scrolldown" -> new ScrollDownItem();
                     case "nearest" -> (nearestLocItem = new CardNearestLocItem(player, this));
+                    case "back" -> new BackItem(() -> backAction);
                     default -> null;
                 }))
                 .build();

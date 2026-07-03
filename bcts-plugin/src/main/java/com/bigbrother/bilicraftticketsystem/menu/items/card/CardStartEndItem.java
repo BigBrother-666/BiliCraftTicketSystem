@@ -3,6 +3,7 @@ package com.bigbrother.bilicraftticketsystem.menu.items.card;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemInfo;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
+import com.bigbrother.bilicraftticketsystem.menu.impl.MenuCard;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuLocationCard;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuStationSearch;
 import com.bigbrother.bilicraftticketsystem.menu.impl.MenuSystem;
@@ -75,12 +76,13 @@ public class CardStartEndItem extends CoolDownItem {
 
         if (clickType == ClickType.SHIFT_LEFT) {
             // shift+左键：铁砧搜索车站，确认后打开搜索结果车站列表（系统未知 → null）
-            MenuStationSearch.open(player, keyword ->
-                    openStations(player, StationProvider.searchStations(keyword), "关键词: " + keyword, null));
+            // 车站列表「返回」回到搜索界面（重新打开一次搜索）
+            openSearch(player);
         } else if (clickType.isLeftClick()) {
             // 左键：先选铁路系统（系统数 ≤ 1 时自动跳过），再打开该系统的车站列表
-            MenuSystem.openOrSkip(player, systemId ->
-                    openStations(player, StationProvider.listStationsOfSystem(systemId), systemDisplayName(systemId), systemId));
+            // 系统选择界面「返回」回到交通卡界面；车站列表「返回」回到系统选择界面（或系统数 ≤ 1 时回交通卡界面）
+            MenuSystem.openOrSkip(player, () -> MenuCard.getMenu(player).open(), (systemId, back) ->
+                    openStations(player, StationProvider.listStationsOfSystem(systemId), systemDisplayName(systemId), systemId, back));
         } else if (clickType.isRightClick()) {
             if (isStart) {
                 card.setStartStation(null);
@@ -108,10 +110,20 @@ public class CardStartEndItem extends CoolDownItem {
      * @param railwaySystem 标题 {@code railway_system} 占位符值（系统名 / 关键词）
      * @param systemId      当前铁路系统 id（系统入口已知；搜索入口 null），用于车站按钮图标与拖旗帜归属
      */
-    private void openStations(Player player, java.util.List<StationProvider.StationEntry> stations, String railwaySystem, String systemId) {
+    private void openStations(Player player, java.util.List<StationProvider.StationEntry> stations, String railwaySystem, String systemId, Runnable backAction) {
         MenuLocationCard menu = MenuLocationCard.getMenu(player, isStart);
         menu.setStations(stations, systemId);
         menu.updateTitle(railwaySystem);
+        menu.setBackAction(backAction);
         menu.open();
+    }
+
+    /**
+     * 打开车站铁砧搜索界面，确认后展示搜索结果车站列表；该列表的「返回」回到本搜索界面。
+     */
+    private void openSearch(Player player) {
+        MenuStationSearch.open(player, keyword ->
+                openStations(player, StationProvider.searchStations(keyword), "关键词: " + keyword, null,
+                        () -> openSearch(player)));
     }
 }

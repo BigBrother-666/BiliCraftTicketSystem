@@ -143,8 +143,9 @@ back:
   id: minecraft:player_head
   count: 1
   components:
-    minecraft:profile: '{id:[I;67411088,-739686879,-1666252800,-1432217735],name:"HeadDatabase",properties:[{name:"textures",value:"eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMmIwYzE2NDdkYWU1ZDVmNmJjNWRjYTU0OWYxNjUyNTU2YzdmMWJjMDhhZGVlMzdjY2ZjNDA5MGJjMjBlNjQ3ZSJ9fX0="}]}'
-    minecraft:custom_name: '{extra:[{bold:1b,color:"gold",italic:0b,obfuscated:0b,strikethrough:0b,text:"返回主界面",underlined:0b}],text:""}'
+    minecraft:profile: '{id:[I;-1836694459,1371884603,-1875291780,-1725443660],name:"",properties:[{name:"textures",value:"eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvM2E0ZmFiM2ZkOTdlYjdlY2Y0OGFiNGZkMzI3ZTA5M2U4ODZmNGUyMTdhYWI2OTU4NTMxM2MyN2E1MDM1ODMxYSJ9fX0="}]}'
+    minecraft:custom_name: '{extra:[{bold:1b,color:"gold",italic:0b,obfuscated:0b,strikethrough:0b,text:"返回上级菜单",underlined:0b}],text:""}'
+    minecraft:custom_data: '{PublicBukkitValues:{"zhead:zhead-item":"52587"}}'
   schema_version: 1
 selected:
   DataVersion: 4671
