@@ -299,7 +299,7 @@ platform 处达到该速度。**只改速度不改最大速度**。
 2. 对每条线路做**有向图遍历**：以 bcswitcher / platform 为节点、其间铁路为有向边，从起点 BFS 展开。一节带该 lineId tag 的临时矿车按段行走（基于 TrainCarts 路径预测，正确触发沿途原版 switcher 的 addtag/remtag）：
     - 经过 **platform** 记为车站节点。按站名查 `railway_routes.yml`：普通站沿进入方向续行，折返站（`:RV`）反向驶出。
     - 经过 **bcswitcher** 记为道岔节点：枚举牌上 进入方向匹配本次到达方向、且归属当前线路 的所有出向，对每个出向各走一段（同一条线在一个道岔有多个出边时逐个走到，如正线 + 到发线）。
-    - 去重 key = `(线路, 节点, 入向, 出向)`，既防环线 / 重复死循环，又保证共用轨道在每条线各自的文件里都完整。
+    - 去重 key = `(线路, 节点, 入向, 出向)`，既防环线 / 重复死循环，又保证共用轨道在每条线各自的文件里都完整。每段边同时记录其在起点道岔的到达面（`enterFrom`）与到达终点节点的到达面（`enterTo`），供寻路做入向面门控（见 9.5 geojson 结构）。
     - 终止条件：所有可达状态展开完毕、或达到节点上限。
 3. 遍历后按线把实际到达车站与配置 `bossbar-stations` 比对。**任一不一致即视为遍历失败**：立即中止、不写任何文件，并把详细原因（缺失：轨道未铺 / 道岔未声明该线；多余：站名写错 / 控制牌归属有误）反馈给发起者。起点坐标处无轨道、或达到段数上限时同样中止不写文件。
 
@@ -317,7 +317,7 @@ platform 处达到该速度。**只改速度不改最大速度**。
 **geojson 结构**：
 
 - **Point**（节点）属性：`id`、`type`（`station` / `switch`）、`world`、`name`（仅 station）、`lineIds`（经过的线路 id 数组）、`prev` / `next`（前后相邻节点 id）。
-- **LineString**（区间）属性：`id`、`from`、`to`、`lineId`、`world`、`color`、`length`、`layer`（webUI显示层级）`departDir`（从from节点选择什么方向可以到达这条线）。
+- **LineString**（区间）属性：`id`、`from`、`to`、`lineId`、`world`、`color`、`length`、`layer`（webUI显示层级）、`departDir`（从from节点选择什么方向可以到达这条线）、`enterFrom`（到达 from 道岔的允许到达面集合）、`enterTo`（沿本段到达 to 节点的到达面）。
 
 ### 9.6 标准车站格式
 

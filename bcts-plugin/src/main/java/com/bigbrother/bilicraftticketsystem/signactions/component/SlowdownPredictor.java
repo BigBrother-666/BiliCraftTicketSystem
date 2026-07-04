@@ -3,10 +3,12 @@ package com.bigbrother.bilicraftticketsystem.signactions.component;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteNavigator;
 import org.bukkit.block.Block;
+import org.bukkit.util.Vector;
 
 /**
  * slowdown 减速距离预测器：从 slowdown 控制牌所在位置出发，沿<b>列车将要行驶的路径</b>向前预测，
@@ -96,6 +98,11 @@ public final class SlowdownPredictor {
                     continue;
                 }
                 for (RailLookup.TrackedSign sign : signs) {
+                    Vector arrival = wp.state.motionVector();
+                    SignActionEvent event = new SignActionEvent(sign, member);
+                    if (!event.isWatchedDirection(arrival)) {
+                        continue;
+                    }
                     String type = sign.getLine(1).trim().toLowerCase();
                     if (type.startsWith("bcswitcher")) {
                         // 仅追踪：记录预测路径经过的道岔（定位路径是否走偏）

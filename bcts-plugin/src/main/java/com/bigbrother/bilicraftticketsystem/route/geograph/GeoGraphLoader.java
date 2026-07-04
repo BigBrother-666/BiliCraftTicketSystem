@@ -140,7 +140,17 @@ public class GeoGraphLoader {
             double distance = num(props.get("length"));
             String color = str(props.get("color"));
             String departDir = str(props.get("departDir"));
-            graph.addLink(new GeoLink(id, from, to, lineId, distance, color, departDir));
+            java.util.Set<String> enterFrom = new java.util.LinkedHashSet<>();
+            if (props.get("enterFrom") instanceof List) {
+                for (Object f : (List<?>) props.get("enterFrom")) {
+                    String s = str(f);
+                    if (s != null && !s.isEmpty()) {
+                        enterFrom.add(s);
+                    }
+                }
+            }
+            String enterTo = str(props.get("enterTo"));
+            graph.addLink(new GeoLink(id, from, to, lineId, distance, color, departDir, enterFrom, enterTo));
         }
     }
 

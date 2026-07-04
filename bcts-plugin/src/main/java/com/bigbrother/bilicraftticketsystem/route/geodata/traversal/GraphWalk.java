@@ -93,14 +93,17 @@ public class GraphWalk {
     /**
      * 待展开的一段行走状态。
      *
-     * @param prevNodeId 上一节点 id（起点首段为 null，无入边可记）
-     * @param rail       本段起始铁轨
-     * @param direction  本段起始方向
-     * @param forcedDir  离开起始 bcswitcher 时的强制出向（platform 续行 / 起点首段为 null）
-     * @param lineId     本段携带的当前线路 id（决定本段边归属及矿车导向 tag）
-     * @param prevNode   上一个节点
+     * @param prevNodeId    上一节点 id（起点首段为 null，无入边可记）
+     * @param rail          本段起始铁轨
+     * @param direction     本段起始方向
+     * @param forcedDir     离开起始 bcswitcher 时的强制出向（platform 续行 / 起点首段为 null）
+     * @param lineId        本段携带的当前线路 id（决定本段边归属及矿车导向 tag）
+     * @param prevNode      上一个节点
+     * @param fromEnterFace 到达起点节点（道岔）时的到达面 key（起点首段为 null）——作为本段边的
+     *                      {@code enterFaceFrom}，供寻路门控「从此方向来才可走本段」。
      */
-    private record WalkState(String prevNodeId, Block rail, Vector direction, String forcedDir, String lineId, RailNode prevNode) {
+    private record WalkState(String prevNodeId, Block rail, Vector direction, String forcedDir, String lineId,
+                             RailNode prevNode, String fromEnterFace) {
     }
 
     /**
@@ -113,7 +116,7 @@ public class GraphWalk {
      * @param startDirection 起点方向
      */
     public void seed(String startLineId, Block startRail, Vector startDirection) {
-        queue.add(new WalkState(null, startRail, startDirection, null, startLineId, null));
+        queue.add(new WalkState(null, startRail, startDirection, null, startLineId, null, null));
     }
 
     /**
@@ -217,7 +220,8 @@ public class GraphWalk {
             if (st.prevNodeId() != null && !st.prevNodeId().equals(node.getId()) ||
                     st.prevNode() != null && st.prevNode().getType().equals(RailNode.Type.STATION) && node.getLineIds().contains(lineId)) {
                 collector.recordEdge(lineId, st.prevNodeId(), node.getId(), lineId, railwaySystemId, color,
-                        GeoUtils.simplifyLineString(coords), result.length(), st.forcedDir(), node.getRailBlock().getWorld().getName());
+                        GeoUtils.simplifyLineString(coords), result.length(), st.forcedDir(),
+                        node.getRailBlock().getWorld().getName(), st.fromEnterFace(), arrivalFace);
             }
 
             if (result.reason() == TrackWalker.StopReason.PLATFORM) {
@@ -249,7 +253,7 @@ public class GraphWalk {
         }
         String outFace = faceKey(outDir);
         tryEnqueue(node, arrivalFace, outFace, lineId, queue,
-                new WalkState(node.getId(), node.getRailBlock(), outDir, null, lineId, node));
+                new WalkState(node.getId(), node.getRailBlock(), outDir, null, lineId, node, arrivalFace));
     }
 
     /**
@@ -279,7 +283,7 @@ public class GraphWalk {
                 // 出向 key 用 (方向, 出向lineId)：共用出向按线拆 fork，各挂单一 tag 各走各记。
                 tryEnqueue(node, arrivalFace, branch.getDirectionStr(), outLineId, queue,
                         new WalkState(node.getId(), node.getRailBlock(), arrival.clone(),
-                                branch.getDirectionStr(), outLineId, node));
+                                branch.getDirectionStr(), outLineId, node, arrivalFace));
             }
         }
     }

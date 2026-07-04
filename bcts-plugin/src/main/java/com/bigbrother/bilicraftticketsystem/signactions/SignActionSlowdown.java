@@ -63,7 +63,7 @@ public class SignActionSlowdown extends SignAction {
         }
         MinecartGroup group = info.getGroup();
         MinecartMember<?> member = info.getMember();
-        if (group == null || member == null) {
+        if (group == null || member == null || !info.isWatchedDirection(info.getCartEnterDirection())) {
             return;
         }
 

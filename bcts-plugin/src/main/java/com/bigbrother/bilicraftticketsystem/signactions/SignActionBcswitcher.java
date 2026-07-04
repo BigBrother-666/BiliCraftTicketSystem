@@ -91,7 +91,7 @@ public class SignActionBcswitcher extends SignAction {
             return;
         }
         MinecartGroup group = info.getGroup();
-        if (group == null) {
+        if (group == null || !info.isWatchedDirection(info.getCartEnterDirection())) {
             return;
         }
 
@@ -126,7 +126,7 @@ public class SignActionBcswitcher extends SignAction {
             int[] progress = BcRouteNavigator.progress(group);
             List<String> branchLines = new ArrayList<>();
             for (BcSwitcherBranch b : branches) {
-                branchLines.add(b.getDirectionStr() + ":" + String.join(";", b.getLineIds()));
+                branchLines.add(b.getDirectionStr() + "@" + String.join(";", b.getLineIds()));
             }
             String chosen = navDir != null ? navDir
                     : (sidingDir != null ? sidingDir
@@ -163,7 +163,7 @@ public class SignActionBcswitcher extends SignAction {
      */
     @Override
     public void predictPathFinding(SignActionEvent info, PathPredictEvent prediction) {
-        if (!info.hasRailedMember()) {
+        if (!info.hasRailedMember() || !info.isWatchedDirection(info.getCartEnterDirection())) {
             return;
         }
         MinecartGroup group = info.getMember().getGroup();

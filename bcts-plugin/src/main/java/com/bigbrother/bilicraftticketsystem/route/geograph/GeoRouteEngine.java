@@ -232,6 +232,7 @@ public class GeoRouteEngine {
         nodes.add(startNode);
         double total = 0.0;
 
+        GeoLink prevLink = null;
         for (int i = 0; i < nodeIds.size() - 1; i++) {
             String fromId = nodeIds.get(i);
             String toId = nodeIds.get(i + 1);
@@ -244,12 +245,17 @@ public class GeoRouteEngine {
                 if (wantLine != null && !wantLine.equals(link.getLineId())) {
                     continue;
                 }
+                // 入向面门控：与 kShortest 一致，拒绝「从错误到达面接反向牌出边」的非法接续。
+                if (!enterFaceAllows(prevLink, link)) {
+                    continue;
+                }
                 matched = link;
                 break;
             }
             if (matched == null) {
                 return null;
             }
+            prevLink = matched;
             GeoNode toNode = g.getNode(toId);
             if (toNode == null) {
                 return null;
@@ -308,6 +314,12 @@ public class GeoRouteEngine {
                 if (nextNode == null) {
                     continue;
                 }
+                // 入向面门控：同一物理方块上多块进入方向不同的 bcswitcher 塌缩为同一节点，本段边只对
+                // 「从某些到达面到达该道岔」的车合法。若入边到达面不在本段允许集合内，跳过——避免读到
+                // 反向牌的出边、算出物理非法路线（如从右侧来的车走了只给左侧来车准备的直行出边）。
+                if (!enterFaceAllows(cur.prevLink(), link)) {
+                    continue;
+                }
                 // 无环约束：下一节点若已在当前路径中，跳过——避免重复经过同一节点。
                 // 例外：允许最后一步回到起点节点以支持首尾节点相同的环线
                 if (inPath(cur, nextId)) {
@@ -335,13 +347,30 @@ public class GeoRouteEngine {
     }
 
     /**
-     * 判断节点 {@code nodeId} 是否已出现在 {@code entry} 的回溯链（当前路径前缀）中。
-     * 用于强制无环：沿 {@link Entry#prev()} 向起点回溯逐一比对。调用方对「回到起点闭合环线」单独放行。
+     * 入向面门控：判断沿 {@code inLink} 到达当前节点后，是否允许接着走 {@code outLink}。
+     * <p>
+     * 只有当 {@code outLink} 声明了允许到达面集合（{@link GeoLink#getEnterFacesFrom()} 非空）、
+     * {@code inLink} 也带到达面（{@link GeoLink#getEnterFaceTo()} 非 null），且该到达面不在允许集合内时，
+     * 才拒绝。任一信息缺失（起点首段无入边、旧 geojson 无门控字段）都放行，保证向后兼容与起点正常展开。
      *
-     * @param entry  当前路径条目
-     * @param nodeId 待加入的下一节点 id
-     * @return true 表示已在路径中
+     * @param inLink  到达当前节点所走的入边（起点条目为 null）
+     * @param outLink 待扩展的出边
+     * @return 允许接续返回 true
      */
+    private static boolean enterFaceAllows(GeoLink inLink, GeoLink outLink) {
+        if (inLink == null) {
+            return true;
+        }
+        if (outLink.getEnterFacesFrom().isEmpty()) {
+            return true;
+        }
+        String arrivedFace = inLink.getEnterFaceTo();
+        if (arrivedFace == null) {
+            return true;
+        }
+        return outLink.getEnterFacesFrom().contains(arrivedFace);
+    }
+
     private static boolean inPath(Entry entry, String nodeId) {
         for (Entry e = entry; e != null; e = e.prev()) {
             if (e.nodeId().equals(nodeId)) {

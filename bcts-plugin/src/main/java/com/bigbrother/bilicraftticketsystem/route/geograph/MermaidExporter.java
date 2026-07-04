@@ -157,25 +157,93 @@ public final class MermaidExporter {
     }
 
     /**
-     * 由道岔节点的全图出边重建 bcswitcher 第三、四行分支信息：按物理出向 {@code departDirection} 分组，
-     * 每个出向收集其全部线路 id，拼成 {@code <出向>@<线路id>[;线路id...]}，多出向用 {@code <br/>} 分隔。
+     * 由道岔节点的全图出边重建 bcswitcher 第三、四行分支信息，按<b>入向（到达面）分组</b>。
+     * <p>
+     * 同一物理方块上可能有多块进入方向不同的 bcswitcher（如 {@code [+train:l]} 与 {@code [+train:r]}），
+     * 它们在图里塌缩为同一节点。为让导出的图能区分「从哪个方向来 → 走哪些出向」，先按出边的
+     * {@link GeoLink#getEnterFacesFrom()}（到达面）分组，每组内再按物理出向 {@code departDirection}
+     * 汇总线路 id，拼成 {@code <出向>@<线路id>[;线路id...]}。
+     * <ul>
+     *   <li>节点只有<b>单一到达面</b>（普通道岔）时省略入向前缀，与旧显示一致。</li>
+     *   <li>存在<b>多个到达面</b>（同块多块牌合并）时，每个入向单独一行，前缀 {@code [入向X来]}，
+     *       X 为到达面的方位（E/W/S/N，无法识别则用原始面 key）。</li>
+     *   <li>旧 geojson 无到达面信息的出边归入 {@code ?} 组。</li>
+     * </ul>
      *
      * @param graph 路由图
      * @param node  道岔节点
      * @return 分支信息（无出边 / 无出向记录时为空串）
      */
     private static String switchBranchInfo(GeoRouteGraph graph, GeoNode node) {
-        Map<String, Set<String>> byDir = new LinkedHashMap<>();
+        // 到达面 -> (物理出向 -> 线路 id 集合)。到达面为空的出边归入 "?"。
+        Map<String, Map<String, Set<String>>> byFace = new LinkedHashMap<>();
         for (GeoLink out : graph.links(node.getId())) {
             String dir = out.getDepartDirection() == null || out.getDepartDirection().isEmpty()
                     ? "?" : out.getDepartDirection();
-            byDir.computeIfAbsent(dir, k -> new LinkedHashSet<>()).add(out.getLineId());
+            Set<String> faces = out.getEnterFacesFrom();
+            if (faces.isEmpty()) {
+                byFace.computeIfAbsent("?", k -> new LinkedHashMap<>())
+                        .computeIfAbsent(dir, k -> new LinkedHashSet<>()).add(out.getLineId());
+            } else {
+                for (String face : faces) {
+                    byFace.computeIfAbsent(face, k -> new LinkedHashMap<>())
+                            .computeIfAbsent(dir, k -> new LinkedHashSet<>()).add(out.getLineId());
+                }
+            }
         }
-        List<String> branchLines = new ArrayList<>();
-        for (Map.Entry<String, Set<String>> entry : byDir.entrySet()) {
-            branchLines.add(entry.getKey() + "@" + String.join(";", entry.getValue()));
+        // 单一到达面：省略入向前缀，保持普通道岔的简洁显示（每个出向一行，与旧显示一致）
+        boolean singleFace = byFace.size() <= 1;
+        List<String> lines = new ArrayList<>();
+        for (Map.Entry<String, Map<String, Set<String>>> faceEntry : byFace.entrySet()) {
+            String prefix = singleFace ? "" : "[入向: " + faceLabel(faceEntry.getKey()) + "] ";
+            for (Map.Entry<String, Set<String>> dirEntry : faceEntry.getValue().entrySet()) {
+                lines.add(prefix + dirEntry.getKey() + "@" + String.join(";", dirEntry.getValue()));
+            }
         }
-        return String.join("<br/>", branchLines);
+        return String.join("<br/>", lines);
+    }
+
+    /**
+     * 把到达面 key（{@link com.bigbrother.bilicraftticketsystem.route.geodata.traversal.GraphWalk#faceKey}，
+     * 形如 {@code "1_0"} / {@code "1_1"}）转成可读方位。
+     * <p>
+     * faceKey 由方向向量的 {@code (signum(x), signum(z))} 组成，沿用 Minecraft 坐标约定
+     * （+X=东、-X=西、+Z=南、-Z=北）。对角轨道时 x、z 可能同时非零，故按分量组合方位：
+     * <ul>
+     *   <li>正向：{@code 1_0→E}、{@code -1_0→W}、{@code 0_1→S}、{@code 0_-1→N}</li>
+     *   <li>对角：{@code 1_1→SE}、{@code 1_-1→NE}、{@code -1_1→SW}、{@code -1_-1→NW}</li>
+     * </ul>
+     * 格式不符（如 {@code "?"} 或非 {@code x_z} 结构）时原样返回。
+     *
+     * @param faceKey 到达面 key
+     * @return 方位字母（N/S/E/W 及其组合）或原始 key
+     */
+    private static String faceLabel(String faceKey) {
+        String[] parts = faceKey.split("_");
+        if (parts.length != 2) {
+            return faceKey;
+        }
+        int x;
+        int z;
+        try {
+            x = Integer.parseInt(parts[0]);
+            z = Integer.parseInt(parts[1]);
+        } catch (NumberFormatException e) {
+            return faceKey;
+        }
+        // 南北（Z 轴，-Z=北 +Z=南）在前、东西（X 轴，+X=东 -X=西）在后，与常见方位读法一致
+        StringBuilder sb = new StringBuilder();
+        if (z < 0) {
+            sb.append('N');
+        } else if (z > 0) {
+            sb.append('S');
+        }
+        if (x > 0) {
+            sb.append('E');
+        } else if (x < 0) {
+            sb.append('W');
+        }
+        return sb.isEmpty() ? faceKey : sb.toString();
     }
 
     /**

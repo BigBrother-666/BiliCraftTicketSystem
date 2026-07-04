@@ -61,17 +61,23 @@ public class TraversalCollector {
      * @param length          区间沿轨道的真实长度（{@link TrackWalker} 按 RailPath 实际移动距离计）
      * @param departDirection 本段物理出向（离开起点道岔的方向；无道岔决策传 null）
      * @param world           区间所在世界名
+     * @param enterFaceFrom   本段在起点道岔的到达面 key（起点首段 / 无门控传 null）
+     * @param enterFaceTo     本段在终点节点的到达面 key（无门控传 null）
      */
     public void recordEdge(String fileKey, String fromNodeId, String toNodeId, String lineId,
                            String railwaySystemId, String color, List<LngLatAlt> coords, double length,
-                           String departDirection, String world) {
+                           String departDirection, String world, String enterFaceFrom, String enterFaceTo) {
         Map<String, RailEdge> group = edgeGroups.computeIfAbsent(fileKey, k -> new LinkedHashMap<>());
         String edgeId = com.bigbrother.bilicraftticketsystem.route.NodeId.ofEdge(fromNodeId, toNodeId, lineId);
-        if (group.containsKey(edgeId)) {
+        RailEdge existing = group.get(edgeId);
+        if (existing != null) {
+            // 同一 (from,to,lineId) 边被不同到达面产出（如 [+train:lr] 多进入方向续行同一段）：
+            // 合并到达面而非丢弃，保证门控集合完整。
+            existing.addEnterFaceFrom(enterFaceFrom);
             return;
         }
         group.put(edgeId, new RailEdge(fromNodeId, toNodeId, lineId, railwaySystemId, coords, color, length, 0,
-                departDirection, world));
+                departDirection, world, enterFaceFrom, enterFaceTo));
     }
 
     /**
