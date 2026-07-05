@@ -81,6 +81,10 @@ public abstract class BCTransitPass {
      */
     public abstract double getPrice();
 
+    public double getRideHistoryFare() {
+        return getPrice();
+    }
+
     protected void initPdc() {
         ItemMeta itemMeta = this.itemStack.getItemMeta();
         if (itemMeta != null && !itemMeta.getPersistentDataContainer().has(GuardListeners.KEY_TRANSIT_PASS)) {
@@ -174,11 +178,12 @@ public abstract class BCTransitPass {
         List<String> lineIds = new ArrayList<>();
 
         for (String lineId : pathInfo.getLineIdSequence()) {
-            if (lineId == null || lineId.isEmpty()) {
+            LineInfo lineInfo = LineConfig.get(lineId);
+            if (lineId == null || lineId.isEmpty() || lineInfo == null) {
                 continue;
             }
             // 如果该lineId没有对应的铁路公司，不显示
-            String railwaySystemId = LineConfig.get(lineId).getRailwaySystemId();
+            String railwaySystemId = lineInfo.getRailwaySystemId();
             if (railwaySystemId == null || railwaySystemId.isEmpty() || RailwaySystemConfig.get(railwaySystemId) == null) {
                 continue;
             }
@@ -212,7 +217,7 @@ public abstract class BCTransitPass {
      *
      * @return lore
      */
-    public List<Component> getDistanceInfoLore() {
+    public List<Component> getPriceInfoLore() {
         List<Component> lore = new ArrayList<>();
         Map<String, Double> segmentDistances = rawSegmentDistances();
 

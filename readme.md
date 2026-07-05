@@ -58,39 +58,40 @@
 
 ## 4. 车票系统指令
 
-| 指令                                          | 权限                        | 说明                                                 |
-|---------------------------------------------|---------------------------|----------------------------------------------------|
-| ticket / ticketbg                           | bcts.ticket.open          | 打开车票购买界面 / 车票背景设置界面                                |
-| ticketbg upload \<图片链接> \<背景名> \[字体颜色]      | bcts.ticket.uploadbg      | 上传车票/交通卡背景图，字体颜色格式 #RRGGBB（不填默认黑色）                 |
-| ticketbg adminupload \<图片链接> \<背景名> \[字体颜色] | bcts.ticket.adminuploadbg | 以管理员身份上传共享背景图（无个数限制）                               |
-| ticketbg delete \<图片id>                     | bcts.ticket.deletebg      | 根据 id 删除背景图                                        |
-| ticketadmin reload                          | bcts.ticket.reload        | 重载所有配置文件                                           |
-| ticketadmin migrate-olddb                   | bcts.ticket.migrate       | 从旧库 data.db 迁移交通卡与车票背景到新库 bcts.db                  |
-| ticketadmin card give \<player> \[cardUUID] | bcts.ticket.getcard       | 给予玩家一张未开卡或已存在的交通卡                                  |
-| ticketadmin card delete \<cardUUID>         | bcts.ticket.delcard       | 删除指定 UUID 的交通卡                                     |
-| ticketadmin menuitem \<add/get> \<自定义物品名>   | bcts.ticket.menuitem      | 将手中物品保存到 menuitems.yml，或获取自定义物品，用于编辑菜单界面           |
-| ticketadmin statistics \<type> \<days>      | bcts.ticket.statistics    | 查询 n 天内某类型的统计信息                                    |
-| ticketdebug nbt \<key> \[value]             | bcts.ticket.nbt           | 查看/设置乘车凭证的 nbt，已定义的 nbt 见第 7 节                     |
-| ticketdebug traininfo                       | bcts.ticket.debug         | 调试：输出当前所坐列车的信息                                     |
-| ticketdebug switchtrace \<on/off>           | bcts.ticket.debug         | 调试：开关道岔选向追踪，开启后列车每经过 bcswitcher 打印选向到控制台           |
-| ticketdebug slowdowntrace \<on/off>         | bcts.ticket.debug         | 调试：开关 slowdown 减速追踪，开启后列车经过 slowdown 打印预测与减速决策到控制台 |
-| ticketdebug exportmmd                       | bcts.ticket.debug         | 调试：把 geojson 路由图与各线路子图导出为 Mermaid(.mmd) 到 mermaid/ |
-| ticketconfig editRoute \<lineId>            | bcts.ticket.editroute     | 游戏内新建 / 修改线路配置（railway_routes.yml）                 |
-| ticketconfig delRoute \<lineId>             | bcts.ticket.editroute     | 删除一条线路配置（railway_routes.yml）                       |
-| ticketconfig editSystem \<systemId>         | bcts.ticket.editsystem    | 游戏内新建 / 修改铁路系统配置（railway_system.yml）               |
-| ticketconfig delSystem \<systemId>          | bcts.ticket.editsystem    | 删除一个铁路系统配置（railway_system.yml），并连带删除其下所有线路         |
-| 建立 bcspawn 控制牌                              | bcts.buildsign.bcspawn    |                                                    |
-| 建立 platform 控制牌                             | bcts.buildsign.platform   |                                                    |
-| 建立 bcswitcher 控制牌                           | bcts.buildsign.bcswitcher |                                                    |
-| 建立 slowdown 控制牌                             | bcts.buildsign.slowdown   |                                                    |
+| 指令                                           | 权限                        | 说明                                                 |
+|----------------------------------------------|---------------------------|----------------------------------------------------|
+| ticket / ticketbg                            | bcts.ticket.open          | 打开车票购买界面 / 车票背景设置界面                                |
+| ticketbg upload \<图片链接> \<背景名> \[字体颜色]       | bcts.ticket.uploadbg      | 上传车票/交通卡背景图，字体颜色格式 #RRGGBB（不填默认黑色）                 |
+| ticketbg adminupload \<图片链接> \<背景名> \[字体颜色]  | bcts.ticket.adminuploadbg | 以管理员身份上传共享背景图（无个数限制）                               |
+| ticketbg delete \<图片id>                      | bcts.ticket.deletebg      | 根据 id 删除背景图                                        |
+| ticketadmin reload                           | bcts.ticket.reload        | 重载所有配置文件                                           |
+| ticket weblogin \<bind/unbind/status>        | bcts.ticket.weblogin      | 绑定 / 解绑网页登录资格，或查看绑定状态                              |
+| ticketadmin weblink \<status/sync/reconnect> | bcts.ticket.reload        | 查看后端连接状态 / 手动推送快照 / 重连线路图后端                        |
+| ticketadmin migrate-olddb                    | bcts.ticket.migrate       | 从旧库 data.db 迁移交通卡与车票背景到新库 bcts.db                  |
+| ticketadmin card give \<player> \[cardUUID]  | bcts.ticket.getcard       | 给予玩家一张未开卡或已存在的交通卡                                  |
+| ticketadmin card delete \<cardUUID>          | bcts.ticket.delcard       | 删除指定 UUID 的交通卡                                     |
+| ticketadmin menuitem \<add/get> \<自定义物品名>    | bcts.ticket.menuitem      | 将手中物品保存到 menuitems.yml，或获取自定义物品，用于编辑菜单界面           |
+| ticketadmin statistics \<type> \<days>       | bcts.ticket.statistics    | 查询 n 天内某类型的统计信息                                    |
+| ticketdebug nbt \<key> \[value]              | bcts.ticket.nbt           | 查看/设置乘车凭证的 nbt，已定义的 nbt 见第 7 节                     |
+| ticketdebug traininfo                        | bcts.ticket.debug         | 调试：输出当前所坐列车的信息                                     |
+| ticketdebug switchtrace \<on/off>            | bcts.ticket.debug         | 调试：开关道岔选向追踪，开启后列车每经过 bcswitcher 打印选向到控制台           |
+| ticketdebug slowdowntrace \<on/off>          | bcts.ticket.debug         | 调试：开关 slowdown 减速追踪，开启后列车经过 slowdown 打印预测与减速决策到控制台 |
+| ticketdebug exportmmd                        | bcts.ticket.debug         | 调试：把 geojson 路由图与各线路子图导出为 Mermaid(.mmd) 到 mermaid/ |
+| ticketconfig editRoute \<lineId>             | bcts.ticket.editroute     | 游戏内新建 / 修改线路配置（railway_routes.yml）                 |
+| ticketconfig delRoute \<lineId>              | bcts.ticket.editroute     | 删除一条线路配置（railway_routes.yml）                       |
+| ticketconfig editSystem \<systemId>          | bcts.ticket.editsystem    | 游戏内新建 / 修改铁路系统配置（railway_system.yml）               |
+| ticketconfig delSystem \<systemId>           | bcts.ticket.editsystem    | 删除一个铁路系统配置（railway_system.yml），并连带删除其下所有线路         |
+| 建立 bcspawn 控制牌                               | bcts.buildsign.bcspawn    |                                                    |
+| 建立 platform 控制牌                              | bcts.buildsign.platform   |                                                    |
+| 建立 bcswitcher 控制牌                            | bcts.buildsign.bcswitcher |                                                    |
+| 建立 slowdown 控制牌                              | bcts.buildsign.slowdown   |                                                    |
+| 建立 showroute 控制牌                             | bcts.buildsign.showroute  |                                                    |
 
 ## 5. 自定义菜单界面（menu_*.yml）
 
 使用 [InvUI](https://github.com/NichtStudioCode/InvUI) 开发，可以自定义界面功能按钮的位置、材质、lore 等信息。除了原版材质，还能使用材质包物品（oraxen）、头颅等，使用方法详见指令部分。
 
 > 所有配置文件中的展示文字（界面名、物品名、lore、聊天提示、bossbar、进出站提示等）统一支持 **MiniMessage 标签** 与 **legacy `&` 颜色代码**，两种写法可在同一字符串内混用。
-
-> 聊天栏 / bossbar 等提示文字统一放在 `messages.yml`（每条消息为一个根节点），与 `config.yml` 分开管理。
 
 | 配置项       | 说明                                                     |
 |-----------|--------------------------------------------------------|
@@ -100,37 +101,36 @@
 
 ## 6. 可使用/预定义的界面结构映射物品名
 
-| 界面           | 物品名                       | 功能                            |
-|--------------|---------------------------|-------------------------------|
-| 主界面          | content                   | 显示车票的格子                       |
-| 主界面          | item-uses                 | 使用次数调整按钮                      |
-| 主界面          | item-search               | 搜索车票按钮                        |
-| 主界面          | item-warn                 | 注意事项按钮                        |
-| 主界面          | item-ticketbgInfo         | 设置车票背景按钮                      |
-| 主界面/设置车票背景界面 | item-prevpage             | 上一页按钮                         |
-| 主界面/设置车票背景界面 | item-nextpage             | 下一页按钮                         |
-| 主界面/交通卡界面    | item-start                | 起始站选择按钮（左键选铁路系统，Shift+左键搜索车站） |
-| 主界面/交通卡界面    | item-end                  | 终到站选择按钮（左键选铁路系统，Shift+左键搜索车站） |
-| 主界面/交通卡界面    | item-speed                | 速度调整按钮                        |
-| 铁路系统选择界面     | content                   | 显示铁路系统的格子                     |
-| 铁路系统选择界面     | item-system               | 铁路系统图标                        |
-| 铁路系统选择界面     | item-prevpage             | 上一页按钮                         |
-| 铁路系统选择界面     | item-nextpage             | 下一页按钮                         |
-| 车站选择界面       | content                   | 显示车站的格子                       |
-| 车站选择界面       | item-scrollup             | 滚动条向上滚动                       |
-| 车站选择界面       | item-scrolldown           | 滚动条向下滚动                       |
-| 设置车票背景界面     | item-selfbg               | 自己上传的背景                       |
-| 设置车票背景界面     | item-sharedbg             | 对所有玩家公开使用的背景                  |
-| 设置车票背景界面     | item-usedbg               | 当前使用的背景                       |
-| 设置车票背景界面     | item-defaultbg            | 恢复默认背景图按钮                     |
-| 设置车票背景界面     | item-sort                 | 排序按钮                          |
-| 交通卡界面        | item-charge               | 充值按钮                          |
-| 所有           | bukkit物品枚举名或item-其他自定义物品名 | 无功能，仅用于装饰                     |
+| 界面                    | 物品名                       | 功能                            |
+|-----------------------|---------------------------|-------------------------------|
+| 主界面                   | content                   | 显示车票的格子                       |
+| 主界面                   | item-uses                 | 使用次数调整按钮                      |
+| 主界面                   | item-search               | 搜索车票按钮                        |
+| 主界面                   | item-warn                 | 注意事项按钮                        |
+| 主界面                   | item-ticketbgInfo         | 设置车票背景按钮                      |
+| 主界面/设置车票背景界面/铁路系统选择界面 | item-prevpage             | 上一页按钮                         |
+| 主界面/设置车票背景界面/铁路系统选择界面 | item-nextpage             | 下一页按钮                         |
+| 主界面/交通卡界面             | item-start                | 起始站选择按钮（左键选铁路系统，Shift+左键搜索车站） |
+| 主界面/交通卡界面             | item-end                  | 终到站选择按钮（左键选铁路系统，Shift+左键搜索车站） |
+| 主界面/交通卡界面             | item-speed                | 速度调整按钮                        |
+| 铁路系统选择界面              | content                   | 显示铁路系统的格子                     |
+| 铁路系统选择界面              | item-system               | 铁路系统图标                        |
+| 铁路系统选择界面              | item-prevpage             | 上一页按钮                         |
+| 铁路系统选择界面              | item-nextpage             | 下一页按钮                         |
+| 车站选择界面                | content                   | 显示车站的格子                       |
+| 车站选择界面                | item-scrollup             | 滚动条向上滚动                       |
+| 车站选择界面                | item-scrolldown           | 滚动条向下滚动                       |
+| 车站选择界面/铁路系统选择界面       | item-back                 | 返回上级菜单                        |
+| 设置车票背景界面              | item-selfbg               | 自己上传的背景                       |
+| 设置车票背景界面              | item-sharedbg             | 对所有玩家公开使用的背景                  |
+| 设置车票背景界面              | item-usedbg               | 当前使用的背景                       |
+| 设置车票背景界面              | item-defaultbg            | 恢复默认背景图按钮                     |
+| 设置车票背景界面              | item-sort                 | 排序按钮                          |
+| 设置车票背景界面              | item-back                 | 返回到主界面                        |
+| 交通卡界面                 | item-charge               | 充值按钮                          |
+| 所有                    | bukkit物品枚举名或item-其他自定义物品名 | 无功能，仅用于装饰                     |
 
 > **车站按钮自定义图标**：在车站选择界面，铁路系统的成员可以把背包里的旗帜（不限颜色和图案）拖到某个车站按钮上，用该旗帜覆盖默认的车站图标（默认 MINECART），旗帜物品不会被消耗。
->
-> - 仅当前车站所属铁路系统的成员可设置，图标归属该系统：同一车站在不同系统下可显示不同图标。
-> - 通过**搜索按钮**进入车站选择界面时系统未知（一个车站可能属于多个系统），此时显示首个读取到的该车站图标。
 
 ## 7. 乘车凭证 nbt 定义
 
@@ -239,7 +239,9 @@ platform 处达到该速度。**只改速度不改最大速度**。
 - 预测途中若先遇到**另一个 slowdown** 控制牌，则停止流程（减速由后者负责）。
 - 超过 `config.yml` 的 `slowdown-max-detect-distance`（默认 500 格）仍未找到 platform 则不减速，防止 slowdown 放得过远导致的性能问题。
 - **普通车**站站停车，固定减速到下一个 platform。
-- **直达车**跨站直达，需额外判断：预测到达的 platform 站名必须与列车**终点车站名**一致才减速，防止在中途经过的 platform 处被误减速；取不到终点信息则不减速。
+- **直达车**跨站直达，需额外判断终点：取列车**终点站台节点坐标**与预测到的 platform 铁轨坐标比对（用坐标而非站名——同站各站台 platform 站名相同，站名不可靠），相同才减速，防止在中途经过的 platform 处被误减速；取不到终点信息（如重启后内存丢失）则不减速。
+
+**缓存机制**：每次预测开销较大，结果按车种缓存到数据库 `slowdown_cache` 表，启动与重载时载入内存。字段：slowdown 铁轨坐标 `world,x,y,z`、车种 `train_type`（express/common）、到达车站名 `station`、到达的 platform 铁轨坐标 `platform_x/y/z`、减速距离 `distance`。
 
 ## 9. 地理信息(GEO) / 实时数据模块
 
@@ -249,7 +251,12 @@ platform 处达到该速度。**只改速度不改最大速度**。
 
 ### 9.2 实时数据模块简介
 
-将列车实时位置等信息通过 websocket 传输到前端显示（待开发）。
+将列车实时位置等信息通过 websocket 传输到前端显示。插件作为**WebSocket 客户端**主动连接铁路线路图 Web 后端（见 `docs/BACKEND_PROMPT.md`），推送 geojson / 铁路系统 / 线路快照与列车实时遥测，并处理网页在线购票与账号绑定。配置在 `config_web.yml`：
+
+- **快照同步**：`railgeo walkAll` 成功后自动推送 geojson；`/ticket reload` 后推送线路 / 系统快照；也可用 `ticketadmin weblink sync` 手动同步。
+- **实时遥测**：按 `config_web.yml` 的 `telemetry.interval-ticks` 周期推送列车位置 / 朝向 / 车上玩家 / 直达车路线等，受 `telemetry.enabled` 约束。
+- **在线购票**：路线在前端选定（有序节点序列），插件用 `GeoRouteEngine.validatePath` 校验合法后复用游戏内购票流程，仅在玩家在线时即时交付到背包。
+- **账号绑定**：玩家用 `/ticket weblogin bind` 绑定网页登录资格，同步到后端作登录白名单。
 
 ### 9.3 GEO 模块指令
 
@@ -262,6 +269,8 @@ platform 处达到该速度。**只改速度不改最大速度**。
 | railgeo setStartPos \<lineId> | 登记某线路的遍历起点，以玩家所在铁轨为起点坐标、面朝方向为起点方向 |
 | railgeo delStartPos \<lineId> | 删除某线路已登记的遍历起点                     |
 
+> `setStartPos` / `delStartPos` 仅允许该线路所属**铁路系统的成员**执行（避免非本系统成员改动线路遍历数据）。
+>
 > 有 `bcts.railgeo.bypasscooldown` 权限者发起 `walkAll` 可**绕过全局冷却**。
 
 ### 9.4 线路配置（railway_routes.yml）
@@ -290,17 +299,17 @@ platform 处达到该速度。**只改速度不改最大速度**。
 2. 对每条线路做**有向图遍历**：以 bcswitcher / platform 为节点、其间铁路为有向边，从起点 BFS 展开。一节带该 lineId tag 的临时矿车按段行走（基于 TrainCarts 路径预测，正确触发沿途原版 switcher 的 addtag/remtag）：
     - 经过 **platform** 记为车站节点。按站名查 `railway_routes.yml`：普通站沿进入方向续行，折返站（`:RV`）反向驶出。
     - 经过 **bcswitcher** 记为道岔节点：枚举牌上 进入方向匹配本次到达方向、且归属当前线路 的所有出向，对每个出向各走一段（同一条线在一个道岔有多个出边时逐个走到，如正线 + 到发线）。
-    - 去重 key = `(线路, 节点, 入向, 出向)`，既防环线 / 重复死循环，又保证共用轨道在每条线各自的文件里都完整。
+    - 去重 key = `(线路, 节点, 入向, 出向)`，既防环线 / 重复死循环，又保证共用轨道在每条线各自的文件里都完整。每段边同时记录其在起点道岔的到达面（`enterFrom`）与到达终点节点的到达面（`enterTo`），供寻路做入向面门控（见 9.5 geojson 结构）。
     - 终止条件：所有可达状态展开完毕、或达到节点上限。
 3. 遍历后按线把实际到达车站与配置 `bossbar-stations` 比对。**任一不一致即视为遍历失败**：立即中止、不写任何文件，并把详细原因（缺失：轨道未铺 / 道岔未声明该线；多余：站名写错 / 控制牌归属有误）反馈给发起者。起点坐标处无轨道、或达到段数上限时同样中止不写文件。
 
 **运行约束与反馈**：
 
-- **单运行 + 全局冷却**：同一时刻只允许一个遍历任务；完成后进入全局冷却（`config_geo.yml` 的 `traversal.cooldown-seconds`）。再次发起时若有任务在跑或仍在冷却，提示并拒绝。可用 `railgeo stopWalk` 提前停止；持 `bcts.railgeo.bypasscooldown` 权限者绕过冷却且不刷新冷却。
+- **单运行 + 全局冷却**：同一时刻只允许一个遍历任务；完成后进入全局冷却（`config_map.yml` 的 `traversal.cooldown-seconds`）。再次发起时若有任务在跑或仍在冷却，提示并拒绝。可用 `railgeo stopWalk` 提前停止；持 `bcts.railgeo.bypasscooldown` 权限者绕过冷却且不刷新冷却。
 - **进度反馈**：遍历期间每隔 `traversal.progress-interval-seconds` 秒（默认 5，`<=0` 关闭）向发起者反馈“当前已遍历 N 个节点”；同时控制台也会输出进度。
 - **暂停凭证**：遍历期间暂停车票 / 交通卡上车（普通车不受影响）。
 - **与配置编辑互斥**：遍历期间禁用 `ticketconfig`（线路 / 铁路系统配置）指令；反之，发起遍历前若有玩家正在进行配置向导则拒绝遍历。避免配置改到一半时遍历，导致结果不一致。
-- **遍历上限**：`traversal.max-edges-per-walk`（单段最多记录铁轨格数）、`traversal.max-total-nodes`（整次最多展开段数）可在 `config_geo.yml` 配置。
+- **遍历上限**：`traversal.max-edges-per-walk`（单段最多记录铁轨格数）、`traversal.max-total-nodes`（整次最多展开段数）可在 `config_map.yml` 配置。
 - **日志格式**：遍历日志（`<插件目录>/logs/railgeo_*.log`）。
 
 **文件分组**：每条线路一个 `<lineId>.geojson`（含其经过的全部区间；共用轨道在各相关线路文件中均完整保存一份）。节点按物理坐标生成的 id（`n.world.x.y.z`）跨文件去重共享，累积经过它的所有线路 id。
@@ -308,7 +317,7 @@ platform 处达到该速度。**只改速度不改最大速度**。
 **geojson 结构**：
 
 - **Point**（节点）属性：`id`、`type`（`station` / `switch`）、`world`、`name`（仅 station）、`lineIds`（经过的线路 id 数组）、`prev` / `next`（前后相邻节点 id）。
-- **LineString**（区间）属性：`id`、`from`、`to`、`lineId`、`world`、`color`、`length`、`layer`（webUI显示层级）`departDir`（从from节点选择什么方向可以到达这条线）。
+- **LineString**（区间）属性：`id`、`from`、`to`、`lineId`、`world`、`color`、`length`、`layer`（webUI显示层级）、`departDir`（从from节点选择什么方向可以到达这条线）、`enterFrom`（到达 from 道岔的允许到达面集合）、`enterTo`（沿本段到达 to 节点的到达面）。
 
 ### 9.6 标准车站格式
 

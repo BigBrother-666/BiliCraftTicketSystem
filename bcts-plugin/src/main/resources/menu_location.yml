@@ -7,12 +7,13 @@ structure:
   - ". . . . . . . . u"
   - ". . . . . . . . #"
   - ". . . . . . . . n"
-  - ". . . . . . . . #"
+  - ". . . . . . . . b"
   - ". . . . . . . . #"
   - ". . . . . . . . d"
 
 mapping:
   - "n item-nearest"
+  - "b item-back"
   - ". content"
   - "# ORANGE_STAINED_GLASS_PANE"
   - "u item-scrollup"

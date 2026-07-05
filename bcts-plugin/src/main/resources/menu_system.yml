@@ -6,10 +6,11 @@ structure:
   - "# . . . . . . . #"
   - "# . . . . . . . #"
   - "# . . . . . . . #"
-  - "# # p # # # n # #"
+  - "# # p # b # n # #"
 
 mapping:
   - "p item-prevpage"
+  - "b item-back"
   - "n item-nextpage"
   - ". content"
   - "# ORANGE_STAINED_GLASS_PANE"

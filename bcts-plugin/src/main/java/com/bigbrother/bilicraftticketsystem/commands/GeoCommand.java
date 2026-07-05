@@ -1,6 +1,10 @@
 package com.bigbrother.bilicraftticketsystem.commands;
 
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
+import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
+import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
+import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
+import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemInfo;
 import com.bigbrother.bilicraftticketsystem.route.geodata.traversal.GeoTraversalTask;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -41,6 +45,9 @@ public class GeoCommand {
             @Argument(value = "lineId", description = "线路 id", suggestions = "lineId")
             String lineId
     ) {
+        if (!checkLineSystemMember(player, lineId)) {
+            return;
+        }
         plugin.getGeoDatabaseManager().upsertGeoNodeLoc(lineId, player.getLocation(), player.getLocation().getDirection());
         player.sendMessage(Component.text("成功设置线路 [%s] 的遍历起点".formatted(lineId), NamedTextColor.GREEN));
     }
@@ -49,11 +56,44 @@ public class GeoCommand {
     @Command("railgeo delStartPos <lineId>")
     @Permission("bcts.railgeo")
     public void delStartPos(
-            CommandSender commandSender,
+            Player player,
             @Argument(value = "lineId", description = "线路 id", suggestions = "lineId")
             String lineId
     ) {
+        if (!checkLineSystemMember(player, lineId)) {
+            return;
+        }
         int deleted = plugin.getGeoDatabaseManager().deleteGeoNodeLoc(lineId);
-        commandSender.sendMessage(Component.text("成功删除线路 [%s] 的遍历起点 %s 条".formatted(lineId, deleted), NamedTextColor.GREEN));
+        player.sendMessage(Component.text("成功删除线路 [%s] 的遍历起点 %s 条".formatted(lineId, deleted), NamedTextColor.GREEN));
+    }
+
+    /**
+     * 校验玩家是否为该线路所属铁路系统的成员。设置 / 删除遍历起点前调用，避免非本系统成员改动线路数据。
+     *
+     * @param player 操作玩家
+     * @param lineId 线路 id
+     * @return true 表示校验通过（是成员，可继续）；false 表示已向玩家提示原因，调用方应直接返回
+     */
+    private boolean checkLineSystemMember(Player player, String lineId) {
+        LineInfo line = LineConfig.get(lineId);
+        if (line == null) {
+            player.sendMessage(Component.text("线路 [%s] 不存在。".formatted(lineId), NamedTextColor.RED));
+            return false;
+        }
+        String systemId = line.getRailwaySystemId();
+        RailwaySystemInfo system = RailwaySystemConfig.get(systemId);
+        if (system == null) {
+            player.sendMessage(Component.text(
+                    "线路 [%s] 所属铁路系统 [%s] 不存在，无法校验权限。".formatted(lineId, systemId),
+                    NamedTextColor.RED));
+            return false;
+        }
+        if (!system.isMember(player.getUniqueId())) {
+            player.sendMessage(Component.text(
+                    "你不是该线路所属铁路系统 [%s] 的成员，无权操作其遍历起点。".formatted(systemId),
+                    NamedTextColor.RED));
+            return false;
+        }
+        return true;
     }
 }

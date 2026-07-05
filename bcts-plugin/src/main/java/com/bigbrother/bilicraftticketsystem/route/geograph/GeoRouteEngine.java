@@ -65,19 +65,47 @@ public class GeoRouteEngine {
         for (GeoNode start : graph.stationNodes(startStation)) {
             all.addAll(kShortest(start.getId(), endStation, kPerPlatform));
         }
-        all.sort(Comparator.comparingDouble(GeoRoutePath::getDistance));
+
         // 去重：departDirectionSequence 相同视为重复路线，保留先出现（即最短）的一条
-        List<GeoRoutePath> deduped = new ArrayList<>();
-        Set<List<String>> seen = new HashSet<>();
+        Map<List<String>, GeoRoutePath> deduped = new HashMap<>();
         for (GeoRoutePath path : all) {
-            if (seen.add(path.getDepartDirectionSequence())) {
-                deduped.add(path);
+            List<String> departDirectionSequence = path.getDepartDirectionSequence();
+            if (!deduped.containsKey(departDirectionSequence)) {
+                deduped.put(departDirectionSequence, path);
+            } else {
+                // departDirectionSequence 相同 则 优先保留转线次数少的
+                List<String> oldLineIdSeq = deduped.get(departDirectionSequence).getLineIdSequence();
+                if (getLineTransferCnt(oldLineIdSeq) > getLineTransferCnt(path.getLineIdSequence())) {
+                    deduped.put(departDirectionSequence, path);
+                }
             }
         }
+
+        List<GeoRoutePath> ret = new ArrayList<>(deduped.values().stream().toList());
+        ret.sort(Comparator.comparingDouble(GeoRoutePath::getDistance));
         if (maxResults > 0 && deduped.size() > maxResults) {
-            return new ArrayList<>(deduped.subList(0, maxResults));
+            return new ArrayList<>(ret.subList(0, maxResults));
         }
-        return deduped;
+        return ret;
+    }
+
+    /**
+     * 根据lineId列表获取过转线次数（列表相邻两元素不同的数量）
+     *
+     * @param lineIdSeq 路线每段的lineId
+     * @return 转线次数
+     */
+    private static int getLineTransferCnt(List<String> lineIdSeq) {
+        if (lineIdSeq.size() < 2) {
+            return 0;
+        }
+        int cnt = 0;
+        for (int i = 0; i < lineIdSeq.size() - 1; i++) {
+            if (!lineIdSeq.get(i).equals(lineIdSeq.get(i + 1))) {
+                cnt += 1;
+            }
+        }
+        return cnt;
     }
 
     /**
@@ -151,6 +179,10 @@ public class GeoRouteEngine {
      * @return 距离最接近的路径，无解返回 null
      */
     public static GeoRoutePath findClosestByDistance(String startStation, String endStation, double targetDistance) {
+        if (startStation == null || startStation.isEmpty() || endStation == null || endStation.isEmpty() || targetDistance <= 0) {
+            return null;
+        }
+
         GeoRoutePath best = null;
         double bestDiff = Double.MAX_VALUE;
         for (GeoRoutePath path : findByStation(startStation, endStation)) {
@@ -161,6 +193,81 @@ public class GeoRouteEngine {
             }
         }
         return best;
+    }
+
+    /**
+     * 校验给定的有序节点序列是否构成图上一条合法路线，合法则重建 {@link GeoRoutePath}。
+     * <p>
+     * 用于<b>网页在线购票</b>：路线在前端已选定，插件不重新寻路，只逐对校验相邻节点间存在对应出边，
+     * 然后按既有图结构重建路径（与私有 {@link #buildPath} 同构的产物，下游票价 / lore / 导航逻辑零改动）。
+     * <p>
+     * 校验规则：
+     * <ul>
+     *   <li>{@code nodeIds} 至少含起点与终点两个节点，且首尾都是 station 节点（与车票语义一致）。</li>
+     *   <li>逐对 {@code nodeIds[i] -> nodeIds[i+1]} 须存在一条出边（{@link GeoRouteGraph#links}）；</li>
+     *   <li>两节点间存在多条平行边（共用轨道、不同 lineId）时，用 {@code lineIdSequence[i]} 消歧；
+     *       {@code lineIdSequence} 为 null 时取首条匹配边。</li>
+     * </ul>
+     * 任一步无匹配边 / 节点不存在 / 起终点非车站 → 返回 null（非法）。
+     *
+     * @param nodeIds        有序节点 id 列表（含起点与终点站台）
+     * @param lineIdSequence 逐段 lineId（size 应为 nodeIds.size()-1），平行边消歧用；可为 null
+     * @return 合法时返回重建的路径；非法返回 null
+     */
+    public static GeoRoutePath validatePath(List<String> nodeIds, List<String> lineIdSequence) {
+        GeoRouteGraph g = graph;
+        if (nodeIds == null || nodeIds.size() < 2) {
+            return null;
+        }
+        GeoNode startNode = g.getNode(nodeIds.getFirst());
+        GeoNode endNode = g.getNode(nodeIds.getLast());
+        if (startNode == null || endNode == null || !startNode.isStation() || !endNode.isStation()) {
+            return null;
+        }
+
+        List<GeoNode> nodes = new ArrayList<>();
+        List<String> lineIds = new ArrayList<>();
+        List<String> departDirs = new ArrayList<>();
+        List<Double> distances = new ArrayList<>();
+        nodes.add(startNode);
+        double total = 0.0;
+
+        GeoLink prevLink = null;
+        for (int i = 0; i < nodeIds.size() - 1; i++) {
+            String fromId = nodeIds.get(i);
+            String toId = nodeIds.get(i + 1);
+            String wantLine = lineIdSequence != null && i < lineIdSequence.size() ? lineIdSequence.get(i) : null;
+            GeoLink matched = null;
+            for (GeoLink link : g.links(fromId)) {
+                if (!link.getToNodeId().equals(toId)) {
+                    continue;
+                }
+                if (wantLine != null && !wantLine.equals(link.getLineId())) {
+                    continue;
+                }
+                // 入向面门控：与 kShortest 一致，拒绝「从错误到达面接反向牌出边」的非法接续。
+                if (!enterFaceAllows(prevLink, link)) {
+                    continue;
+                }
+                matched = link;
+                break;
+            }
+            if (matched == null) {
+                return null;
+            }
+            prevLink = matched;
+            GeoNode toNode = g.getNode(toId);
+            if (toNode == null) {
+                return null;
+            }
+            nodes.add(toNode);
+            lineIds.add(matched.getLineId());
+            departDirs.add(matched.getDepartDirection());
+            // 段长换算为 km，与 buildPath 一致
+            distances.add(matched.getDistance() / 1000);
+            total += matched.getDistance();
+        }
+        return new GeoRoutePath(nodes, lineIds, departDirs, distances, total / 1000);
     }
 
     /**
@@ -207,6 +314,12 @@ public class GeoRouteEngine {
                 if (nextNode == null) {
                     continue;
                 }
+                // 入向面门控：同一物理方块上多块进入方向不同的 bcswitcher 塌缩为同一节点，本段边只对
+                // 「从某些到达面到达该道岔」的车合法。若入边到达面不在本段允许集合内，跳过——避免读到
+                // 反向牌的出边、算出物理非法路线（如从右侧来的车走了只给左侧来车准备的直行出边）。
+                if (!enterFaceAllows(cur.prevLink(), link)) {
+                    continue;
+                }
                 // 无环约束：下一节点若已在当前路径中，跳过——避免重复经过同一节点。
                 // 例外：允许最后一步回到起点节点以支持首尾节点相同的环线
                 if (inPath(cur, nextId)) {
@@ -234,13 +347,30 @@ public class GeoRouteEngine {
     }
 
     /**
-     * 判断节点 {@code nodeId} 是否已出现在 {@code entry} 的回溯链（当前路径前缀）中。
-     * 用于强制无环：沿 {@link Entry#prev()} 向起点回溯逐一比对。调用方对「回到起点闭合环线」单独放行。
+     * 入向面门控：判断沿 {@code inLink} 到达当前节点后，是否允许接着走 {@code outLink}。
+     * <p>
+     * 只有当 {@code outLink} 声明了允许到达面集合（{@link GeoLink#getEnterFacesFrom()} 非空）、
+     * {@code inLink} 也带到达面（{@link GeoLink#getEnterFaceTo()} 非 null），且该到达面不在允许集合内时，
+     * 才拒绝。任一信息缺失（起点首段无入边、旧 geojson 无门控字段）都放行，保证向后兼容与起点正常展开。
      *
-     * @param entry  当前路径条目
-     * @param nodeId 待加入的下一节点 id
-     * @return true 表示已在路径中
+     * @param inLink  到达当前节点所走的入边（起点条目为 null）
+     * @param outLink 待扩展的出边
+     * @return 允许接续返回 true
      */
+    private static boolean enterFaceAllows(GeoLink inLink, GeoLink outLink) {
+        if (inLink == null) {
+            return true;
+        }
+        if (outLink.getEnterFacesFrom().isEmpty()) {
+            return true;
+        }
+        String arrivedFace = inLink.getEnterFaceTo();
+        if (arrivedFace == null) {
+            return true;
+        }
+        return outLink.getEnterFacesFrom().contains(arrivedFace);
+    }
+
     private static boolean inPath(Entry entry, String nodeId) {
         for (Entry e = entry; e != null; e = e.prev()) {
             if (e.nodeId().equals(nodeId)) {
@@ -269,15 +399,15 @@ public class GeoRouteEngine {
      * @return true 表示存在正线绕行
      */
     private static boolean hasMainlineBypass(GeoRouteGraph g, String nodeId, GeoNode targetStationNode) {
-        List<GeoLink> links = g.links(targetStationNode.getId());
-        if (links.size() != 1) {
-            // 车站节点只有一个出边
+        List<GeoLink> stationLinks = g.links(targetStationNode.getId());
+        if (stationLinks.isEmpty()) {
             return false;
         } else {
             for (GeoLink link : g.links(nodeId)) {
                 GeoNode to = g.getNode(link.getToNodeId());
-                if (to.equals(g.getNode(links.getFirst().getToNodeId()))) {
-                    // 连接了同一个出站道岔
+                if (to.coordEquals(g.getNode(stationLinks.getFirst().getToNodeId()))) {
+                    // 连接了同一个坐标的出站道岔
+                    // 这里用坐标不用id，是因为考虑两线共线情况
                     return true;
                 }
             }

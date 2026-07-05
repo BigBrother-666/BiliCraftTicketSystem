@@ -4,6 +4,7 @@ import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.ConsoleCommandSender;
 
 import java.io.File;
 import java.io.PrintWriter;
@@ -148,7 +149,12 @@ public class GeoTraversalLogger {
     public void message(String msg, NamedTextColor color) {
         info(msg);
         if (sender != null) {
-            sender.sendMessage(Component.text(msg, color));
+            if (sender instanceof ConsoleCommandSender) {
+                plugin.getComponentLogger().info(Component.text(msg, color));
+            } else {
+                sender.sendMessage(Component.text(msg, color));
+                plugin.getComponentLogger().info(Component.text(msg, color));
+            }
         }
     }
 

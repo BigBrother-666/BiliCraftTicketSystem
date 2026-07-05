@@ -127,6 +127,15 @@ public class LineConfig {
     }
 
     /**
+     * 获取所有线路（按配置顺序的只读视图）。
+     *
+     * @return 线路信息集合
+     */
+    public static java.util.Collection<LineInfo> allLines() {
+        return java.util.Collections.unmodifiableCollection(lines.values());
+    }
+
+    /**
      * 获取线路标志色，找不到线路时返回灰色默认值。
      *
      * @param lineId 线路 id

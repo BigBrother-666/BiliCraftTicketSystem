@@ -6,7 +6,7 @@ import lombok.Getter;
 public enum EnumConfig {
     MAIN_CONFIG("config.yml"),
     MESSAGES_CONFIG("messages.yml"),
-    GEO_CONFIG("config_geo.yml"),
+    WEB_CONFIG("config_map.yml"),
 
     MENU_MAIN("menu_main.yml"),
     MENU_LOCATION("menu_location.yml"),

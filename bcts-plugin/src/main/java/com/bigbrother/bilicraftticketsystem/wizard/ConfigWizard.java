@@ -92,6 +92,27 @@ public abstract class ConfigWizard {
     }
 
     /**
+     * 某步骤提示发送完成后调用的钩子，子类可据此追加交互内容（如可点击的成员删除按钮列表）。
+     * 默认不做任何事。
+     *
+     * @param key 当前步骤键
+     */
+    protected void onStepShown(String key) {
+    }
+
+    /**
+     * 取当前步骤键；向导尚未开始或已结束时返回 null。供子类的按钮回调判断玩家是否仍停留在该步骤。
+     *
+     * @return 当前步骤键，无则 null
+     */
+    protected String currentStepKey() {
+        if (steps == null || index < 0 || index >= steps.size()) {
+            return null;
+        }
+        return steps.get(index).getKey();
+    }
+
+    /**
      * 启动向导：发送标题与第一步提示。必须在主线程调用。
      */
     public void start() {
@@ -289,6 +310,8 @@ public abstract class ConfigWizard {
         }
         actions = actions.append(exitButton());
         player.sendMessage(actions);
+
+        onStepShown(step.getKey());
     }
 
     private boolean canSkip(WizardStep step) {
@@ -308,7 +331,7 @@ public abstract class ConfigWizard {
     }
 
     private Component exitButton() {
-        String label = editMode ? " [放弃] " : " [退出] ";
+        String label = editMode ? " [放弃修改并退出] " : " [退出] ";
         return Component.text(label, NamedTextColor.RED)
                 .decoration(TextDecoration.UNDERLINED, true)
                 .clickEvent(ClickEvent.callback(a -> WizardManager.cancel(player.getUniqueId())));

@@ -90,15 +90,15 @@ public class BCTicket extends BCTransitPass {
             // 旧格式 NBT 车票（无新字段）直接作废
             this.pathInfo = null;
             commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TICKET_EXPIRATION_TIME, 0));
-            return;
         }
-        this.pathInfo = GeoRouteEngine.findClosestByDistance(startStation, endStation, distance);
-        if (pathInfo == null) {
-            // 找不到路线，标记为过期
-            commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TICKET_EXPIRATION_TIME, 0));
-        } else {
-            refreshTicketMeta(false);
-        }
+        // 车票拿在手中时不再 refresh，上车时再计算路径
+//        this.pathInfo = GeoRouteEngine.findClosestByDistance(startStation, endStation, distance);
+//        if (pathInfo == null) {
+//            // 找不到路线，标记为过期
+//            commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TICKET_EXPIRATION_TIME, 0));
+//        } else {
+//            refreshTicketMeta(false);
+//        }
     }
 
     @Nullable
@@ -119,25 +119,41 @@ public class BCTicket extends BCTransitPass {
     }
 
     public void purchase() {
-        EconomyResponse r = plugin.getEcon().withdrawPlayer(owner, this.getPrice());
+        EconomyResponse r = purchaseSilently();
         String ticketName = getTicketName();
 
         if (r.transactionSuccess()) {
             owner.sendMessage(MainConfig.prefix.append(
                     CommonUtils.mmStr2Component(message.get("ticket-buy-success", "您成功花费 %.2f 购买了 %s").formatted(r.amount, ticketName)).decoration(TextDecoration.ITALIC, false)
             ));
-            this.give();
             // 记录log
             Bukkit.getConsoleSender().sendMessage(MainConfig.prefix.append(Component.text("玩家 %s 成功花费 %.2f 购买了 %s".formatted(owner.getName(), r.amount, ticketName), NamedTextColor.GREEN)));
-            // 按段所属铁路系统分摊实付金额，实时累加各系统收入（车票在购买时一次性结算全部次数）
-            RailwaySystemConfig.addIncome(allocateIncome(r.amount, 0.0));
-            // 写入数据库
-            plugin.getTrainDatabaseManager().getRevenueService().recordTicketPurchase(owner.getName(), owner.getUniqueId().toString(), r.amount, CommonItemStack.of(itemStack).getCustomData());
         } else {
             owner.sendMessage(MainConfig.prefix.append(
                     CommonUtils.mmStr2Component(message.get("ticket-buy-failure", "车票购买失败：%s").formatted(r.errorMessage)).decoration(TextDecoration.ITALIC, false)
             ));
         }
+    }
+
+    /**
+     * 购票核心（无玩家聊天提示），供游戏内 {@link #purchase()} 与网页在线购票共用：
+     * Vault 扣款 → 成功则交付实体票({@link #give()}) + 按段所属系统分摊收入 + 写收入流水库。
+     * <p>
+     * 须在主线程调用（涉及 Vault / 背包 / 数据库）。调用方据返回的 {@link EconomyResponse} 决定提示 /
+     * 回执（如余额不足 {@code !transactionSuccess()}）。
+     *
+     * @return Vault 扣款响应（含成功与否、实付金额、错误信息）
+     */
+    public EconomyResponse purchaseSilently() {
+        EconomyResponse r = plugin.getEcon().withdrawPlayer(owner, this.getPrice());
+        if (r.transactionSuccess()) {
+            this.give();
+            // 按段所属铁路系统分摊实付金额，实时累加各系统收入（车票在购买时一次性结算全部次数）
+            RailwaySystemConfig.addIncome(allocateIncome(r.amount, 0.0));
+            // 写入数据库
+            plugin.getTrainDatabaseManager().getRevenueService().recordTicketPurchase(owner.getName(), owner.getUniqueId().toString(), r.amount, CommonItemStack.of(itemStack).getCustomData());
+        }
+        return r;
     }
 
     public void give() {
@@ -192,6 +208,19 @@ public class BCTicket extends BCTransitPass {
     @Override
     public boolean verify(Player usedPlayer, MinecartGroup group) {
         CommonItemStack commonItemStack = CommonItemStack.of(itemStack);
+        CommonTagCompound nbt = commonItemStack.getCustomData();
+        String startStation = nbt.getValue(KEY_TICKET_START_STATION, "");
+        String endStation = nbt.getValue(KEY_TICKET_END_STATION, "");
+        double distance = nbt.getValue(KEY_TICKET_DISTANCE, -1.0);
+        if (pathInfo == null) {
+            this.pathInfo = GeoRouteEngine.findClosestByDistance(startStation, endStation, distance);
+            if (pathInfo == null) {
+                // 找不到路线，标记为过期
+                commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TICKET_EXPIRATION_TIME, 0));
+            } else {
+                refreshTicketMeta(false);
+            }
+        }
 
         // 其他玩家的车票
         if (!isTicketOwner(usedPlayer)) {
@@ -275,7 +304,7 @@ public class BCTicket extends BCTransitPass {
         placeholder.put("owner_name", owner.getName());
         List<Component> lore = parseConfigLore(MainConfig.ticketLore, placeholder);
         if (addPrice) {
-            placeholder.put("distance_info_lore", getDistanceInfoLore());
+            placeholder.put("distance_info_lore", getPriceInfoLore());
             lore.addAll(parseConfigLore(MainConfig.ticketPriceLore, placeholder));
 
         }
@@ -285,7 +314,7 @@ public class BCTicket extends BCTransitPass {
         });
     }
 
-    private String getTicketName() {
+    public String getTicketName() {
         // 新模型站名已是干净站名，trim 参数保留兼容调用方
         String start = pathInfo.getStartStationName();
         String end = pathInfo.getEndStationName();
@@ -353,6 +382,14 @@ public class BCTicket extends BCTransitPass {
             }
         }
         return totalPrice;
+    }
+
+    @Override
+    public double getRideHistoryFare() {
+        if (maxUses <= 0) {
+            return getPrice();
+        }
+        return Math.round((getPrice() / maxUses) * 100.0) / 100.0;
     }
 
     @Override

@@ -5,6 +5,7 @@ import com.bigbrother.bilicraftticketsystem.config.MenuConfig;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemInfo;
 import com.bigbrother.bilicraftticketsystem.menu.Menu;
+import com.bigbrother.bilicraftticketsystem.menu.items.common.BackItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.common.NextpageItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.common.PrevpageItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.system.SystemItem;
@@ -16,7 +17,7 @@ import xyz.xenondevs.invui.item.Item;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 /**
  * 铁路系统选择界面（{@code menu_system.yml}）。
@@ -29,7 +30,7 @@ import java.util.function.Consumer;
  */
 public class MenuSystem extends Menu {
 
-    private MenuSystem(Player player, Consumer<String> onSelect) {
+    private MenuSystem(Player player, Runnable back, BiConsumer<String, Runnable> onSelect) {
         FileConfiguration systemConfig = MenuConfig.getSystemMenuConfig();
 
         PagedGui<@NotNull Item> gui = PagedGui.items()
@@ -37,13 +38,17 @@ public class MenuSystem extends Menu {
                     case "content" -> Markers.CONTENT_LIST_SLOT_HORIZONTAL;
                     case "nextpage" -> new NextpageItem();
                     case "prevpage" -> new PrevpageItem();
+                    case "back" -> new BackItem(back);
                     default -> null;
                 }))
                 .build();
 
+        // 从本界面选中系统进入车站列表后，车站列表的「返回」应回到本系统选择界面（重新打开一个新的实例）
+        Runnable reopenSelf = () -> new MenuSystem(player, back, onSelect).open();
+
         List<Item> items = new ArrayList<>();
         for (RailwaySystemInfo system : RailwaySystemConfig.getSystems().values()) {
-            items.add(new SystemItem(system, onSelect));
+            items.add(new SystemItem(system, systemId -> onSelect.accept(systemId, reopenSelf)));
         }
         gui.setContent(items);
 
@@ -57,15 +62,18 @@ public class MenuSystem extends Menu {
      *   <li>0 个系统：用 {@code null} 回调（打开全部车站列表）。</li>
      * </ul>
      *
-     * @param player   玩家
-     * @param onSelect 选中回调（入参为系统 id，可能为 null）
+     * @param player     玩家
+     * @param backToRoot 返回上一级动作：本界面「返回」按钮所指（购票主界面 / 交通卡界面）；
+     *                   当系统数 ≤ 1 跳过本界面时，也作为车站列表的返回目标传给 {@code onSelect}
+     * @param onSelect   选中回调，入参为（系统 id 可能为 null，车站列表的「返回」动作）；
+     *                   本界面展示时返回动作为「重开系统选择界面」，跳过时为 {@code backToRoot}
      */
-    public static void openOrSkip(Player player, Consumer<String> onSelect) {
+    public static void openOrSkip(Player player, Runnable backToRoot, BiConsumer<String, Runnable> onSelect) {
         List<RailwaySystemInfo> systems = new ArrayList<>(RailwaySystemConfig.getSystems().values());
         if (systems.size() <= 1) {
-            onSelect.accept(systems.isEmpty() ? null : systems.getFirst().getId());
+            onSelect.accept(systems.isEmpty() ? null : systems.getFirst().getId(), backToRoot);
             return;
         }
-        new MenuSystem(player, onSelect).open();
+        new MenuSystem(player, backToRoot, onSelect).open();
     }
 }

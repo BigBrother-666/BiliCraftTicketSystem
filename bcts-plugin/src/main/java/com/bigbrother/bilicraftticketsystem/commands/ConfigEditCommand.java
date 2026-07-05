@@ -83,7 +83,7 @@ public class ConfigEditCommand {
             // 新建模式：玩家必须至少属于一个铁路系统，才能把线路归入某系统
             if (RailwaySystemConfig.getSystemsOfMember(player.getUniqueId()).isEmpty()) {
                 player.sendMessage(MainConfig.prefix.append(Component.text(
-                        "你还不属于任何铁路系统，无法新建线路。请先用 /ticket editSystem <id> 创建一个系统。",
+                        "你还不属于任何铁路系统，无法新建线路。请先用 /ticketconfig editSystem <id> 创建一个系统。",
                         NamedTextColor.RED)));
                 return;
             }

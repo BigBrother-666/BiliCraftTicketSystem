@@ -88,6 +88,25 @@ public class GeoRouteEngineTest {
         return f;
     }
 
+    /**
+     * 构建带入向面门控的边（{@code enterFrom} 允许到达面集合、{@code enterTo} 到达终点面）。
+     *
+     * @param enterFrom 允许到达起点道岔的面集合（null 省略）
+     * @param enterTo   到达终点节点的面（null 省略）
+     */
+    private Feature line(String id, String from, String to, String lineId, double length, String departDir,
+                         List<String> enterFrom, String enterTo) {
+        Feature f = line(id, from, to, lineId, length, departDir);
+        Map<String, Object> props = f.getProperties();
+        if (enterFrom != null) {
+            props.put("enterFrom", enterFrom);
+        }
+        if (enterTo != null) {
+            props.put("enterTo", enterTo);
+        }
+        return f;
+    }
+
     @Test
     void buildsGraphWithExpectedCounts() {
         GeoRouteGraph g = new GeoGraphLoader(null).loadFeatureCollection(fc);
@@ -293,5 +312,110 @@ public class GeoRouteEngineTest {
         // 唯一无环路线：nA -> c1 -> c2 -> nB
         assertEquals(List.of("nA", "c1", "c2", "nB"),
                 paths.getFirst().getNodes().stream().map(GeoNode::getId).toList());
+    }
+
+    @Test
+    void validatePathRebuildsValidRoute() {
+        GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(fc));
+        // 合法路线 nA -> s1 -> s2 -> nB（L1 / contact / L1），与 findFromNode 同构
+        GeoRoutePath path = GeoRouteEngine.validatePath(
+                List.of("nA", "s1", "s2", "nB"), List.of("L1", "contact", "L1"));
+        assertNotNull(path);
+        assertEquals(25.0 / 1000, path.getDistance(), 1e-9);
+        assertEquals(List.of("L1", "contact", "L1"), path.getLineIdSequence());
+        assertEquals("A", path.getStartStationName());
+        assertEquals("B", path.getEndStationName());
+    }
+
+    @Test
+    void validatePathWithoutLineIdSequenceTakesFirstMatch() {
+        GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(fc));
+        // 不带 lineIdSequence 也能校验（无平行边时唯一）
+        GeoRoutePath path = GeoRouteEngine.validatePath(List.of("nA2", "s2", "nB"), null);
+        assertNotNull(path);
+        assertEquals(11.0 / 1000, path.getDistance(), 1e-9);
+    }
+
+    @Test
+    void validatePathRejectsNonAdjacentNodes() {
+        GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(fc));
+        // nA 与 s2 之间无直接边
+        assertNull(GeoRouteEngine.validatePath(List.of("nA", "s2", "nB"), null));
+    }
+
+    @Test
+    void validatePathRejectsWrongLineIdOnParallelEdge() {
+        // 平行边：c 到 d 同时有 L1 与 L2 两条边，lineIdSequence 必须匹配正确那条
+        FeatureCollection f = new FeatureCollection();
+        f.add(point("c", "station", "C", 0, 64, 0));
+        f.add(point("d", "station", "D", 10, 64, 0));
+        f.add(line("e.L1.c__d", "c", "d", "L1", 10));
+        f.add(line("e.L2.c__d", "c", "d", "L2", 20));
+        GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(f));
+
+        GeoRoutePath l1 = GeoRouteEngine.validatePath(List.of("c", "d"), List.of("L1"));
+        assertNotNull(l1);
+        assertEquals(10.0 / 1000, l1.getDistance(), 1e-9);
+        GeoRoutePath l2 = GeoRouteEngine.validatePath(List.of("c", "d"), List.of("L2"));
+        assertNotNull(l2);
+        assertEquals(20.0 / 1000, l2.getDistance(), 1e-9);
+        // 不存在的 lineId
+        assertNull(GeoRouteEngine.validatePath(List.of("c", "d"), List.of("L3")));
+    }
+
+    @Test
+    void enterFaceGatesOutEdgeAtSharedSwitchNode() {
+        // 复刻同块多进入方向道岔 bug：一个物理方块 sw 上两块 bcswitcher 塌缩为同一节点。
+        //   从左(nL)到达 sw（到达面 "1_0"）：只能直行到 nF（前）
+        //   从右(nR)到达 sw（到达面 "-1_0"）：只能转到 nS（到发线）
+        // 出边 sw->nF 门控 enterFrom=["1_0"]，sw->nS 门控 enterFrom=["-1_0"]。
+        // 从右来的车不得走 sw->nF（那是给左来车的直行出边）。
+        FeatureCollection f = new FeatureCollection();
+        f.add(point("nL", "station", "L", 0, 64, 0));
+        f.add(point("nR", "station", "R", 0, 64, 20));
+        f.add(point("sw", "switch", null, 10, 64, 10));
+        f.add(point("nF", "station", "F", 20, 64, 10));
+        f.add(point("nS", "station", "S", 10, 64, 30));
+        // 入边：到达 sw 的面各不同
+        f.add(line("e.LN.nL__sw", "nL", "sw", "LN", 10, "e", null, "1_0"));
+        f.add(line("e.RN.nR__sw", "nR", "sw", "RN", 10, "e", null, "-1_0"));
+        // 出边：各自门控到达面
+        f.add(line("e.LN.sw__nF", "sw", "nF", "LN", 10, "e", List.of("1_0"), "1_0"));
+        f.add(line("e.RN.sw__nS", "sw", "nS", "RN", 10, "s", List.of("-1_0"), "0_1"));
+        GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(f));
+
+        // 左来 → 直行到 F 合法
+        assertFalse(GeoRouteEngine.findByStation("L", "F").isEmpty(), "左来直行到 F 应合法");
+        // 右来 → 转到 S 合法
+        assertFalse(GeoRouteEngine.findByStation("R", "S").isEmpty(), "右来转到 S 应合法");
+        // 右来 → 直行到 F 非法（门控拦截，这正是 bug 卖出的非法票）
+        assertTrue(GeoRouteEngine.findByStation("R", "F").isEmpty(), "右来直行到 F 应被入向面门控拦截");
+        // 左来 → 转到 S 也非法
+        assertTrue(GeoRouteEngine.findByStation("L", "S").isEmpty(), "左来转到 S 应被入向面门控拦截");
+
+        // validatePath（网页购票）同样拦截非法接续
+        assertNull(GeoRouteEngine.validatePath(List.of("nR", "sw", "nF"), List.of("RN", "LN")),
+                "validatePath 应拒绝右来直行到 F 的非法路线");
+        assertNotNull(GeoRouteEngine.validatePath(List.of("nR", "sw", "nS"), List.of("RN", "RN")),
+                "validatePath 应接受右来转到 S 的合法路线");
+    }
+
+    @Test
+    void missingEnterFaceKeepsBackwardCompatibility() {
+        // 旧 geojson 无 enterFrom/enterTo：门控不生效，寻路行为与改动前一致（仍能算出路线）。
+        GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(fc));
+        assertFalse(GeoRouteEngine.findByStation("A", "B").isEmpty(), "无门控字段时应保持原有寻路结果");
+    }
+
+    @Test
+    void validatePathRejectsNonStationEndpointsAndBadInput() {
+        GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(fc));
+        // 终点是道岔 s2，非车站
+        assertNull(GeoRouteEngine.validatePath(List.of("nA", "s1", "s2"), List.of("L1", "contact")));
+        // 节点不存在
+        assertNull(GeoRouteEngine.validatePath(List.of("nA", "nope", "nB"), null));
+        // 不足两个节点 / null
+        assertNull(GeoRouteEngine.validatePath(List.of("nA"), null));
+        assertNull(GeoRouteEngine.validatePath(null, null));
     }
 }

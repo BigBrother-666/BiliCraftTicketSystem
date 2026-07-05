@@ -111,6 +111,13 @@ public class GeojsonBuilder {
         if (edge.getDepartDirection() != null) {
             props.put("departDir", edge.getDepartDirection());
         }
+        // 入向面门控：到达起点道岔的允许到达面集合 + 到达终点节点的到达面。空 / null 省略（向后兼容）。
+        if (!edge.getEnterFacesFrom().isEmpty()) {
+            props.put("enterFrom", new ArrayList<>(edge.getEnterFacesFrom()));
+        }
+        if (edge.getEnterFaceTo() != null) {
+            props.put("enterTo", edge.getEnterFaceTo());
+        }
         feature.setProperties(props);
         return feature;
     }

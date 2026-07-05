@@ -26,7 +26,7 @@ public class GeoLayerTest {
     }
 
     private RailEdge edge(String from, String to, List<LngLatAlt> coords) {
-        return new RailEdge(from, to, "L", "sys", coords, "#FFFFFF", 1, 0, null, "test_world");
+        return new RailEdge(from, to, "L", "sys", coords, "#FFFFFF", 1, 0, null, "test_world", null, null);
     }
 
     @Test
@@ -63,6 +63,34 @@ public class GeoLayerTest {
         List<LngLatAlt> coords = new ArrayList<>(Arrays.asList(
                 p(0, 0, 64), p(2, 0, 64), p(1, 0, 64)));
         assertEquals(3, GeoUtils.simplifyLineString(coords).size());
+    }
+
+    @Test
+    void simplifyCollapsesStaircaseToDiagonal() {
+        // 游戏内 45° 斜线是阶梯状方块：交替走一格 x、一格 z，高度恒定。
+        // 应被压回成一条直斜线（仅首末两点）。
+        List<LngLatAlt> stair = new ArrayList<>(Arrays.asList(
+                p(15178, -12882, 100), p(15178, -12881, 100), p(15177, -12881, 100),
+                p(15177, -12880, 100), p(15176, -12880, 100), p(15176, -12879, 100),
+                p(15175, -12879, 100), p(15175, -12878, 100)));
+        List<LngLatAlt> out = GeoUtils.simplifyLineString(stair);
+        assertEquals(2, out.size(), "整段阶梯应压成一条斜线");
+        assertEquals(15178, out.getFirst().getLongitude());
+        assertEquals(-12882, out.getFirst().getLatitude());
+        assertEquals(15175, out.getLast().getLongitude());
+        assertEquals(-12878, out.getLast().getLatitude());
+    }
+
+    @Test
+    void simplifyKeepsStaircaseWithRealHeightClimb() {
+        // 水平阶梯 + 真实爬坡：高度逐格上升，高度拐点不能被压平
+        List<LngLatAlt> stair = new ArrayList<>(Arrays.asList(
+                p(0, 0, 64), p(0, 1, 64), p(1, 1, 65), p(1, 2, 65), p(2, 2, 66)));
+        List<LngLatAlt> out = GeoUtils.simplifyLineString(stair);
+        assertEquals(64, out.getFirst().getAltitude());
+        assertEquals(66, out.getLast().getAltitude());
+        // 高度非匀速变化，中间至少保留一个高度拐点
+        assertTrue(out.size() > 2, "真实高度变化不应被压平");
     }
 
     @Test

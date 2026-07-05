@@ -11,6 +11,7 @@ import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcLineIdProperty;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcStartNodeProperty;
+import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcTrainIdProperty;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
@@ -79,6 +80,7 @@ public class SignActionBCSpawn extends TrainCartsSignAction {
             sign.resetSpawnTime();
             MinecartGroup group = info.getGroup();
             if (group != null) {
+                BcTrainIdProperty.ensure(group);
                 // 标记列车所属线路：写入 train property（不再用 tag，避免玩家用 TC 指令篡改）
                 String lineName = "";
                 if (!lineId.isEmpty()) {

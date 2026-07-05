@@ -6,6 +6,7 @@ import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
+import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.signactions.component.*;
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
@@ -62,6 +63,11 @@ public class SignActionPlatform extends SignAction {
 
         Set<PlatformFeature> enabled = PlatformFeature.parseEnabled(info.getLine(3));
         String stationName = info.getLine(2).trim();
+
+        if (info.isAction(SignActionType.GROUP_UPDATE)) {
+            // 玩家上下车，发送数据
+            publishRideEvent(group, info.getRails() == null ? null : NodeId.ofBlock(info.getRails()), stationName);
+        }
 
         if (info.isAction(SignActionType.GROUP_ENTER)) {
             // 调试追踪：列车进入站台
@@ -264,6 +270,13 @@ public class SignActionPlatform extends SignAction {
      */
     private LineInfo resolveLine(MinecartGroup group) {
         return LineConfig.get(BcLineIdProperty.read(group));
+    }
+
+    private void publishRideEvent(MinecartGroup group, String nodeId, String stationName) {
+        var webLink = BiliCraftTicketSystem.plugin.getWebLink();
+        if (webLink != null) {
+            webLink.getRideEventPublisher().publish(group, nodeId, stationName);
+        }
     }
 
     @Override

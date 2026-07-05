@@ -7,6 +7,7 @@ import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathPredictEvent;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
+import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.utils.GeoUtils;
 import com.bigbrother.bilicraftticketsystem.signactions.component.BcSwitcherBranch;
 import com.bigbrother.bilicraftticketsystem.route.NodeId;
@@ -90,7 +91,7 @@ public class SignActionBcswitcher extends SignAction {
             return;
         }
         MinecartGroup group = info.getGroup();
-        if (group == null) {
+        if (group == null || !info.isWatchedDirection(info.getCartEnterDirection())) {
             return;
         }
 
@@ -101,6 +102,7 @@ public class SignActionBcswitcher extends SignAction {
         if (BcRouteNavigator.hasRoute(group) && BcRouteNavigator.alreadyAdvancedAt(group, nodeId)) {
             return;
         }
+        publishRideEvent(group, nodeId);
 
         List<BcSwitcherBranch> branches = parseBranches(info);
         // 选向优先级：带导航(直达)按 S:出向；无导航在进站道岔按结构判定的到发线出向；再回退 lineId/tag。
@@ -124,7 +126,7 @@ public class SignActionBcswitcher extends SignAction {
             int[] progress = BcRouteNavigator.progress(group);
             List<String> branchLines = new ArrayList<>();
             for (BcSwitcherBranch b : branches) {
-                branchLines.add(b.getDirectionStr() + ":" + String.join(";", b.getLineIds()));
+                branchLines.add(b.getDirectionStr() + "@" + String.join(";", b.getLineIds()));
             }
             String chosen = navDir != null ? navDir
                     : (sidingDir != null ? sidingDir
@@ -161,7 +163,7 @@ public class SignActionBcswitcher extends SignAction {
      */
     @Override
     public void predictPathFinding(SignActionEvent info, PathPredictEvent prediction) {
-        if (!info.hasRailedMember()) {
+        if (!info.hasRailedMember() || !info.isWatchedDirection(info.getCartEnterDirection())) {
             return;
         }
         MinecartGroup group = info.getMember().getGroup();
@@ -305,6 +307,13 @@ public class SignActionBcswitcher extends SignAction {
             }
         }
         return null;
+    }
+
+    private void publishRideEvent(MinecartGroup group, String nodeId) {
+        var webLink = BiliCraftTicketSystem.plugin.getWebLink();
+        if (webLink != null) {
+            webLink.getRideEventPublisher().publish(group, nodeId, null);
+        }
     }
 
     @Override

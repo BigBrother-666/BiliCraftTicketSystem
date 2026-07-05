@@ -3,6 +3,7 @@ package com.bigbrother.bilicraftticketsystem.listeners;
 import com.bergerkiller.bukkit.common.inventory.CommonItemStack;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
+import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bergerkiller.bukkit.tc.events.GroupRemoveEvent;
 import com.bergerkiller.bukkit.tc.events.seat.MemberBeforeSeatEnterEvent;
 import com.bergerkiller.bukkit.tc.properties.CartProperties;
@@ -10,6 +11,7 @@ import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.route.geodata.traversal.GeoTraversalTask;
+import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcTrainIdProperty;
 import com.bigbrother.bilicraftticketsystem.ticket.BCCard;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicket;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTransitPass;
@@ -120,6 +122,10 @@ public class TrainListeners implements Listener {
 
                     // 应用列车属性
                     transitPass.applyTo(player, group);
+                    var webLink = BiliCraftTicketSystem.plugin.getWebLink();
+                    if (webLink != null) {
+                        webLink.getRideEventPublisher().publishPayment(group, player, transitPass);
+                    }
                     return;
                 }
             }
@@ -183,6 +189,12 @@ public class TrainListeners implements Listener {
         trainTicketInfo.remove(event.getGroup());
         trainHintRecord.remove(event.getGroup());
         trainPlayerInfo.remove(event.getGroup());
+
+        // 通知线路图后端立即移除该列车（矿车销毁即时消失，见 docs/PROBLEMS.md 问题 3）
+        var webLink = BiliCraftTicketSystem.plugin.getWebLink();
+        if (webLink != null && event.getGroup() != null) {
+            webLink.publishRemovedTrain(BcTrainIdProperty.read(event.getGroup()));
+        }
     }
 
     // 判断是初始车（没人上过车）

@@ -27,8 +27,10 @@ import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcLineIdProperty;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteIndexProperty;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteProperty;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcStartNodeProperty;
+import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcTrainIdProperty;
 import com.bigbrother.bilicraftticketsystem.ticket.BCCardInfo;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicketDisplay;
+import com.bigbrother.bilicraftticketsystem.web.WebLink;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.kyori.adventure.text.Component;
@@ -56,6 +58,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     private Economy econ = null;
     private TrainDatabaseManager trainDatabaseManager;
     private GeoDatabaseManager geoDatabaseManager;
+    private com.bigbrother.bilicraftticketsystem.web.WebLink webLink;
 
     private final File geodataDir = new File(this.getDataFolder(), "geojson");
 
@@ -74,6 +77,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     private final CardCommand cardCommand = new CardCommand(this);
     private final GeoCommand geoCommand = new GeoCommand(this);
     private final ConfigEditCommand configEditCommand = new ConfigEditCommand(this);
+    private final WebLinkCommand webLinkCommand = new WebLinkCommand(this);
 
     // 将要移除
     private final CustomSignActionStation customSignActionStation = new CustomSignActionStation();
@@ -117,7 +121,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
             ItemsConfig.loadItemsConfig(this);
             StationIconConfig.load(this);
             MenuConfig.loadMenuConfig(this);
-            GeoConfig.loadRailwayGeoConfig(this);
+            MapConfig.loadMapConfig(this);
             plugin.getComponentLogger().info(Component.text("成功加载配置文件", NamedTextColor.GOLD));
 
             BCTicketDisplay.loadFont();
@@ -149,6 +153,27 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         if (sender != null && !(sender instanceof ConsoleCommandSender)) {
             sender.sendMessage(Component.text("所有配置加载完成", NamedTextColor.GOLD));
         }
+
+        // Web 后端对接：首次加载且启用时启动；已连接时（reload）补推 systems / lines 快照
+        setupWebLink();
+    }
+
+    /**
+     * 按配置启停 Web 后端对接：启用且尚未启动则启动；已连接（reload 场景）则补推系统 / 线路快照。
+     * geojson 快照在 walkAll 成功后单独触发。
+     */
+    private void setupWebLink() {
+        if (!MapConfig.isEnabled()) {
+            return;
+        }
+        if (webLink == null) {
+            webLink = new WebLink(this);
+            webLink.start();
+        } else if (webLink.getClient().isConnected()) {
+            // reload：线路 / 系统配置可能变更，补推
+            webLink.getSnapshotPublisher().publishSystems();
+            webLink.getSnapshotPublisher().publishLines();
+        }
     }
 
     private void copyResources() {
@@ -160,7 +185,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         saveResourceIfAbsent(EnumConfig.MENU_ITEMS.getFileName());
         saveResourceIfAbsent(EnumConfig.ICON_ITEMS.getFileName());
         saveResourceIfAbsent(EnumConfig.MENU_TICKETBG.getFileName());
-        saveResourceIfAbsent(EnumConfig.GEO_CONFIG.getFileName());
+        saveResourceIfAbsent(EnumConfig.WEB_CONFIG.getFileName());
         saveResourceIfAbsent(EnumConfig.MENU_CARD.getFileName());
         saveResourceIfAbsent(EnumConfig.MENU_SYSTEM.getFileName());
         saveResourceIfAbsent(EnumConfig.RAILWAY_ROUTES_CONFIG.getFileName());
@@ -186,7 +211,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         @SuppressWarnings({"unchecked", "rawtypes"})
         AnnotationParser<C> annotationParser = new AnnotationParser(commandManager, CommandSender.class);
         annotationParser.parse(new CommandSuggestions(), new CommandParsers());
-        annotationParser.parse(adminCommand, ticketbgCommand, baseCommand, geoCommand, cardCommand, configEditCommand);
+        annotationParser.parse(adminCommand, ticketbgCommand, baseCommand, geoCommand, cardCommand, configEditCommand, webLinkCommand);
 
         // 将要移除
         annotationParser.parse(new com.bigbrother.bilicraftticketsystem.deprecated.CommandSuggestions());
@@ -236,6 +261,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         TrainCarts.plugin.getPropertyRegistry().register(BcLastAdvanceNodeProperty.INSTANCE);
         TrainCarts.plugin.getPropertyRegistry().register(BcStartNodeProperty.INSTANCE);
         TrainCarts.plugin.getPropertyRegistry().register(BcLineIdProperty.INSTANCE);
+        TrainCarts.plugin.getPropertyRegistry().register(BcTrainIdProperty.INSTANCE);
         this.getComponentLogger().info(Component.text("列车导航属性注册成功", NamedTextColor.GOLD));
     }
 
@@ -287,6 +313,10 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         SignAction.unregister(signActionSlowdown);
 
         Bukkit.getScheduler().cancelTasks(plugin);
+
+        if (webLink != null) {
+            webLink.shutdown();
+        }
 
         BCCardInfo.saveAll();
         trainDatabaseManager.close();

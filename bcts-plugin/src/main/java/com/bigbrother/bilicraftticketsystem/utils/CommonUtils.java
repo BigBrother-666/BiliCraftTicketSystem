@@ -149,4 +149,11 @@ public class CommonUtils {
     public static double mpt2Kph(double mpT) {
         return mpT * 20 * 3.6;
     }
+
+    /**
+     * 速度转换 km/h -> m/tick
+     */
+    public static double kph2Mpt(double kph) {
+        return kph / (20 * 3.6);
+    }
 }

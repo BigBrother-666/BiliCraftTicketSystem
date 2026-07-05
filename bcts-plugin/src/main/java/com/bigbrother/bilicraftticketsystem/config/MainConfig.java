@@ -20,6 +20,14 @@ public class MainConfig {
     public static String expressTicketBgimage;
     public static double pricePerKm;
     /**
+     * 创建 / 修改铁路系统时允许设置的每公里价格下限（含）。默认 0。
+     */
+    public static double pricePerKmMin;
+    /**
+     * 创建 / 修改铁路系统时允许设置的每公里价格上限（含）。默认 10。
+     */
+    public static double pricePerKmMax;
+    /**
      * slowdown 控制牌预测 platform 的最大检测距离（block），超出仍未找到 platform 则不减速，
      * 防止玩家把 slowdown 放得过远导致的性能问题。
      */
@@ -69,6 +77,10 @@ public class MainConfig {
         expressTicketName = mainConfig.get("express-ticket-name", "express");
         expressTicketBgimage = mainConfig.get("express-ticket-bgimage", "");
         pricePerKm = mainConfig.get("price-per-km", 0.3);
+
+        ConfigurationNode priceRange = mainConfig.getNode("price-per-km-range");
+        pricePerKmMin = priceRange.get("min", 0.0);
+        pricePerKmMax = priceRange.get("max", 10.0);
 
         slowdownMaxDetectDistance = mainConfig.get("slowdown-max-detect-distance", 500.0);
 

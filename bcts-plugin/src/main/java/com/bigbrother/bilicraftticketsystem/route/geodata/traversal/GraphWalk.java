@@ -1,5 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.route.geodata.traversal;
 
+import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import com.bigbrother.bilicraftticketsystem.utils.GeoUtils;
@@ -17,7 +18,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 全图 BFS 遍历驱动器（取代旧的按线行走 LineWalk）。
@@ -50,15 +50,19 @@ public class GraphWalk {
      */
     private final Set<String> visited;
     /**
+     * 待展开的段队列（跨所有起点共享）。分片执行：每个 tick 只弹出有限段处理（见 {@link #stepBatch}），
+     * 处理完一批就让出主线程，避免一次性展开整张图把服务器卡死。
+     */
+    private final Deque<WalkState> queue = new ArrayDeque<>();
+    /**
      * 每条线遍历实际到达的车站名（按首次到达顺序），供事后与配置站序比对。
      */
     @Getter
     private final Map<String, Set<String>> visitedStationsByLine = new LinkedHashMap<>();
     /**
      * 整次遍历累计处理的段数（跨所有起点），用于兜底防环。
-     * 用 {@link AtomicInteger}：主线程递增，异步进度反馈线程读取（见 GeoTraversalTask 的进度反馈）。
      */
-    private final AtomicInteger processed = new AtomicInteger(0);
+    private int processed = 0;
     /**
      * 是否已因异常情况（达到段数上限）中止。中止后整次遍历应停止并放弃写文件。
      */
@@ -89,54 +93,72 @@ public class GraphWalk {
     /**
      * 待展开的一段行走状态。
      *
-     * @param prevNodeId 上一节点 id（起点首段为 null，无入边可记）
-     * @param rail       本段起始铁轨
-     * @param direction  本段起始方向
-     * @param forcedDir  离开起始 bcswitcher 时的强制出向（platform 续行 / 起点首段为 null）
-     * @param lineId     本段携带的当前线路 id（决定本段边归属及矿车导向 tag）
+     * @param prevNodeId    上一节点 id（起点首段为 null，无入边可记）
+     * @param rail          本段起始铁轨
+     * @param direction     本段起始方向
+     * @param forcedDir     离开起始 bcswitcher 时的强制出向（platform 续行 / 起点首段为 null）
+     * @param lineId        本段携带的当前线路 id（决定本段边归属及矿车导向 tag）
+     * @param prevNode      上一个节点
+     * @param fromEnterFace 到达起点节点（道岔）时的到达面 key（起点首段为 null）——作为本段边的
+     *                      {@code enterFaceFrom}，供寻路门控「从此方向来才可走本段」。
      */
-    private record WalkState(String prevNodeId, Block rail, Vector direction, String forcedDir, String lineId) {
+    private record WalkState(String prevNodeId, Block rail, Vector direction, String forcedDir, String lineId,
+                             RailNode prevNode, String fromEnterFace) {
     }
 
     /**
-     * 从一个起点把其连通子网 BFS 展开（与其它起点共享 {@code visited} / {@code collector}）。
-     * 必须在主线程调用。
+     * 把一个起点的首段压入共享队列（不立即展开）。实际展开由 {@link #stepBatch} 分片驱动。
+     * 与其它起点共享 {@code visited} / {@code collector} / 队列：一个起点即可覆盖其连通子网，
+     * 后续起点的首段撞到已访问状态时在 {@link #stepBatch} 里被跳过（多起点用于覆盖不连通子网）。
      *
      * @param startLineId    起点登记的线路 id（首段及之后未经道岔改写前的当前 lineId）
      * @param startRail      起点铁轨
      * @param startDirection 起点方向
      */
-    public void walkFrom(String startLineId, Block startRail, Vector startDirection) {
-        Deque<WalkState> queue = new ArrayDeque<>();
-        queue.add(new WalkState(null, startRail, startDirection, null, startLineId));
+    public void seed(String startLineId, Block startRail, Vector startDirection) {
+        queue.add(new WalkState(null, startRail, startDirection, null, startLineId, null, null));
+    }
 
-        WalkState st;
-        while ((st = queue.poll()) != null) {
+    /**
+     * 分片展开：从共享队列里最多弹出 {@code batchSize} 段处理，处理完即返回，把主线程让给其它玩家。
+     * 必须在主线程调用，由上层每 tick 调用一次直到 {@link #hasPending()} 为 false。
+     * <p>
+     * 每段在本方法内同步生成并销毁行走矿车（不跨 tick 持有），故不会出现矿车 keep-loaded 区块区域
+     * 与异步推进抢状态导致的 {@code chunk area wasn't up to date} 问题。
+     *
+     * @param batchSize 本 tick 最多展开的段数（{@code <=0} 视为 1）
+     */
+    public void stepBatch(int batchSize) {
+        int limit = Math.max(1, batchSize);
+        for (int i = 0; i < limit; i++) {
             if (aborted) {
-                break;
+                return;
             }
-            if (processed.get() >= maxNodes) {
+            WalkState st = queue.poll();
+            if (st == null) {
+                return;
+            }
+            if (processed >= maxNodes) {
                 String pos = String.valueOf(st.rail().getLocation());
-                abort("达到段数上限 " + maxNodes + "，可能存在配置缺失或异常环路。当前线路 "
-                        + st.lineId() + "，停止位置 " + pos);
-                break;
+                abort("达到段数上限 " + maxNodes + "，可能存在配置缺失或异常环路。当前线路 " + st.lineId() + "，停止位置 " + pos);
+                return;
             }
-            processed.incrementAndGet();
+            processed++;
             walkSegment(st, queue);
         }
     }
 
     /**
-     * 当前累计已展开的段数。供异步进度反馈线程读取。
+     * 队列里是否还有待展开的段。供上层判断分片遍历是否结束。
      *
-     * @return 已展开段数
+     * @return 还有待展开段且未中止时返回 true
      */
-    public int getProcessed() {
-        return processed.get();
+    public boolean hasPending() {
+        return !aborted && !queue.isEmpty();
     }
 
     /**
-     * 标记整次遍历因异常情况中止：记录原因并写日志。调用后 {@link #walkFrom} 的循环会尽快退出，
+     * 标记整次遍历因异常情况中止：记录原因并写日志。调用后 {@link #stepBatch} 的循环会尽快退出，
      * 上层据 {@link #isAborted()} 放弃写文件并把 {@link #getAbortReason()} 反馈给发起者。
      *
      * @param reason 中止原因（含调试信息）
@@ -157,6 +179,7 @@ public class GraphWalk {
         String lineId = st.lineId();
         String color = LineConfig.getColor(lineId);
         String railwaySystemId = LineConfig.getSystemId(lineId);
+        String logPrefix = " [%s/%s] ".formatted(railwaySystemId, lineId);
         TrackWalker walker = new TrackWalker(st.rail(), st.direction());
         walker.setLineTag(lineId);
         walker.setForcedDirection(st.forcedDir());
@@ -171,7 +194,7 @@ public class GraphWalk {
             });
 
             if (result.reason() == TrackWalker.StopReason.END) {
-                log.info("线路 " + lineId + " 轨道结束（断轨/死路 @ " + result.railBlock().getLocation() + "）");
+                log.info(logPrefix + "线路 " + lineId + " 轨道结束（断轨/死路 @ " + result.railBlock().getLocation() + "）");
                 return;
             }
 
@@ -183,25 +206,28 @@ public class GraphWalk {
                 String stationName = result.sign().getLine(2).trim();
                 node = collector.resolveNode(RailNode.Type.STATION, result.railBlock(), stationName);
                 visitedStationsByLine.computeIfAbsent(lineId, k -> new LinkedHashSet<>()).add(stationName);
-                log.info("  到达车站 " + stationName + " @ " + node.getId());
+                log.info(logPrefix + "到达车站 " + stationName + " @ " + node.getId());
             } else {
                 node = collector.resolveNode(RailNode.Type.SWITCH, result.railBlock(), null);
-                log.info("  经过道岔 @ " + node.getId());
+                log.info(logPrefix + "经过道岔 @ " + node.getId());
             }
             node.addLineId(lineId);
             node.addRailwaySystemId(railwaySystemId);
 
             // 记录入边（起点首段 prevNodeId 为 null，无边可记）。st.forcedDir() 即离开上一道岔所用出向，
             // 作为本段物理出向写入，供运行时道岔对带导航的列车直接选向。
-            if (st.prevNodeId() != null && !st.prevNodeId().equals(node.getId())) {
+            // 如果上一个节点是车站节点 且 车站节点的下一个节点包含当前lineId 才添加
+            if (st.prevNodeId() != null && !st.prevNodeId().equals(node.getId()) ||
+                    st.prevNode() != null && st.prevNode().getType().equals(RailNode.Type.STATION) && node.getLineIds().contains(lineId)) {
                 collector.recordEdge(lineId, st.prevNodeId(), node.getId(), lineId, railwaySystemId, color,
-                        GeoUtils.simplifyLineString(coords), result.length(), st.forcedDir(), node.getRailBlock().getWorld().getName());
+                        GeoUtils.simplifyLineString(coords), result.length(), st.forcedDir(),
+                        node.getRailBlock().getWorld().getName(), st.fromEnterFace(), arrivalFace);
             }
 
             if (result.reason() == TrackWalker.StopReason.PLATFORM) {
-                expandPlatform(node, lineId, arrival, arrivalFace, queue);
+                expandPlatform(node, lineId, arrival, arrivalFace, queue, logPrefix);
             } else {
-                expandSwitcher(node, lineId, walker, result, arrival, arrivalFace, queue);
+                expandSwitcher(node, lineId, walker, result, arrival, arrivalFace, queue, logPrefix);
             }
         } finally {
             walker.destroy();
@@ -218,16 +244,16 @@ public class GraphWalk {
      * @param arrivalFace 到达方向的面 key（入向）
      * @param queue       待展开队列
      */
-    private void expandPlatform(RailNode node, String lineId, Vector arrival, String arrivalFace, Deque<WalkState> queue) {
+    private void expandPlatform(RailNode node, String lineId, Vector arrival, String arrivalFace, Deque<WalkState> queue, String logPrefix) {
         LineInfo lineInfo = LineConfig.get(lineId);
         boolean reverse = lineInfo != null && lineInfo.isReverseStationByName(node.getStationName());
         Vector outDir = reverse ? arrival.clone().multiply(-1) : arrival.clone();
         if (reverse) {
-            log.info("    折返站 " + node.getStationName() + "，反向驶出");
+            log.info(logPrefix + "折返站 " + node.getStationName() + "，反向驶出");
         }
         String outFace = faceKey(outDir);
         tryEnqueue(node, arrivalFace, outFace, lineId, queue,
-                new WalkState(node.getId(), node.getRailBlock(), outDir, null, lineId));
+                new WalkState(node.getId(), node.getRailBlock(), outDir, null, lineId, node, arrivalFace));
     }
 
     /**
@@ -245,14 +271,19 @@ public class GraphWalk {
      */
     @SuppressWarnings("unused")
     private void expandSwitcher(RailNode node, String lineId, TrackWalker walker, TrackWalker.WalkResult result,
-                                Vector arrival, String arrivalFace, Deque<WalkState> queue) {
-        List<BcSwitcherBranch> branches = walker.collectSwitcherBranches(result.sign().getRail());
+                                Vector arrival, String arrivalFace, Deque<WalkState> queue, String logPrefix) {
+        RailPiece rail = result.sign().getRail();
+        List<BcSwitcherBranch> branches = walker.collectSwitcherBranches(rail);
         for (BcSwitcherBranch branch : branches) {
             for (String outLineId : branch.getLineIds()) {
+                if (!LineConfig.getLines().containsKey(outLineId)) {
+                    log.info(logPrefix + "bcswitcher(%s)的道岔lineId %s 不存在，跳过该分支".formatted(rail.block().getLocation(), outLineId));
+                    continue;
+                }
                 // 出向 key 用 (方向, 出向lineId)：共用出向按线拆 fork，各挂单一 tag 各走各记。
                 tryEnqueue(node, arrivalFace, branch.getDirectionStr(), outLineId, queue,
                         new WalkState(node.getId(), node.getRailBlock(), arrival.clone(),
-                                branch.getDirectionStr(), outLineId));
+                                branch.getDirectionStr(), outLineId, node, arrivalFace));
             }
         }
     }

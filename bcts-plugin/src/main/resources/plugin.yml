@@ -22,6 +22,9 @@ permissions:
   bcts.ticket.reload:
     description: "重载配置文件权限"
     default: op
+  bcts.ticket.weblogin:
+    description: "绑定网页登录资格权限"
+    default: true
   bcts.ticket.menuitem:
     description: "添加自定义物品权限"
     default: op

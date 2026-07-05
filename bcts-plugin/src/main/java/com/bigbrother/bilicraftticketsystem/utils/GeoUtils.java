@@ -4,10 +4,26 @@ import com.bigbrother.bilicraftticketsystem.signactions.component.BcSwitcherBran
 import org.bukkit.Material;
 import org.geojson.LngLatAlt;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 
 public class GeoUtils {
+    /**
+     * 水平方向（XZ 平面）简化容差，单位为 mc 方块。
+     * <p>
+     * 游戏内的斜线是用阶梯状的方块逼近的（走一格 x 再走一格 z），相邻方块离理想斜线最多约半格。
+     * 该容差大于半格即可把整段阶梯压成一条直斜线；同时小于 1，保证 1 格以上的真实折返 / 拐弯被保留。
+     */
+    private static final double HORIZONTAL_TOLERANCE = 0.75;
+    /**
+     * 高度方向（mc 的 y）简化容差，单位为 mc 方块。
+     * <p>
+     * 远小于一格，任何真实的爬坡 / 下坡拐点都会被保留，只吸收浮点噪声，不会把不同高度压平。
+     */
+    private static final double ALTITUDE_TOLERANCE = 0.1;
+
     /**
      * 解析 bcswitcher 控制牌的一行出向声明 {@code <方向>@<线路id>;[线路id]...}，返回道岔分支。
      * <p>
@@ -45,39 +61,73 @@ public class GeoUtils {
     }
 
     /**
-     * 简化折线，去除相邻重复点与<b>三维</b>共线点。
+     * 简化折线：先去除相邻重复点，再用<b>各向异性的 Ramer–Douglas–Peucker</b> 算法抽稀顶点。
      * <p>
-     * 只有当连续三点在三维空间（含高度）上严格共线且方向一致时才丢弃中间点，
-     * 因此任何高度变化（爬坡 / 下坡）处的拐点都会被保留，不会把不同高度压平成同一值。
+     * 游戏内的斜线/曲线实际是由方块拼出的阶梯状折线（如先走一格 x、再走一格 z），
+     * 若按真实顶点输出会产生大量 90° 拐点。本方法把这种阶梯压回成一条平滑斜线，
+     * 显著降低 LineString 的顶点数。
+     * <p>
+     * 由于阶梯只发生在<b>水平</b>方向、而高度（爬坡 / 下坡）必须如实保留，
+     * 这里对水平与高度采用不同容差：水平 {@link #HORIZONTAL_TOLERANCE} 大于半格以吸收阶梯，
+     * 高度 {@link #ALTITUDE_TOLERANCE} 远小于一格以保住任何真实的高度拐点。
+     * <p>
+     * 距离按“点到<b>线段</b>”计算（而非到无限直线），因此原路折返的折返点离线段两端足够远，
+     * 一定会被保留。
      */
     public static List<LngLatAlt> simplifyLineString(List<LngLatAlt> coords) {
         if (coords.size() <= 2) return coords;
 
-        List<LngLatAlt> result = new ArrayList<>();
-        result.add(coords.getFirst()); // 起点
+        // 先去掉连续重复点，避免零长线段干扰距离计算
+        List<LngLatAlt> dedup = new ArrayList<>(coords.size());
+        dedup.add(coords.getFirst());
+        for (int i = 1; i < coords.size(); i++) {
+            if (!isSamePoint(dedup.getLast(), coords.get(i))) {
+                dedup.add(coords.get(i));
+            }
+        }
+        if (dedup.size() <= 2) return dedup;
 
-        for (int i = 1; i < coords.size() - 1; i++) {
-            LngLatAlt prev = coords.get(i - 1);
-            LngLatAlt curr = coords.get(i);
-            LngLatAlt next = coords.get(i + 1);
+        // RDP：标记保留哪些顶点。用显式栈避免递归过深（铁路线段可能很长）。
+        boolean[] keep = new boolean[dedup.size()];
+        keep[0] = true;
+        keep[dedup.size() - 1] = true;
 
-            // 跳过重复点
-            if (isSamePoint(prev, curr)) {
-                continue;
+        Deque<int[]> stack = new ArrayDeque<>();
+        stack.push(new int[]{0, dedup.size() - 1});
+        while (!stack.isEmpty()) {
+            int[] seg = stack.pop();
+            int start = seg[0];
+            int end = seg[1];
+            if (end - start < 2) continue; // 中间没有点可丢
+
+            LngLatAlt a = dedup.get(start);
+            LngLatAlt b = dedup.get(end);
+
+            // 找到对“起止线段”归一化偏差最大的中间点
+            int splitIdx = -1;
+            double maxRatio = 0;
+            for (int i = start + 1; i < end; i++) {
+                double ratio = normalizedDeviation(dedup.get(i), a, b);
+                if (ratio > maxRatio) {
+                    maxRatio = ratio;
+                    splitIdx = i;
+                }
             }
 
-            // 如果三点共线（水平、垂直或45度），跳过中点
-            if (isCollinear(prev, curr, next)) {
-                continue;
+            // 偏差超过容差（归一化后 > 1）则必须保留该点，并对两侧子段递归
+            if (splitIdx != -1 && maxRatio > 1.0) {
+                keep[splitIdx] = true;
+                stack.push(new int[]{start, splitIdx});
+                stack.push(new int[]{splitIdx, end});
             }
-
-            // 否则保留拐点
-            result.add(curr);
         }
 
-        // 末点始终保留
-        result.add(coords.getLast());
-
+        List<LngLatAlt> result = new ArrayList<>();
+        for (int i = 0; i < dedup.size(); i++) {
+            if (keep[i]) {
+                result.add(dedup.get(i));
+            }
+        }
         return result;
     }
 
@@ -89,30 +139,34 @@ public class GeoUtils {
     }
 
     /**
-     * 判断三点是否<b>三维</b>共线且方向一致。
+     * 计算点 {@code p} 到线段 {@code a-b} 的<b>各向异性归一化</b>偏差。
      * <p>
-     * x = longitude（mc 的 x）、y = latitude（mc 的 z）、z = altitude（mc 的 y）。
-     * 用两段向量的叉积是否为零判断共线，再用点积 &gt; 0 排除原路折返（折返点必须保留）。
+     * x = longitude（mc 的 x）、y = latitude（mc 的 z）为水平面，z = altitude（mc 的 y）为高度。
+     * 先把 p 投影到线段（投影落在端点外则取最近端点），得到水平偏差与高度偏差，
+     * 再分别除以 {@link #HORIZONTAL_TOLERANCE} 与 {@link #ALTITUDE_TOLERANCE} 归一化，取较大者。
+     * 返回值 &gt; 1 表示在某一方向上超出了容差、该点不可丢弃。
      */
-    private static boolean isCollinear(LngLatAlt a, LngLatAlt b, LngLatAlt c) {
-        // 第一段向量 a->b
-        double ux = b.getLongitude() - a.getLongitude();
-        double uy = b.getLatitude() - a.getLatitude();
-        double uz = b.getAltitude() - a.getAltitude();
-        // 第二段向量 b->c
-        double vx = c.getLongitude() - b.getLongitude();
-        double vy = c.getLatitude() - b.getLatitude();
-        double vz = c.getAltitude() - b.getAltitude();
+    private static double normalizedDeviation(LngLatAlt p, LngLatAlt a, LngLatAlt b) {
+        double ax = a.getLongitude(), ay = a.getLatitude(), az = a.getAltitude();
+        double bx = b.getLongitude(), by = b.getLatitude(), bz = b.getAltitude();
+        double px = p.getLongitude(), py = p.getLatitude(), pz = p.getAltitude();
 
-        // 叉积 u × v，全为 0 才三维共线
-        double cx = uy * vz - uz * vy;
-        double cy = uz * vx - ux * vz;
-        double cz = ux * vy - uy * vx;
-        if (cx != 0 || cy != 0 || cz != 0) {
-            return false;
-        }
-        // 共线但需方向一致（点积 > 0），否则是折返拐点，必须保留
-        return ux * vx + uy * vy + uz * vz > 0;
+        double dx = bx - ax, dy = by - ay, dz = bz - az;
+        double lenSq = dx * dx + dy * dy + dz * dz;
+
+        // 把 p 投影到线段 a-b，clamp 到 [0,1] 保证用的是到“线段”而非无限直线的距离
+        double t = lenSq == 0 ? 0 : ((px - ax) * dx + (py - ay) * dy + (pz - az) * dz) / lenSq;
+        if (t < 0) t = 0;
+        else if (t > 1) t = 1;
+
+        // 投影点坐标
+        double cx = ax + t * dx, cy = ay + t * dy, cz = az + t * dz;
+
+        // 水平偏差（XZ 平面）与高度偏差分开衡量
+        double horiz = Math.hypot(px - cx, py - cy);
+        double alt = Math.abs(pz - cz);
+
+        return Math.max(horiz / HORIZONTAL_TOLERANCE, alt / ALTITUDE_TOLERANCE);
     }
 
     public static boolean isRail(Material type) {

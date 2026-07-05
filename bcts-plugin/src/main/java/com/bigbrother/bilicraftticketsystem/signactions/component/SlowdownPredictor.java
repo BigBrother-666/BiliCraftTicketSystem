@@ -3,9 +3,12 @@ package com.bigbrother.bilicraftticketsystem.signactions.component;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
+import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteNavigator;
+import org.bukkit.block.Block;
+import org.bukkit.util.Vector;
 
 /**
  * slowdown 减速距离预测器：从 slowdown 控制牌所在位置出发，沿<b>列车将要行驶的路径</b>向前预测，
@@ -43,11 +46,13 @@ public final class SlowdownPredictor {
     /**
      * 预测结果。
      *
-     * @param reason   停止原因
-     * @param distance slowdown 到 platform 的距离（block），仅 {@link Reason#PLATFORM} 时有意义
-     * @param station  到达的 platform 站名，仅 {@link Reason#PLATFORM} 时有意义
+     * @param reason       停止原因
+     * @param distance     slowdown 到 platform 的距离（block），仅 {@link Reason#PLATFORM} 时有意义
+     * @param station      到达的 platform 站名，仅 {@link Reason#PLATFORM} 时有意义
+     * @param platformRail 到达的 platform 所在铁轨方块，仅 {@link Reason#PLATFORM} 时有意义（其余为 null）；
+     *                     直达车据此与终点站台节点坐标精确比对、并作为缓存 platform 坐标
      */
-    public record Result(Reason reason, double distance, String station) {
+    public record Result(Reason reason, double distance, String station, Block platformRail) {
     }
 
     private SlowdownPredictor() {
@@ -79,13 +84,13 @@ public final class SlowdownPredictor {
                 if (!wp.moveFull()) {
                     SlowdownTrace.log(member.getGroup(), null,
                             "预测：轨道结束/死路 @ 已走 %.2f".formatted(wp.movedTotal - startMoved));
-                    return new Result(Reason.NOT_FOUND, 0, null);
+                    return new Result(Reason.NOT_FOUND, 0, null, null);
                 }
                 double traveled = wp.movedTotal - startMoved;
                 if (traveled > maxDistance) {
                     SlowdownTrace.log(member.getGroup(), null,
                             "预测：超过最大检测距离 %.1f（已走 %.2f）未找到 platform".formatted(maxDistance, traveled));
-                    return new Result(Reason.NOT_FOUND, 0, null);
+                    return new Result(Reason.NOT_FOUND, 0, null, null);
                 }
 
                 RailLookup.TrackedSign[] signs = signsOf(wp.state.railPiece());
@@ -93,6 +98,11 @@ public final class SlowdownPredictor {
                     continue;
                 }
                 for (RailLookup.TrackedSign sign : signs) {
+                    Vector arrival = wp.state.motionVector();
+                    SignActionEvent event = new SignActionEvent(sign, member);
+                    if (!event.isWatchedDirection(arrival)) {
+                        continue;
+                    }
                     String type = sign.getLine(1).trim().toLowerCase();
                     if (type.startsWith("bcswitcher")) {
                         // 仅追踪：记录预测路径经过的道岔（定位路径是否走偏）
@@ -103,13 +113,14 @@ public final class SlowdownPredictor {
                         // 先遇到另一个 slowdown：减速交给它处理，本牌停止流程
                         SlowdownTrace.log(member.getGroup(), wp.state.railBlock(),
                                 "预测：先遇到另一个 slowdown @ 已走 %.2f → 本牌不负责减速".formatted(traveled));
-                        return new Result(Reason.ANOTHER_SLOWDOWN, 0, null);
+                        return new Result(Reason.ANOTHER_SLOWDOWN, 0, null, null);
                     }
                     if (type.startsWith("platform")) {
                         String station = sign.getLine(2).trim();
-                        SlowdownTrace.log(member.getGroup(), wp.state.railBlock(),
+                        Block platformRail = wp.state.railBlock();
+                        SlowdownTrace.log(member.getGroup(), platformRail,
                                 "预测：找到 platform 站名=%s @ 已走 %.2f".formatted(station, traveled));
-                        return new Result(Reason.PLATFORM, traveled, station);
+                        return new Result(Reason.PLATFORM, traveled, station, platformRail);
                     }
                 }
             }
