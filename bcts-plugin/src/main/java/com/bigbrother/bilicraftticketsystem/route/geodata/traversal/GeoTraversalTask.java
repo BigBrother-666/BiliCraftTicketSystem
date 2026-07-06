@@ -22,6 +22,7 @@ import org.geojson.FeatureCollection;
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
 
 /**
  * 铁路遍历任务：从所有已登记起点做全图 BFS，按线路分文件产出 geojson。
@@ -380,22 +381,34 @@ public class GeoTraversalTask {
         if (info == null || info.getBossbarStations().isEmpty()) {
             return true;
         }
+
+        boolean vaild = true;
         Set<String> expected = new LinkedHashSet<>(info.getBossbarStations());
+        StringBuilder invaildStations = new StringBuilder();
         for (String want : expected) {
             if (!visited.contains(want)) {
-                walk.abort("线路 " + lineId + " 校验：配置车站 \"" + want
-                        + "\" 未在遍历中到达（轨道未铺设或道岔未声明该线？）");
-                return false;
+                invaildStations.append("\"").append(want).append("\" ");
+                vaild = false;
             }
         }
+        if (!invaildStations.isEmpty()) {
+            log.message("线路 " + lineId + " 校验：配置车站 " + invaildStations + "未在遍历中到达（轨道未铺设或道岔未声明该线？）", NamedTextColor.RED, Level.SEVERE);
+        }
+
+        invaildStations = new StringBuilder();
         for (String got : visited) {
             if (!expected.contains(got)) {
-                walk.abort("线路 " + lineId + " 校验：到达了配置外的车站 \"" + got
-                        + "\"（站名写错或控制牌归属线路有误？）");
-                return false;
+                invaildStations.append("\"").append(got).append("\" ");
+                vaild = false;
             }
         }
-        return true;
+        if (!invaildStations.isEmpty()) {
+            log.message("线路 " + lineId + " 校验：到达了配置外的车站 " + invaildStations + "（站名写错或控制牌归属线路有误？）", NamedTextColor.RED, Level.SEVERE);
+        }
+        if (!vaild) {
+            walk.abort("线路车站校验失败");
+        }
+        return vaild;
     }
 
     /**
