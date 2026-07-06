@@ -15,8 +15,6 @@ import java.util.*;
  * {@link #upsert} 写回工具（保留 yaml 注释）。插件启动 / reload 时调用 {@link #load}。
  */
 public class RailwaySystemConfig {
-    public static final String CONTACT_ID = "contact";
-
     /**
      * 系统 id -> 系统信息，使用 LinkedHashMap 保持配置文件中的顺序。
      */

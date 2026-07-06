@@ -224,18 +224,11 @@ public abstract class BCTransitPass {
         Map<String, Object> placeholder = new HashMap<>();
         for (Map.Entry<String, Double> entry : segmentDistances.entrySet()) {
             String systemId = entry.getKey();
-            if (systemId.equals(RailwaySystemConfig.CONTACT_ID)) {
-                placeholder.put("railway_system", "联络线");
-                placeholder.put("system_distance", "%.2f".formatted(entry.getValue()));
-                placeholder.put("system_price", "%.2f".formatted(MainConfig.pricePerKm * entry.getValue()));
-                placeholder.put("system_price_per_km", "%.2f".formatted(MainConfig.pricePerKm));
-            } else {
-                RailwaySystemInfo systemInfo = RailwaySystemConfig.get(systemId);
-                placeholder.put("railway_system", systemInfo.getName());
-                placeholder.put("system_distance", "%.2f".formatted(entry.getValue()));
-                placeholder.put("system_price", "%.2f".formatted(entry.getValue() * systemInfo.getPricePerKm()));
-                placeholder.put("system_price_per_km", "%.2f".formatted(systemInfo.getPricePerKm()));
-            }
+            RailwaySystemInfo systemInfo = RailwaySystemConfig.get(systemId);
+            placeholder.put("railway_system", systemInfo.getName());
+            placeholder.put("system_distance", "%.2f".formatted(entry.getValue()));
+            placeholder.put("system_price", "%.2f".formatted(entry.getValue() * systemInfo.getPricePerKm()));
+            placeholder.put("system_price_per_km", "%.2f".formatted(systemInfo.getPricePerKm()));
             List<Component> configLore = parseConfigLore(List.of(MainConfig.distanceInfoLore), placeholder);
             if (!configLore.isEmpty()) {
                 lore.add(configLore.getFirst());
