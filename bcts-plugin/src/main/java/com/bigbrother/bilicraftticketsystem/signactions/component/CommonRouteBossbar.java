@@ -38,7 +38,7 @@ public class CommonRouteBossbar extends RouteBossbarBase {
     private final String lineId;
     private final List<String> stations;
     private final boolean ring;
-    private int nextStationIdx;
+    private int currStationIdx;
 
     private final TextColor passedColor;
     private final TextColor notPassedColor;
@@ -56,7 +56,7 @@ public class CommonRouteBossbar extends RouteBossbarBase {
         this.lineId = line.getId();
         this.stations = new ArrayList<>(line.getBossbarStations());
         this.ring = line.isRing();
-        this.nextStationIdx = 0;
+        this.currStationIdx = 0;
         this.passedColor = parseTextColor(MainConfig.bossbarPassedColor, NamedTextColor.GRAY);
         // 未过站颜色未配置时回退到该线路的标志色
         this.notPassedColor = parseTextColor(MainConfig.bossbarNotPassedColor,
@@ -106,27 +106,27 @@ public class CommonRouteBossbar extends RouteBossbarBase {
         if (idx < 0) {
             return;
         }
-        this.nextStationIdx = idx;
+        this.currStationIdx = idx;
         if (ring) {
             bossBar.progress(1.0f);
         } else {
-            bossBar.progress(Math.min((float) (nextStationIdx + 1) / stations.size(), 1.0f));
+            bossBar.progress(Math.min((float) (currStationIdx + 1) / stations.size(), 1.0f));
         }
 
         if (arrivalNotice == null || arrivalNotice.isEmpty()) {
-            bossBar.name(buildScrollTitle());
+            bossBar.name(buildScrollTitle(true));
         } else {
             LineInfo lineInfo = LineConfig.get(lineId);
             // 走统一占位符解析（同时支持 MiniMessage 与 & 代码），便于以后扩展更多占位符
             Map<String, Object> placeholders = new HashMap<>();
-            placeholders.put("curr_station", stations.get(nextStationIdx));
-            placeholders.put("next_station", nextStationIdx + 1 < stations.size() ? stations.get(nextStationIdx + 1) : CommonUtils.NOT_AVAILABLE_MM);
+            placeholders.put("curr_station", stations.get(currStationIdx));
+            placeholders.put("next_station", currStationIdx + 1 < stations.size() ? stations.get(currStationIdx + 1) : CommonUtils.NOT_AVAILABLE_MM);
             placeholders.put("line_name", lineName);
             placeholders.put("line_color", lineInfo == null ? "<#FFFFFF>" : "<%s>".formatted(lineInfo.getLineColor()));
             RailwaySystemInfo railwaySystemInfo = lineInfo == null ? null : RailwaySystemConfig.get(lineInfo.getRailwaySystemId());
             placeholders.put("railway_system", railwaySystemInfo != null ? railwaySystemInfo.getName() : CommonUtils.NOT_AVAILABLE_MM);
             List<Component> parsed = PlaceholderParser.parse(List.of(arrivalNotice), placeholders);
-            bossBar.name(parsed.isEmpty() ? buildScrollTitle() : parsed.getFirst());
+            bossBar.name(parsed.isEmpty() ? buildScrollTitle(true) : parsed.getFirst());
         }
     }
 
@@ -135,12 +135,12 @@ public class CommonRouteBossbar extends RouteBossbarBase {
         if (bossBar == null || stations.isEmpty()) {
             return;
         }
-        nextStationIdx += 1;
-        bossBar.name(buildScrollTitle());
+        currStationIdx += 1;
+        bossBar.name(buildScrollTitle(false));
         if (ring) {
             bossBar.progress(1.0f);
         } else {
-            bossBar.progress(Math.min((float) nextStationIdx / stations.size(), 1.0f));
+            bossBar.progress(Math.min((float) currStationIdx / stations.size(), 1.0f));
         }
     }
 
@@ -158,12 +158,12 @@ public class CommonRouteBossbar extends RouteBossbarBase {
             return;
         }
         int idx = entryStation == null ? -1 : stations.indexOf(entryStation);
-        this.nextStationIdx = Math.max(idx, 0);
-        bossBar.name(buildScrollTitle());
+        this.currStationIdx = Math.max(idx, 0);
+        bossBar.name(buildScrollTitle(false));
         if (ring) {
             bossBar.progress(1.0f);
         } else {
-            bossBar.progress(Math.min((float) (nextStationIdx + 1) / stations.size(), 1.0f));
+            bossBar.progress(Math.min((float) (currStationIdx) / stations.size(), 1.0f));
         }
     }
 
@@ -172,8 +172,8 @@ public class CommonRouteBossbar extends RouteBossbarBase {
      * 已过 / 未过站不同颜色，被截断的一侧用 {@code ...} 省略。环线按去重后的唯一站序环绕，
      * 两端恒显省略号。
      */
-    private Component buildScrollTitle() {
-        return scrollTitle(stations, ring, nextStationIdx, passedColor, notPassedColor, passedNum, notPassedNum);
+    private Component buildScrollTitle(boolean arrived) {
+        return scrollTitle(stations, ring, currStationIdx, passedColor, notPassedColor, passedNum, notPassedNum, arrived);
     }
 
     /**
@@ -186,13 +186,14 @@ public class CommonRouteBossbar extends RouteBossbarBase {
      * @param notPassedColor 未过站颜色
      * @param passedNum      当前站前显示的已过站个数
      * @param notPassedNum   当前站起显示的未过站个数
+     * @param arrived        是否已到达当前站（到站时通向当前站的箭头用已过色，站名仍为未过色）
      * @return 标题 Component
      */
     public static Component scrollTitle(List<String> stations, boolean ring, int nextStationIdx,
                                         TextColor passedColor, TextColor notPassedColor,
-                                        int passedNum, int notPassedNum) {
+                                        int passedNum, int notPassedNum, boolean arrived) {
         int size = stations.size();
-        // 每个 token: [站名下标, 是否已过(1/0)]
+        // 每个 token: [站名下标, 是否已过(1/0), 是否当前站(1/0)]
         List<int[]> tokens = new ArrayList<>();
         boolean lead;
         boolean trail;
@@ -205,17 +206,21 @@ public class CommonRouteBossbar extends RouteBossbarBase {
             int cur = ((nextStationIdx % unique) + unique) % unique;
             for (int k = cur - passedNum; k <= cur + notPassedNum - 1; k++) {
                 int idx = ((k % unique) + unique) % unique;
-                tokens.add(new int[]{idx, k < cur ? 1 : 0});
+                tokens.add(new int[]{idx, k < cur ? 1 : 0, k == cur ? 1 : 0});
             }
             lead = true;
             trail = true;
         } else {
             //noinspection UnnecessaryLocalVariable
             int cur = nextStationIdx;
-            int start = Math.max(cur - passedNum, 0);
-            int end = Math.min(cur + notPassedNum, size);
+            // 固定显示 displayNum 个车站：开始时窗口锁定在 [0, displayNum) 不滑动，
+            // 直到当前站越过前 passedNum 个已过站后才开始滑动（始终保持 passedNum 个已过站在前）；
+            // 滑到尾部 [size-displayNum, size) 后不再滑动、也不减少车站数，改为窗口内已过站越来越多。
+            int displayNum = Math.min(passedNum + notPassedNum, size);
+            int start = Math.max(0, Math.min(cur - passedNum, size - displayNum));
+            int end = start + displayNum;
             for (int i = start; i < end; i++) {
-                tokens.add(new int[]{i, i < cur ? 1 : 0});
+                tokens.add(new int[]{i, i < cur ? 1 : 0, i == cur ? 1 : 0});
             }
             lead = start > 0;
             trail = end < size;
@@ -230,7 +235,9 @@ public class CommonRouteBossbar extends RouteBossbarBase {
         for (int[] token : tokens) {
             TextColor color = token[1] == 1 ? passedColor : notPassedColor;
             if (!first) {
-                result = result.append(Component.text(" → ", color));
+                // 已到站时，通向当前站的箭头视为已走过，用已过色（站名本身仍为未过色）
+                TextColor arrowColor = (arrived && token[2] == 1) ? passedColor : color;
+                result = result.append(Component.text(" → ", arrowColor));
             }
             result = result.append(Component.text(stations.get(token[0]), color));
             first = false;
