@@ -27,10 +27,7 @@ public final class WizardManager {
      */
     public static void start(ConfigWizard wizard) {
         UUID uuid = wizard.getPlayer().getUniqueId();
-        ConfigWizard old = active.remove(uuid);
-        if (old != null) {
-            old.cancel();
-        }
+        cancel(uuid);
         active.put(uuid, wizard);
         wizard.start();
     }
