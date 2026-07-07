@@ -112,25 +112,92 @@ public class GeoRoutePath {
         List<String> result = new ArrayList<>();
         for (int i = 0; i < nodes.size(); i++) {
             GeoNode node = nodes.get(i);
+            String nodeId = node.getId();
             if (node.isStation()) {
-                result.add(ROUTE_STEP_PLATFORM);
+                result.add(ROUTE_STEP_PLATFORM + ROUTE_STEP_NODE_SEP + nodeId);
             } else {
                 String depart = i < departDirectionSequence.size() && departDirectionSequence.get(i) != null
                         ? departDirectionSequence.get(i) : "";
-                result.add(ROUTE_STEP_SWITCH_PREFIX + depart);
+                result.add(ROUTE_STEP_SWITCH_PREFIX + depart + ROUTE_STEP_NODE_SEP + nodeId);
             }
         }
         return result;
     }
 
     /**
-     * {@link #routeSteps()} 中车站（platform）步骤的编码。
+     * {@link #routeSteps()} 中车站（platform）步骤的载荷编码。
      */
     public static final String ROUTE_STEP_PLATFORM = "P";
     /**
-     * {@link #routeSteps()} 中道岔（switch）步骤的前缀，其后接驶出段<b>物理出向</b>（e/s/w/n 或 f/b/l/r）。
+     * {@link #routeSteps()} 中道岔（switch）步骤载荷的前缀，其后接驶出段<b>物理出向</b>（e/s/w/n 或 f/b/l/r）。
      */
     public static final String ROUTE_STEP_SWITCH_PREFIX = "S:";
+    /**
+     * {@link #routeSteps()} 中「步骤载荷」与「节点 id」的分隔符。
+     * <p>
+     * 每一步编码为 {@code <载荷><SEP><节点id>}：载荷为 {@code "P"} 或 {@code "S:<出向>"}，
+     * 节点 id 为 {@link com.bigbrother.bilicraftticketsystem.route.NodeId#ofBlock}（形如 {@code n.world.x.y.z}，
+     * 不含 {@code |}）。列车运行时据此把「实际到达的物理节点」与「当前步骤应到的节点」逐个比对：不符即
+     * 说明遇到新放置的控制牌（节点不在图中→跳过不推进）或走错方向（节点在图中但顺序不符→按终点重算路线）。
+     * <p>
+     * 旧存档的步骤不含分隔符，解析节点 id 时返回 null，对齐校验自动降级为「不校验、照常推进」，向后兼容。
+     */
+    public static final String ROUTE_STEP_NODE_SEP = "|";
+
+    /**
+     * 取步骤的「载荷」部分（{@code "P"} 或 {@code "S:<出向>"}），即分隔符之前的内容。
+     * 旧格式（无分隔符）整串即载荷。
+     *
+     * @param step 节点步骤编码
+     * @return 载荷；step 为 null 返回 null
+     */
+    public static String stepPayload(String step) {
+        if (step == null) {
+            return null;
+        }
+        int sep = step.indexOf(ROUTE_STEP_NODE_SEP);
+        return sep < 0 ? step : step.substring(0, sep);
+    }
+
+    /**
+     * 取步骤编码里的节点 id（分隔符之后的内容）。
+     *
+     * @param step 节点步骤编码
+     * @return 节点 id；无分隔符（旧格式）或 step 为 null 返回 null
+     */
+    public static String stepNodeId(String step) {
+        if (step == null) {
+            return null;
+        }
+        int sep = step.indexOf(ROUTE_STEP_NODE_SEP);
+        return sep < 0 ? null : step.substring(sep + ROUTE_STEP_NODE_SEP.length());
+    }
+
+    /**
+     * 步骤是否为道岔步骤（载荷以 {@link #ROUTE_STEP_SWITCH_PREFIX} 开头）。
+     *
+     * @param step 节点步骤编码
+     * @return true 表示道岔步骤
+     */
+    public static boolean stepIsSwitch(String step) {
+        String payload = stepPayload(step);
+        return payload != null && payload.startsWith(ROUTE_STEP_SWITCH_PREFIX);
+    }
+
+    /**
+     * 取道岔步骤的物理出向。
+     *
+     * @param step 节点步骤编码
+     * @return 出向（e/s/w/n 或 f/b/l/r）；非道岔步骤 / 出向为空返回 null
+     */
+    public static String stepDirection(String step) {
+        String payload = stepPayload(step);
+        if (payload == null || !payload.startsWith(ROUTE_STEP_SWITCH_PREFIX)) {
+            return null;
+        }
+        String dir = payload.substring(ROUTE_STEP_SWITCH_PREFIX.length());
+        return dir.isEmpty() ? null : dir;
+    }
 
     /**
      * 路径上的车站名有序序列（仅 station 节点，按经过顺序）。

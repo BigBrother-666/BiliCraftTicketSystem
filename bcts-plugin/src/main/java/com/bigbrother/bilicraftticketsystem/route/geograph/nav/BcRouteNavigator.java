@@ -3,6 +3,8 @@ package com.bigbrother.bilicraftticketsystem.route.geograph.nav;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
+import com.bigbrother.bilicraftticketsystem.route.geograph.GeoNode;
+import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRouteEngine;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRoutePath;
 import com.bigbrother.bilicraftticketsystem.signactions.component.BossbarManager;
 import com.bigbrother.bilicraftticketsystem.signactions.component.RouteBossbarBase;
@@ -61,12 +63,7 @@ public final class BcRouteNavigator {
         if (predictionSim.get() != null) {
             return predictionSim.get().peekDirection();
         }
-        String step = currentStep(group);
-        if (step != null && step.startsWith(GeoRoutePath.ROUTE_STEP_SWITCH_PREFIX)) {
-            String dir = step.substring(GeoRoutePath.ROUTE_STEP_SWITCH_PREFIX.length());
-            return dir.isEmpty() ? null : dir;
-        }
-        return null;
+        return GeoRoutePath.stepDirection(currentStep(group));
     }
 
     /**
@@ -156,8 +153,9 @@ public final class BcRouteNavigator {
         List<String> switchDirs = new ArrayList<>();
         for (int i = Math.max(0, index); i < route.size(); i++) {
             String step = route.get(i);
-            if (step != null && step.startsWith(GeoRoutePath.ROUTE_STEP_SWITCH_PREFIX)) {
-                switchDirs.add(step.substring(GeoRoutePath.ROUTE_STEP_SWITCH_PREFIX.length()));
+            if (GeoRoutePath.stepIsSwitch(step)) {
+                String dir = GeoRoutePath.stepDirection(step);
+                switchDirs.add(dir == null ? "" : dir);
             }
         }
         predictionSim.set(new PredictionSim(switchDirs));
@@ -221,8 +219,55 @@ public final class BcRouteNavigator {
      * @return true 表示当前步骤为道岔
      */
     public static boolean isAtSwitchStep(MinecartGroup group) {
-        String step = currentStep(group);
-        return step != null && step.startsWith(GeoRoutePath.ROUTE_STEP_SWITCH_PREFIX);
+        return GeoRoutePath.stepIsSwitch(currentStep(group));
+    }
+
+    /**
+     * 取列车当前指针所指步骤的<b>应到达节点 id</b>（步骤编码里附带的 nodeId）。
+     * <p>
+     * 供运行时对齐校验：把「实际到达的物理节点」与本值比对。旧存档步骤不含节点 id 时返回 null，
+     * 调用方据此降级为「不校验、照常推进」。
+     *
+     * @param group 列车
+     * @return 当前步骤应到达的节点 id；越界 / 无导航 / 旧格式返回 null
+     */
+    public static String currentStepNodeId(MinecartGroup group) {
+        return GeoRoutePath.stepNodeId(currentStep(group));
+    }
+
+    /**
+     * 取导航序列<b>终点站台</b>（末步）的节点 id。
+     *
+     * @param group 列车
+     * @return 终点节点 id；无导航 / 旧格式返回 null
+     */
+    public static String endNodeId(MinecartGroup group) {
+        if (group == null) {
+            return null;
+        }
+        List<String> route = group.getProperties().get(BcRouteProperty.INSTANCE);
+        if (route == null || route.isEmpty()) {
+            return null;
+        }
+        return GeoRoutePath.stepNodeId(route.getLast());
+    }
+
+    /**
+     * 取导航序列终点站的<b>车站名</b>：从末步的节点 id 反查当前路由图。
+     * <p>
+     * 运行时列车没有持久化的终点站属性，走错方向重算时的「终点站名」由此获得（据 {@link #endNodeId}
+     * 在图中查节点取站名）。
+     *
+     * @param group 列车
+     * @return 终点站名；无导航 / 旧格式 / 节点已不在图中返回 null
+     */
+    public static String endStationName(MinecartGroup group) {
+        String nodeId = endNodeId(group);
+        if (nodeId == null) {
+            return null;
+        }
+        GeoNode node = GeoRouteEngine.getGraph().getNode(nodeId);
+        return node == null ? null : node.getName();
     }
 
     /**
@@ -290,6 +335,33 @@ public final class BcRouteNavigator {
             return false;
         }
         return nodeId.equals(group.getProperties().get(BcLastAdvanceNodeProperty.INSTANCE));
+    }
+
+    /**
+     * 列车走错方向后，以其<b>当前实际所在节点</b>为起点、原终点站名为目标重算路线并替换导航序列。
+     * <p>
+     * 终点站名取原导航序列末步节点在图中的站名（{@link #endStationName}）——按<b>站名</b>寻路，
+     * 因此可到达终点的<b>任意站台</b>。重算成功后 {@link #setRoute} 归零指针，新序列首步即当前节点，
+     * 列车可在同一道岔按新路线立刻选向。重算失败（无路可走）时不改动导航，返回 false（调用方保留旧指针）。
+     *
+     * @param group      列车
+     * @param fromNodeId 列车当前实际所在的节点 id（道岔铁轨方块）
+     * @return true 表示已重算并替换路线；false 表示无解、导航未改动
+     */
+    public static boolean reroute(MinecartGroup group, String fromNodeId) {
+        if (group == null || fromNodeId == null) {
+            return false;
+        }
+        String end = endStationName(group);
+        if (end == null) {
+            return false;
+        }
+        GeoRoutePath path = GeoRouteEngine.findFromNode(fromNodeId, end);
+        if (path == null) {
+            return false;
+        }
+        setRoute(group, path.routeSteps());
+        return true;
     }
 
     /**

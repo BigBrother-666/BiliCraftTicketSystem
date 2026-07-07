@@ -84,4 +84,56 @@ public final class SwitchTrace {
                 .append(Component.text(" 动作=" + action, NamedTextColor.GOLD));
         BiliCraftTicketSystem.plugin.getComponentLogger().info(msg);
     }
+
+    /**
+     * 记录一次「节点对齐校验跳过」（仅在开启时输出）。
+     * <p>
+     * 列车实际到达的物理节点与当前步骤应到的节点不符，且该物理节点<b>不在</b>当前路由图中——
+     * 判定为玩家新放置、尚未重新遍历的控制牌，跳过本次选向 + 推进（指针不动，继续对齐下一个真实图节点）。
+     *
+     * @param group          列车
+     * @param actualNodeId   实际到达的物理节点 id
+     * @param expectedNodeId 当前步骤应到达的节点 id（可能为 null）
+     */
+    public static void logSkip(MinecartGroup group, String actualNodeId, String expectedNodeId) {
+        if (!enabled) {
+            return;
+        }
+        String trainName = group == null ? "(null)" : group.getProperties().getTrainName();
+        String trainType = BcRouteNavigator.hasRoute(group) ? "快速车" : "普通车";
+        Component msg = Component.text("[路径追踪] ", NamedTextColor.AQUA)
+                .append(Component.text("列车=%s(%s)".formatted(trainName, trainType), NamedTextColor.GRAY))
+                .append(Component.text(" 实际到达=" + actualNodeId, NamedTextColor.WHITE))
+                .append(Component.text(" 期望=" + expectedNodeId, NamedTextColor.GRAY))
+                .append(Component.text(" 跳过：节点不在图中", NamedTextColor.LIGHT_PURPLE))
+                .append(Component.text(" 不推进进度", NamedTextColor.YELLOW));
+        BiliCraftTicketSystem.plugin.getComponentLogger().info(msg);
+    }
+
+    /**
+     * 记录一次「走错方向重算路线」（仅在开启时输出）。
+     * <p>
+     * 列车实际到达的物理节点与当前步骤应到的节点不符，但该节点<b>在</b>图中——判定为列车走错方向，
+     * 已按（据终点站名的）最短路径重算并替换导航序列。
+     *
+     * @param group        列车
+     * @param actualNodeId 实际到达的物理节点 id
+     * @param endStation   重算目标终点站名
+     * @param success      是否重算成功（false 表示无路可走、保留旧指针）
+     */
+    public static void logReroute(MinecartGroup group, String actualNodeId, String endStation, boolean success) {
+        if (!enabled) {
+            return;
+        }
+        String trainName = group == null ? "(null)" : group.getProperties().getTrainName();
+        String trainType = BcRouteNavigator.hasRoute(group) ? "快速车" : "普通车";
+        Component msg = Component.text("[路径追踪] ", NamedTextColor.AQUA)
+                .append(Component.text("列车=%s(%s)".formatted(trainName, trainType), NamedTextColor.GRAY))
+                .append(Component.text(" 当前节点=" + actualNodeId, NamedTextColor.WHITE))
+                .append(Component.text(" 终点=" + endStation, NamedTextColor.AQUA))
+                .append(Component.text(" 走错方向：节点在图中但顺序不符", NamedTextColor.RED))
+                .append(Component.text(success ? " → 已重算路线并启用" : " → 重算失败，保留原路线",
+                        success ? NamedTextColor.GREEN : NamedTextColor.RED));
+        BiliCraftTicketSystem.plugin.getComponentLogger().info(msg);
+    }
 }

@@ -22,9 +22,7 @@
 
 直达车根据**导航序列**——途经各 bcswitcher 应选的方向的有序列表，存于列车属性（记录TC的ITrainProperty）：
 
-- 购票/刷卡上车时，由寻路结果（`GeoRoutePath.switcherLineIds()`）生成导航序列写入列车。
-- 列车每经过一个 bcswitcher，该道岔按导航序列**当前项**选向，随后导航指针推进一格。
-- bossbar 进度 = 已过道岔数 / 道岔总数；导航走完即视为到达终点区段。
+- 购票/刷卡上车时，由寻路结果（`GeoRoutePath.routeSteps()`）生成导航序列写入列车。
 
 调试用 `/ticket traininfo` 查看某列车的导航序列与进度，用 `/ticket switchtrace on` 把每次道岔选向打印到控制台。
 

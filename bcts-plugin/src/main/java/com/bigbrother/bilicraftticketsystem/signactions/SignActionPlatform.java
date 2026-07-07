@@ -10,6 +10,7 @@ import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.signactions.component.*;
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
+import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRouteEngine;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcLineIdProperty;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteNavigator;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.SwitchTrace;
@@ -94,12 +95,22 @@ public class SignActionPlatform extends SignAction {
             // 按节点 id 去重：同一铁轨方块挂多块控制牌重复触发时只推进一次。
             if (BcRouteNavigator.hasRoute(group)) {
                 String nodeId = info.getRails() == null ? null : NodeId.ofBlock(info.getRails());
-                if (SwitchTrace.isEnabled()) {
-                    int[] progress = BcRouteNavigator.progress(group);
-                    SwitchTrace.logPlatform(group, nodeId, stationName,
-                            progress[0], progress[1], "出站");
+                // 运行时节点对齐校验：站台节点不符且不在图中 → 玩家新放置、尚未重新遍历的 platform，
+                // 跳过推进（指针不动，继续对齐下一个真实图节点）。走错方向的重算只在道岔（bcswitcher）做，
+                // platform 不选向、无从纠偏，故此处仅处理「新放置节点」跳过。
+                String expected = BcRouteNavigator.currentStepNodeId(group);
+                boolean newlyPlaced = nodeId != null && expected != null && !expected.equals(nodeId)
+                        && GeoRouteEngine.getGraph().getNode(nodeId) == null;
+                if (newlyPlaced) {
+                    SwitchTrace.logSkip(group, nodeId, expected);
+                } else {
+                    if (SwitchTrace.isEnabled()) {
+                        int[] progress = BcRouteNavigator.progress(group);
+                        SwitchTrace.logPlatform(group, nodeId, stationName,
+                                progress[0], progress[1], "出站");
+                    }
+                    BcRouteNavigator.advance(group, nodeId);
                 }
-                BcRouteNavigator.advance(group, nodeId);
             }
             // 运行时转线（仅普通车）：离开本线终点站且本线配置了 nextLineId 时，把列车所属线路改为
             // 下一线。出站提示仍属本线（到达本线终点），但下一站用转线后的进入站名；bossbar 重建为

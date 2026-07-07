@@ -104,9 +104,32 @@ public class SignActionBcswitcher extends SignAction {
         }
         publishRideEvent(group, nodeId);
 
+        // 运行时节点对齐校验（仅带导航的快速车）：把「实际到达的物理道岔节点」与「当前步骤应到的节点」比对。
+        // 防止玩家新放置的 bcswitcher / platform 在重新遍历前被列车经过、污染导航指针，或列车走错方向。
+        boolean navUsable = true;
+        if (BcRouteNavigator.hasRoute(group) && nodeId != null) {
+            String expected = BcRouteNavigator.currentStepNodeId(group);
+            if (expected != null && !expected.equals(nodeId)) {
+                if (GeoRouteEngine.getGraph().getNode(nodeId) == null) {
+                    // 节点不在图中 → 玩家新放置、尚未重新遍历的道岔：整体跳过（不选向、不推进，指针不动）。
+                    SwitchTrace.logSkip(group, nodeId, expected);
+                    return;
+                }
+                // 节点在图中但顺序不符 → 列车走错方向：按终点站名重算路线（可到终点任意站台）。
+                String end = BcRouteNavigator.endStationName(group);
+                boolean ok = BcRouteNavigator.reroute(group, nodeId);
+                SwitchTrace.logReroute(group, nodeId, end, ok);
+                // 重算成功：指针已归零、新序列首步即本节点，下面照常按新 navDir 选向 + 推进。
+                // 重算失败：保留旧指针（不动），本道岔回退到 lineId / tag 选向——按错误步骤的出向选必然切错。
+                if (!ok) {
+                    navUsable = false;
+                }
+            }
+        }
+
         List<BcSwitcherBranch> branches = parseBranches(info);
         // 选向优先级：带导航(直达)按 S:出向；无导航在进站道岔按结构判定的到发线出向；再回退 lineId/tag。
-        String navDir = BcRouteNavigator.currentSwitchDirection(group);
+        String navDir = navUsable ? BcRouteNavigator.currentSwitchDirection(group) : null;
         String sidingDir = navDir != null ? null : structuralSidingDir(info);
         BcSwitcherBranch branch = null;
         if (navDir != null) {
@@ -142,7 +165,7 @@ public class SignActionBcswitcher extends SignAction {
         // 列车经过本道岔，导航指针推进一格（节点步骤序列里 bcswitcher 对应一个 S 步骤）。
         // 仅在列车带有导航序列且当前指针确实指向道岔步骤时推进，避免与 platform 推进错位。
         // 按节点 id 去重：同一铁轨方块上多块控制牌重复触发时只推进一次。
-        if (BcRouteNavigator.hasRoute(group) && BcRouteNavigator.isAtSwitchStep(group)) {
+        if (navUsable && BcRouteNavigator.hasRoute(group) && BcRouteNavigator.isAtSwitchStep(group)) {
             if (BcRouteNavigator.advance(group, nodeId)) {
                 // 直达车 bossbar 进度随节点推进刷新
                 BcRouteNavigator.refreshExpressBossbar(group);
@@ -182,7 +205,12 @@ public class SignActionBcswitcher extends SignAction {
             String blockKey = info.getRails() == null ? null : NodeId.ofBlock(info.getRails());
             navDir = BcRouteNavigator.predictionSwitchDirection(blockKey);
         } else {
-            navDir = BcRouteNavigator.currentSwitchDirection(group);
+            // 节点对齐校验（只读，不改导航）：预测中的道岔节点与当前步骤应到的节点不符时，不按当前步骤出向
+            // 选向（那是别的道岔的出向，会切错），回退到 lineId / tag。真正的跳过 / 重算在 execute 里做。
+            String blockKey = info.getRails() == null ? null : NodeId.ofBlock(info.getRails());
+            String expected = BcRouteNavigator.currentStepNodeId(group);
+            boolean aligned = expected == null || blockKey == null || expected.equals(blockKey);
+            navDir = aligned ? BcRouteNavigator.currentSwitchDirection(group) : null;
         }
         if (navDir != null) {
             prediction.setSwitchedJunction(info.findJunction(Direction.parse(navDir)));

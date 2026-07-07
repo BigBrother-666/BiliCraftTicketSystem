@@ -182,7 +182,19 @@ public class GeoRouteEngineTest {
         GeoRoutePath path = GeoRouteEngine.findFromNode("nA", "B");
         assertNotNull(path);
         // 每个节点一项：站台=P，道岔=S:驶出段物理出向
-        assertEquals(List.of("P", "S:e", "S:n", "P"), path.routeSteps());
+        assertEquals(List.of("P|nA", "S:e|s1", "S:n|s2", "P|nB"), path.routeSteps());
+        // 解析 helper：载荷 / 节点 id / 道岔判定 / 出向
+        assertEquals("S:e", GeoRoutePath.stepPayload("S:e|s1"));
+        assertEquals("s1", GeoRoutePath.stepNodeId("S:e|s1"));
+        assertTrue(GeoRoutePath.stepIsSwitch("S:e|s1"));
+        assertEquals("e", GeoRoutePath.stepDirection("S:e|s1"));
+        assertEquals("nB", GeoRoutePath.stepNodeId("P|nB"));
+        assertFalse(GeoRoutePath.stepIsSwitch("P|nB"));
+        assertNull(GeoRoutePath.stepDirection("P|nB"));
+        // 向后兼容：旧格式无分隔符，节点 id 解析为 null、载荷为整串
+        assertNull(GeoRoutePath.stepNodeId("S:e"));
+        assertEquals("S:e", GeoRoutePath.stepPayload("S:e"));
+        assertEquals("e", GeoRoutePath.stepDirection("S:e"));
     }
 
     @Test
