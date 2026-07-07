@@ -172,9 +172,20 @@ public class StationProvider {
         meta.displayName(Component.text(entry.name(), stationColor(entry))
                 .decoration(TextDecoration.ITALIC, false));
 
+        List<String> lineIds = new ArrayList<>(entry.lineIds());
+        lineIds.sort((lineId1, lineId2) -> {
+            LineInfo line1 = LineConfig.get(lineId1);
+            LineInfo line2 = LineConfig.get(lineId2);
+            if (line1 != null && line2 != null) {
+                return PINYIN.compare(line1.getLineName(), line2.getLineName());
+            } else {
+                return 0;
+            }
+        });
+
         List<Component> lore = new ArrayList<>();
         lore.add(Component.text("途经此车站的铁路：", NamedTextColor.AQUA));
-        for (String lineId : entry.lineIds()) {
+        for (String lineId : lineIds) {
             LineInfo line = LineConfig.get(lineId);
             if (line == null) {
                 continue;
