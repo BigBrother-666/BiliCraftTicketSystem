@@ -218,18 +218,39 @@ public abstract class BCTransitPass {
      * @return lore
      */
     public List<Component> getPriceInfoLore() {
-        List<Component> lore = new ArrayList<>();
-        Map<String, Double> segmentDistances = rawSegmentDistances();
+        return priceInfoLoreOf(rawSegmentDistances());
+    }
 
-        Map<String, Object> placeholder = new HashMap<>();
+    /**
+     * 本次行程按铁路系统聚合的经过距离（km），供联程票跨段合并计算总价明细复用。
+     *
+     * @return 系统 id -> 经过总距离（km）
+     */
+    public Map<String, Double> segmentDistancesBySystem() {
+        return rawSegmentDistances();
+    }
+
+    /**
+     * 由「系统 id -> 经过距离」映射生成各铁路系统收费详情 lore（每系统一行，格式见
+     * {@link MainConfig#distanceInfoLore}）。静态，不依赖具体行程，供单票与联程票（合并多段距离后）共用。
+     *
+     * @param segmentDistances 系统 id -> 经过总距离（km）
+     * @return 收费详情 lore（每系统一行；无对应系统配置的项跳过）
+     */
+    public static List<Component> priceInfoLoreOf(Map<String, Double> segmentDistances) {
+        List<Component> lore = new ArrayList<>();
         for (Map.Entry<String, Double> entry : segmentDistances.entrySet()) {
-            String systemId = entry.getKey();
-            RailwaySystemInfo systemInfo = RailwaySystemConfig.get(systemId);
+            RailwaySystemInfo systemInfo = RailwaySystemConfig.get(entry.getKey());
+            if (systemInfo == null) {
+                continue;
+            }
+            double pricePerKm = systemInfo.getPricePerKm() != null ? systemInfo.getPricePerKm() : MainConfig.pricePerKm;
+            Map<String, Object> placeholder = new HashMap<>();
             placeholder.put("railway_system", systemInfo.getName());
             placeholder.put("system_distance", "%.2f".formatted(entry.getValue()));
-            placeholder.put("system_price", "%.2f".formatted(entry.getValue() * systemInfo.getPricePerKm()));
-            placeholder.put("system_price_per_km", "%.2f".formatted(systemInfo.getPricePerKm()));
-            List<Component> configLore = parseConfigLore(List.of(MainConfig.distanceInfoLore), placeholder);
+            placeholder.put("system_price", "%.2f".formatted(entry.getValue() * pricePerKm));
+            placeholder.put("system_price_per_km", "%.2f".formatted(pricePerKm));
+            List<Component> configLore = PlaceholderParser.parse(List.of(MainConfig.distanceInfoLore), placeholder);
             if (!configLore.isEmpty()) {
                 lore.add(configLore.getFirst());
             }

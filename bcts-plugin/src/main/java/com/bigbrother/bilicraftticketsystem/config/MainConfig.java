@@ -40,16 +40,48 @@ public class MainConfig {
     public static List<String> expressSkipSigns;
     public static ConfigurationNode cardConfig;
     /**
-     * 购票界面最多显示的车票数：即寻路返回的「距离最短的前 N 条路线」对应的车票数上限。
-     * {@code <=0} 表示不限制（显示全部候选路线）。
+     * 购票搜索：显示「距离最近」的路线条数（{@code <=0} 不限制）。
      */
-    public static int maxSearchResults;
+    public static int maxDistanceResults;
+    /**
+     * 购票搜索：显示「票价最低」的路线条数（{@code <=0} 不限制）。
+     */
+    public static int maxPriceResults;
+    /**
+     * 购票搜索混合排序：归一化距离的权重。
+     */
+    public static double searchWeightDistance;
+    /**
+     * 购票搜索混合排序：归一化票价的权重。
+     */
+    public static double searchWeightPrice;
+    /**
+     * 购票搜索兜底：混合排序结果里没有任何直达车票（全是联程票）时，至少保留最优的这么多条直达票
+     * （若存在直达方案）。{@code <=0} 表示不兜底。
+     */
+    public static int minDirectResults;
+    /**
+     * 最多显示的联程票（换乘）方案条数（{@code <=0} 不限制，但仍受候选上限约束）。
+     */
+    public static int maxTransferResults;
+    /**
+     * 换乘寻路时最多考察的候选换乘站数量，防止大型线路上的组合爆炸卡顿。
+     */
+    public static int maxTransferCandidates;
+    /**
+     * 联程票最低改善比例：仅当换乘总距离 {@code < 最短直达 ×(1 - 此值)} 时才显示。两站无直达时不生效。
+     */
+    public static double transferMinImprovement;
 
     public static int loreStationNameCntRow;
     public static int loreRailwayNameCntRow;
     public static List<String> ticketLore;
     public static List<String> ticketPriceLore;
     public static String distanceInfoLore;
+    /**
+     * 联程票每段行程前的分隔行模板（占位符 {index} {total} {leg_start_station} {leg_end_station}）。
+     */
+    public static String throughTicketSeparator;
     public static List<String> cardLore;
 
     /**
@@ -105,7 +137,17 @@ public class MainConfig {
 
         expressSkipSigns = mainConfig.getList("express-skip-signs", String.class, Collections.emptyList());
 
-        maxSearchResults = mainConfig.get("max-search-results", 5);
+        // 搜索结果配置（兼容旧顶层 max-search-results 作为默认值）
+        int legacyMaxResults = mainConfig.get("max-search-results", 5);
+        ConfigurationNode search = mainConfig.getNode("search");
+        maxDistanceResults = search.get("max-distance-results", legacyMaxResults);
+        maxPriceResults = search.get("max-price-results", legacyMaxResults);
+        searchWeightDistance = search.get("weight-distance", 0.5);
+        searchWeightPrice = search.get("weight-price", 0.5);
+        minDirectResults = search.get("min-direct-results", 1);
+        maxTransferResults = search.get("max-transfer-results", 3);
+        maxTransferCandidates = search.get("max-transfer-candidates", 30);
+        transferMinImprovement = search.get("transfer-min-improvement", 0.2);
 
         cardConfig = mainConfig.getNode("card");
         ConfigurationNode lore = mainConfig.getNode("lore");
@@ -114,6 +156,8 @@ public class MainConfig {
         ticketLore = lore.getList("ticket", String.class, Collections.emptyList());
         ticketPriceLore = lore.getList("ticket-price", String.class, Collections.emptyList());
         distanceInfoLore = lore.get("distance-info-lore", "<gold>{railway_system} <dark_aqua>{system_distance} <dark_purple>{system_price}");
+        throughTicketSeparator = lore.get("through-ticket-separator",
+                "<!italic><dark_gray>========= <gold>行程 {index}/{total} <gray>{leg_start_station}→{leg_end_station} <dark_gray>=========");
         cardLore = lore.getList("card", String.class, Collections.emptyList());
 
         ConfigurationNode bossbar = mainConfig.getNode("bossbar");

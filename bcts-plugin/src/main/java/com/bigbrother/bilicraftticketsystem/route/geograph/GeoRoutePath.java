@@ -206,10 +206,8 @@ public class GeoRoutePath {
      */
     public List<String> stationSequence() {
         List<String> result = new ArrayList<>();
-        for (GeoNode node : nodes) {
-            if (node.isStation() && node.getName() != null) {
-                result.add(node.getName());
-            }
+        for (StationStep stationStep : stationSteps()) {
+            result.add(stationStep.stationName());
         }
         return result;
     }

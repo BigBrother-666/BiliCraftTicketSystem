@@ -26,6 +26,7 @@ import java.util.*;
 
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
 import static com.bigbrother.bilicraftticketsystem.config.MainConfig.message;
+import static com.bigbrother.bilicraftticketsystem.config.MainConfig.ticketPriceLore;
 
 
 public class BCTicket extends BCTransitPass {
@@ -91,14 +92,6 @@ public class BCTicket extends BCTransitPass {
             this.pathInfo = null;
             commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TICKET_EXPIRATION_TIME, 0));
         }
-        // 车票拿在手中时不再 refresh，上车时再计算路径
-//        this.pathInfo = GeoRouteEngine.findClosestByDistance(startStation, endStation, distance);
-//        if (pathInfo == null) {
-//            // 找不到路线，标记为过期
-//            commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TICKET_EXPIRATION_TIME, 0));
-//        } else {
-//            refreshTicketMeta(false);
-//        }
     }
 
     @Nullable
@@ -147,24 +140,36 @@ public class BCTicket extends BCTransitPass {
     public EconomyResponse purchaseSilently() {
         EconomyResponse r = plugin.getEcon().withdrawPlayer(owner, this.getPrice());
         if (r.transactionSuccess()) {
-            this.give();
-            // 按段所属铁路系统分摊实付金额，实时累加各系统收入（车票在购买时一次性结算全部次数）
-            RailwaySystemConfig.addIncome(allocateIncome(r.amount, 0.0));
-            // 写入数据库
-            plugin.getTrainDatabaseManager().getRevenueService().recordTicketPurchase(owner.getName(), owner.getUniqueId().toString(), r.amount, CommonItemStack.of(itemStack).getCustomData());
+            deliverAfterPayment(r.amount);
         }
         return r;
+    }
+
+    /**
+     * 扣款成功后的交付动作（不含扣款本身）：交付实体票 + 按段所属系统分摊 {@code paidAmount} 收入 + 写收入流水库。
+     * <p>
+     * 从 {@link #purchaseSilently()} 抽出，供联程票「一次性扣总价后逐段交付」复用：联程票对每段传入该段应分摊的
+     * 金额（各段之和 == 一次性扣除的总价），使各段按其所属铁路系统正确建账。须在主线程调用。
+     *
+     * @param paidAmount 本票实际计入的金额（单票=Vault 实付；联程票=该段分摊额）
+     */
+    public void deliverAfterPayment(double paidAmount) {
+        this.give();
+        // 按段所属铁路系统分摊实付金额，实时累加各系统收入（车票在购买时一次性结算全部次数）
+        RailwaySystemConfig.addIncome(allocateIncome(paidAmount, 0.0));
+        // 写入数据库
+        plugin.getTrainDatabaseManager().getRevenueService().recordTicketPurchase(owner.getName(), owner.getUniqueId().toString(), paidAmount, CommonItemStack.of(itemStack).getCustomData());
     }
 
     public void give() {
         CommonItemStack.of(itemStack).updateCustomData(this::updateNbt);
         List<Component> lore = itemStack.lore();
-        if (lore != null && lore.size() > 2) {
-            lore.removeLast();
-            lore.removeLast();
+        int priceLoreSize = ticketPriceLore.size();
+        if (lore != null && lore.size() >= priceLoreSize) {
+            lore = lore.subList(0, lore.size() - priceLoreSize);
         }
         ItemStack newTicket = itemStack.clone();
-        newTicket.editMeta(itemMeta -> itemMeta.lore(lore));
+        newTicket.lore(lore);
         if (!owner.getInventory().addItem(newTicket).isEmpty()) {
             // 背包满 车票丢到地上
             owner.getWorld().dropItemNaturally(owner.getLocation(), newTicket);
@@ -298,7 +303,20 @@ public class BCTicket extends BCTransitPass {
         if (isTicketExpired()) {
             return;
         }
-        // 更新lore
+        List<Component> lore = buildLore(addPrice);
+        itemStack.editMeta(itemMeta -> {
+            itemMeta.lore(lore);
+            itemMeta.displayName(Component.text(getTicketName(), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false).decoration(TextDecoration.BOLD, true));
+        });
+    }
+
+    /**
+     * 构建车票 lore（不写回物品），供 {@link #refreshTicketMeta(boolean)} 与联程票拼装复用。
+     *
+     * @param addPrice 是否附加价格部分（{@link MainConfig#ticketPriceLore}）
+     * @return lore 行列表
+     */
+    public List<Component> buildLore(boolean addPrice) {
         Map<String, Object> placeholder = new HashMap<>();
         placeholder.put("max_uses", maxUses);
         placeholder.put("owner_name", owner.getName());
@@ -306,12 +324,8 @@ public class BCTicket extends BCTransitPass {
         if (addPrice) {
             placeholder.put("distance_info_lore", getPriceInfoLore());
             lore.addAll(parseConfigLore(MainConfig.ticketPriceLore, placeholder));
-
         }
-        itemStack.editMeta(itemMeta -> {
-            itemMeta.lore(lore);
-            itemMeta.displayName(Component.text(getTicketName(), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false).decoration(TextDecoration.BOLD, true));
-        });
+        return lore;
     }
 
     public String getTicketName() {
@@ -360,6 +374,7 @@ public class BCTicket extends BCTransitPass {
     public double getPrice() {
         double totalPrice = calculateFare(pathInfo.getDistance()) * maxUses;
 
+        // 次数优惠
         for (String s : MainConfig.discount) {
             String[] split = s.split("-");
             if (maxUses >= Integer.parseInt(split[0]) && maxUses <= Integer.parseInt(split[1])) {
@@ -368,6 +383,7 @@ public class BCTicket extends BCTransitPass {
             }
         }
 
+        // 权限组优惠
         Set<String> perms = MainConfig.permDiscount.getKeys();
         for (String perm : perms) {
             List<String> discount = MainConfig.permDiscount.getList(perm, String.class, null);
