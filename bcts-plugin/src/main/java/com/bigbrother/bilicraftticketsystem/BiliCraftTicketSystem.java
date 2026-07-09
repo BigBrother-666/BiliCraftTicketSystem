@@ -8,6 +8,7 @@ import com.bigbrother.bilicraftticketsystem.deprecated.CustomSignActionStation;
 import com.bigbrother.bilicraftticketsystem.deprecated.RailwayRoutesConfig;
 import com.bigbrother.bilicraftticketsystem.deprecated.RouteCommand;
 import com.bigbrother.bilicraftticketsystem.deprecated.SignActionShowroute;
+import com.bigbrother.bilicraftticketsystem.guide.PlatformGuide;
 import com.bigbrother.bilicraftticketsystem.listeners.*;
 import com.bigbrother.bilicraftticketsystem.oraxen.OraxenLogoPack;
 import com.bigbrother.bilicraftticketsystem.menu.items.location.NearestLocItem;
@@ -225,6 +226,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new ExpressSkipListener(), this);
         Bukkit.getPluginManager().registerEvents(new PlayerListeners(), this);
         Bukkit.getPluginManager().registerEvents(new CardListeners(), this);
+        Bukkit.getPluginManager().registerEvents(new TicketListeners(), this);
         Bukkit.getPluginManager().registerEvents(new WizardListeners(), this);
         Bukkit.getPluginManager().registerEvents(new GuardListeners(), this);
         Bukkit.getPluginManager().registerEvents(new BossbarManager(), this);
@@ -312,7 +314,8 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         SignAction.unregister(signActionBcswitcher);
         SignAction.unregister(signActionSlowdown);
 
-        Bukkit.getScheduler().cancelTasks(plugin);
+        // 停止全部站台引导并清理残留全息实体
+        PlatformGuide.stopAll();
 
         if (webLink != null) {
             webLink.shutdown();
@@ -320,5 +323,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
 
         BCCardInfo.saveAll();
         trainDatabaseManager.close();
+
+        Bukkit.getScheduler().cancelTasks(plugin);
     }
 }

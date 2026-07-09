@@ -102,6 +102,56 @@ public class MainConfig {
      */
     public static int bossbarNotPassedNum;
 
+    /**
+     * 「寻找上车站台」引导总开关。
+     */
+    public static boolean guideEnabled;
+    /**
+     * 引导到达判定：与站台的水平距离 &le; 此值（block）即视为到达。
+     */
+    public static double guideArriveDistance;
+    /**
+     * 引导超时上限（秒），{@code <=0} 表示不超时。
+     */
+    public static int guideTimeoutSeconds;
+    /**
+     * 引导刷新间隔（tick）。
+     */
+    public static int guideUpdateIntervalTicks;
+    /**
+     * 是否显示目的地粒子光柱。
+     */
+    public static boolean guideShowBeacon;
+    /**
+     * 是否显示站台头顶全息站名（TextDisplay）。
+     */
+    public static boolean guideShowHologram;
+    /**
+     * 全息站名文字大小。
+     */
+    public static float guideHologramTextSize;
+    /**
+     * 粒子光柱 / 全息文字的高度（block）。
+     */
+    public static double guideBeaconHeight;
+    /**
+     * 粒子光柱颜色（{@code #RRGGBB}），非法时回退金色。仅对 {@code DUST} 类粒子生效。
+     */
+    public static String guideBeaconColor;
+    /**
+     * 粒子光柱直径（block）。{@code <=0} 退化为一条居中竖线。
+     */
+    public static double guideBeaconDiameter;
+    /**
+     * 粒子光柱粒子类型（{@link org.bukkit.Particle} 枚举名，如 {@code DUST} / {@code FLAME} /
+     * {@code END_ROD} / {@code HAPPY_VILLAGER}）。非法时回退 {@code DUST}。
+     */
+    public static String guideBeaconParticle;
+    /**
+     * 粒子光柱竖直方向相邻粒子层的间距（block），越小越密。下限 0.1。
+     */
+    public static double guideBeaconVerticalGap;
+
     public static void loadMainConfig(BiliCraftTicketSystem plugin) {
         FileConfiguration mainConfig = new FileConfiguration(plugin, EnumConfig.MAIN_CONFIG.getFileName());
         mainConfig.load();
@@ -165,5 +215,19 @@ public class MainConfig {
         bossbarNotPassedColor = bossbar.get("not-passed-color", String.class, null);
         bossbarPassedNum = bossbar.get("passed-num", 2);
         bossbarNotPassedNum = bossbar.get("not-passed-num", 3);
+
+        ConfigurationNode guide = mainConfig.getNode("guide");
+        guideEnabled = guide.get("enabled", true);
+        guideArriveDistance = guide.get("arrive-distance", 3.0);
+        guideTimeoutSeconds = guide.get("timeout-seconds", 60);
+        guideUpdateIntervalTicks = guide.get("update-interval-ticks", 5);
+        guideShowBeacon = guide.get("show-beacon", true);
+        guideShowHologram = guide.get("show-hologram", true);
+        guideHologramTextSize = guide.get("hologram-text-size", 1.2f);
+        guideBeaconHeight = guide.get("beacon-height", 4.0);
+        guideBeaconColor = guide.get("beacon-color", "#FFAA00");
+        guideBeaconDiameter = guide.get("beacon-diameter", 0.6);
+        guideBeaconParticle = guide.get("beacon-particle", "DUST");
+        guideBeaconVerticalGap = guide.get("beacon-vertical-gap", 0.5);
     }
 }

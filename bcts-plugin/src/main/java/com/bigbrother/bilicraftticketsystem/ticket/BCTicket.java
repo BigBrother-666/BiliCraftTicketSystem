@@ -44,6 +44,11 @@ public class BCTicket extends BCTransitPass {
     public static final String KEY_TICKET_START_LINE_ID = "startLineId";
     public static final String KEY_TICKET_MAX_SPEED = "ticketMaxSpeed";
     public static final String KEY_TICKET_DISTANCE = "ticketDistance";
+    /**
+     * 起点站台节点 id（{@code n.world.x.y.z}）。本身编码了世界名 + 方块坐标，用于
+     * 「寻找上车站台」引导直接还原站台位置（见 {@code guide.PlatformGuide}），无需额外存坐标。
+     */
+    public static final String KEY_TICKET_START_PLATFORM_NODE = "startPlatformNode";
 
     private final Player owner;
     private int maxUses;
@@ -367,6 +372,8 @@ public class BCTicket extends BCTransitPass {
         tag.putValue(KEY_TICKET_DISTANCE, pathInfo.getDistance());
         // 起点所属营运线 id：上车时与列车 lineId 比对（同站可能有多条线路始发，据此区分）
         tag.putValue(KEY_TICKET_START_LINE_ID, pathInfo.getStartLineId() == null ? "" : pathInfo.getStartLineId());
+        // 起点站台节点 id：供「寻找上车站台」引导还原站台坐标
+        tag.putValue(KEY_TICKET_START_PLATFORM_NODE, pathInfo.getStartNode().getId());
         tag.putValue(KEY_TRANSIT_PASS_BACKGROUND_IMAGE_PATH, MainConfig.expressTicketBgimage);
     }
 
@@ -419,6 +426,27 @@ public class BCTicket extends BCTransitPass {
                     nbt.getValue(KEY_TICKET_END_STATION, "Unknown")
             );
         }
+    }
+
+    /**
+     * 读取车票 NBT 中记录的起点站台节点 id（购买时写入）。
+     * <p>
+     * 节点 id 形如 {@code n.world.x.y.z}，供「寻找上车站台」引导还原站台坐标。
+     * 旧格式车票无此字段，返回空串。
+     *
+     * @return 起点站台节点 id；缺失返回空串
+     */
+    public String getStartPlatformNodeId() {
+        return CommonItemStack.of(itemStack).getCustomData().getValue(KEY_TICKET_START_PLATFORM_NODE, "");
+    }
+
+    /**
+     * 读取车票 NBT 中记录的起点站名（购买时写入），无需重新寻路。
+     *
+     * @return 起点站名；缺失返回空串
+     */
+    public String getStartStationNameNbt() {
+        return CommonItemStack.of(itemStack).getCustomData().getValue(KEY_TICKET_START_STATION, "");
     }
 
     public static boolean isBctsTicket(ItemStack itemStack) {

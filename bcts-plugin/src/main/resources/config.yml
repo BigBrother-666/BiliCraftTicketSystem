@@ -113,7 +113,8 @@ lore:
     - '{path_info_lore}'
     - '<!italic><dark_purple>▶ 途经铁路'
     - '{railway_info_lore}'
-    - '<italic><light_purple>{distance} km | 最大速度 {speed} km/h'
+    - '<!italic><light_purple>{distance} km | 最大速度 {speed} km/h'
+    - '<italic><light_purple>手持车票右键可开启站台导航'
   # 这部分lore会在购买后移除
   ticket-price:
     - '<!italic><dark_gray>======================================'
@@ -154,3 +155,31 @@ bossbar:
   not-passed-num: 3
   # 到站标题：使用 railway_routes.yml 中各线路的 bossbar-arrival-notice（占位符 {curr_station}），
   # 该线路留空则到站时显示滚动站名带（…上一站 → 当前站 → 下一站…）
+
+# 「寻找上车站台」引导：玩家右键手中的车票，动作栏实时显示前往发车站台的方向与距离，
+# 站台处显示粒子光柱 + 头顶全息站名。到达站台或切走手中车票时自动结束。
+guide:
+  # 引导总开关
+  enabled: true
+  # 到达判定：与站台的水平距离 <= 此值（格）即视为到达并结束引导
+  arrive-distance: 3.0
+  # 引导超时上限（秒），<=0 表示不超时
+  timeout-seconds: 60
+  # 引导刷新间隔（tick），越小越平滑但开销略高
+  update-interval-ticks: 5
+  # 是否显示目的地粒子光柱
+  show-beacon: true
+  # 是否显示站台头顶全息站名
+  show-hologram: true
+  # 全息站名文字大小倍率
+  hologram-text-size: 1.8
+  # 粒子光柱 / 全息文字高度（格）
+  beacon-height: 5.0
+  # 粒子光柱颜色（#RRGGBB），非法时回退金色。仅对 DUST 类粒子生效
+  beacon-color: '#FFAA00'
+  # 粒子光柱直径（格）。<=0 退化为一条居中竖线
+  beacon-diameter: 0.6
+  # 粒子类型（org.bukkit.Particle 枚举名，如 DUST / FLAME / END_ROD / HAPPY_VILLAGER），非法回退 DUST
+  beacon-particle: 'DUST'
+  # 光柱竖直方向相邻粒子层的间距（格），越小越密（下限 0.1）
+  beacon-vertical-gap: 0.5
