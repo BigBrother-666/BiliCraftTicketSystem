@@ -107,7 +107,7 @@ public class SignActionBcswitcher extends SignAction {
         // 运行时节点对齐校验（仅带导航的快速车）：把「实际到达的物理道岔节点」与「当前步骤应到的节点」比对。
         // 防止玩家新放置的 bcswitcher / platform 在重新遍历前被列车经过、污染导航指针，或列车走错方向。
         boolean navUsable = true;
-        if (BcRouteNavigator.hasRoute(group) && nodeId != null) {
+        if (BcRouteNavigator.hasRoute(group) && nodeId != null && !BcRouteNavigator.finished(group)) {
             String expected = BcRouteNavigator.currentStepNodeId(group);
             if (expected != null && !expected.equals(nodeId)) {
                 if (GeoRouteEngine.getGraph().getNode(nodeId) == null) {
