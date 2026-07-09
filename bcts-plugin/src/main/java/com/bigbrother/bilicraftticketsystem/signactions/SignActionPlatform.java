@@ -64,17 +64,18 @@ public class SignActionPlatform extends SignAction {
 
         Set<PlatformFeature> enabled = PlatformFeature.parseEnabled(info.getLine(3));
         String stationName = info.getLine(2).trim();
+        String nodeId = NodeId.ofBlock(info.getRails());
 
-        if (info.isAction(SignActionType.GROUP_UPDATE)) {
+        if (info.isAction(SignActionType.GROUP_ENTER, SignActionType.GROUP_LEAVE)) {
             // 玩家上下车，发送数据
-            publishRideEvent(group, info.getRails() == null ? null : NodeId.ofBlock(info.getRails()), stationName);
+            publishRideEvent(group, info.getRails() == null ? null : nodeId, stationName);
         }
 
         if (info.isAction(SignActionType.GROUP_ENTER)) {
             // 调试追踪：列车进入站台
             if (SwitchTrace.isEnabled()) {
                 int[] progress = BcRouteNavigator.progress(group);
-                SwitchTrace.logPlatform(group, NodeId.ofBlock(info.getRails()), stationName,
+                SwitchTrace.logPlatform(group, nodeId, stationName,
                         progress[0], progress[1], "进站");
             }
             // 进站提示（仅普通车）
@@ -94,13 +95,11 @@ public class SignActionPlatform extends SignAction {
             // 推进属于导航逻辑，不受 BOSSBAR 功能位影响；bossbar 显示刷新交由 onLeave 多态处理。
             // 按节点 id 去重：同一铁轨方块挂多块控制牌重复触发时只推进一次。
             if (BcRouteNavigator.hasRoute(group)) {
-                String nodeId = info.getRails() == null ? null : NodeId.ofBlock(info.getRails());
                 // 运行时节点对齐校验：站台节点不符且不在图中 → 玩家新放置、尚未重新遍历的 platform，
                 // 跳过推进（指针不动，继续对齐下一个真实图节点）。走错方向的重算只在道岔（bcswitcher）做，
                 // platform 不选向、无从纠偏，故此处仅处理「新放置节点」跳过。
                 String expected = BcRouteNavigator.currentStepNodeId(group);
-                boolean newlyPlaced = nodeId != null && expected != null && !expected.equals(nodeId)
-                        && GeoRouteEngine.getGraph().getNode(nodeId) == null;
+                boolean newlyPlaced = expected != null && !expected.equals(nodeId) && GeoRouteEngine.getGraph().getNode(nodeId) == null;
                 if (newlyPlaced) {
                     SwitchTrace.logSkip(group, nodeId, expected);
                 } else {
