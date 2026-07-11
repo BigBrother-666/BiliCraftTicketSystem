@@ -57,13 +57,24 @@ public class GeoTraversalTask {
      */
     private static final AtomicBoolean RUNNING = new AtomicBoolean(false);
     /**
-     * 上次遍历完成的时间戳（ms），用于全局冷却判断；0 表示从未运行。
+     * 上次 {@code walkAll}（全图遍历）完成的时间戳（ms），用于其冷却判断；0 表示从未运行。
+     * 与 {@link #lastWalkFinishTime} 独立计时：walkAll 完成只刷新它、不影响 walk 冷却。
      */
     private static volatile long lastFinishTime = 0;
+    /**
+     * 上次 {@code walk}（单线增量遍历）完成的时间戳（ms），用于其冷却判断；0 表示从未运行。
+     * 与 {@link #lastFinishTime} 独立计时。
+     */
+    private static volatile long lastWalkFinishTime = 0;
     /**
      * 当前正在运行的遍历驱动器，供 {@link #stopWalk(CommandSender)} 请求中止；无任务时为 null。
      */
     private static volatile GraphWalk runningWalk = null;
+
+    /**
+     * 联络线的线路 id / 铁路系统 id（系统自带，非玩家创建）。单线遍历时它随目标线一并纳入 scope。
+     */
+    private static final String CONTACT_ID = "contact";
 
     private final BiliCraftTicketSystem plugin;
     private final CommandSender sender;
@@ -71,14 +82,30 @@ public class GeoTraversalTask {
      * 本次遍历所有登记起点的线路 id（seed 阶段填充），供展开结束后的车站校验覆盖到起点登记线。
      */
     private final Set<String> startLineIds = new LinkedHashSet<>();
+    /**
+     * 增量遍历的目标线路 id 集合；为空表示全图遍历（{@code walkAll}）。
+     * 非空时：只 seed 这些线的起点、出向 scope 限定为 {@code 目标线集合 ∪ {contact}}、收尾只写
+     * 这些线的 {@code <lineId>.geojson} 与合并后的 {@code contact.geojson}。
+     */
+    private final Set<String> targetLineIds;
 
     /**
      * @param plugin 插件实例
      * @param sender 发起遍历者
      */
     public GeoTraversalTask(BiliCraftTicketSystem plugin, CommandSender sender) {
+        this(plugin, sender, Collections.emptySet());
+    }
+
+    /**
+     * @param plugin        插件实例
+     * @param sender        发起遍历者
+     * @param targetLineIds 增量遍历目标线路 id 集合；空 / null 表示全图遍历
+     */
+    public GeoTraversalTask(BiliCraftTicketSystem plugin, CommandSender sender, Set<String> targetLineIds) {
         this.plugin = plugin;
         this.sender = sender;
+        this.targetLineIds = targetLineIds == null ? Collections.emptySet() : new LinkedHashSet<>(targetLineIds);
     }
 
     /**
@@ -114,7 +141,30 @@ public class GeoTraversalTask {
      * 持 {@link #PERM_BYPASS_COOLDOWN} 权限者绕过冷却，且其执行结束不刷新冷却时间。
      */
     public void runAll() {
+        start();
+    }
+
+    /**
+     * 只遍历一条线路及与其直接相连的联络线，增量更新 {@code <lineId>.geojson} 与合并 {@code contact.geojson}。
+     * <p>
+     * 与 {@link #runAll} 共用单运行锁 / 冷却 / 向导校验 / 分片骨架，差异在：只 seed 目标线登记起点、
+     * 出向 scope 限定为 {@code {targetLineId, contact}}、收尾只写两个文件（见 {@link #finalizeAndSave}）。
+     * 需在构造时传入 {@code targetLineId}。
+     */
+    public void runLine() {
+        start();
+    }
+
+    /**
+     * 全图 / 单线遍历共用的启动骨架：向导校验 + 冷却校验（不抢锁）+ 抢单运行锁，随后建 walk 并启动分片遍历。
+     * scope（是否单线）由 {@link #targetLineIds} 决定。
+     * <p>
+     * 冷却按模式独立：walk 与 walkAll 各查各的冷却值与上次完成时间（见 {@link #lastWalkFinishTime}）；
+     * 但单运行锁 {@link #RUNNING} 是共用的——任一遍历进行中，另一个都不可发起。
+     */
+    private void start() {
         boolean bypassCooldown = sender != null && sender.hasPermission(PERM_BYPASS_COOLDOWN);
+        boolean isWalk = !targetLineIds.isEmpty();
 
         // 有玩家正在进行线路/铁路系统配置向导时不遍历：配置可能改到一半，遍历结果会不一致
         if (WizardManager.hasAnyActive()) {
@@ -123,24 +173,32 @@ public class GeoTraversalTask {
             return;
         }
 
-        // 冷却校验（不抢锁）；有 bypass 权限则跳过
-        int cooldownSec = MapConfig.getTraversalCooldownSeconds();
-        long remainMs = lastFinishTime + cooldownSec * 1000L - System.currentTimeMillis();
-        if (!bypassCooldown && cooldownSec > 0 && lastFinishTime > 0 && remainMs > 0) {
+        // 冷却校验（不抢锁，按模式取各自的冷却值与上次完成时间）；有 bypass 权限则跳过
+        int cooldownSec = isWalk ? MapConfig.getWalkCooldownSeconds() : MapConfig.getTraversalCooldownSeconds();
+        long lastFinish = isWalk ? lastWalkFinishTime : lastFinishTime;
+        long remainMs = lastFinish + cooldownSec * 1000L - System.currentTimeMillis();
+        if (!bypassCooldown && cooldownSec > 0 && lastFinish > 0 && remainMs > 0) {
             sendConfigMessage(msg("traversal-cooling-down", "<red>构建铁路图任务正在冷却中，请 %d 秒后再试")
                     .formatted((remainMs + 999) / 1000));
             return;
         }
-        // 抢单运行锁：已有任务在跑则拒绝
+        // 抢单运行锁：已有任务在跑则拒绝（walk / walkAll 共用，互相排斥）
         if (!RUNNING.compareAndSet(false, true)) {
             sendConfigMessage(msg("traversal-already-running",
                     "<red>已有一个构建铁路图任务正在进行，请等待其完成，或使用 /railgeo stopWalk 停止"));
             return;
         }
 
+        // 增量遍历：出向只跟进目标线集合 + 联络线；全图遍历 scope 为 null（不过滤）
+        Set<String> scope = null;
+        if (!targetLineIds.isEmpty()) {
+            scope = new LinkedHashSet<>(targetLineIds);
+            scope.add(CONTACT_ID);
+        }
+
         GeoTraversalLogger log = new GeoTraversalLogger(plugin, sender);
         GraphWalk walk = new GraphWalk(new TraversalCollector(), log, new HashSet<>(),
-                MapConfig.getTraversalMaxTotalNodes(), MapConfig.getTraversalMaxEdgesPerWalk());
+                MapConfig.getTraversalMaxTotalNodes(), MapConfig.getTraversalMaxEdgesPerWalk(), scope);
         runningWalk = walk;
         // 分片遍历期间主线程被一段段占用，异步线程只读 walk 的计数器汇报进度。
         BukkitTask progressTask = startProgressFeedback(walk, log);
@@ -162,9 +220,13 @@ public class GeoTraversalTask {
             progressTask.cancel();
         }
         log.close();
-        // bypass 执行不刷新冷却时间
+        // bypass 执行不刷新冷却时间；否则只刷新本次模式对应的冷却（walk 与 walkAll 独立计时）
         if (!bypassCooldown) {
-            lastFinishTime = System.currentTimeMillis();
+            if (targetLineIds.isEmpty()) {
+                lastFinishTime = System.currentTimeMillis();
+            } else {
+                lastWalkFinishTime = System.currentTimeMillis();
+            }
         }
         runningWalk = null;
         RUNNING.set(false);
@@ -249,12 +311,29 @@ public class GeoTraversalTask {
      * @return 成功 seed 了至少一个起点返回 true；无起点 / 已中止返回 false
      */
     private boolean seedStarts(GeoTraversalLogger log, GraphWalk walk) {
-        List<GeoNodeLoc> starts = plugin.getGeoDatabaseManager().getAllGeoNodeLoc();
-        if (starts.isEmpty()) {
-            log.message("没有已登记的线路起点，请先用 /railgeo setStartPos <lineId> 登记", NamedTextColor.RED);
-            return false;
+        List<GeoNodeLoc> starts;
+        if (!targetLineIds.isEmpty()) {
+            // 增量遍历：只 seed 目标线集合的登记起点；任一线未登记起点则中止
+            starts = new ArrayList<>();
+            for (String lineId : targetLineIds) {
+                GeoNodeLoc start = plugin.getGeoDatabaseManager().getGeoNodeLoc(lineId);
+                if (start == null) {
+                    log.message("线路 [%s] 没有已登记的遍历起点，请先用 /railgeo setStartPos %s 登记"
+                            .formatted(lineId, lineId), NamedTextColor.RED);
+                    return false;
+                }
+                starts.add(start);
+            }
+            log.message("开始构建线路 [%s] 及其联络线...".formatted(String.join(", ", targetLineIds)),
+                    NamedTextColor.DARK_AQUA);
+        } else {
+            starts = plugin.getGeoDatabaseManager().getAllGeoNodeLoc();
+            if (starts.isEmpty()) {
+                log.message("没有已登记的线路起点，请先用 /railgeo setStartPos <lineId> 登记", NamedTextColor.RED);
+                return false;
+            }
+            log.message("开始构建铁路图，共 " + starts.size() + " 个登记起点...", NamedTextColor.DARK_AQUA);
         }
-        log.message("开始构建铁路图，共 " + starts.size() + " 个登记起点...", NamedTextColor.DARK_AQUA);
         for (GeoNodeLoc start : starts) {
             Block startRail = resolveStartRail(start.getStartLocation());
             if (startRail == null) {
@@ -321,10 +400,15 @@ public class GeoTraversalTask {
         log.message("构建铁路图任务已完成，校验车站和配置是否对应...", NamedTextColor.DARK_AQUA);
 
         TraversalCollector collector = walk.getCollector();
-        // 按线校验：覆盖所有起点登记线 + 遍历中实际到达过车站的线。
+        // 按线校验：单线遍历只校验目标线；全图遍历覆盖所有起点登记线 + 遍历中实际到达过车站的线。
         Map<String, Set<String>> byLine = walk.getVisitedStationsByLine();
-        Set<String> linesToCheck = new LinkedHashSet<>(startLineIds);
-        linesToCheck.addAll(byLine.keySet());
+        Set<String> linesToCheck = new LinkedHashSet<>();
+        if (!targetLineIds.isEmpty()) {
+            linesToCheck.addAll(targetLineIds);
+        } else {
+            linesToCheck.addAll(startLineIds);
+            linesToCheck.addAll(byLine.keySet());
+        }
         for (String lineId : linesToCheck) {
             if (!validateStationOrder(lineId, byLine.getOrDefault(lineId, Collections.emptySet()), walk, log)) {
                 log.message("构建铁路图任务已中止，未写入任何文件：" + walk.getAbortReason(), NamedTextColor.RED);
@@ -332,12 +416,16 @@ public class GeoTraversalTask {
             }
         }
 
-        // 所有区间收集完毕后，按空间交叉关系全局重算 layer（高架压平交）
         log.message("验证完成，开始计算LineString层级...", NamedTextColor.DARK_AQUA);
-        collector.assignLayers();
-        int files = saveAll(collector, log);
-        log.message("构建铁路图任务已完成：共 %d 个节点、%d 条区间，写入 %d 个文件".formatted(
-                collector.totalNodes(), collector.totalEdges(), files), NamedTextColor.GREEN);
+        int files;
+        if (!targetLineIds.isEmpty()) {
+            files = saveLineIncremental(walk, log);
+        } else {
+            // 全图遍历：所有区间收集完毕后，按空间交叉关系全局重算 layer（高架压平交）
+            collector.assignLayers();
+            files = saveAll(collector, log);
+        }
+        log.message("构建铁路图任务已完成：共写入 %d 个文件".formatted(files), NamedTextColor.GREEN);
 
         // 重载配置
         log.message("重载配置文件...", NamedTextColor.DARK_AQUA);
@@ -461,5 +549,189 @@ public class GeoTraversalTask {
             }
         }
         return files;
+    }
+
+    /**
+     * 增量保存：为每条目标线写 {@code <lineId>.geojson}（整体覆盖）、合并写 {@code contact.geojson}，
+     * 其它线路文件不动。layer 相对磁盘上其它文件的区间（固定障碍）计算，见 {@link LayerAssigner#assignRelative}。
+     * <p>
+     * 联络线合并规则：删除旧 {@code contact.geojson} 里「属主为某条目标线」的段（{@code from} 节点属于目标线
+     * 旧 / 新节点集，处理联络线控制牌的增 / 删 / 移动），保留其它线的联络线段，再并入本次新走出的联络线段。
+     *
+     * @param walk 本次增量遍历驱动器（提供结果收集器与起点首节点 id）
+     * @param log  日志
+     * @return 写出的文件数
+     */
+    private int saveLineIncremental(GraphWalk walk, GeoTraversalLogger log) {
+        TraversalCollector collector = walk.getCollector();
+        File dir = plugin.getGeodataDir();
+        if (!dir.exists()) {
+            //noinspection ResultOfMethodCallIgnored
+            dir.mkdirs();
+        }
+        GeojsonReader reader = new GeojsonReader();
+
+        // 逐条目标线：读旧文件、保留起点首节点入边、算本线待写区间与节点表
+        Map<String, List<RailEdge>> targetEdgesByLine = new LinkedHashMap<>();
+        Map<String, Map<String, RailNode>> targetNodesByLine = new LinkedHashMap<>();
+        // 本次所有目标线的属主节点范围（旧 + 新 + 本次新联络线节点），用于判定要删除哪些旧联络线段
+        Set<String> ownedNodeIds = new LinkedHashSet<>();
+        collector.nodesOf(CONTACT_ID).forEach(n -> ownedNodeIds.add(n.getId()));
+        for (String lineId : targetLineIds) {
+            GeojsonReader.Result oldTarget = reader.read(new File(dir, lineId + ".geojson"));
+            List<RailEdge> edges = new ArrayList<>(collector.edgesOf(lineId));
+            edges.addAll(preserveEntryEdges(walk, lineId, oldTarget, edges));
+            targetEdgesByLine.put(lineId, edges);
+
+            Map<String, RailNode> nodes = new LinkedHashMap<>(oldTarget.nodes);
+            collector.nodesOf(lineId).forEach(n -> nodes.put(n.getId(), n));
+            targetNodesByLine.put(lineId, nodes);
+
+            ownedNodeIds.addAll(oldTarget.nodes.keySet());
+            collector.nodesOf(lineId).forEach(n -> ownedNodeIds.add(n.getId()));
+        }
+
+        // 合并联络线段：保留其它线的旧段（from 不属任一目标线），并入本次新段（同 id 覆盖）
+        GeojsonReader.Result oldContact = reader.read(new File(dir, CONTACT_ID + ".geojson"));
+        Map<String, RailEdge> mergedContact = new LinkedHashMap<>();
+        for (RailEdge e : oldContact.edges) {
+            if (!ownedNodeIds.contains(e.getFromNodeId())) {
+                mergedContact.put(e.getId(), e);
+            }
+        }
+        for (RailEdge e : collector.edgesOf(CONTACT_ID)) {
+            mergedContact.put(e.getId(), e);
+        }
+        List<RailEdge> contactEdges = new ArrayList<>(mergedContact.values());
+
+        // layer：把其它线路文件的区间当固定障碍，一起计算所有目标线 + 合并联络线段（跨目标线叠压一致）
+        List<RailEdge> fixed = readFixedEdges(dir, reader);
+        List<RailEdge> toSolve = new ArrayList<>();
+        targetEdgesByLine.values().forEach(toSolve::addAll);
+        toSolve.addAll(contactEdges);
+        LayerAssigner.assignRelative(toSolve, fixed);
+
+        // 联络线节点表：旧段端点节点 + 本次新联络线节点（新的优先）
+        Map<String, RailNode> contactNodes = new LinkedHashMap<>(oldContact.nodes);
+        collector.nodesOf(CONTACT_ID).forEach(n -> contactNodes.put(n.getId(), n));
+
+        int files = 0;
+        for (String lineId : targetLineIds) {
+            List<RailEdge> edges = targetEdgesByLine.get(lineId);
+            files += writeFile(dir, lineId, referencedNodes(edges, targetNodesByLine.get(lineId)), edges, log);
+        }
+        files += writeFile(dir, CONTACT_ID, referencedNodes(contactEdges, contactNodes), contactEdges, log);
+        return files;
+    }
+
+    /**
+     * 从某条目标线的旧文件保留其起点首节点的入边。
+     * <p>
+     * 起点登记在铁轨中段，seed 首段没有「上一节点」，故本次遍历不会给首节点记录任何入边——其
+     * {@code prev} 会丢失、在前端与前驱断连。若本次也没有从别处走出到该线首节点的入边，则把旧文件里
+     * 指向首节点的入边（含几何）原样保留，恢复连通。
+     *
+     * @param walk        遍历驱动器（取 {@code entryNodeIds}）
+     * @param lineId      目标线路 id
+     * @param oldTarget   该线旧文件解析结果
+     * @param targetEdges 本次新走出的该线区间（用于判断首节点是否已有入边）
+     * @return 需保留的旧入边（可能为空）
+     */
+    @SuppressWarnings("unused")
+    private List<RailEdge> preserveEntryEdges(GraphWalk walk, String lineId, GeojsonReader.Result oldTarget,
+                                              List<RailEdge> targetEdges) {
+        List<RailEdge> preserved = new ArrayList<>();
+        // 该线首节点：起点首节点集合里、属于本线旧 / 新节点的那个（各线起点独立 seed）
+        for (String entryNodeId : walk.getEntryNodeIds()) {
+            boolean belongsToLine = oldTarget.nodes.containsKey(entryNodeId)
+                    || targetEdges.stream().anyMatch(e -> entryNodeId.equals(e.getFromNodeId())
+                    || entryNodeId.equals(e.getToNodeId()));
+            if (!belongsToLine) {
+                continue;
+            }
+            // 本次遍历已有指向首节点的入边则无需保留（如环线闭合回到首节点）
+            boolean hasNewIncoming = targetEdges.stream().anyMatch(e -> entryNodeId.equals(e.getToNodeId()));
+            if (hasNewIncoming) {
+                continue;
+            }
+            for (RailEdge e : oldTarget.edges) {
+                if (entryNodeId.equals(e.getToNodeId())) {
+                    preserved.add(e);
+                }
+            }
+        }
+        return preserved;
+    }
+
+    /**
+     * 读取 geodata 目录下除目标线集合与 {@code contact} 外所有 geojson 的区间，作为 layer 计算的固定障碍。
+     *
+     * @param dir    geodata 目录
+     * @param reader geojson 读取器
+     * @return 固定障碍区间
+     */
+    private List<RailEdge> readFixedEdges(File dir, GeojsonReader reader) {
+        List<RailEdge> fixed = new ArrayList<>();
+        File[] geoFiles = dir.listFiles((d, name) -> name.toLowerCase().endsWith(".geojson"));
+        if (geoFiles == null) {
+            return fixed;
+        }
+        // 目标线文件 + contact 文件都要跳过（它们是本次待写的）
+        Set<String> skip = new HashSet<>();
+        skip.add((CONTACT_ID + ".geojson").toLowerCase());
+        targetLineIds.forEach(id -> skip.add((id + ".geojson").toLowerCase()));
+        for (File f : geoFiles) {
+            if (skip.contains(f.getName().toLowerCase())) {
+                continue;
+            }
+            fixed.addAll(reader.read(f).edges);
+        }
+        return fixed;
+    }
+
+    /**
+     * 从节点表中取出被给定区间引用到的节点（保序去重）。
+     *
+     * @param edges    区间
+     * @param nodePool 可用节点表（id -> 节点）
+     * @return 被引用的节点
+     */
+    private static List<RailNode> referencedNodes(List<RailEdge> edges, Map<String, RailNode> nodePool) {
+        List<RailNode> result = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        for (RailEdge e : edges) {
+            for (String id : new String[]{e.getFromNodeId(), e.getToNodeId()}) {
+                if (seen.add(id)) {
+                    RailNode node = nodePool.get(id);
+                    if (node != null) {
+                        result.add(node);
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 写单个 geojson 文件。
+     *
+     * @param dir     目录
+     * @param fileKey 文件键（不含扩展名）
+     * @param nodes   节点
+     * @param edges   区间
+     * @param log     日志
+     * @return 成功写出 1，失败 0
+     */
+    private int writeFile(File dir, String fileKey, List<RailNode> nodes, List<RailEdge> edges, GeoTraversalLogger log) {
+        FeatureCollection fc = new GeojsonBuilder().build(nodes, edges);
+        File file = new File(dir, fileKey + ".geojson");
+        try {
+            new ObjectMapper().writerWithDefaultPrettyPrinter().writeValue(file, fc);
+            log.info("写入 " + file.getName() + "：" + nodes.size() + " 节点，" + edges.size() + " 区间");
+            return 1;
+        } catch (Exception e) {
+            log.error("写入文件失败：" + file.getName(), e);
+            return 0;
+        }
     }
 }

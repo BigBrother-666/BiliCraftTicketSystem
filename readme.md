@@ -263,6 +263,7 @@ platform 处达到该速度。**只改速度不改最大速度**。
 | 指令                            | 功能                                |
 |-------------------------------|-----------------------------------|
 | railgeo walkAll               | 遍历所有已登记线路起点，按线路分文件保存为 geojson     |
+| railgeo walk \<lineIds>       | 只遍历一条或多条线路（空格分隔）及与其直接相连的联络线       |
 | railgeo stopWalk              | 停止当前正在进行的铁轨遍历任务                   |
 | railgeo setStartPos \<lineId> | 登记某线路的遍历起点，以玩家所在铁轨为起点坐标、面朝方向为起点方向 |
 | railgeo delStartPos \<lineId> | 删除某线路已登记的遍历起点                     |

@@ -94,10 +94,15 @@ public class MapConfig {
     @Getter
     private static int traversalProgressIntervalSeconds;
     /**
-     * 一次遍历完成后的全局冷却（秒）。
+     * 一次 {@code walkAll}（全图遍历）完成后的冷却（秒）。与 {@code walk} 冷却独立计时。
      */
     @Getter
     private static int traversalCooldownSeconds;
+    /**
+     * 一次 {@code walk}（单线增量遍历）完成后的冷却（秒）。与 {@code walkAll} 冷却独立计时。
+     */
+    @Getter
+    private static int walkCooldownSeconds;
     /**
      * 网页端logo边长（像素）
      */
@@ -137,6 +142,7 @@ public class MapConfig {
         MapConfig.traversalSegmentsPerTick = traversal.get("segments-per-tick", 20);
         MapConfig.traversalProgressIntervalSeconds = traversal.get("progress-interval-seconds", 5);
         MapConfig.traversalCooldownSeconds = traversal.get("cooldown-seconds", 3600);
+        MapConfig.walkCooldownSeconds = traversal.get("walk-cooldown-seconds", 300);
 
         ConfigurationNode logo = MapConfig.webConfig.getNode("logo");
         MapConfig.webLogoDim = logo.get("web-logo-dim", 128);

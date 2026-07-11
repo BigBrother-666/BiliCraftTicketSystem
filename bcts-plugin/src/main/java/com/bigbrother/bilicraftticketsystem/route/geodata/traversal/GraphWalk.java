@@ -43,6 +43,12 @@ public class GraphWalk {
     private final GeoTraversalLogger log;
     private final int maxNodes;
     private final int maxEdgesPerWalk;
+    /**
+     * 出向线路范围限定：非 null 时，bcswitcher 展开只跟进 lineId ∈ 本集合的出向分支
+     * （单线遍历用，集合为 {@code {targetLineId, "contact"}}）。为 null 表示不限定（全图遍历，
+     * {@code walkAll} 行为不变）。
+     */
+    private final Set<String> lineScope;
 
     /**
      * 已展开的 {@code (节点,入向,出向,lineId)} 状态，跨所有起点共享，防止环线 / 重复死循环、并在
@@ -59,6 +65,16 @@ public class GraphWalk {
      */
     @Getter
     private final Map<String, Set<String>> visitedStationsByLine = new LinkedHashMap<>();
+    /**
+     * 各起点首段到达的第一个节点 id 集合（seed 段 {@code prevNodeId == null} 时到达的节点）。
+     * <p>
+     * 起点位于铁轨中段、无「上一节点」，故首节点没有被记录任何入边。全图遍历里首节点通常仍会被别处
+     * （环线闭合 / 其它起点 / 其它线从正确方向到达）补上入边；但增量遍历只 seed 目标线起点且出向受限，
+     * 首节点常常拿不到入边而丢失 {@code prev}、与其前驱断连。收尾时据此从旧文件保留其入边（见
+     * {@code GeoTraversalTask#saveLineIncremental}）。多条目标线各 seed 一个起点，故为集合。
+     */
+    @Getter
+    private final Set<String> entryNodeIds = new LinkedHashSet<>();
     /**
      * 整次遍历累计处理的段数（跨所有起点），用于兜底防环。
      */
@@ -80,14 +96,16 @@ public class GraphWalk {
      * @param visited         去重状态集合（跨起点共享）
      * @param maxNodes        整次遍历最多展开段数（兜底防环）
      * @param maxEdgesPerWalk 单段行走最多采样的坐标点数
+     * @param lineScope       出向线路范围限定（见 {@link #lineScope}）；null 表示不限定
      */
     public GraphWalk(TraversalCollector collector, GeoTraversalLogger log, Set<String> visited,
-                     int maxNodes, int maxEdgesPerWalk) {
+                     int maxNodes, int maxEdgesPerWalk, Set<String> lineScope) {
         this.collector = collector;
         this.log = log;
         this.visited = visited;
         this.maxNodes = maxNodes;
         this.maxEdgesPerWalk = maxEdgesPerWalk;
+        this.lineScope = lineScope;
     }
 
     /**
@@ -213,6 +231,10 @@ public class GraphWalk {
             }
             node.addLineId(lineId);
             node.addRailwaySystemId(railwaySystemId);
+            // 起点首段（无上一节点）到达的第一个节点：它没有被记录任何入边，收尾时可能需要从旧文件保留其入边
+            if (st.prevNodeId() == null && st.prevNode() == null) {
+                entryNodeIds.add(node.getId());
+            }
 
             // 记录入边（起点首段 prevNodeId 为 null，无边可记）。st.forcedDir() 即离开上一道岔所用出向，
             // 作为本段物理出向写入，供运行时道岔对带导航的列车直接选向。
@@ -278,6 +300,11 @@ public class GraphWalk {
             for (String outLineId : branch.getLineIds()) {
                 if (!LineConfig.getLines().containsKey(outLineId)) {
                     log.info(logPrefix + "bcswitcher(%s)的道岔lineId %s 不存在，跳过该分支".formatted(rail.block().getLocation(), outLineId));
+                    continue;
+                }
+                // 单线遍历：只跟进范围内（目标线 / 联络线）的出向，其它线的出向到此为止，
+                // 使遍历只覆盖目标线全线 + 与其直接相连的联络线段。全图遍历时 lineScope 为 null，不过滤。
+                if (lineScope != null && !lineScope.contains(outLineId)) {
                     continue;
                 }
                 // 出向 key 用 (方向, 出向lineId)：共用出向按线拆 fork，各挂单一 tag 各走各记。

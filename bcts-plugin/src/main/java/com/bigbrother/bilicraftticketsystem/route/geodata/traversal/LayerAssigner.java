@@ -58,6 +58,81 @@ public final class LayerAssigner {
     }
 
     /**
+     * 单线增量遍历用：只计算并写回 {@code toSolve} 里各区间的 layer，把 {@code fixed} 里的区间当作
+     * <b>不可改动的固定障碍</b>（其 layer 保持磁盘上的既有值）。
+     * <p>
+     * 约束来源两类：
+     * <ul>
+     *   <li>toSolve ↔ fixed：若某待解区间在交叉处高于某固定区间，则它至少要在该固定区间 layer 之上
+     *       （{@code layer >= fixedLayer + 1}）；低于固定区间时不产生约束（不下压固定区间）。</li>
+     *   <li>toSolve ↔ toSolve：与 {@link #assign} 同样的相互叠压约束。</li>
+     * </ul>
+     * 局限：本命令不改动 fixed 文件，故「待解区间从上方新穿过某既有区间、按理应把既有区间下压」的情况
+     * 不会反映到既有文件——极少见，可用全量 {@code walkAll} 校正。
+     *
+     * @param toSolve 待计算 layer 的区间（原地修改其 layer）
+     * @param fixed   固定障碍区间（只读其坐标与 layer，不修改）
+     */
+    public static void assignRelative(List<RailEdge> toSolve, List<RailEdge> fixed) {
+        int n = toSolve.size();
+        if (n == 0) {
+            return;
+        }
+        List<List<Integer>> below = new ArrayList<>(n);
+        // baseFloor[i] = 因压在固定障碍之上而要求的最小 layer（fixedLayer + 1 的最大值）
+        int[] baseFloor = new int[n];
+        for (RailEdge railEdge : toSolve) {
+            below.add(new ArrayList<>());
+            railEdge.setLayer(0);
+        }
+        // toSolve ↔ fixed
+        for (int i = 0; i < n; i++) {
+            for (RailEdge fx : fixed) {
+                int rel = compareOverpass(toSolve.get(i), fx);
+                if (rel > 0) {
+                    baseFloor[i] = Math.max(baseFloor[i], fx.getLayer() + 1);
+                }
+            }
+            toSolve.get(i).setLayer(baseFloor[i]);
+        }
+        // toSolve ↔ toSolve
+        for (int i = 0; i < n; i++) {
+            for (int j = i + 1; j < n; j++) {
+                int rel = compareOverpass(toSolve.get(i), toSolve.get(j));
+                if (rel > 0) {
+                    below.get(i).add(j);
+                } else if (rel < 0) {
+                    below.get(j).add(i);
+                }
+            }
+        }
+        relaxWithFloor(toSolve, below, baseFloor);
+    }
+
+    /**
+     * 带下限的最长路径松弛：{@code layer(i) = max(baseFloor(i), layer(下方者)+1)}。
+     */
+    private static void relaxWithFloor(List<RailEdge> edges, List<List<Integer>> below, int[] baseFloor) {
+        int n = edges.size();
+        for (int iter = 0; iter < n; iter++) {
+            boolean changed = false;
+            for (int i = 0; i < n; i++) {
+                int want = baseFloor[i];
+                for (int b : below.get(i)) {
+                    want = Math.max(want, edges.get(b).getLayer() + 1);
+                }
+                if (want > edges.get(i).getLayer()) {
+                    edges.get(i).setLayer(want);
+                    changed = true;
+                }
+            }
+            if (!changed) {
+                return;
+            }
+        }
+    }
+
+    /**
      * 最长路径松弛：反复用 {@code layer(i) = max(layer(i), layer(下方者)+1)} 抬升，
      * 直到稳定或达到迭代上限（成环时兜底）。
      */

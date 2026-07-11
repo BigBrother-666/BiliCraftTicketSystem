@@ -10,6 +10,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotation.specifier.Greedy;
 import org.incendo.cloud.annotations.*;
 
 public class GeoCommand {
@@ -26,6 +27,35 @@ public class GeoCommand {
             CommandSender commandSender
     ) {
         new GeoTraversalTask(plugin, commandSender).runAll();
+    }
+
+    @CommandDescription("只遍历一条或多条线路及与其直接相连的联络线，增量更新这些线与 contact 的 geojson")
+    @Command("railgeo walk <lineIds>")
+    @Permission("bcts.railgeo")
+    public void walk(
+            CommandSender commandSender,
+            @Greedy
+            @Argument(value = "lineIds", description = "线路 id（多个用空格分隔）", suggestions = "lineIds")
+            String lineIds
+    ) {
+        // 空格分隔多个 lineId，去重保序
+        java.util.LinkedHashSet<String> targets = new java.util.LinkedHashSet<>();
+        for (String token : lineIds.trim().split("\\s+")) {
+            if (!token.isEmpty()) {
+                targets.add(token);
+            }
+        }
+        if (targets.isEmpty()) {
+            commandSender.sendMessage(Component.text("请至少指定一个线路 id。", NamedTextColor.RED));
+            return;
+        }
+        for (String lineId : targets) {
+            if (LineConfig.get(lineId) == null) {
+                commandSender.sendMessage(Component.text("线路 [%s] 不存在。".formatted(lineId), NamedTextColor.RED));
+                return;
+            }
+        }
+        new GeoTraversalTask(plugin, commandSender, targets).runLine();
     }
 
     @CommandDescription("停止当前正在进行的铁轨遍历任务")
