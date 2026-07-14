@@ -105,6 +105,25 @@ public class GeoRouteGraph {
     }
 
     /**
+     * 判断是否是某线路的入站道岔
+     *
+     * @param node   判断的节点
+     * @param lineId 当前线路id
+     */
+    private boolean isEnterSwitcher(GeoNode node, String lineId) {
+        if (node.isStation()) {
+            return false;
+        }
+        List<GeoLink> links = GeoRouteEngine.getGraph().links(node.getId());
+        for (GeoLink link : links) {
+            if (!link.getLineId().equals(lineId)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * 取从某节点出发的出边。
      *
      * @param nodeId 节点 id
@@ -123,11 +142,12 @@ public class GeoRouteGraph {
      * 仅当传入节点<b>同时</b>有通往道岔与通往车站的出边时，返回那条通往车站的停靠线车站名；
      * 否则（不是道岔、无正线绕行、或找不到停靠线车站）返回 null。
      *
-     * @param node 待判断的节点（通常为进站道岔节点）
+     * @param node   待判断的节点（通常为进站道岔节点）
+     * @param lineId 当前线路id
      * @return 停靠线 platform 车站名；不满足条件返回 null
      */
-    public String platformNameOfMainlineSwitch(GeoNode node) {
-        if (node == null) {
+    public String platformNameOfMainlineSwitch(GeoNode node, String lineId) {
+        if (node == null || !isEnterSwitcher(node, lineId)) {
             return null;
         }
         List<GeoLink> outLinks = links(node.getId());

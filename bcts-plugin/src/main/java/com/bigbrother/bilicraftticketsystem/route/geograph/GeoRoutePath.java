@@ -255,10 +255,10 @@ public class GeoRoutePath {
             } else {
                 // 含有正线的车站获车站名
                 // 寻找进站道岔直接出边连接的车站节点
-                String stationName = GeoRouteEngine.getGraph().platformNameOfMainlineSwitch(node);
-                if (stationName != null) {
-                    String lineId = i < lineIdSequence.size() ? lineIdSequence.get(i) : null;
-                    if (lineId != null) {
+                String lineId = i < lineIdSequence.size() ? lineIdSequence.get(i) : null;
+                if (lineId != null) {
+                    String stationName = GeoRouteEngine.getGraph().platformNameOfMainlineSwitch(node, lineId);
+                    if (stationName != null) {
                         if (!result.isEmpty() && !result.getLast().stationName.equals(stationName)) {
                             result.add(new StationStep(stationName, lineId));
                         } else if (result.isEmpty()) {
