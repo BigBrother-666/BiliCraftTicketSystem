@@ -555,8 +555,11 @@ public class GeoTraversalTask {
      * 增量保存：为每条目标线写 {@code <lineId>.geojson}（整体覆盖）、合并写 {@code contact.geojson}，
      * 其它线路文件不动。layer 相对磁盘上其它文件的区间（固定障碍）计算，见 {@link LayerAssigner#assignRelative}。
      * <p>
-     * 联络线合并规则：删除旧 {@code contact.geojson} 里「属主为某条目标线」的段（{@code from} 节点属于目标线
-     * 旧 / 新节点集，处理联络线控制牌的增 / 删 / 移动），保留其它线的联络线段，再并入本次新走出的联络线段。
+     * 联络线合并规则：按 {@link RailEdge#getOwnerLineId() owner} 精确删除旧 {@code contact.geojson} 里
+     * 「归属本次目标线」的段（本次会重新走出），保留其它线拥有的段，再并入本次新走出的联络线段。
+     * 同一物理联络线从两条线的道岔出发会产出方向相反、owner 不同的两条边，故只按 owner 删除，绝不误删
+     * 对端线路的反向段（旧的按 from 节点归属判定会误删对端段，导致联络线断开）。owner 为 null 的旧段
+     * （本字段引入前产出）保守保留，一次 {@code walkAll} 全量重建即可补齐。
      *
      * @param walk 本次增量遍历驱动器（提供结果收集器与起点首节点 id）
      * @param log  日志
@@ -574,9 +577,6 @@ public class GeoTraversalTask {
         // 逐条目标线：读旧文件、保留起点首节点入边、算本线待写区间与节点表
         Map<String, List<RailEdge>> targetEdgesByLine = new LinkedHashMap<>();
         Map<String, Map<String, RailNode>> targetNodesByLine = new LinkedHashMap<>();
-        // 本次所有目标线的属主节点范围（旧 + 新 + 本次新联络线节点），用于判定要删除哪些旧联络线段
-        Set<String> ownedNodeIds = new LinkedHashSet<>();
-        collector.nodesOf(CONTACT_ID).forEach(n -> ownedNodeIds.add(n.getId()));
         for (String lineId : targetLineIds) {
             GeojsonReader.Result oldTarget = reader.read(new File(dir, lineId + ".geojson"));
             List<RailEdge> edges = new ArrayList<>(collector.edgesOf(lineId));
@@ -586,22 +586,27 @@ public class GeoTraversalTask {
             Map<String, RailNode> nodes = new LinkedHashMap<>(oldTarget.nodes);
             collector.nodesOf(lineId).forEach(n -> nodes.put(n.getId(), n));
             targetNodesByLine.put(lineId, nodes);
-
-            ownedNodeIds.addAll(oldTarget.nodes.keySet());
-            collector.nodesOf(lineId).forEach(n -> ownedNodeIds.add(n.getId()));
         }
 
-        // 合并联络线段：保留其它线的旧段（from 不属任一目标线），并入本次新段（同 id 覆盖）
+        // 合并联络线段：按 owner 精确删除——只丢弃「归属本次目标线」的旧联络线段（本次会重新走出），
+        // 保留其它线拥有的段。这样才不会误删同一物理联络线上属于对端线路的反向段（否则联络线断开）。
+        // owner 为 null 的旧段（本字段引入前产出）保守保留，一次 walkAll 全量重建即可补齐 owner。
         GeojsonReader.Result oldContact = reader.read(new File(dir, CONTACT_ID + ".geojson"));
         Map<String, RailEdge> mergedContact = new LinkedHashMap<>();
+        int preservedOthers = 0;
         for (RailEdge e : oldContact.edges) {
-            if (!ownedNodeIds.contains(e.getFromNodeId())) {
-                mergedContact.put(e.getId(), e);
+            String owner = e.getOwnerLineId();
+            if (owner != null && targetLineIds.contains(owner)) {
+                continue; // 归属本次目标线：丢弃旧段，由本次遍历重新走出
             }
+            mergedContact.put(e.getId(), e);
+            preservedOthers++;
         }
         for (RailEdge e : collector.edgesOf(CONTACT_ID)) {
             mergedContact.put(e.getId(), e);
         }
+        log.info("合并 contact.geojson：保留其它线联络线段 " + preservedOthers + " 条，本次新增 "
+                + collector.edgesOf(CONTACT_ID).size() + " 条");
         List<RailEdge> contactEdges = new ArrayList<>(mergedContact.values());
 
         // layer：把其它线路文件的区间当固定障碍，一起计算所有目标线 + 合并联络线段（跨目标线叠压一致）

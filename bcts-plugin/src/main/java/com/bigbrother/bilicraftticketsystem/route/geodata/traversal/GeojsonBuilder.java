@@ -118,6 +118,11 @@ public class GeojsonBuilder {
         if (edge.getEnterFaceTo() != null) {
             props.put("enterTo", edge.getEnterFaceTo());
         }
+        // 归属线路 id：增量遍历合并 contact.geojson 时按此精确删除本次目标线拥有的旧联络线段。
+        // 普通线段 owner 与 lineId 相同；联络线段 owner = 触发它的目标线。为空省略（向后兼容旧文件）。
+        if (edge.getOwnerLineId() != null) {
+            props.put("owner", edge.getOwnerLineId());
+        }
         feature.setProperties(props);
         return feature;
     }

@@ -23,7 +23,7 @@ public class GeoLayerRelativeTest {
     }
 
     private RailEdge edge(String from, String to, int layer, List<LngLatAlt> coords) {
-        return new RailEdge(from, to, "L", "sys", coords, "#FFFFFF", 1, layer, null, "test_world", null, null);
+        return new RailEdge(from, to, "L", "sys", coords, "#FFFFFF", 1, layer, null, "test_world", null, null, "L");
     }
 
     @Test

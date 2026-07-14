@@ -51,6 +51,12 @@ public class GraphWalk {
     private final Set<String> lineScope;
 
     /**
+     * 联络线的线路 id：出向声明为该 id 时，走出的段归属「触发它的目标线」而非该 id 自身
+     * （见 {@link RailEdge#getOwnerLineId()}）。与 {@code GeoTraversalTask.CONTACT_ID} 一致。
+     */
+    private static final String CONTACT_ID = "contact";
+
+    /**
      * 已展开的 {@code (节点,入向,出向,lineId)} 状态，跨所有起点共享，防止环线 / 重复死循环、并在
      * 多起点间复用进度（撞到已访问状态即停）。
      */
@@ -119,9 +125,11 @@ public class GraphWalk {
      * @param prevNode      上一个节点
      * @param fromEnterFace 到达起点节点（道岔）时的到达面 key（起点首段为 null）——作为本段边的
      *                      {@code enterFaceFrom}，供寻路门控「从此方向来才可走本段」。
+     * @param ownerLineId   本段归属线路 id（见 {@link RailEdge#getOwnerLineId()}）：普通段 = lineId，
+     *                      联络线段 = 触发它的目标线。沿续行 / 首段透传，走 contact 出向时置为进入道岔的 lineId。
      */
     private record WalkState(String prevNodeId, Block rail, Vector direction, String forcedDir, String lineId,
-                             RailNode prevNode, String fromEnterFace) {
+                             RailNode prevNode, String fromEnterFace, String ownerLineId) {
     }
 
     /**
@@ -134,7 +142,8 @@ public class GraphWalk {
      * @param startDirection 起点方向
      */
     public void seed(String startLineId, Block startRail, Vector startDirection) {
-        queue.add(new WalkState(null, startRail, startDirection, null, startLineId, null, null));
+        // 首段 owner = 起点登记线路（首段必是营运线，非 contact）
+        queue.add(new WalkState(null, startRail, startDirection, null, startLineId, null, null, startLineId));
     }
 
     /**
@@ -243,13 +252,13 @@ public class GraphWalk {
                     st.prevNode() != null && st.prevNode().getType().equals(RailNode.Type.STATION) && node.getLineIds().contains(lineId)) {
                 collector.recordEdge(lineId, st.prevNodeId(), node.getId(), lineId, railwaySystemId, color,
                         GeoUtils.simplifyLineString(coords), result.length(), st.forcedDir(),
-                        node.getRailBlock().getWorld().getName(), st.fromEnterFace(), arrivalFace);
+                        node.getRailBlock().getWorld().getName(), st.fromEnterFace(), arrivalFace, st.ownerLineId());
             }
 
             if (result.reason() == TrackWalker.StopReason.PLATFORM) {
-                expandPlatform(node, lineId, arrival, arrivalFace, queue, logPrefix);
+                expandPlatform(node, lineId, st.ownerLineId(), arrival, arrivalFace, queue, logPrefix);
             } else {
-                expandSwitcher(node, lineId, walker, result, arrival, arrivalFace, queue, logPrefix);
+                expandSwitcher(node, lineId, st.ownerLineId(), walker, result, arrival, arrivalFace, queue, logPrefix);
             }
         } finally {
             walker.destroy();
@@ -266,7 +275,7 @@ public class GraphWalk {
      * @param arrivalFace 到达方向的面 key（入向）
      * @param queue       待展开队列
      */
-    private void expandPlatform(RailNode node, String lineId, Vector arrival, String arrivalFace, Deque<WalkState> queue, String logPrefix) {
+    private void expandPlatform(RailNode node, String lineId, String ownerLineId, Vector arrival, String arrivalFace, Deque<WalkState> queue, String logPrefix) {
         LineInfo lineInfo = LineConfig.get(lineId);
         boolean reverse = lineInfo != null && lineInfo.isReverseStationByName(node.getStationName());
         Vector outDir = reverse ? arrival.clone().multiply(-1) : arrival.clone();
@@ -274,8 +283,9 @@ public class GraphWalk {
             log.info(logPrefix + "折返站 " + node.getStationName() + "，反向驶出");
         }
         String outFace = faceKey(outDir);
+        // platform 一进一出，lineId 与 owner 原样带过去
         tryEnqueue(node, arrivalFace, outFace, lineId, queue,
-                new WalkState(node.getId(), node.getRailBlock(), outDir, null, lineId, node, arrivalFace));
+                new WalkState(node.getId(), node.getRailBlock(), outDir, null, lineId, node, arrivalFace, ownerLineId));
     }
 
     /**
@@ -292,7 +302,7 @@ public class GraphWalk {
      * @param queue       待展开队列
      */
     @SuppressWarnings("unused")
-    private void expandSwitcher(RailNode node, String lineId, TrackWalker walker, TrackWalker.WalkResult result,
+    private void expandSwitcher(RailNode node, String lineId, String ownerLineId, TrackWalker walker, TrackWalker.WalkResult result,
                                 Vector arrival, String arrivalFace, Deque<WalkState> queue, String logPrefix) {
         RailPiece rail = result.sign().getRail();
         List<BcSwitcherBranch> branches = walker.collectSwitcherBranches(rail);
@@ -307,10 +317,14 @@ public class GraphWalk {
                 if (lineScope != null && !lineScope.contains(outLineId)) {
                     continue;
                 }
+                // 归属线路：走 contact 出向时，本段归属「触发它的目标线」——即进入本道岔时携带的 owner
+                // （首次进 contact 时 owner=当前营运线；链式 contact 沿用同一 owner）。走普通线路出向时
+                // 归属该出向线路自身。据此增量遍历合并 contact 只删本次目标线拥有的旧段，不误删对端线的反向段。
+                String outOwner = CONTACT_ID.equals(outLineId) ? ownerLineId : outLineId;
                 // 出向 key 用 (方向, 出向lineId)：共用出向按线拆 fork，各挂单一 tag 各走各记。
                 tryEnqueue(node, arrivalFace, branch.getDirectionStr(), outLineId, queue,
                         new WalkState(node.getId(), node.getRailBlock(), arrival.clone(),
-                                branch.getDirectionStr(), outLineId, node, arrivalFace));
+                                branch.getDirectionStr(), outLineId, node, arrivalFace, outOwner));
             }
         }
     }

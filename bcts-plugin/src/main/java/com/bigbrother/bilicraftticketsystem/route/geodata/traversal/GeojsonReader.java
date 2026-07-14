@@ -117,6 +117,7 @@ public class GeojsonReader {
         String departDir = str(f.getProperty("departDir"));
         String world = str(f.getProperty("world"));
         String enterTo = str(f.getProperty("enterTo"));
+        String owner = str(f.getProperty("owner"));
         List<LngLatAlt> coords = ls.getCoordinates() == null ? new ArrayList<>() : new ArrayList<>(ls.getCoordinates());
         // 门控入向面可能是多值：用首个初始化，其余合并进去
         Object enterFromProp = f.getProperty("enterFrom");
@@ -136,7 +137,7 @@ public class GeojsonReader {
             }
         }
         RailEdge edge = new RailEdge(from, to, lineId, railwaySystemId, coords, color, length, layer,
-                departDir, world, firstEnterFrom, enterTo);
+                departDir, world, firstEnterFrom, enterTo, owner);
         restEnterFrom.forEach(edge::addEnterFaceFrom);
         return edge;
     }
