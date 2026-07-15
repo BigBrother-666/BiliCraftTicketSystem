@@ -12,6 +12,7 @@ import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteNavigator;
 import com.bigbrother.bilicraftticketsystem.menu.PlayerOption;
+import lombok.Getter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -51,7 +52,8 @@ public class BCTicket extends BCTransitPass {
     public static final String KEY_TICKET_START_PLATFORM_NODE = "startPlatformNode";
 
     private final Player owner;
-    private int maxUses;
+    @Getter
+    private Integer maxUses;
 
 
     public BCTicket(PlayerOption option, GeoRoutePath pathInfo, Player owner) {
@@ -83,7 +85,7 @@ public class BCTicket extends BCTransitPass {
 
         CommonTagCompound nbt = commonItemStack.getCustomData();
         this.owner = Bukkit.getPlayer(nbt.getValue(KEY_TICKET_OWNER_UUID, ""));
-        this.payerUuid = nbt.containsKey(KEY_TICKET_OWNER_UUID) ? nbt.getUUID(KEY_TICKET_OWNER_UUID) : null;
+        this.payerUuid = owner != null ? owner.getUniqueId() : null;
         this.maxUses = nbt.getValue(KEY_TICKET_MAX_NUMBER_OF_USES, 1);
         this.maxSpeed = nbt.getValue(KEY_TICKET_MAX_SPEED, 4.0);
 
