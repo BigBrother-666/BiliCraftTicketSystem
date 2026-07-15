@@ -165,6 +165,11 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
      */
     private void setupWebLink() {
         if (!MapConfig.isEnabled()) {
+            // 运行中被改为 false 并 reload：彻底关闭已在跑的对接，停止后台重连
+            if (webLink != null) {
+                webLink.shutdown();
+                webLink = null;
+            }
             return;
         }
         if (webLink == null) {
