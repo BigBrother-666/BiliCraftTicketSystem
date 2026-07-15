@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.config.EnumConfig;
+import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import lombok.Getter;
 
 import java.util.*;
@@ -49,8 +50,8 @@ public class RailwaySystemConfig {
     private static RailwaySystemInfo parseNode(ConfigurationNode node) {
         String id = node.getName();
         String name = node.get("name", id);
-        // 每公里价格选填：未配置则为 null，计费时回退到全局 price-per-km
-        Double pricePerKm = node.contains("price-per-km") ? node.get("price-per-km", Double.class, null) : null;
+        // 每公里价格选填：未配置回退到全局 price-per-km
+        Double pricePerKm = node.contains("price-per-km") ? node.get("price-per-km", Double.class, MainConfig.pricePerKm) : MainConfig.pricePerKm;
         UUID creator = parseUuid(node.get("creator", String.class, null));
         double income = node.get("income", 0.0);
         double withdrawn = node.get("withdrawn", 0.0);
