@@ -124,20 +124,20 @@ public class TransferJourneyTest {
         GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(scenario()));
 
         // 门槛 20%：换乘省 80% ≫ 20%，应显示
-        assertFalse(GeoRouteEngine.findTransferJourneys("A", "E", 3, 30, 0.2).isEmpty(),
+        assertFalse(GeoRouteEngine.findTransferJourneys("A", "E", 3, 0.2).isEmpty(),
                 "省 80% 远超 20% 门槛，应显示");
 
         // 门槛 90%：换乘省 80% < 90%，被过滤
-        assertTrue(GeoRouteEngine.findTransferJourneys("A", "E", 3, 30, 0.9).isEmpty(),
+        assertTrue(GeoRouteEngine.findTransferJourneys("A", "E", 3, 0.9).isEmpty(),
                 "省 80% 不足 90% 门槛，应过滤");
     }
 
     @Test
-    void candidateCapDoesNotDropCoreTransferStation() {
-        // 换乘点 B 在直达路径经停站中（优先候选），即便候选上限收紧到 1 也应保留、仍能算出方案
+    void condensedMatrixFindsTransferStation() {
+        // 缩合距离矩阵枚举全部换乘站：换乘点 B 经站名级预筛后应被实体化，即便只要 1 条结果也能算出方案。
         GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(scenario()));
-        List<JourneyPlan> plans = GeoRouteEngine.findTransferJourneys("A", "E", 0, 1);
-        assertFalse(plans.isEmpty(), "候选封顶后仍应保留直达路径上的换乘站 B");
+        List<JourneyPlan> plans = GeoRouteEngine.findTransferJourneys("A", "E", 1);
+        assertFalse(plans.isEmpty(), "站名级缩合矩阵应枚举到换乘站 B 并实体化出方案");
         assertEquals("B", plans.getFirst().getTransferStations().getFirst());
     }
 }

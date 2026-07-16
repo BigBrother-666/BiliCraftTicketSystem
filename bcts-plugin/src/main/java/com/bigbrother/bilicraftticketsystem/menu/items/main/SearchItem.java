@@ -78,8 +78,7 @@ public class SearchItem extends AbstractItem {
             // 换乘（联程）候选：限方案数 + 限候选换乘站数，防止大线组合爆炸
             List<ThroughTicket> throughTickets = new ArrayList<>();
             for (JourneyPlan plan : GeoRouteEngine.findTransferJourneys(start, end,
-                    MainConfig.maxTransferResults, MainConfig.maxTransferCandidates,
-                    MainConfig.transferMinImprovement)) {
+                    MainConfig.maxTransferResults, MainConfig.transferMinImprovement)) {
                 throughTickets.add(new ThroughTicket(option, plan, player));
             }
 

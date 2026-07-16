@@ -43,9 +43,9 @@ public class RealGraphReproTest {
                 directAll.size(), (t3 - t2) / 1e6);
 
         long t4 = System.nanoTime();
-        List<JourneyPlan> plans = GeoRouteEngine.findTransferJourneys(START, END, 3, 30);
+        List<JourneyPlan> plans = GeoRouteEngine.findTransferJourneys(START, END, 3);
         long t5 = System.nanoTime();
-        System.out.printf("[repro] findTransferJourneys(3,30) -> %d plans in %.1f ms%n",
+        System.out.printf("[repro] findTransferJourneys(3) -> %d plans in %.1f ms%n",
                 plans.size(), (t5 - t4) / 1e6);
     }
 }

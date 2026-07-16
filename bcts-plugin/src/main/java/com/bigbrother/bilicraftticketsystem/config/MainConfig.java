@@ -65,10 +65,6 @@ public class MainConfig {
      */
     public static int maxTransferResults;
     /**
-     * 换乘寻路时最多考察的候选换乘站数量，防止大型线路上的组合爆炸卡顿。
-     */
-    public static int maxTransferCandidates;
-    /**
      * 联程票最低改善比例：仅当换乘总距离 {@code < 最短直达 ×(1 - 此值)} 时才显示。两站无直达时不生效。
      */
     public static double transferMinImprovement;
@@ -196,7 +192,6 @@ public class MainConfig {
         searchWeightPrice = search.get("weight-price", 0.5);
         minDirectResults = search.get("min-direct-results", 1);
         maxTransferResults = search.get("max-transfer-results", 3);
-        maxTransferCandidates = search.get("max-transfer-candidates", 30);
         transferMinImprovement = search.get("transfer-min-improvement", 0.2);
 
         cardConfig = mainConfig.getNode("card");
