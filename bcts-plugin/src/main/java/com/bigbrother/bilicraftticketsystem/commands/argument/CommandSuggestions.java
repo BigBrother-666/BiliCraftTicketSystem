@@ -45,6 +45,8 @@ public class CommandSuggestions {
      * 这里返回<b>完整多 token 串</b>：把已输入完成的前缀（如 {@code "L1 L2 "}）拼到每个候选前面
      * （如 {@code "L1 L2 L3"}），并排除已经选过的线 id，使每个位置都能正常补全。
      *
+     * 候选为<b>所有</b>线路 id（不限执行者所在铁路系统、不校验归属），执行者自己系统的线路排在前面。
+     *
      * @param context 命令上下文
      * @param input   命令输入
      * @return 带已输入前缀的完整候选串
@@ -63,7 +65,7 @@ public class CommandSuggestions {
             }
         }
         List<String> result = new ArrayList<>();
-        for (String lineId : memberLineIds(context)) {
+        for (String lineId : allLineIdsOwnSystemFirst(context)) {
             if (!chosen.contains(lineId)) {
                 result.add(committed + lineId);
             }
