@@ -50,7 +50,7 @@ public class GeoTraversalTask {
     /**
      * 绕过遍历全局冷却的权限；持此权限者发起遍历不受冷却限制，且其执行结束不刷新冷却时间。
      */
-    public static final String PERM_BYPASS_COOLDOWN = "bcts.railgeo.bypasscooldown";
+    public static final String PERM_BYPASS_COOLDOWN = "bcts.bypass";
 
     /**
      * 全局单运行锁：保证同一时刻只有一个遍历任务在跑。

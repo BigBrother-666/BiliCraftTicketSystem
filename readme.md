@@ -270,7 +270,7 @@ platform 处达到该速度。**只改速度不改最大速度**。
 
 > `setStartPos` / `delStartPos` 仅允许该线路所属**铁路系统的成员**执行（避免非本系统成员改动线路遍历数据）。
 >
-> 有 `bcts.railgeo.bypasscooldown` 权限者发起 `walkAll` 可**绕过全局冷却**。
+> 有 `bcts.bypass` 权限者发起 `walkAll` 可**绕过全局冷却**。
 >
 > `walkAll --ignore <lineId...>`：被忽略的线路既不从其起点遍历、也不展开道岔中指向它们的分支，收尾时不校验其车站完整性。`--ignore` 的补全提供**所有**线路 id（不限执行者所在铁路系统），执行者自己系统的线路排在前面。
 
@@ -306,7 +306,7 @@ platform 处达到该速度。**只改速度不改最大速度**。
 
 **运行约束与反馈**：
 
-- **单运行 + 全局冷却**：同一时刻只允许一个遍历任务；完成后进入全局冷却（`config_map.yml` 的 `traversal.cooldown-seconds`）。再次发起时若有任务在跑或仍在冷却，提示并拒绝。可用 `railgeo stopWalk` 提前停止；持 `bcts.railgeo.bypasscooldown` 权限者绕过冷却且不刷新冷却。
+- **单运行 + 全局冷却**：同一时刻只允许一个遍历任务；完成后进入全局冷却（`config_map.yml` 的 `traversal.cooldown-seconds`）。再次发起时若有任务在跑或仍在冷却，提示并拒绝。可用 `railgeo stopWalk` 提前停止。
 - **进度反馈**：遍历期间每隔 `traversal.progress-interval-seconds` 秒（默认 5，`<=0` 关闭）向发起者反馈“当前已遍历 N 个节点”；同时控制台也会输出进度。
 - **暂停凭证**：遍历期间暂停车票 / 交通卡上车（普通车不受影响）。
 - **与配置编辑互斥**：遍历期间禁用 `ticketconfig`（线路 / 铁路系统配置）指令；反之，发起遍历前若有玩家正在进行配置向导则拒绝遍历。避免配置改到一半时遍历，导致结果不一致。

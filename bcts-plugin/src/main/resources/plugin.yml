@@ -70,8 +70,8 @@ permissions:
   bcts.railgeo:
     description: "铁轨遍历（railgeo）相关指令权限"
     default: op
-  bcts.railgeo.bypasscooldown:
-    description: "绕过铁轨遍历全局冷却的权限（绕过执行不刷新冷却）"
+  bcts.bypass:
+    description: "绕过系统的大部分限制"
     default: op
 
 libraries:

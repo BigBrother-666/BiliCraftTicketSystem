@@ -29,7 +29,7 @@ public class GeoCommand {
     @Permission("bcts.railgeo")
     public void walkAll(
             CommandSender commandSender,
-            @Flag(value = "ignore", description = "不遍历的线路 id（可跟多个，空格分隔），既不展开指向这些线的道岔分支，也不校验其车站完整性", suggestions = "allLineId")
+            @Flag(value = "ignore", description = "不遍历的线路 id（可跟多个，空格分隔），既不展开指向这些线的道岔分支，也不校验其车站完整性", suggestions = "lineIds")
             @Nullable String[] ignore
     ) {
         Set<String> ignoreLineIds = new LinkedHashSet<>();
@@ -60,7 +60,7 @@ public class GeoCommand {
             String lineIds
     ) {
         // 空格分隔多个 lineId，去重保序
-        java.util.LinkedHashSet<String> targets = new java.util.LinkedHashSet<>();
+        LinkedHashSet<String> targets = new LinkedHashSet<>();
         for (String token : lineIds.trim().split("\\s+")) {
             if (!token.isEmpty()) {
                 targets.add(token);
@@ -107,15 +107,15 @@ public class GeoCommand {
     @Command("railgeo delStartPos <lineId>")
     @Permission("bcts.railgeo")
     public void delStartPos(
-            Player player,
+            CommandSender sender,
             @Argument(value = "lineId", description = "线路 id", suggestions = "lineId")
             String lineId
     ) {
-        if (!checkLineSystemMember(player, lineId)) {
+        if (!sender.hasPermission("bcts.bypass") || sender instanceof Player player && !checkLineSystemMember(player, lineId)) {
             return;
         }
         int deleted = plugin.getGeoDatabaseManager().deleteGeoNodeLoc(lineId);
-        player.sendMessage(Component.text("成功删除线路 [%s] 的遍历起点 %s 条".formatted(lineId, deleted), NamedTextColor.GREEN));
+        sender.sendMessage(Component.text("成功删除线路 [%s] 的遍历起点 %s 条".formatted(lineId, deleted), NamedTextColor.GREEN));
     }
 
     /**
