@@ -27,6 +27,19 @@ public class CommandSuggestions {
     }
 
     /**
+     * {@code railgeo walkAll --ignore} 的补全：<b>所有</b>线路 id（不限执行者所在铁路系统），
+     * 但执行者所属系统的线路 id 排在前面，便于快速选到自己的线。
+     *
+     * @param context 命令上下文
+     * @param input   命令输入
+     * @return 全部线路 id（自己系统的在前）
+     */
+    @Suggestions("allLineId")
+    public List<String> allLineIdSuggestions(CommandContext<Player> context, CommandInput input) {
+        return allLineIdsOwnSystemFirst(context);
+    }
+
+    /**
      * {@code railgeo walk <lineIds>} 的补全：参数是 {@code @Greedy} 字符串（空格分隔多条线），
      * cloud 会拿<b>整段剩余输入</b>（如 {@code "L1 L2 L"}）与候选做前缀过滤，故裸 id 只能匹配第一个 token。
      * 这里返回<b>完整多 token 串</b>：把已输入完成的前缀（如 {@code "L1 L2 "}）拼到每个候选前面
@@ -68,6 +81,24 @@ public class CommandSuggestions {
         List<String> result = new ArrayList<>();
         for (String systemId : RailwaySystemConfig.getSystemsOfMember(context.sender().getUniqueId())) {
             result.addAll(LineConfig.getLineIdsOfSystem(systemId));
+        }
+        return result;
+    }
+
+    /**
+     * 所有线路 id（不限执行者所在铁路系统），但执行者所属系统的线路 id 排在前面、其余线路随后，
+     * 各自内部保持配置顺序、整体去重。
+     *
+     * @param context 命令上下文
+     * @return 全部线路 id（自己系统的在前）
+     */
+    private List<String> allLineIdsOwnSystemFirst(CommandContext<Player> context) {
+        Set<String> own = new LinkedHashSet<>(memberLineIds(context));
+        List<String> result = new ArrayList<>(own);
+        for (String lineId : LineConfig.getLines().keySet()) {
+            if (!own.contains(lineId)) {
+                result.add(lineId);
+            }
         }
         return result;
     }

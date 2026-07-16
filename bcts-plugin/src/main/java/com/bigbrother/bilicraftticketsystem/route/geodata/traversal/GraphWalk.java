@@ -49,6 +49,12 @@ public class GraphWalk {
      * {@code walkAll} 行为不变）。
      */
     private final Set<String> lineScope;
+    /**
+     * 忽略的线路 id 集合（{@code walkAll --ignore} 用）：bcswitcher 展开时，出向声明为这些 id 的分支
+     * <b>不展开</b>（不流入这些线），从而整次遍历不覆盖这些线路的轨道 / 车站。空集表示不忽略任何线。
+     * 与 {@link #lineScope} 正交：scope 是「只跟进」白名单（单线遍历），ignore 是「不跟进」黑名单（全图遍历）。
+     */
+    private final Set<String> ignoreLineIds;
 
     /**
      * 联络线的线路 id：出向声明为该 id 时，走出的段归属「触发它的目标线」而非该 id 自身
@@ -103,15 +109,17 @@ public class GraphWalk {
      * @param maxNodes        整次遍历最多展开段数（兜底防环）
      * @param maxEdgesPerWalk 单段行走最多采样的坐标点数
      * @param lineScope       出向线路范围限定（见 {@link #lineScope}）；null 表示不限定
+     * @param ignoreLineIds   忽略的线路 id 集合（见 {@link #ignoreLineIds}）；null / 空表示不忽略
      */
     public GraphWalk(TraversalCollector collector, GeoTraversalLogger log, Set<String> visited,
-                     int maxNodes, int maxEdgesPerWalk, Set<String> lineScope) {
+                     int maxNodes, int maxEdgesPerWalk, Set<String> lineScope, Set<String> ignoreLineIds) {
         this.collector = collector;
         this.log = log;
         this.visited = visited;
         this.maxNodes = maxNodes;
         this.maxEdgesPerWalk = maxEdgesPerWalk;
         this.lineScope = lineScope;
+        this.ignoreLineIds = ignoreLineIds == null ? java.util.Collections.emptySet() : ignoreLineIds;
     }
 
     /**
@@ -315,6 +323,11 @@ public class GraphWalk {
                 // 单线遍历：只跟进范围内（目标线 / 联络线）的出向，其它线的出向到此为止，
                 // 使遍历只覆盖目标线全线 + 与其直接相连的联络线段。全图遍历时 lineScope 为 null，不过滤。
                 if (lineScope != null && !lineScope.contains(outLineId)) {
+                    continue;
+                }
+                // 忽略名单：出向声明为被忽略线路的分支不展开，遍历不流入这些线（walkAll --ignore）
+                if (ignoreLineIds.contains(outLineId)) {
+                    log.info(logPrefix + "bcswitcher(%s)的出向 %s 在忽略名单中，跳过该分支".formatted(rail.block().getLocation(), outLineId));
                     continue;
                 }
                 // 归属线路：走 contact 出向时，本段归属「触发它的目标线」——即进入本道岔时携带的 owner

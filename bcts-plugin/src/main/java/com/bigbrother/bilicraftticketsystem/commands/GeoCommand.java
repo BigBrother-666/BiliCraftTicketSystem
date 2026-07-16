@@ -10,8 +10,12 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Nullable;
 import org.incendo.cloud.annotation.specifier.Greedy;
 import org.incendo.cloud.annotations.*;
+
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 public class GeoCommand {
     private final BiliCraftTicketSystem plugin;
@@ -20,13 +24,30 @@ public class GeoCommand {
         this.plugin = plugin;
     }
 
-    @CommandDescription("遍历所有已登记线路起点，按线路分文件产出 geojson")
+    @CommandDescription("遍历所有已登记线路起点，按线路分文件产出 geojson；--ignore 后跟若干 lineId 表示不遍历这些线")
     @Command("railgeo walkAll")
     @Permission("bcts.railgeo")
     public void walkAll(
-            CommandSender commandSender
+            CommandSender commandSender,
+            @Flag(value = "ignore", description = "不遍历的线路 id（可跟多个，空格分隔），既不展开指向这些线的道岔分支，也不校验其车站完整性", suggestions = "allLineId")
+            @Nullable String[] ignore
     ) {
-        new GeoTraversalTask(plugin, commandSender).runAll();
+        Set<String> ignoreLineIds = new LinkedHashSet<>();
+        if (ignore != null) {
+            for (String token : ignore) {
+                if (token != null && !token.isEmpty()) {
+                    ignoreLineIds.add(token);
+                }
+            }
+        }
+        // 校验被忽略的线路 id 都存在，避免拼写错误静默无效
+        for (String lineId : ignoreLineIds) {
+            if (LineConfig.get(lineId) == null) {
+                commandSender.sendMessage(Component.text("线路 [%s] 不存在。".formatted(lineId), NamedTextColor.RED));
+                return;
+            }
+        }
+        new GeoTraversalTask(plugin, commandSender, Set.of(), ignoreLineIds).runAll();
     }
 
     @CommandDescription("只遍历一条或多条线路及与其直接相连的联络线，增量更新这些线与 contact 的 geojson")

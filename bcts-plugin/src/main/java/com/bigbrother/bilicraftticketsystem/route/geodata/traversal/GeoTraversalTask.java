@@ -88,13 +88,18 @@ public class GeoTraversalTask {
      * 这些线的 {@code <lineId>.geojson} 与合并后的 {@code contact.geojson}。
      */
     private final Set<String> targetLineIds;
+    /**
+     * 忽略的线路 id 集合（{@code walkAll --ignore} 用）：不展开 bcswitcher 中指向这些线的分支、
+     * 遍历不覆盖这些线，收尾也不校验这些线的车站完整性。仅全图遍历（{@code walkAll}）有意义。
+     */
+    private final Set<String> ignoreLineIds;
 
     /**
      * @param plugin 插件实例
      * @param sender 发起遍历者
      */
     public GeoTraversalTask(BiliCraftTicketSystem plugin, CommandSender sender) {
-        this(plugin, sender, Collections.emptySet());
+        this(plugin, sender, Collections.emptySet(), Collections.emptySet());
     }
 
     /**
@@ -103,9 +108,20 @@ public class GeoTraversalTask {
      * @param targetLineIds 增量遍历目标线路 id 集合；空 / null 表示全图遍历
      */
     public GeoTraversalTask(BiliCraftTicketSystem plugin, CommandSender sender, Set<String> targetLineIds) {
+        this(plugin, sender, targetLineIds, Collections.emptySet());
+    }
+
+    /**
+     * @param plugin        插件实例
+     * @param sender        发起遍历者
+     * @param targetLineIds 增量遍历目标线路 id 集合；空 / null 表示全图遍历
+     * @param ignoreLineIds 忽略的线路 id 集合（见 {@link #ignoreLineIds}）；空 / null 表示不忽略。仅全图遍历有意义。
+     */
+    public GeoTraversalTask(BiliCraftTicketSystem plugin, CommandSender sender, Set<String> targetLineIds, Set<String> ignoreLineIds) {
         this.plugin = plugin;
         this.sender = sender;
         this.targetLineIds = targetLineIds == null ? Collections.emptySet() : new LinkedHashSet<>(targetLineIds);
+        this.ignoreLineIds = ignoreLineIds == null ? Collections.emptySet() : new LinkedHashSet<>(ignoreLineIds);
     }
 
     /**
@@ -198,7 +214,7 @@ public class GeoTraversalTask {
 
         GeoTraversalLogger log = new GeoTraversalLogger(plugin, sender);
         GraphWalk walk = new GraphWalk(new TraversalCollector(), log, new HashSet<>(),
-                MapConfig.getTraversalMaxTotalNodes(), MapConfig.getTraversalMaxEdgesPerWalk(), scope);
+                MapConfig.getTraversalMaxTotalNodes(), MapConfig.getTraversalMaxEdgesPerWalk(), scope, ignoreLineIds);
         runningWalk = walk;
         // 分片遍历期间主线程被一段段占用，异步线程只读 walk 的计数器汇报进度。
         BukkitTask progressTask = startProgressFeedback(walk, log);
@@ -335,6 +351,11 @@ public class GeoTraversalTask {
             log.message("开始构建铁路图，共 " + starts.size() + " 个登记起点...", NamedTextColor.DARK_AQUA);
         }
         for (GeoNodeLoc start : starts) {
+            // --ignore 的线路不从其登记起点 seed，彻底不遍历该线
+            if (ignoreLineIds.contains(start.getLineId())) {
+                log.info("线路 " + start.getLineId() + " 在忽略名单中，跳过其起点");
+                continue;
+            }
             Block startRail = resolveStartRail(start.getStartLocation());
             if (startRail == null) {
                 walk.abort("起点 " + start.getLineId() + " 坐标处没有铁轨（坐标 " + start.getStartLocation()
@@ -409,6 +430,8 @@ public class GeoTraversalTask {
             linesToCheck.addAll(startLineIds);
             linesToCheck.addAll(byLine.keySet());
         }
+        // --ignore 的线路不校验车站完整性（其轨道本就未遍历，缺站是预期行为）
+        linesToCheck.removeAll(ignoreLineIds);
         for (String lineId : linesToCheck) {
             if (!validateStationOrder(lineId, byLine.getOrDefault(lineId, Collections.emptySet()), walk, log)) {
                 log.message("构建铁路图任务已中止，未写入任何文件：" + walk.getAbortReason(), NamedTextColor.RED);

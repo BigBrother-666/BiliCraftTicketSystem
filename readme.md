@@ -262,7 +262,7 @@ platform 处达到该速度。**只改速度不改最大速度**。
 
 | 指令                            | 功能                                |
 |-------------------------------|-----------------------------------|
-| railgeo walkAll               | 遍历所有已登记线路起点，按线路分文件保存为 geojson     |
+| railgeo walkAll [--ignore ...] | 遍历所有已登记线路起点，按线路分文件保存为 geojson；`--ignore` 后跟若干 lineId（空格分隔）表示不遍历这些线 |
 | railgeo walk \<lineIds>       | 只遍历一条或多条线路（空格分隔）及与其直接相连的联络线       |
 | railgeo stopWalk              | 停止当前正在进行的铁轨遍历任务                   |
 | railgeo setStartPos \<lineId> | 登记某线路的遍历起点，以玩家所在铁轨为起点坐标、面朝方向为起点方向 |
@@ -271,6 +271,8 @@ platform 处达到该速度。**只改速度不改最大速度**。
 > `setStartPos` / `delStartPos` 仅允许该线路所属**铁路系统的成员**执行（避免非本系统成员改动线路遍历数据）。
 >
 > 有 `bcts.railgeo.bypasscooldown` 权限者发起 `walkAll` 可**绕过全局冷却**。
+>
+> `walkAll --ignore <lineId...>`：被忽略的线路既不从其起点遍历、也不展开道岔中指向它们的分支，收尾时不校验其车站完整性。`--ignore` 的补全提供**所有**线路 id（不限执行者所在铁路系统），执行者自己系统的线路排在前面。
 
 ### 9.4 线路配置（railway_routes.yml）
 
