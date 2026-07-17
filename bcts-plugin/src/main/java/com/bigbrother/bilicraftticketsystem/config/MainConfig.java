@@ -18,6 +18,10 @@ public class MainConfig {
     public static double speedStep;
     public static String expressTicketName;
     public static String expressTicketBgimage;
+    /**
+     * 插件卸载 / 关服时是否销毁所有由 bcspawn 生成的列车（带 {@code bcTrainId} 属性）。
+     */
+    public static boolean cleanupBcspawnTrainsOnDisable;
     public static double pricePerKm;
     /**
      * 创建 / 修改铁路系统时允许设置的每公里价格下限（含）。默认 0。
@@ -154,6 +158,7 @@ public class MainConfig {
 
         expressTicketName = mainConfig.get("express-ticket-name", "express");
         expressTicketBgimage = mainConfig.get("express-ticket-bgimage", "");
+        cleanupBcspawnTrainsOnDisable = mainConfig.get("cleanup-bcspawn-trains-on-disable", true);
         pricePerKm = mainConfig.get("price-per-km", 0.3);
 
         ConfigurationNode priceRange = mainConfig.getNode("price-per-km-range");

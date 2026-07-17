@@ -15,6 +15,11 @@ slowdown-max-detect-distance: 500.0
 # 跨站车车票名（需要在tc插件新建，用于识别使用本车票系统的列车）
 express-ticket-name: 'express'
 
+# 插件卸载 / 关服时是否销毁所有由 bcspawn 生成的列车（带 bcTrainId 属性的列车）。
+# true：卸载插件时清理这些列车，避免残留失去导航的"僵尸车"。
+# false：保留列车，交由 TrainCarts 随存档持久化，重启后恢复。
+cleanup-bcspawn-trains-on-disable: true
+
 # 可设置的最大/最小速度
 speed:
   max: 5.0

@@ -1,6 +1,8 @@
 package com.bigbrother.bilicraftticketsystem;
 
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bigbrother.bctsguardplugin.GuardListeners;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
@@ -309,6 +311,29 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         this.getComponentLogger().info(output);
     }
 
+    /**
+     * 销毁所有由 bcspawn 生成的列车。
+     */
+    private void cleanupBcspawnTrains() {
+        int destroyed = 0;
+        for (MinecartGroup group : MinecartGroupStore.getGroups().cloneAsIterable()) {
+            if (group == null || group.isEmpty() || group.isUnloaded() || group.isRemoved()) {
+                continue;
+            }
+            if (BcTrainIdProperty.read(group).isEmpty()) {
+                // 不是 bcspawn 生成的列车，保留
+                continue;
+            }
+            try {
+                group.destroy();
+                destroyed++;
+            } catch (Exception e) {
+                this.getComponentLogger().warn(Component.text("销毁 bcspawn 列车时出错：" + e, NamedTextColor.RED));
+            }
+        }
+        this.getComponentLogger().info(Component.text("已清理 " + destroyed + " 列 bcspawn 生成的列车", NamedTextColor.GOLD));
+    }
+
     @Override
     public void onDisable() {
         // Plugin shutdown logic
@@ -321,6 +346,11 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
 
         // 停止全部站台引导并清理残留全息实体
         PlatformGuide.stopAll();
+
+        // 按配置销毁所有 bcspawn 生成的列车（带 bcTrainId 属性），避免残留失去导航的列车
+        if (MainConfig.cleanupBcspawnTrainsOnDisable) {
+            cleanupBcspawnTrains();
+        }
 
         if (webLink != null) {
             webLink.shutdown();
