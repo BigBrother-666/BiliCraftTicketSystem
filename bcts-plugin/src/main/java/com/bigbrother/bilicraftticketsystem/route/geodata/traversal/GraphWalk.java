@@ -130,14 +130,13 @@ public class GraphWalk {
      * @param direction     本段起始方向
      * @param forcedDir     离开起始 bcswitcher 时的强制出向（platform 续行 / 起点首段为 null）
      * @param lineId        本段携带的当前线路 id（决定本段边归属及矿车导向 tag）
-     * @param prevNode      上一个节点
      * @param fromEnterFace 到达起点节点（道岔）时的到达面 key（起点首段为 null）——作为本段边的
      *                      {@code enterFaceFrom}，供寻路门控「从此方向来才可走本段」。
      * @param ownerLineId   本段归属线路 id（见 {@link RailEdge#getOwnerLineId()}）：普通段 = lineId，
      *                      联络线段 = 触发它的目标线。沿续行 / 首段透传，走 contact 出向时置为进入道岔的 lineId。
      */
     private record WalkState(String prevNodeId, Block rail, Vector direction, String forcedDir, String lineId,
-                             RailNode prevNode, String fromEnterFace, String ownerLineId) {
+                             String fromEnterFace, String ownerLineId) {
     }
 
     /**
@@ -151,7 +150,7 @@ public class GraphWalk {
      */
     public void seed(String startLineId, Block startRail, Vector startDirection) {
         // 首段 owner = 起点登记线路（首段必是营运线，非 contact）
-        queue.add(new WalkState(null, startRail, startDirection, null, startLineId, null, null, startLineId));
+        queue.add(new WalkState(null, startRail, startDirection, null, startLineId, null, startLineId));
     }
 
     /**
@@ -249,15 +248,14 @@ public class GraphWalk {
             node.addLineId(lineId);
             node.addRailwaySystemId(railwaySystemId);
             // 起点首段（无上一节点）到达的第一个节点：它没有被记录任何入边，收尾时可能需要从旧文件保留其入边
-            if (st.prevNodeId() == null && st.prevNode() == null) {
+            if (st.prevNodeId() == null) {
                 entryNodeIds.add(node.getId());
             }
 
             // 记录入边（起点首段 prevNodeId 为 null，无边可记）。st.forcedDir() 即离开上一道岔所用出向，
             // 作为本段物理出向写入，供运行时道岔对带导航的列车直接选向。
             // 如果上一个节点是车站节点 且 车站节点的下一个节点包含当前lineId 才添加
-            if (st.prevNodeId() != null && !st.prevNodeId().equals(node.getId()) ||
-                    st.prevNode() != null && st.prevNode().getType().equals(RailNode.Type.STATION) && node.getLineIds().contains(lineId)) {
+            if (st.prevNodeId() != null && !st.prevNodeId().equals(node.getId())) {
                 collector.recordEdge(lineId, st.prevNodeId(), node.getId(), lineId, railwaySystemId, color,
                         GeoUtils.simplifyLineString(coords), result.length(), st.forcedDir(),
                         node.getRailBlock().getWorld().getName(), st.fromEnterFace(), arrivalFace, st.ownerLineId());
@@ -291,9 +289,15 @@ public class GraphWalk {
             log.info(logPrefix + "折返站 " + node.getStationName() + "，反向驶出");
         }
         String outFace = faceKey(outDir);
-        // platform 一进一出，lineId 与 owner 原样带过去
-        tryEnqueue(node, arrivalFace, outFace, lineId, queue,
-                new WalkState(node.getId(), node.getRailBlock(), outDir, null, lineId, node, arrivalFace, ownerLineId));
+
+        // 如果是终点站 platform 下一段固定联络线
+        if (lineInfo != null && lineInfo.isTerminalStation(node.getStationName())) {
+            tryEnqueue(node, arrivalFace, outFace, lineId, queue,
+                    new WalkState(node.getId(), node.getRailBlock(), outDir, null, CONTACT_ID, arrivalFace, ownerLineId));
+        } else {
+            tryEnqueue(node, arrivalFace, outFace, lineId, queue,
+                    new WalkState(node.getId(), node.getRailBlock(), outDir, null, lineId, arrivalFace, ownerLineId));
+        }
     }
 
     /**
@@ -337,7 +341,7 @@ public class GraphWalk {
                 // 出向 key 用 (方向, 出向lineId)：共用出向按线拆 fork，各挂单一 tag 各走各记。
                 tryEnqueue(node, arrivalFace, branch.getDirectionStr(), outLineId, queue,
                         new WalkState(node.getId(), node.getRailBlock(), arrival.clone(),
-                                branch.getDirectionStr(), outLineId, node, arrivalFace, outOwner));
+                                branch.getDirectionStr(), outLineId, arrivalFace, outOwner));
             }
         }
     }
