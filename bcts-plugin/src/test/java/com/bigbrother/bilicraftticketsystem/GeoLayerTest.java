@@ -29,6 +29,10 @@ public class GeoLayerTest {
         return new RailEdge(from, to, "L", "sys", coords, "#FFFFFF", 1, 0, null, "test_world", null, null, "L");
     }
 
+    private RailEdge edge(String from, String to, String systemId, List<LngLatAlt> coords) {
+        return new RailEdge(from, to, "L", systemId, coords, "#FFFFFF", 1, 0, null, "test_world", null, null, "L");
+    }
+
     @Test
     void simplifyKeepsHeightChangePoints() {
         // XZ 平面是一条直线（z 恒为 0），高度非匀速变化（64,65,65,66）——
@@ -134,5 +138,67 @@ public class GeoLayerTest {
         assertEquals(0, a.getLayer());
         assertEquals(1, b.getLayer());
         assertEquals(2, c.getLayer());
+    }
+
+    @Test
+    void fullyOverlappingLinesAtDifferentHeightsStack() {
+        // 两条 XZ 完全重合的线（如地面线 y=10 正上方架高线 y=64）：
+        // 旧实现按"共线不算交叉"跳过 -> 高低压盖丢失。现应正确分层：高的在上层。
+        RailEdge low = edge("l1", "l2", Arrays.asList(p(0, 0, 10), p(0, 10, 10)));
+        RailEdge high = edge("h1", "h2", Arrays.asList(p(0, 0, 64), p(0, 10, 64)));
+        LayerAssigner.assign(new ArrayList<>(Arrays.asList(low, high)));
+        assertEquals(0, low.getLayer(), "较低的重合线在下层");
+        assertEquals(1, high.getLayer(), "较高的重合线应抬到上层");
+    }
+
+    @Test
+    void partiallyOverlappingCollinearLinesStack() {
+        // 部分重合的共线段（投影区间重叠一段），高度不同也应分层
+        RailEdge low = edge("l1", "l2", Arrays.asList(p(0, 0, 20), p(0, 20, 20)));
+        RailEdge high = edge("h1", "h2", Arrays.asList(p(0, 10, 30), p(0, 30, 30)));
+        LayerAssigner.assign(new ArrayList<>(Arrays.asList(low, high)));
+        assertEquals(0, low.getLayer());
+        assertEquals(1, high.getLayer());
+    }
+
+    @Test
+    void sameTrackSameHeightKeepsLayerZero() {
+        // 完全重合且同高（真正的共用轨道）：不产生叠层约束，都保持 0
+        RailEdge a = edge("a1", "a2", Arrays.asList(p(0, 0, 64), p(0, 10, 64)));
+        RailEdge b = edge("b1", "b2", Arrays.asList(p(0, 0, 64), p(0, 10, 64)));
+        LayerAssigner.assign(new ArrayList<>(Arrays.asList(a, b)));
+        assertEquals(0, a.getLayer());
+        assertEquals(0, b.getLayer());
+    }
+
+    @Test
+    void contactLineHigherStaysAboveWhenHeightsDiffer() {
+        // 联络线(contact)在交叉处明显更高(y=70)：高度规则优先，联络线仍在上层（不同高不触发联络线规则）
+        RailEdge contact = edge("c1", "c2", "contact", Arrays.asList(p(0, 5, 70), p(10, 5, 70)));
+        RailEdge normal = edge("n1", "n2", "paralon-railway", Arrays.asList(p(5, 0, 64), p(5, 10, 64)));
+        LayerAssigner.assign(new ArrayList<>(Arrays.asList(contact, normal)));
+        assertEquals(1, contact.getLayer(), "交叉处更高的联络线仍在上层");
+        assertEquals(0, normal.getLayer());
+    }
+
+    @Test
+    void contactLineBelowEvenAtSameHeightPlanarCrossing() {
+        // 联络线与营运线同高平交（平面交叉、高度相同）：旧逻辑无约束(都 0)，
+        // 联络线规则应把联络线压到下层，避免前端遮盖。
+        RailEdge contact = edge("c1", "c2", "contact", Arrays.asList(p(0, 5, 64), p(10, 5, 64)));
+        RailEdge normal = edge("n1", "n2", "paralon-railway", Arrays.asList(p(5, 0, 64), p(5, 10, 64)));
+        LayerAssigner.assign(new ArrayList<>(Arrays.asList(contact, normal)));
+        assertEquals(0, contact.getLayer());
+        assertEquals(1, normal.getLayer());
+    }
+
+    @Test
+    void nonCrossingContactKeepsLayerZero() {
+        // 联络线与营运线不相交：不因联络线规则强行分层，都保持 0
+        RailEdge contact = edge("c1", "c2", "contact", Arrays.asList(p(0, 0, 64), p(10, 0, 64)));
+        RailEdge normal = edge("n1", "n2", "paralon-railway", Arrays.asList(p(0, 20, 64), p(10, 20, 64)));
+        LayerAssigner.assign(new ArrayList<>(Arrays.asList(contact, normal)));
+        assertEquals(0, contact.getLayer());
+        assertEquals(0, normal.getLayer());
     }
 }
