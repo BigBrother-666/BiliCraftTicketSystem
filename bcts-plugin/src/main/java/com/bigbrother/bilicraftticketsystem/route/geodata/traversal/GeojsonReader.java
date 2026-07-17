@@ -66,6 +66,29 @@ public class GeojsonReader {
     }
 
     /**
+     * 只从已解析的 {@link FeatureCollection} 中提取全部区间（{@link RailEdge}），<b>不解析节点</b>，
+     * 因而不依赖 Bukkit / 世界加载——供跨文件全局 layer 重算读取所有 geojson 的区间几何。
+     *
+     * @param fc 已解析的 FeatureCollection（可为 null）
+     * @return 全部区间（保序）；无区间返回空列表
+     */
+    public List<RailEdge> readEdges(FeatureCollection fc) {
+        List<RailEdge> edges = new ArrayList<>();
+        if (fc == null || fc.getFeatures() == null) {
+            return edges;
+        }
+        for (Feature f : fc.getFeatures()) {
+            if (f.getGeometry() instanceof LineString ls) {
+                RailEdge edge = toEdge(f, ls);
+                if (edge != null) {
+                    edges.add(edge);
+                }
+            }
+        }
+        return edges;
+    }
+
+    /**
      * Point feature -> {@link RailNode}。节点 {@link Block} 由 id 编码的世界名 + 坐标还原
      * （须主线程且世界已加载，否则该节点跳过）。
      *

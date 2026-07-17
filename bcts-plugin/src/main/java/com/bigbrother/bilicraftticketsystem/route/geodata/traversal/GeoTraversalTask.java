@@ -442,7 +442,11 @@ public class GeoTraversalTask {
         log.message("验证完成，开始计算LineString层级...", NamedTextColor.DARK_AQUA);
         int files;
         if (!targetLineIds.isEmpty()) {
+            // 单线增量：先写出本次改动的 geojson，再读回全部 geojson 全局重算 layer 并写回。
+            // 这样 layer 与全图 walkAll 一致（跨全部线路），不受"只把其它文件当固定障碍"的局限。
             files = saveLineIncremental(walk, log);
+            int relayered = recomputeAllLayers(log);
+            log.info("全局重算 layer：更新了 " + relayered + " 个文件的层级");
         } else {
             // 全图遍历：所有区间收集完毕后，按空间交叉关系全局重算 layer（高架压平交）
             collector.assignLayers();
@@ -576,7 +580,8 @@ public class GeoTraversalTask {
 
     /**
      * 增量保存：为每条目标线写 {@code <lineId>.geojson}（整体覆盖）、合并写 {@code contact.geojson}，
-     * 其它线路文件不动。layer 相对磁盘上其它文件的区间（固定障碍）计算，见 {@link LayerAssigner#assignRelative}。
+     * 其它线路文件不动。本方法<b>不算 layer</b>——写出几何后由 {@link #recomputeAllLayers} 读回全部
+     * geojson 全局重算 layer 并写回，与全图 {@code walkAll} 的层级口径一致。
      * <p>
      * 联络线合并规则：按 {@link RailEdge#getOwnerLineId() owner} 精确删除旧 {@code contact.geojson} 里
      * 「归属本次目标线」的段（本次会重新走出），保留其它线拥有的段，再并入本次新走出的联络线段。
@@ -632,12 +637,8 @@ public class GeoTraversalTask {
                 + collector.edgesOf(CONTACT_ID).size() + " 条");
         List<RailEdge> contactEdges = new ArrayList<>(mergedContact.values());
 
-        // layer：把其它线路文件的区间当固定障碍，一起计算所有目标线 + 合并联络线段（跨目标线叠压一致）
-        List<RailEdge> fixed = readFixedEdges(dir, reader);
-        List<RailEdge> toSolve = new ArrayList<>();
-        targetEdgesByLine.values().forEach(toSolve::addAll);
-        toSolve.addAll(contactEdges);
-        LayerAssigner.assignRelative(toSolve, fixed);
+        // layer 不在此处计算：本方法只负责写出本次改动的几何，layer 由随后的 recomputeAllLayers
+        // 读回全部 geojson 全局重算并写回（见 finalizeAndSave）。
 
         // 联络线节点表：旧段端点节点 + 本次新联络线节点（新的优先）
         Map<String, RailNode> contactNodes = new LinkedHashMap<>(oldContact.nodes);
@@ -692,29 +693,96 @@ public class GeoTraversalTask {
     }
 
     /**
-     * 读取 geodata 目录下除目标线集合与 {@code contact} 外所有 geojson 的区间，作为 layer 计算的固定障碍。
+     * 读回 geodata 目录下全部 geojson 的区间，按空间交叉关系<b>全局重算 layer</b>，把新层级写回各文件。
+     * <p>
+     * 单线增量遍历（{@code /railgeo walk}）先写出改动的几何（{@link #saveLineIncremental}），再调用本方法：
+     * 只有跨全部线路一起算，才能保证新走出的高架 / 平交与既有线路的叠压关系正确、且联络线总在下层。
+     * <p>
+     * 为避免丢失节点（其它文件的世界可能未加载，经 {@link GeojsonReader#read} 会丢节点），本方法在
+     * <b>原始 {@link FeatureCollection} 层面</b>只改 LineString 的 {@code layer} 属性再原样重写，节点与其它
+     * 属性一律保留。只重写 layer 确有变化的文件，减少无谓磁盘写入。
      *
-     * @param dir    geodata 目录
-     * @param reader geojson 读取器
-     * @return 固定障碍区间
+     * @param log 日志
+     * @return 因 layer 变化而被重写的文件数
      */
-    private List<RailEdge> readFixedEdges(File dir, GeojsonReader reader) {
-        List<RailEdge> fixed = new ArrayList<>();
+    private int recomputeAllLayers(GeoTraversalLogger log) {
+        File dir = plugin.getGeodataDir();
         File[] geoFiles = dir.listFiles((d, name) -> name.toLowerCase().endsWith(".geojson"));
-        if (geoFiles == null) {
-            return fixed;
+        if (geoFiles == null || geoFiles.length == 0) {
+            return 0;
         }
-        // 目标线文件 + contact 文件都要跳过（它们是本次待写的）
-        Set<String> skip = new HashSet<>();
-        skip.add((CONTACT_ID + ".geojson").toLowerCase());
-        targetLineIds.forEach(id -> skip.add((id + ".geojson").toLowerCase()));
+        ObjectMapper mapper = new ObjectMapper();
+        GeojsonReader reader = new GeojsonReader();
+        // 保留每个文件的原始 FeatureCollection（无损重写用）+ 提取其区间（重算 layer 用）
+        Map<File, FeatureCollection> fcByFile = new LinkedHashMap<>();
+        List<RailEdge> allEdges = new ArrayList<>();
         for (File f : geoFiles) {
-            if (skip.contains(f.getName().toLowerCase())) {
+            FeatureCollection fc;
+            try {
+                fc = mapper.readValue(f, FeatureCollection.class);
+            } catch (Exception e) {
+                log.error("重算 layer：读取失败，跳过 " + f.getName(), e);
                 continue;
             }
-            fixed.addAll(reader.read(f).edges);
+            fcByFile.put(f, fc);
+            allEdges.addAll(reader.readEdges(fc));
         }
-        return fixed;
+        if (allEdges.isEmpty()) {
+            return 0;
+        }
+        // 全局重算：assign 会把每条边 layer 归零后按空间交叉重新分层
+        LayerAssigner.assign(allEdges);
+        // 边 id -> 新 layer
+        Map<String, Integer> layerById = new HashMap<>();
+        for (RailEdge e : allEdges) {
+            layerById.put(e.getId(), e.getLayer());
+        }
+        int rewritten = 0;
+        for (Map.Entry<File, FeatureCollection> entry : fcByFile.entrySet()) {
+            if (applyLayers(entry.getValue(), layerById)) {
+                try {
+                    mapper.writerWithDefaultPrettyPrinter().writeValue(entry.getKey(), entry.getValue());
+                    rewritten++;
+                } catch (Exception e) {
+                    log.error("重算 layer：写回失败 " + entry.getKey().getName(), e);
+                }
+            }
+        }
+        return rewritten;
+    }
+
+    /**
+     * 把新算出的 layer 写回一个 FeatureCollection 的各 LineString 属性；返回是否有任一区间 layer 发生变化。
+     *
+     * @param fc        待更新的 FeatureCollection
+     * @param layerById 边 id -> 新 layer
+     * @return 有变化返回 true（调用方据此决定是否重写文件）
+     */
+    private static boolean applyLayers(FeatureCollection fc, Map<String, Integer> layerById) {
+        if (fc.getFeatures() == null) {
+            return false;
+        }
+        boolean changed = false;
+        for (org.geojson.Feature f : fc.getFeatures()) {
+            if (!(f.getGeometry() instanceof org.geojson.LineString)) {
+                continue;
+            }
+            Object idProp = f.getProperty("id");
+            if (idProp == null) {
+                continue;
+            }
+            Integer newLayer = layerById.get(idProp.toString());
+            if (newLayer == null) {
+                continue;
+            }
+            Object old = f.getProperty("layer");
+            int oldLayer = old instanceof Number n ? n.intValue() : Integer.MIN_VALUE;
+            if (oldLayer != newLayer) {
+                f.setProperty("layer", newLayer);
+                changed = true;
+            }
+        }
+        return changed;
     }
 
     /**
