@@ -182,7 +182,19 @@ public class GeoRouteEngineTest {
         GeoRoutePath path = GeoRouteEngine.findFromNode("nA", "B");
         assertNotNull(path);
         // 每个节点一项：站台=P，道岔=S:驶出段物理出向
-        assertEquals(List.of("P", "S:e", "S:n", "P"), path.routeSteps());
+        assertEquals(List.of("P|nA", "S:e|s1", "S:n|s2", "P|nB"), path.routeSteps());
+        // 解析 helper：载荷 / 节点 id / 道岔判定 / 出向
+        assertEquals("S:e", GeoRoutePath.stepPayload("S:e|s1"));
+        assertEquals("s1", GeoRoutePath.stepNodeId("S:e|s1"));
+        assertTrue(GeoRoutePath.stepIsSwitch("S:e|s1"));
+        assertEquals("e", GeoRoutePath.stepDirection("S:e|s1"));
+        assertEquals("nB", GeoRoutePath.stepNodeId("P|nB"));
+        assertFalse(GeoRoutePath.stepIsSwitch("P|nB"));
+        assertNull(GeoRoutePath.stepDirection("P|nB"));
+        // 向后兼容：旧格式无分隔符，节点 id 解析为 null、载荷为整串
+        assertNull(GeoRoutePath.stepNodeId("S:e"));
+        assertEquals("S:e", GeoRoutePath.stepPayload("S:e"));
+        assertEquals("e", GeoRoutePath.stepDirection("S:e"));
     }
 
     @Test
@@ -224,20 +236,23 @@ public class GeoRouteEngineTest {
     }
 
     @Test
-    void findByStationReturnsKShortestSortedAndDeduped() {
+    void findByStationDedupesBySameStationSequence() {
         GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(fc));
-        // A→B 候选：nA2(11) / nA 经 contact(25) / nA 经 L2 直达(100)，按距离升序
-        List<GeoRoutePath> top2 = GeoRouteEngine.findByStation("A", "B", 2);
-        assertEquals(2, top2.size(), "限制 2 条");
-        assertTrue(top2.get(0).getDistance() <= top2.get(1).getDistance(), "按距离升序");
-        assertEquals(11.0 / 1000, top2.get(0).getDistance(), 1e-9);
-
-        // 不限制：拿到全部去重后的候选，且每条 departDirectionSequence 互不相同
+        // A→B 三条候选(nA2=11 / nA 经 contact=25 / nA 经 L2=100)中间节点都是道岔，
+        // 站序都是 [A,B]。按「站序相同即同一路线」去重后只剩一条：转线少 + 距离短的 nA2(11)。
         List<GeoRoutePath> all = GeoRouteEngine.findByStation("A", "B", 0);
-        assertTrue(all.size() >= 2);
-        Set<List<String>> dirs = new HashSet<>();
+        assertEquals(1, all.size(), "站序相同的路线合并为一条");
+        assertEquals(List.of("A", "B"), all.getFirst().stationSequence());
+        assertEquals(11.0 / 1000, all.getFirst().getDistance(), 1e-9, "保留转线少/距离短的一条");
+
+        // 限制条数不超过去重后的实际数量
+        List<GeoRoutePath> top2 = GeoRouteEngine.findByStation("A", "B", 2);
+        assertEquals(1, top2.size());
+
+        // 站序两两不同（已按站序去重）
+        Set<List<String>> seqs = new HashSet<>();
         for (GeoRoutePath p : all) {
-            assertTrue(dirs.add(p.getDepartDirectionSequence()), "departDirectionSequence 应唯一（已去重）");
+            assertTrue(seqs.add(p.stationSequence()), "stationSequence 应唯一（已去重）");
         }
     }
 

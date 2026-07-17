@@ -55,6 +55,10 @@
                             <shadedPattern>com.bigbrother.shade.geojson</shadedPattern>
                         </relocation>
                         <relocation>
+                            <pattern>com.github.promeg</pattern>
+                            <shadedPattern>com.bigbrother.shade.tinypinyin</shadedPattern>
+                        </relocation>
+                        <relocation>
                             <pattern>org.intellij</pattern>
                             <shadedPattern>com.bigbrother.shade.intellij</shadedPattern>
                         </relocation>
@@ -224,6 +228,13 @@
             <groupId>de.grundid.opendatalab</groupId>
             <artifactId>geojson-jackson</artifactId>
             <version>${geojson.version}</version>
+        </dependency>
+
+        <!--        拼音排序（离线、零依赖、轻量；Maven Central 上的 TinyPinyin 稳定发布 fork，包名仍为 com.github.promeg）-->
+        <dependency>
+            <groupId>io.github.biezhi</groupId>
+            <artifactId>TinyPinyin</artifactId>
+            <version>${tinypinyin.version}</version>
         </dependency>
 
         <!--        lombok-->

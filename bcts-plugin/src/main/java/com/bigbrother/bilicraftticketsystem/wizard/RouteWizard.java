@@ -178,11 +178,66 @@ public class RouteWizard extends ConfigWizard {
         List<String> list = new ArrayList<>();
         for (String part : input.split("\\|\\|")) {
             String s = part.trim();
-            if (!s.isEmpty()) {
-                list.add(s);
+            if (s.isEmpty()) {
+                continue;
             }
+            WizardStep.Result err = validateNotice(s);
+            if (err != null) {
+                return err;
+            }
+            list.add(s);
         }
         return WizardStep.Result.ok(list);
+    }
+
+    /**
+     * 校验单条提示格式，须为 {@code sound:<音效名>,<音调>,<音量>} 或 {@code announce:<文字>}。
+     *
+     * @param notice 单条提示（已去除首尾空白）
+     * @return 校验失败时返回错误 Result，通过时返回 null
+     */
+    private WizardStep.Result validateNotice(String notice) {
+        int idx = notice.indexOf(':');
+        if (idx < 0) {
+            return WizardStep.Result.error("无效的提示：" + notice
+                    + "（格式应为 sound:<音效名>,<音调>,<音量> 或 announce:<文字>）");
+        }
+        String type = notice.substring(0, idx).trim().toLowerCase();
+        String body = notice.substring(idx + 1);
+        switch (type) {
+            case "announce" -> {
+                if (body.isBlank()) {
+                    return WizardStep.Result.error("announce 提示的文字不能为空：" + notice);
+                }
+            }
+            case "sound" -> {
+                String[] parts = body.split(",");
+                if (parts.length == 0 || parts[0].trim().isEmpty()) {
+                    return WizardStep.Result.error("sound 提示缺少音效名：" + notice
+                            + "（格式应为 sound:<音效名>,<音调>,<音量>）");
+                }
+                if (parts.length > 1 && !isNumber(parts[1])) {
+                    return WizardStep.Result.error("sound 的音调必须是数字：" + notice);
+                }
+                if (parts.length > 2 && !isNumber(parts[2])) {
+                    return WizardStep.Result.error("sound 的音量必须是数字：" + notice);
+                }
+            }
+            default -> {
+                return WizardStep.Result.error("未知的提示类型 " + type + "：" + notice
+                        + "（应为 sound 或 announce）");
+            }
+        }
+        return null;
+    }
+
+    private boolean isNumber(String s) {
+        try {
+            Float.parseFloat(s.trim());
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     @Override

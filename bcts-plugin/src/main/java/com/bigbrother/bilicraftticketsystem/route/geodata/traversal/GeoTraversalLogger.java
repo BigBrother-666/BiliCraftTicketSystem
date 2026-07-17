@@ -141,13 +141,31 @@ public class GeoTraversalLogger {
     }
 
     /**
-     * 记录信息并发送给发起者。
+     * 记录信息并发送给发起者和控制台。
      *
      * @param msg   信息
      * @param color 消息颜色
      */
     public void message(String msg, NamedTextColor color) {
         info(msg);
+        if (sender != null) {
+            if (sender instanceof ConsoleCommandSender) {
+                plugin.getComponentLogger().info(Component.text(msg, color));
+            } else {
+                sender.sendMessage(Component.text(msg, color));
+                plugin.getComponentLogger().info(Component.text(msg, color));
+            }
+        }
+    }
+
+    public void message(String msg, NamedTextColor color, Level level) {
+        if (level == Level.INFO) {
+            info(msg);
+        } else if (level == Level.WARNING) {
+            warn(msg);
+        } else if (level == Level.SEVERE) {
+            error(msg, null);
+        }
         if (sender != null) {
             if (sender instanceof ConsoleCommandSender) {
                 plugin.getComponentLogger().info(Component.text(msg, color));

@@ -73,6 +73,9 @@ public class MenuMain extends Menu {
             if (ticket instanceof TicketItem ticketItem) {
                 ticketItem.updateLore(playerOption);
                 ticketItem.notifyWindows();
+            } else if (ticket instanceof ThroughTicketItem throughTicketItem) {
+                throughTicketItem.updateLore(playerOption);
+                throughTicketItem.notifyWindows();
             }
         }
     }

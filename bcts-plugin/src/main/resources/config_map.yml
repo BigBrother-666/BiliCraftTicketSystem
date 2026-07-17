@@ -1,4 +1,4 @@
-# 铁轨遍历（railgeo walkAll）配置
+# 铁轨遍历（railgeo walk / walkAll）配置
 traversal:
   # 单边行走最多记录的铁轨格数
   max-edges-per-walk: 50000
@@ -9,8 +9,11 @@ traversal:
   segments-per-tick: 20
   # 每隔多少秒向发起者反馈一次当前进度（已遍历节点数），<=0 表示不反馈
   progress-interval-seconds: 5
-  # 一次遍历完成后的全局冷却（秒），冷却期间不能再次发起遍历
+  # walkAll（全图遍历）完成后的冷却（秒），冷却期间不能再次发起 walkAll。与 walk 冷却独立计时。
   cooldown-seconds: 3600
+  # walk（单线增量遍历）完成后的冷却（秒），冷却期间不能再次发起 walk。与 walkAll 冷却独立计时。
+  # 注意：两者共用单运行锁，任一遍历进行中另一个都不可发起（即使对方没在冷却）。
+  walk-cooldown-seconds: 300
 
 logo:
   # 网页端logo边像素数

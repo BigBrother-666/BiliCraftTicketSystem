@@ -63,10 +63,12 @@ public class TraversalCollector {
      * @param world           区间所在世界名
      * @param enterFaceFrom   本段在起点道岔的到达面 key（起点首段 / 无门控传 null）
      * @param enterFaceTo     本段在终点节点的到达面 key（无门控传 null）
+     * @param ownerLineId     归属线路 id（见 {@link RailEdge#getOwnerLineId()}；增量遍历合并 contact 时按此删除）
      */
     public void recordEdge(String fileKey, String fromNodeId, String toNodeId, String lineId,
                            String railwaySystemId, String color, List<LngLatAlt> coords, double length,
-                           String departDirection, String world, String enterFaceFrom, String enterFaceTo) {
+                           String departDirection, String world, String enterFaceFrom, String enterFaceTo,
+                           String ownerLineId) {
         Map<String, RailEdge> group = edgeGroups.computeIfAbsent(fileKey, k -> new LinkedHashMap<>());
         String edgeId = com.bigbrother.bilicraftticketsystem.route.NodeId.ofEdge(fromNodeId, toNodeId, lineId);
         RailEdge existing = group.get(edgeId);
@@ -77,7 +79,7 @@ public class TraversalCollector {
             return;
         }
         group.put(edgeId, new RailEdge(fromNodeId, toNodeId, lineId, railwaySystemId, coords, color, length, 0,
-                departDirection, world, enterFaceFrom, enterFaceTo));
+                departDirection, world, enterFaceFrom, enterFaceTo, ownerLineId));
     }
 
     /**

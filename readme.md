@@ -22,9 +22,7 @@
 
 直达车根据**导航序列**——途经各 bcswitcher 应选的方向的有序列表，存于列车属性（记录TC的ITrainProperty）：
 
-- 购票/刷卡上车时，由寻路结果（`GeoRoutePath.switcherLineIds()`）生成导航序列写入列车。
-- 列车每经过一个 bcswitcher，该道岔按导航序列**当前项**选向，随后导航指针推进一格。
-- bossbar 进度 = 已过道岔数 / 道岔总数；导航走完即视为到达终点区段。
+- 购票/刷卡上车时，由寻路结果（`GeoRoutePath.routeSteps()`）生成导航序列写入列车。
 
 调试用 `/ticket traininfo` 查看某列车的导航序列与进度，用 `/ticket switchtrace on` 把每次道岔选向打印到控制台。
 
@@ -264,14 +262,17 @@ platform 处达到该速度。**只改速度不改最大速度**。
 
 | 指令                            | 功能                                |
 |-------------------------------|-----------------------------------|
-| railgeo walkAll               | 遍历所有已登记线路起点，按线路分文件保存为 geojson     |
+| railgeo walkAll [--ignore ...] | 遍历所有已登记线路起点，按线路分文件保存为 geojson；`--ignore` 后跟若干 lineId（空格分隔）表示不遍历这些线 |
+| railgeo walk \<lineIds>       | 只遍历一条或多条线路（空格分隔）及与其直接相连的联络线       |
 | railgeo stopWalk              | 停止当前正在进行的铁轨遍历任务                   |
 | railgeo setStartPos \<lineId> | 登记某线路的遍历起点，以玩家所在铁轨为起点坐标、面朝方向为起点方向 |
 | railgeo delStartPos \<lineId> | 删除某线路已登记的遍历起点                     |
 
 > `setStartPos` / `delStartPos` 仅允许该线路所属**铁路系统的成员**执行（避免非本系统成员改动线路遍历数据）。
 >
-> 有 `bcts.railgeo.bypasscooldown` 权限者发起 `walkAll` 可**绕过全局冷却**。
+> 有 `bcts.bypass` 权限者发起 `walkAll` 可**绕过全局冷却**。
+>
+> `walkAll --ignore <lineId...>`：被忽略的线路既不从其起点遍历、也不展开道岔中指向它们的分支，收尾时不校验其车站完整性。`--ignore` 的补全提供**所有**线路 id（不限执行者所在铁路系统），执行者自己系统的线路排在前面。
 
 ### 9.4 线路配置（railway_routes.yml）
 
@@ -305,7 +306,7 @@ platform 处达到该速度。**只改速度不改最大速度**。
 
 **运行约束与反馈**：
 
-- **单运行 + 全局冷却**：同一时刻只允许一个遍历任务；完成后进入全局冷却（`config_map.yml` 的 `traversal.cooldown-seconds`）。再次发起时若有任务在跑或仍在冷却，提示并拒绝。可用 `railgeo stopWalk` 提前停止；持 `bcts.railgeo.bypasscooldown` 权限者绕过冷却且不刷新冷却。
+- **单运行 + 全局冷却**：同一时刻只允许一个遍历任务；完成后进入全局冷却（`config_map.yml` 的 `traversal.cooldown-seconds`）。再次发起时若有任务在跑或仍在冷却，提示并拒绝。可用 `railgeo stopWalk` 提前停止。
 - **进度反馈**：遍历期间每隔 `traversal.progress-interval-seconds` 秒（默认 5，`<=0` 关闭）向发起者反馈“当前已遍历 N 个节点”；同时控制台也会输出进度。
 - **暂停凭证**：遍历期间暂停车票 / 交通卡上车（普通车不受影响）。
 - **与配置编辑互斥**：遍历期间禁用 `ticketconfig`（线路 / 铁路系统配置）指令；反之，发起遍历前若有玩家正在进行配置向导则拒绝遍历。避免配置改到一半时遍历，导致结果不一致。

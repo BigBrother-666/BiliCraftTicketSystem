@@ -1,6 +1,8 @@
 package com.bigbrother.bilicraftticketsystem;
 
 import com.bergerkiller.bukkit.tc.TrainCarts;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.MinecartGroupStore;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bigbrother.bctsguardplugin.GuardListeners;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
@@ -8,6 +10,7 @@ import com.bigbrother.bilicraftticketsystem.deprecated.CustomSignActionStation;
 import com.bigbrother.bilicraftticketsystem.deprecated.RailwayRoutesConfig;
 import com.bigbrother.bilicraftticketsystem.deprecated.RouteCommand;
 import com.bigbrother.bilicraftticketsystem.deprecated.SignActionShowroute;
+import com.bigbrother.bilicraftticketsystem.guide.PlatformGuide;
 import com.bigbrother.bilicraftticketsystem.listeners.*;
 import com.bigbrother.bilicraftticketsystem.oraxen.OraxenLogoPack;
 import com.bigbrother.bilicraftticketsystem.menu.items.location.NearestLocItem;
@@ -164,6 +167,11 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
      */
     private void setupWebLink() {
         if (!MapConfig.isEnabled()) {
+            // 运行中被改为 false 并 reload：彻底关闭已在跑的对接，停止后台重连
+            if (webLink != null) {
+                webLink.shutdown();
+                webLink = null;
+            }
             return;
         }
         if (webLink == null) {
@@ -225,6 +233,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new ExpressSkipListener(), this);
         Bukkit.getPluginManager().registerEvents(new PlayerListeners(), this);
         Bukkit.getPluginManager().registerEvents(new CardListeners(), this);
+        Bukkit.getPluginManager().registerEvents(new TicketListeners(), this);
         Bukkit.getPluginManager().registerEvents(new WizardListeners(), this);
         Bukkit.getPluginManager().registerEvents(new GuardListeners(), this);
         Bukkit.getPluginManager().registerEvents(new BossbarManager(), this);
@@ -302,6 +311,29 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         this.getComponentLogger().info(output);
     }
 
+    /**
+     * 销毁所有由 bcspawn 生成的列车。
+     */
+    private void cleanupBcspawnTrains() {
+        int destroyed = 0;
+        for (MinecartGroup group : MinecartGroupStore.getGroups().cloneAsIterable()) {
+            if (group == null || group.isEmpty() || group.isUnloaded() || group.isRemoved()) {
+                continue;
+            }
+            if (BcTrainIdProperty.read(group).isEmpty()) {
+                // 不是 bcspawn 生成的列车，保留
+                continue;
+            }
+            try {
+                group.destroy();
+                destroyed++;
+            } catch (Exception e) {
+                this.getComponentLogger().warn(Component.text("销毁 bcspawn 列车时出错：" + e, NamedTextColor.RED));
+            }
+        }
+        this.getComponentLogger().info(Component.text("已清理 " + destroyed + " 列 bcspawn 生成的列车", NamedTextColor.GOLD));
+    }
+
     @Override
     public void onDisable() {
         // Plugin shutdown logic
@@ -312,7 +344,13 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         SignAction.unregister(signActionBcswitcher);
         SignAction.unregister(signActionSlowdown);
 
-        Bukkit.getScheduler().cancelTasks(plugin);
+        // 停止全部站台引导并清理残留全息实体
+        PlatformGuide.stopAll();
+
+        // 按配置销毁所有 bcspawn 生成的列车（带 bcTrainId 属性），避免残留失去导航的列车
+        if (MainConfig.cleanupBcspawnTrainsOnDisable) {
+            cleanupBcspawnTrains();
+        }
 
         if (webLink != null) {
             webLink.shutdown();
@@ -320,5 +358,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
 
         BCCardInfo.saveAll();
         trainDatabaseManager.close();
+
+        Bukkit.getScheduler().cancelTasks(plugin);
     }
 }

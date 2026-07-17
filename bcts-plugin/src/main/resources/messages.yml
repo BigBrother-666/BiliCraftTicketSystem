@@ -61,4 +61,15 @@ wizard-async-timeout: '<red>处理超时（可能是图片直链无法访问或�
 # 铁路系统 logo 图片下载并处理成功的提示
 wizard-logo-download-success: '<green>logo 图片下载并处理完成'
 
-
+# ================== 车票引导 ==================
+# 车票引导全息文字
+guide-hologram: '<gold>上车站台 · %s'
+guide-no-platform: '<red>该车票没有可引导的站台信息'
+guide-world-unloaded: '<red>无法定位站台，站台位置不可用'
+guide-other-world: ''
+# 结束action bar消息
+guide-arrived: '<green>已到达上车站台 · %s'
+# 结束聊天栏消息
+guide-arrived-msg: '您已到达 %s 的上车站台'
+# 导航中 action bar
+guide-actionbar: '<gold>前往 %s <yellow>%s <gray>%dm'

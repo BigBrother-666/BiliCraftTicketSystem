@@ -72,7 +72,7 @@ public class RailEdge {
     private final String world;
 
     /**
-     * 本段在<b>起点节点（道岔）</b>的到达面 key（{@link GraphWalk#faceKey}，形如 {@code "1_0"}）——
+     * 本段在<b>起点节点（道岔）</b>的到达面 key，形如 {@code "1_0"}）——
      * 即列车沿本段离开起点道岔时，是从哪个方向到达该道岔的。
      * <p>
      * 同一物理方块上可能有多块进入方向不同的 bcswitcher（在图里塌缩成同一节点），本字段把「从哪个方向
@@ -86,11 +86,24 @@ public class RailEdge {
     private final Set<String> enterFacesFrom = new LinkedHashSet<>();
 
     /**
-     * 本段在<b>终点节点</b>的到达面 key（{@link GraphWalk#faceKey}）——列车沿本段到达终点节点时的方向。
+     * 本段在<b>终点节点</b>的到达面 key——列车沿本段到达终点节点时的方向。
      * 由几何唯一确定，故为单值。供下游出边门控：下一段出边的 {@link #enterFacesFrom} 须含本值。
      * 无信息时为 null。
      */
     private final String enterFaceTo;
+
+    /**
+     * 本段的<b>归属线路 id</b>——决定增量遍历（{@code /railgeo walk}）合并 {@code contact.geojson}
+     * 时该删哪些旧联络线段。
+     * <p>
+     * 语义：普通线段 owner = 该段自身 {@link #lineId}；联络线段（{@code lineId == "contact"}）
+     * owner = <b>触发该联络线分支的目标线</b>（进入声明了 {@code @contact} 出向的 bcswitcher 时矿车
+     * 携带的当前 lineId）。同一条物理联络线从两条线的道岔出发会产出方向相反的两条边、owner 各不同，
+     * 故 {@code walk T} 只删 owner ∈ T 的旧 contact 段，绝不误删其它线拥有的反向段（否则联络线断开）。
+     * <p>
+     * 旧文件（本字段引入前产出）读回时为 null，合并时保守保留、一次 {@code walkAll} 全量重建即可补齐。
+     */
+    private final String ownerLineId;
 
     /**
      * @param fromNodeId      起点节点 id
@@ -105,6 +118,7 @@ public class RailEdge {
      * @param world           区间所在世界名
      * @param enterFaceFrom   本段在起点道岔的到达面 key（起点首段 / 无门控传 null）
      * @param enterFaceTo     本段在终点节点的到达面 key（无门控传 null）
+     * @param ownerLineId     归属线路 id（见 {@link #ownerLineId}；旧文件读回为 null）
      */
     public RailEdge(String fromNodeId,
                     String toNodeId,
@@ -117,7 +131,8 @@ public class RailEdge {
                     String departDirection,
                     String world,
                     String enterFaceFrom,
-                    String enterFaceTo) {
+                    String enterFaceTo,
+                    String ownerLineId) {
         this.id = NodeId.ofEdge(fromNodeId, toNodeId, lineId);
         this.fromNodeId = fromNodeId;
         this.toNodeId = toNodeId;
@@ -131,6 +146,7 @@ public class RailEdge {
         this.world = world;
         addEnterFaceFrom(enterFaceFrom);
         this.enterFaceTo = enterFaceTo;
+        this.ownerLineId = ownerLineId;
     }
 
     /**

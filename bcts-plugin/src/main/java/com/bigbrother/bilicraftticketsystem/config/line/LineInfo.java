@@ -193,4 +193,20 @@ public class LineInfo {
         return bossbarStations.size() > 1
                 && bossbarStations.getFirst().equals(bossbarStations.getLast());
     }
+
+    /**
+     * 判断站名是否是这个线路的终点站
+     *
+     * @param stationName 车站名
+     */
+    public boolean isTerminalStation(String stationName) {
+        if (isRing()) {
+            // 环线没有终点站
+            return false;
+        }
+        if (!bossbarStations.isEmpty() && bossbarStations.getLast().equals(stationName)) {
+            return true;
+        }
+        return false;
+    }
 }

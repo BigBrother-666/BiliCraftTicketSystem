@@ -79,6 +79,10 @@ public class BCTicketDisplay extends MapDisplay {
     }
 
     public void renderBackground() {
+        if (this.getOwners().isEmpty()) {
+            // ???
+            return;
+        }
         CommonTagCompound ticketNbt = this.getCommonMapItem().getCustomData();
         UUID bgUuid = ticketNbt.getValue(BCTicket.KEY_TICKET_OWNER_UUID, this.getOwners().getFirst().getUniqueId());
         TicketbgInfo ticketbgInfo = BiliCraftTicketSystem.plugin.getTrainDatabaseManager().getTicketbgService().getCurrentTicketbgInfo(bgUuid.toString());

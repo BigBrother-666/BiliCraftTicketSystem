@@ -68,4 +68,33 @@ public class NodeIdTest {
         assertNull(NodeId.worldOf("not-a-node-id"));
         assertNull(NodeId.worldOf("n.world.1.2")); // 段数不足
     }
+
+    @Test
+    void parseCoordsRoundTrip() {
+        NodeId.Coords c = NodeId.parseCoords(NodeId.ofCoords("world", 10, 64, -20));
+        assertNotNull(c);
+        assertEquals("world", c.world());
+        assertEquals(10, c.x());
+        assertEquals(64, c.y());
+        assertEquals(-20, c.z());
+    }
+
+    @Test
+    void parseCoordsHandlesDottedWorldName() {
+        NodeId.Coords c = NodeId.parseCoords(NodeId.ofCoords("world.nether", 1, -2, 3));
+        assertNotNull(c);
+        assertEquals("world.nether", c.world());
+        assertEquals(1, c.x());
+        assertEquals(-2, c.y());
+        assertEquals(3, c.z());
+    }
+
+    @Test
+    void parseCoordsRejectsMalformed() {
+        assertNull(NodeId.parseCoords(null));
+        assertNull(NodeId.parseCoords("not-a-node-id"));
+        assertNull(NodeId.parseCoords("n.world.1.2"));        // 段数不足
+        assertNull(NodeId.parseCoords("n.world.a.b.c"));      // 末三段非整数
+        assertNull(NodeId.parseCoords("x.world.1.2.3"));      // 前缀错误
+    }
 }
