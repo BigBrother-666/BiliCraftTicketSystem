@@ -28,7 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>
  * 路线在前端已选定，携带有序 {@code nodeIds} + {@code lineIdSequence}；插件不重新寻路，
  * 用 {@link GeoRouteEngine#validatePath} 校验合法性并重建路径，再复用
- * {@link BCTicket#purchaseSilently()} 完成 Vault 扣款 + 实体票交付 + 收入分摊。
+ * {@link BCTicket#purchase()} 完成 Vault 扣款 + 实体票交付 + 收入分摊。
  * <p>
  * 处理在主线程执行（涉及 Bukkit / Vault / 背包）；幂等：同一 requestId 只处理一次。
  */
@@ -114,7 +114,7 @@ public class PurchaseHandler {
 
         try {
             BCTicket ticket = new BCTicket(uses, maxSpeedMpt, path, player);
-            EconomyResponse r = ticket.purchaseSilently();
+            EconomyResponse r = ticket.purchase();
             if (!r.transactionSuccess()) {
                 return fail("insufficient-funds");
             }

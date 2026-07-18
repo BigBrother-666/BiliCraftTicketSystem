@@ -118,7 +118,7 @@ public class BCTicket extends BCTransitPass {
         return new BCTicket(display.getMapItem());
     }
 
-    public void purchase() {
+    public EconomyResponse purchase() {
         EconomyResponse r = purchaseSilently();
         String ticketName = getTicketName();
 
@@ -133,6 +133,7 @@ public class BCTicket extends BCTransitPass {
                     CommonUtils.mmStr2Component(message.get("ticket-buy-failure", "车票购买失败：%s").formatted(r.errorMessage)).decoration(TextDecoration.ITALIC, false)
             ));
         }
+        return r;
     }
 
     /**
