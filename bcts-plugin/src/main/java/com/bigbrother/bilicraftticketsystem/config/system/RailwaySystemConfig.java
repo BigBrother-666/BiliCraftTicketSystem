@@ -22,6 +22,8 @@ public class RailwaySystemConfig {
     @Getter
     private static Map<String, RailwaySystemInfo> systems = new LinkedHashMap<>();
 
+    public static final String CONTACT_ID = "contact";
+
     private static FileConfiguration config;
 
     /**

@@ -49,8 +49,8 @@ public class MenuSystem extends Menu {
 
         List<Item> items = new ArrayList<>();
         for (RailwaySystemInfo system : RailwaySystemConfig.getSystems().values()) {
-            // 车站数量 > 0 才添加
-            if (!StationProvider.listStationsOfSystem(system.getId()).isEmpty()) {
+            // 车站数量 > 0 才添加 联络线系统不添加
+            if (!system.getId().equals(RailwaySystemConfig.CONTACT_ID) && !StationProvider.listStationsOfSystem(system.getId()).isEmpty()) {
                 items.add(new SystemItem(system, systemId -> onSelect.accept(systemId, reopenSelf)));
             }
         }

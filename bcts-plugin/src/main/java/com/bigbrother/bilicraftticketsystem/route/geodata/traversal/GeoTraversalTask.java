@@ -3,6 +3,7 @@ package com.bigbrother.bilicraftticketsystem.route.geodata.traversal;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.config.MapConfig;
+import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.utils.GeoUtils;
 import com.bigbrother.bilicraftticketsystem.route.geodata.entity.GeoNodeLoc;
@@ -70,11 +71,6 @@ public class GeoTraversalTask {
      * 当前正在运行的遍历驱动器，供 {@link #stopWalk(CommandSender)} 请求中止；无任务时为 null。
      */
     private static volatile GraphWalk runningWalk = null;
-
-    /**
-     * 联络线的线路 id / 铁路系统 id（系统自带，非玩家创建）。单线遍历时它随目标线一并纳入 scope。
-     */
-    private static final String CONTACT_ID = "contact";
 
     private final BiliCraftTicketSystem plugin;
     private final CommandSender sender;
@@ -209,7 +205,7 @@ public class GeoTraversalTask {
         Set<String> scope = null;
         if (!targetLineIds.isEmpty()) {
             scope = new LinkedHashSet<>(targetLineIds);
-            scope.add(CONTACT_ID);
+            scope.add(RailwaySystemConfig.CONTACT_ID);
         }
 
         GeoTraversalLogger log = new GeoTraversalLogger(plugin, sender);
@@ -619,7 +615,7 @@ public class GeoTraversalTask {
         // 合并联络线段：按 owner 精确删除——只丢弃「归属本次目标线」的旧联络线段（本次会重新走出），
         // 保留其它线拥有的段。这样才不会误删同一物理联络线上属于对端线路的反向段（否则联络线断开）。
         // owner 为 null 的旧段（本字段引入前产出）保守保留，一次 walkAll 全量重建即可补齐 owner。
-        GeojsonReader.Result oldContact = reader.read(new File(dir, CONTACT_ID + ".geojson"));
+        GeojsonReader.Result oldContact = reader.read(new File(dir, RailwaySystemConfig.CONTACT_ID + ".geojson"));
         Map<String, RailEdge> mergedContact = new LinkedHashMap<>();
         int preservedOthers = 0;
         for (RailEdge e : oldContact.edges) {
@@ -630,11 +626,11 @@ public class GeoTraversalTask {
             mergedContact.put(e.getId(), e);
             preservedOthers++;
         }
-        for (RailEdge e : collector.edgesOf(CONTACT_ID)) {
+        for (RailEdge e : collector.edgesOf(RailwaySystemConfig.CONTACT_ID)) {
             mergedContact.put(e.getId(), e);
         }
         log.info("合并 contact.geojson：保留其它线联络线段 " + preservedOthers + " 条，本次新增 "
-                + collector.edgesOf(CONTACT_ID).size() + " 条");
+                + collector.edgesOf(RailwaySystemConfig.CONTACT_ID).size() + " 条");
         List<RailEdge> contactEdges = new ArrayList<>(mergedContact.values());
 
         // layer 不在此处计算：本方法只负责写出本次改动的几何，layer 由随后的 recomputeAllLayers
@@ -642,14 +638,14 @@ public class GeoTraversalTask {
 
         // 联络线节点表：旧段端点节点 + 本次新联络线节点（新的优先）
         Map<String, RailNode> contactNodes = new LinkedHashMap<>(oldContact.nodes);
-        collector.nodesOf(CONTACT_ID).forEach(n -> contactNodes.put(n.getId(), n));
+        collector.nodesOf(RailwaySystemConfig.CONTACT_ID).forEach(n -> contactNodes.put(n.getId(), n));
 
         int files = 0;
         for (String lineId : targetLineIds) {
             List<RailEdge> edges = targetEdgesByLine.get(lineId);
             files += writeFile(dir, lineId, referencedNodes(edges, targetNodesByLine.get(lineId)), edges, log);
         }
-        files += writeFile(dir, CONTACT_ID, referencedNodes(contactEdges, contactNodes), contactEdges, log);
+        files += writeFile(dir, RailwaySystemConfig.CONTACT_ID, referencedNodes(contactEdges, contactNodes), contactEdges, log);
         return files;
     }
 

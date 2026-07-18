@@ -1,5 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.route.geodata.traversal;
 
+import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
 import org.geojson.LngLatAlt;
 
 import java.util.ArrayList;
@@ -35,11 +36,6 @@ public final class LayerAssigner {
      * 判定两线段是否共线的叉积阈值（XZ 平面，方块为整数坐标，容一点浮点误差）。
      */
     private static final double COLLINEAR_EPS = 1e-6;
-
-    /**
-     * 联络线系统 id：属于该系统的区间与其它系统平面相交时总被压到下层。
-     */
-    private static final String CONTACT_SYSTEM_ID = "contact";
 
     private LayerAssigner() {
     }
@@ -208,8 +204,8 @@ public final class LayerAssigner {
             return -1;
         }
         // 同高平面相交（平交）：只有一方是联络线时，联络线在下层
-        boolean aContact = CONTACT_SYSTEM_ID.equals(a.getRailwaySystemId());
-        boolean bContact = CONTACT_SYSTEM_ID.equals(b.getRailwaySystemId());
+        boolean aContact = RailwaySystemConfig.CONTACT_ID.equals(a.getRailwaySystemId());
+        boolean bContact = RailwaySystemConfig.CONTACT_ID.equals(b.getRailwaySystemId());
         if (aContact != bContact) {
             return aContact ? -1 : 1;
         }

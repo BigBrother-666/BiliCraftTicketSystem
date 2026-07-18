@@ -3,6 +3,7 @@ package com.bigbrother.bilicraftticketsystem.route.geodata.traversal;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
+import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
 import com.bigbrother.bilicraftticketsystem.utils.GeoUtils;
 import com.bigbrother.bilicraftticketsystem.signactions.component.BcSwitcherBranch;
 import lombok.Getter;
@@ -55,12 +56,6 @@ public class GraphWalk {
      * 与 {@link #lineScope} 正交：scope 是「只跟进」白名单（单线遍历），ignore 是「不跟进」黑名单（全图遍历）。
      */
     private final Set<String> ignoreLineIds;
-
-    /**
-     * 联络线的线路 id：出向声明为该 id 时，走出的段归属「触发它的目标线」而非该 id 自身
-     * （见 {@link RailEdge#getOwnerLineId()}）。与 {@code GeoTraversalTask.CONTACT_ID} 一致。
-     */
-    private static final String CONTACT_ID = "contact";
 
     /**
      * 已展开的 {@code (节点,入向,出向,lineId)} 状态，跨所有起点共享，防止环线 / 重复死循环、并在
@@ -293,7 +288,7 @@ public class GraphWalk {
         // 如果是终点站 platform 下一段固定联络线
         if (lineInfo != null && lineInfo.isTerminalStation(node.getStationName())) {
             tryEnqueue(node, arrivalFace, outFace, lineId, queue,
-                    new WalkState(node.getId(), node.getRailBlock(), outDir, null, CONTACT_ID, arrivalFace, ownerLineId));
+                    new WalkState(node.getId(), node.getRailBlock(), outDir, null, RailwaySystemConfig.CONTACT_ID, arrivalFace, ownerLineId));
         } else {
             tryEnqueue(node, arrivalFace, outFace, lineId, queue,
                     new WalkState(node.getId(), node.getRailBlock(), outDir, null, lineId, arrivalFace, ownerLineId));
@@ -337,7 +332,7 @@ public class GraphWalk {
                 // 归属线路：走 contact 出向时，本段归属「触发它的目标线」——即进入本道岔时携带的 owner
                 // （首次进 contact 时 owner=当前营运线；链式 contact 沿用同一 owner）。走普通线路出向时
                 // 归属该出向线路自身。据此增量遍历合并 contact 只删本次目标线拥有的旧段，不误删对端线的反向段。
-                String outOwner = CONTACT_ID.equals(outLineId) ? ownerLineId : outLineId;
+                String outOwner = RailwaySystemConfig.CONTACT_ID.equals(outLineId) ? ownerLineId : outLineId;
                 // 出向 key 用 (方向, 出向lineId)：共用出向按线拆 fork，各挂单一 tag 各走各记。
                 tryEnqueue(node, arrivalFace, branch.getDirectionStr(), outLineId, queue,
                         new WalkState(node.getId(), node.getRailBlock(), arrival.clone(),
