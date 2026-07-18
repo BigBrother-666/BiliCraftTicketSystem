@@ -91,14 +91,6 @@ public class GeoTraversalTask {
     private final Set<String> ignoreLineIds;
 
     /**
-     * @param plugin 插件实例
-     * @param sender 发起遍历者
-     */
-    public GeoTraversalTask(BiliCraftTicketSystem plugin, CommandSender sender) {
-        this(plugin, sender, Collections.emptySet(), Collections.emptySet());
-    }
-
-    /**
      * @param plugin        插件实例
      * @param sender        发起遍历者
      * @param targetLineIds 增量遍历目标线路 id 集合；空 / null 表示全图遍历
@@ -299,16 +291,11 @@ public class GeoTraversalTask {
                             return;
                         }
                     }
-                    // 队列已空或已中止：停止分片，做校验 / 写文件 / 重载
+                    // 队列已空或已中止：停止分片。收尾（校验 / 层级计算 / 写文件）为 CPU/磁盘密集且不触碰
+                    // Bukkit API，放异步线程执行，避免 O(n²) 叠层计算卡主线程；只有最后的 loadConfig / 推送
+                    // 快照回主线程。finalizeAndSave 自行负责所有退出路径上调用 finishTraversal。
                     cancel();
-                    try {
-                        finalizeAndSave(log, walk);
-                    } catch (Exception e) {
-                        log.error("构建铁路图任务收尾失败", e);
-                        log.message("构建铁路图任务失败：" + e, NamedTextColor.RED);
-                    } finally {
-                        finishTraversal(log, progressTask, bypassCooldown);
-                    }
+                    finalizeAndSave(log, walk, progressTask, bypassCooldown);
                 }
             }.runTaskTimer(plugin, 1L, 1L);
         });
@@ -403,63 +390,90 @@ public class GeoTraversalTask {
     /**
      * 分片展开结束后的收尾：校验车站、计算层级、写文件、重载配置。
      * 若遍历已中止（达到段数上限 / 用户停止 / 起点异常），则只反馈中止原因，不写任何文件。
-     * 在主线程调用（由分片定时任务在队列排空后触发）。
+     * <p>
+     * 由分片定时任务在主线程、队列排空后触发。校验 / 层级计算 / 写文件为纯计算与磁盘 I/O，
+     * 不触碰 Bukkit API，放到异步线程执行（这是遍历卡服的主因）；仅最后的 {@code loadConfig} 与
+     * 快照推送切回主线程。<b>本方法自行负责所有退出路径上调用 {@link #finishTraversal}</b>
+     * （释放单运行锁、刷新冷却），调用方不再兜底。
      *
-     * @param log  日志
-     * @param walk 遍历驱动器
+     * @param log            日志
+     * @param walk           遍历驱动器
+     * @param progressTask   进度反馈任务（透传给收尾）
+     * @param bypassCooldown 是否绕过冷却（透传给收尾）
      */
-    private void finalizeAndSave(GeoTraversalLogger log, GraphWalk walk) {
+    private void finalizeAndSave(GeoTraversalLogger log, GraphWalk walk, BukkitTask progressTask, boolean bypassCooldown) {
         if (walk.isAborted()) {
             log.message("构建铁路图任务已中止，未写入任何文件：" + walk.getAbortReason(), NamedTextColor.RED);
+            finishTraversal(log, progressTask, bypassCooldown);
             return;
         }
 
-        log.message("构建铁路图任务已完成，校验车站和配置是否对应...", NamedTextColor.DARK_AQUA);
+        // 校验 + 层级计算 + 写文件：纯计算与磁盘 I/O，不触碰 Bukkit API，放异步线程避免卡主线程。
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            int files;
+            try {
+                log.message("构建铁路图任务已完成，校验车站和配置是否对应...", NamedTextColor.DARK_AQUA);
 
-        TraversalCollector collector = walk.getCollector();
-        // 按线校验：单线遍历只校验目标线；全图遍历覆盖所有起点登记线 + 遍历中实际到达过车站的线。
-        Map<String, Set<String>> byLine = walk.getVisitedStationsByLine();
-        Set<String> linesToCheck = new LinkedHashSet<>();
-        if (!targetLineIds.isEmpty()) {
-            linesToCheck.addAll(targetLineIds);
-        } else {
-            linesToCheck.addAll(startLineIds);
-            linesToCheck.addAll(byLine.keySet());
-        }
-        // --ignore 的线路不校验车站完整性（其轨道本就未遍历，缺站是预期行为）
-        linesToCheck.removeAll(ignoreLineIds);
-        for (String lineId : linesToCheck) {
-            if (!validateStationOrder(lineId, byLine.getOrDefault(lineId, Collections.emptySet()), walk, log)) {
-                log.message("构建铁路图任务已中止，未写入任何文件：" + walk.getAbortReason(), NamedTextColor.RED);
+                TraversalCollector collector = walk.getCollector();
+                // 按线校验：单线遍历只校验目标线；全图遍历覆盖所有起点登记线 + 遍历中实际到达过车站的线。
+                Map<String, Set<String>> byLine = walk.getVisitedStationsByLine();
+                Set<String> linesToCheck = new LinkedHashSet<>();
+                if (!targetLineIds.isEmpty()) {
+                    linesToCheck.addAll(targetLineIds);
+                } else {
+                    linesToCheck.addAll(startLineIds);
+                    linesToCheck.addAll(byLine.keySet());
+                }
+                // --ignore 的线路不校验车站完整性（其轨道本就未遍历，缺站是预期行为）
+                linesToCheck.removeAll(ignoreLineIds);
+                for (String lineId : linesToCheck) {
+                    if (!validateStationOrder(lineId, byLine.getOrDefault(lineId, Collections.emptySet()), walk, log)) {
+                        log.message("构建铁路图任务已中止，未写入任何文件：" + walk.getAbortReason(), NamedTextColor.RED);
+                        finishTraversal(log, progressTask, bypassCooldown);
+                        return;
+                    }
+                }
+
+                log.message("验证完成，开始计算LineString层级...", NamedTextColor.DARK_AQUA);
+                if (!targetLineIds.isEmpty()) {
+                    // 单线增量：先写出本次改动的 geojson，再读回全部 geojson 全局重算 layer 并写回。
+                    // 这样 layer 与全图 walkAll 一致（跨全部线路），不受"只把其它文件当固定障碍"的局限。
+                    files = saveLineIncremental(walk, log);
+                    int relayered = recomputeAllLayers(log);
+                    log.info("全局重算 layer：更新了 " + relayered + " 个文件的层级");
+                } else {
+                    // 全图遍历：所有区间收集完毕后，按空间交叉关系全局重算 layer（高架压平交）
+                    collector.assignLayers();
+                    files = saveAll(collector, log);
+                }
+                log.message("构建铁路图任务已完成：共写入 %d 个文件".formatted(files), NamedTextColor.GREEN);
+            } catch (Exception e) {
+                log.error("构建铁路图任务收尾失败", e);
+                log.message("构建铁路图任务失败：" + e, NamedTextColor.RED);
+                finishTraversal(log, progressTask, bypassCooldown);
                 return;
             }
-        }
 
-        log.message("验证完成，开始计算LineString层级...", NamedTextColor.DARK_AQUA);
-        int files;
-        if (!targetLineIds.isEmpty()) {
-            // 单线增量：先写出本次改动的 geojson，再读回全部 geojson 全局重算 layer 并写回。
-            // 这样 layer 与全图 walkAll 一致（跨全部线路），不受"只把其它文件当固定障碍"的局限。
-            files = saveLineIncremental(walk, log);
-            int relayered = recomputeAllLayers(log);
-            log.info("全局重算 layer：更新了 " + relayered + " 个文件的层级");
-        } else {
-            // 全图遍历：所有区间收集完毕后，按空间交叉关系全局重算 layer（高架压平交）
-            collector.assignLayers();
-            files = saveAll(collector, log);
-        }
-        log.message("构建铁路图任务已完成：共写入 %d 个文件".formatted(files), NamedTextColor.GREEN);
+            // 回主线程：重载配置（会触碰 Bukkit / 各配置单例）+ 推送快照，随后收尾。
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                try {
+                    log.message("重载配置文件...", NamedTextColor.DARK_AQUA);
+                    plugin.loadConfig(null);
+                    log.message("重载配置完成", NamedTextColor.GREEN);
 
-        // 重载配置
-        log.message("重载配置文件...", NamedTextColor.DARK_AQUA);
-        plugin.loadConfig(null);
-        log.message("重载配置完成", NamedTextColor.GREEN);
-
-        // 遍历产出新 geojson，若已连后端则推送 geo 快照
-        if (plugin.getWebLink() != null && plugin.getWebLink().getClient().isConnected()) {
-            plugin.getWebLink().getSnapshotPublisher().publishGeo();
-            log.message("已向线路图后端推送 geojson 快照", NamedTextColor.GREEN);
-        }
+                    // 遍历产出新 geojson，若已连后端则推送 geo 快照
+                    if (plugin.getWebLink() != null && plugin.getWebLink().getClient().isConnected()) {
+                        plugin.getWebLink().getSnapshotPublisher().publishGeo();
+                        log.message("已向线路图后端推送 geojson 快照", NamedTextColor.GREEN);
+                    }
+                } catch (Exception e) {
+                    log.error("重载配置失败", e);
+                    log.message("重载配置失败：" + e, NamedTextColor.RED);
+                } finally {
+                    finishTraversal(log, progressTask, bypassCooldown);
+                }
+            });
+        });
     }
 
     /**
