@@ -412,6 +412,7 @@ public class GeoTraversalTask {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             int files;
             try {
+                progressTask.cancel();
                 log.message("构建铁路图任务已完成，校验车站和配置是否对应...", NamedTextColor.DARK_AQUA);
 
                 TraversalCollector collector = walk.getCollector();
