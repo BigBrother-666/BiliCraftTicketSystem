@@ -427,12 +427,18 @@ public class GeoTraversalTask {
                 }
                 // --ignore 的线路不校验车站完整性（其轨道本就未遍历，缺站是预期行为）
                 linesToCheck.removeAll(ignoreLineIds);
+                boolean vaild = true;
                 for (String lineId : linesToCheck) {
                     if (!validateStationOrder(lineId, byLine.getOrDefault(lineId, Collections.emptySet()), walk, log)) {
-                        log.message("构建铁路图任务已中止，未写入任何文件：" + walk.getAbortReason(), NamedTextColor.RED);
-                        finishTraversal(log, progressTask, bypassCooldown);
-                        return;
+                        vaild = false;
                     }
+                }
+
+                if (!vaild) {
+                    walk.abort("线路车站校验失败");
+                    log.message("构建铁路图任务已中止，未写入任何文件：" + walk.getAbortReason(), NamedTextColor.RED);
+                    finishTraversal(log, progressTask, bypassCooldown);
+                    return;
                 }
 
                 log.message("验证完成，开始计算LineString层级...", NamedTextColor.DARK_AQUA);
@@ -530,9 +536,6 @@ public class GeoTraversalTask {
         }
         if (!invaildStations.isEmpty()) {
             log.message("线路 " + lineId + " 校验：到达了配置外的车站 " + invaildStations + "（站名写错或控制牌归属线路有误？）", NamedTextColor.RED, Level.SEVERE);
-        }
-        if (!vaild) {
-            walk.abort("线路车站校验失败");
         }
         return vaild;
     }
