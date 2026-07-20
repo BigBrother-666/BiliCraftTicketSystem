@@ -73,16 +73,6 @@ public class GraphWalk {
     @Getter
     private final Map<String, Set<String>> visitedStationsByLine = new LinkedHashMap<>();
     /**
-     * 各起点首段到达的第一个节点 id 集合（seed 段 {@code prevNodeId == null} 时到达的节点）。
-     * <p>
-     * 起点位于铁轨中段、无「上一节点」，故首节点没有被记录任何入边。全图遍历里首节点通常仍会被别处
-     * （环线闭合 / 其它起点 / 其它线从正确方向到达）补上入边；但增量遍历只 seed 目标线起点且出向受限，
-     * 首节点常常拿不到入边而丢失 {@code prev}、与其前驱断连。收尾时据此从旧文件保留其入边（见
-     * {@code GeoTraversalTask#saveLineIncremental}）。多条目标线各 seed 一个起点，故为集合。
-     */
-    @Getter
-    private final Set<String> entryNodeIds = new LinkedHashSet<>();
-    /**
      * 整次遍历累计处理的段数（跨所有起点），用于兜底防环。
      */
     private int processed = 0;
@@ -242,10 +232,6 @@ public class GraphWalk {
             }
             node.addLineId(lineId);
             node.addRailwaySystemId(railwaySystemId);
-            // 起点首段（无上一节点）到达的第一个节点：它没有被记录任何入边，收尾时可能需要从旧文件保留其入边
-            if (st.prevNodeId() == null) {
-                entryNodeIds.add(node.getId());
-            }
 
             // 记录入边（起点首段 prevNodeId 为 null，无边可记）。st.forcedDir() 即离开上一道岔所用出向，
             // 作为本段物理出向写入，供运行时道岔对带导航的列车直接选向。

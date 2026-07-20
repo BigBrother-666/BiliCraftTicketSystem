@@ -563,6 +563,11 @@ public class GeoTraversalTask {
 
     /**
      * 把收集器中的每个文件分组写成 geojson。
+     * <p>
+     * 普通 {@code walkAll}（无 {@code --ignore}）是全图权威重建，直接整体覆盖每个文件。
+     * 带 {@code --ignore} 时，被忽略线的轨道本次不遍历，凡「起点节点落在被忽略线上、本次走不到」的旧边
+     * （如外线经被忽略线汇入本线的入边）会被整体覆盖误删，故对每个文件读回旧区间、保留本次到不了的边
+     * （见 {@link #preserveUnreachedEdges}），并从旧文件补齐这些边引用到的节点。
      *
      * @param collector 结果收集器
      * @param log       日志
@@ -575,10 +580,23 @@ public class GeoTraversalTask {
             dir.mkdirs();
         }
         ObjectMapper mapper = new ObjectMapper();
+        boolean preserveUnreached = !ignoreLineIds.isEmpty();
+        Set<String> visitedNodeIds = preserveUnreached ? collector.nodeIds() : Collections.emptySet();
+        GeojsonReader reader = preserveUnreached ? new GeojsonReader() : null;
         int files = 0;
         for (String fileKey : collector.fileKeys()) {
-            List<RailEdge> edges = collector.edgesOf(fileKey);
-            List<RailNode> nodes = collector.nodesOf(fileKey);
+            List<RailEdge> edges = new ArrayList<>(collector.edgesOf(fileKey));
+            List<RailNode> nodes;
+            if (preserveUnreached) {
+                // --ignore：保留旧文件里起点节点本次没走到的边，并补齐其引用到的节点
+                GeojsonReader.Result old = reader.read(new File(dir, fileKey + ".geojson"));
+                edges.addAll(preserveUnreachedEdges(old.edges, edges, visitedNodeIds));
+                Map<String, RailNode> nodePool = new LinkedHashMap<>(old.nodes);
+                collector.nodesOf(fileKey).forEach(n -> nodePool.put(n.getId(), n));
+                nodes = referencedNodes(edges, nodePool);
+            } else {
+                nodes = collector.nodesOf(fileKey);
+            }
             FeatureCollection fc = new GeojsonBuilder().build(nodes, edges);
             File file = new File(dir, fileKey + ".geojson");
             try {
@@ -616,13 +634,16 @@ public class GeoTraversalTask {
         }
         GeojsonReader reader = new GeojsonReader();
 
-        // 逐条目标线：读旧文件、保留起点首节点入边、算本线待写区间与节点表
+        // 本次遍历实际到达过的节点：据此保留旧文件里「起点节点本次没走到」的区间（见 preserveUnreachedEdges）
+        Set<String> visitedNodeIds = collector.nodeIds();
+
+        // 逐条目标线：读旧文件、保留本次结构上到不了的旧区间、算本线待写区间与节点表
         Map<String, List<RailEdge>> targetEdgesByLine = new LinkedHashMap<>();
         Map<String, Map<String, RailNode>> targetNodesByLine = new LinkedHashMap<>();
         for (String lineId : targetLineIds) {
             GeojsonReader.Result oldTarget = reader.read(new File(dir, lineId + ".geojson"));
             List<RailEdge> edges = new ArrayList<>(collector.edgesOf(lineId));
-            edges.addAll(preserveEntryEdges(walk, lineId, oldTarget, edges));
+            edges.addAll(preserveUnreachedEdges(oldTarget.edges, edges, visitedNodeIds));
             targetEdgesByLine.put(lineId, edges);
 
             Map<String, RailNode> nodes = new LinkedHashMap<>(oldTarget.nodes);
@@ -668,40 +689,46 @@ public class GeoTraversalTask {
     }
 
     /**
-     * 从某条目标线的旧文件保留其起点首节点的入边。
+     * 从某文件的旧区间里保留「起点节点本次遍历没走到」的边，避免整体覆盖误删本次结构上不可能重现的边。
      * <p>
-     * 起点登记在铁轨中段，seed 首段没有「上一节点」，故本次遍历不会给首节点记录任何入边——其
-     * {@code prev} 会丢失、在前端与前驱断连。若本次也没有从别处走出到该线首节点的入边，则把旧文件里
-     * 指向首节点的入边（含几何）原样保留，恢复连通。
+     * 增量遍历（{@code /railgeo walk}，scope 限定 {@code {目标线, contact}}）与 {@code walkAll --ignore}
+     * （跳过忽略线分支）都会使矿车走不到某些节点：
+     * <ul>
+     *   <li><b>外线汇入本线</b>：如 L2 的道岔 N1 上并入 L1 的出向声明 lineId=L1，边 {@code N1→N2} 归入
+     *       {@code L1.geojson}，但只有遍历 L2 到达 N1 才会走出它。{@code walk L1} 的 scope 到不了 N1、
+     *       {@code walkAll --ignore L2} 跳过 L2 分支也到不了 N1，整体覆盖 {@code L1.geojson} 就会丢掉这条边，
+     *       导致 {@code N1→N2} 断链。</li>
+     *   <li><b>起点首节点入边</b>：起点登记在轨道中段，seed 首段无「上一节点」，本次不会给首节点记入边；
+     *       其前驱节点本次通常也走不到，故其旧入边同样由本规则保留。</li>
+     * </ul>
+     * 判据用「起点节点 ∉ 本次到达节点集」而非「本线没走出该起点的新边」：只有<b>完全没走到</b>该起点时才保留。
+     * 若该起点本次其实走到了（如轨道改造后 {@code N1→N2} 被真正删除），{@code visitedNodeIds} 含该起点，
+     * 不保留，让本次遍历的新结果权威——从而只补「结构上到不了」的边，不会把已删除的旧边错误复活。
+     * <p>
+     * 一次完整的 {@code walkAll}（不带 {@code --ignore}）全量重建、不调用本方法，可纠正任何被保守保留的陈旧边。
      *
-     * @param walk        遍历驱动器（取 {@code entryNodeIds}）
-     * @param lineId      目标线路 id
-     * @param oldTarget   该线旧文件解析结果
-     * @param targetEdges 本次新走出的该线区间（用于判断首节点是否已有入边）
-     * @return 需保留的旧入边（可能为空）
+     * @param oldEdges       旧文件解析出的区间
+     * @param currentEdges   本次已收集的该文件区间（用于按 edge id 去重，不重复保留本次已产出的边）
+     * @param visitedNodeIds 本次遍历实际到达过的节点 id 集（见 {@link TraversalCollector#nodeIds()}）
+     * @return 需保留的旧区间（可能为空）
      */
-    @SuppressWarnings("unused")
-    private List<RailEdge> preserveEntryEdges(GraphWalk walk, String lineId, GeojsonReader.Result oldTarget,
-                                              List<RailEdge> targetEdges) {
+    private List<RailEdge> preserveUnreachedEdges(List<RailEdge> oldEdges, List<RailEdge> currentEdges,
+                                                  Set<String> visitedNodeIds) {
+        Set<String> currentIds = new HashSet<>();
+        for (RailEdge e : currentEdges) {
+            currentIds.add(e.getId());
+        }
         List<RailEdge> preserved = new ArrayList<>();
-        // 该线首节点：起点首节点集合里、属于本线旧 / 新节点的那个（各线起点独立 seed）
-        for (String entryNodeId : walk.getEntryNodeIds()) {
-            boolean belongsToLine = oldTarget.nodes.containsKey(entryNodeId)
-                    || targetEdges.stream().anyMatch(e -> entryNodeId.equals(e.getFromNodeId())
-                    || entryNodeId.equals(e.getToNodeId()));
-            if (!belongsToLine) {
+        for (RailEdge e : oldEdges) {
+            // 起点节点本次走到了：本次结果对该起点的出边权威，不保留旧边（避免复活已删除的边）
+            if (visitedNodeIds.contains(e.getFromNodeId())) {
                 continue;
             }
-            // 本次遍历已有指向首节点的入边则无需保留（如环线闭合回到首节点）
-            boolean hasNewIncoming = targetEdges.stream().anyMatch(e -> entryNodeId.equals(e.getToNodeId()));
-            if (hasNewIncoming) {
+            // 本次已产出同一条边则无需重复保留
+            if (currentIds.contains(e.getId())) {
                 continue;
             }
-            for (RailEdge e : oldTarget.edges) {
-                if (entryNodeId.equals(e.getToNodeId())) {
-                    preserved.add(e);
-                }
-            }
+            preserved.add(e);
         }
         return preserved;
     }
