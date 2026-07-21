@@ -271,14 +271,8 @@ public class GraphWalk {
         }
         String outFace = faceKey(outDir);
 
-        // 如果是终点站 platform 下一段固定联络线
-        if (lineInfo != null && lineInfo.isTerminalStation(node.getStationName())) {
-            tryEnqueue(node, arrivalFace, outFace, lineId, queue,
-                    new WalkState(node.getId(), node.getRailBlock(), outDir, null, RailwaySystemConfig.CONTACT_ID, arrivalFace, ownerLineId));
-        } else {
-            tryEnqueue(node, arrivalFace, outFace, lineId, queue,
-                    new WalkState(node.getId(), node.getRailBlock(), outDir, null, lineId, arrivalFace, ownerLineId));
-        }
+        tryEnqueue(node, arrivalFace, outFace, lineId, queue,
+                new WalkState(node.getId(), node.getRailBlock(), outDir, null, lineId, arrivalFace, ownerLineId));
     }
 
     /**
