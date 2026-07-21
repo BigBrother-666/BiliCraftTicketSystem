@@ -590,9 +590,10 @@ public class GeoTraversalTask {
             if (preserveUnreached) {
                 // --ignore：保留旧文件里起点节点本次没走到的边，并补齐其引用到的节点
                 GeojsonReader.Result old = reader.read(new File(dir, fileKey + ".geojson"));
+                mergeOldEnterFaces(edges, old.edges);
                 edges.addAll(preserveUnreachedEdges(old.edges, edges, visitedNodeIds));
                 Map<String, RailNode> nodePool = new LinkedHashMap<>(old.nodes);
-                collector.nodesOf(fileKey).forEach(n -> nodePool.put(n.getId(), n));
+                collector.nodesOf(fileKey).forEach(n -> mergeNodeInto(nodePool, n));
                 nodes = referencedNodes(edges, nodePool);
             } else {
                 nodes = collector.nodesOf(fileKey);
@@ -643,11 +644,13 @@ public class GeoTraversalTask {
         for (String lineId : targetLineIds) {
             GeojsonReader.Result oldTarget = reader.read(new File(dir, lineId + ".geojson"));
             List<RailEdge> edges = new ArrayList<>(collector.edgesOf(lineId));
+            // 先并回旧边的入向门控到达面（外线汇入本线起点道岔贡献、本次 scope 走不到），再保留本次结构上到不了的整条旧边
+            mergeOldEnterFaces(edges, oldTarget.edges);
             edges.addAll(preserveUnreachedEdges(oldTarget.edges, edges, visitedNodeIds));
             targetEdgesByLine.put(lineId, edges);
 
             Map<String, RailNode> nodes = new LinkedHashMap<>(oldTarget.nodes);
-            collector.nodesOf(lineId).forEach(n -> nodes.put(n.getId(), n));
+            collector.nodesOf(lineId).forEach(n -> mergeNodeInto(nodes, n));
             targetNodesByLine.put(lineId, nodes);
         }
 
@@ -665,7 +668,10 @@ public class GeoTraversalTask {
             mergedContact.put(e.getId(), e);
             preservedOthers++;
         }
-        for (RailEdge e : collector.edgesOf(RailwaySystemConfig.CONTACT_ID)) {
+        List<RailEdge> newContact = collector.edgesOf(RailwaySystemConfig.CONTACT_ID);
+        // 本次新走出的联络线段也并回旧同 id 段的入向门控到达面（同理：外线在道岔的到达面本次 scope 走不到）
+        mergeOldEnterFaces(newContact, oldContact.edges);
+        for (RailEdge e : newContact) {
             mergedContact.put(e.getId(), e);
         }
         log.info("合并 contact.geojson：保留其它线联络线段 " + preservedOthers + " 条，本次新增 "
@@ -675,9 +681,9 @@ public class GeoTraversalTask {
         // layer 不在此处计算：本方法只负责写出本次改动的几何，layer 由随后的 recomputeAllLayers
         // 读回全部 geojson 全局重算并写回（见 finalizeAndSave）。
 
-        // 联络线节点表：旧段端点节点 + 本次新联络线节点（新的优先）
+        // 联络线节点表：旧段端点节点 + 本次新联络线节点（按 id 合并 lineIds，不覆盖旧节点累积的其它线归属）
         Map<String, RailNode> contactNodes = new LinkedHashMap<>(oldContact.nodes);
-        collector.nodesOf(RailwaySystemConfig.CONTACT_ID).forEach(n -> contactNodes.put(n.getId(), n));
+        collector.nodesOf(RailwaySystemConfig.CONTACT_ID).forEach(n -> mergeNodeInto(contactNodes, n));
 
         int files = 0;
         for (String lineId : targetLineIds) {
@@ -731,6 +737,63 @@ public class GeoTraversalTask {
             preserved.add(e);
         }
         return preserved;
+    }
+
+    /**
+     * 把旧文件里同一条边（同 id）的到达面 {@link RailEdge#getEnterFacesFrom() enterFrom} 并入本次新走出的边。
+     * <p>
+     * {@code enterFrom} 是运行时寻路的<b>入向门控白名单</b>（见 {@code GeoRouteEngine#enterFaceAllows}）：
+     * 只有到达起点道岔的入边到达面 ∈ 本集合，才允许接本段出边。同一条出向边可被<b>多个不同到达面</b>产出
+     * ——除本线沿途续行外，还包括<b>外线经联络线汇入本线起点道岔</b>的到达面（如 pr-cw 经 contact 汇入
+     * pr-s1 的道岔，给 pr-s1 出向边贡献一个额外到达面）。
+     * <p>
+     * 增量遍历（{@code /railgeo walk}，scope 限定 {@code {目标线, contact}}）从目标线起点出发，<b>走不到</b>
+     * 那条外线的道岔，故本次只会记到「本线续行」的到达面，外线汇入贡献的到达面丢失。而该出向边的起点节点
+     * 本次确实走到了（本线到达过），{@link #preserveUnreachedEdges} 不会保留旧边，整体覆盖就会把外线到达面
+     * 抹掉——运行时外线列车到达该道岔后被门控拒绝、无法接上本线，表现为「汇入本线的线路断开」。
+     * <p>
+     * 故对本次已走出、且旧文件存在同 id 的边，把旧边到达面并入本次新边：本次能走到的到达面权威更新，
+     * 本次结构上到不了（外线汇入）的到达面从旧边补回。多出的陈旧到达面无害（没有列车真的从该向到达就不会
+     * 触发门控），一次完整 {@code walkAll} 全量重建即可校正。
+     *
+     * @param currentEdges 本次已收集的该文件区间（原地修改：并入旧到达面）
+     * @param oldEdges     旧文件解析出的区间
+     */
+    private void mergeOldEnterFaces(List<RailEdge> currentEdges, List<RailEdge> oldEdges) {
+        Map<String, RailEdge> oldById = new HashMap<>();
+        for (RailEdge e : oldEdges) {
+            oldById.put(e.getId(), e);
+        }
+        for (RailEdge cur : currentEdges) {
+            RailEdge old = oldById.get(cur.getId());
+            if (old != null) {
+                old.getEnterFacesFrom().forEach(cur::addEnterFaceFrom);
+            }
+        }
+    }
+
+    /**
+     * 把新节点并入节点池：同 id 已有旧节点时，<b>并集累积</b>其 {@code lineIds} / {@code railwaySystemIds}
+     * 而非整体覆盖。
+     * <p>
+     * 一个道岔 / 车站可被多条线经过，其 {@code lineIds} 是遍历过程中<b>跨线累积</b>的（如某道岔同时属
+     * {@code pr-s1} 与 {@code contact}）。增量遍历只 seed 目标线、scope 受限，本次到达该节点时只累积到目标线一侧的
+     * lineId，直接覆盖旧节点会抹掉其它线贡献的 lineId，使写出的节点 {@code lineIds} 残缺（前端图例 / 归属显示
+     * 劣化）。故按 id 合并：先保留旧节点的累积 lineId，再并入本次新到达贡献的 lineId。
+     * <p>
+     * 运行时 {@code GeoGraphLoader} 会跨全部 geojson 按 id 再累积一次 lineId，故此劣化通常不影响寻路；此处
+     * 合并是为保持单文件节点元数据完整、与全量 {@code walkAll} 口径一致。
+     *
+     * @param pool    节点池（原地修改：旧节点已在池中）
+     * @param newNode 本次新到达的节点
+     */
+    private void mergeNodeInto(Map<String, RailNode> pool, RailNode newNode) {
+        RailNode old = pool.get(newNode.getId());
+        if (old != null) {
+            old.getLineIds().forEach(newNode::addLineId);
+            old.getRailwaySystemIds().forEach(newNode::addRailwaySystemId);
+        }
+        pool.put(newNode.getId(), newNode);
     }
 
     /**
