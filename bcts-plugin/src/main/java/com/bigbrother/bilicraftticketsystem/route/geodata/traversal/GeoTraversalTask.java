@@ -443,15 +443,23 @@ public class GeoTraversalTask {
 
                 log.message("验证完成，开始计算LineString层级...", NamedTextColor.DARK_AQUA);
                 if (!targetLineIds.isEmpty()) {
-                    // 单线增量：先写出本次改动的 geojson，再读回全部 geojson 全局重算 layer 并写回。
+                    // 单线增量：先写出本次改动的 geojson，清理线路配置文件后，再读回全部 geojson 全局重算 layer 并写回。
                     // 这样 layer 与全图 walkAll 一致（跨全部线路），不受"只把其它文件当固定障碍"的局限。
                     files = saveLineIncremental(walk, log);
+                    int orphans = cleanOrphanFiles(log);
+                    if (orphans > 0) {
+                        log.message("清理了 %d 个线路配置文件（线路配置已删除）".formatted(orphans), NamedTextColor.YELLOW);
+                    }
                     int relayered = recomputeAllLayers(log);
                     log.info("全局重算 layer：更新了 " + relayered + " 个文件的层级");
                 } else {
                     // 全图遍历：所有区间收集完毕后，按空间交叉关系全局重算 layer（高架压平交）
                     collector.assignLayers();
                     files = saveAll(collector, log);
+                    int orphans = cleanOrphanFiles(log);
+                    if (orphans > 0) {
+                        log.message("清理了 %d 个线路配置文件（线路配置已删除）".formatted(orphans), NamedTextColor.YELLOW);
+                    }
                 }
                 log.message("构建铁路图任务已完成：共写入 %d 个文件".formatted(files), NamedTextColor.GREEN);
             } catch (Exception e) {
@@ -559,6 +567,48 @@ public class GeoTraversalTask {
             return below;
         }
         return null;
+    }
+
+    /**
+     * 清理无用 geojson 文件：删除 geodata 目录下「文件名（lineId）在当前线路配置中已不存在」的
+     * {@code <lineId>.geojson}。
+     * <p>
+     * 玩家用 ticketconfig 删除某条线路后，其旧 {@code <lineId>.geojson} 不会被 {@link #saveAll} /
+     * {@link #saveLineIncremental} 覆盖（本次遍历不产出该线），会残留成线路配置文件，前端仍会加载显示一条已经
+     * 不存在的线。故 walk / walkAll 收尾统一按<b>当前线路配置</b>核对：文件名不是当前任何线路 id、且不是
+     * {@code contact.geojson}（联络线聚合文件，无对应单线配置，恒保留）的，删除。
+     *
+     * @param log 日志
+     * @return 删除的线路配置文件数
+     */
+    private int cleanOrphanFiles(GeoTraversalLogger log) {
+        File dir = plugin.getGeodataDir();
+        File[] geoFiles = dir.listFiles((d, name) -> name.toLowerCase().endsWith(".geojson"));
+        if (geoFiles == null) {
+            return 0;
+        }
+        int deleted = 0;
+        for (File f : geoFiles) {
+            if (!f.isFile()) {
+                continue;
+            }
+            String name = f.getName();
+            String fileKey = name.substring(0, name.length() - ".geojson".length());
+            // contact.geojson 是联络线聚合文件，无对应单线配置，恒保留
+            if (RailwaySystemConfig.CONTACT_ID.equals(fileKey)) {
+                continue;
+            }
+            if (LineConfig.contains(fileKey)) {
+                continue;
+            }
+            if (f.delete()) {
+                deleted++;
+                log.info("清理线路配置文件：" + name + "（线路配置已不存在）");
+            } else {
+                log.error("清理线路配置文件失败：" + name, null);
+            }
+        }
+        return deleted;
     }
 
     /**
