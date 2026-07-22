@@ -202,7 +202,8 @@ public class GeoTraversalTask {
 
         GeoTraversalLogger log = new GeoTraversalLogger(plugin, sender);
         GraphWalk walk = new GraphWalk(new TraversalCollector(), log, new HashSet<>(),
-                MapConfig.getTraversalMaxTotalNodes(), MapConfig.getTraversalMaxEdgesPerWalk(), scope, ignoreLineIds);
+                MapConfig.getTraversalMaxTotalNodes(), MapConfig.getTraversalMaxEdgesPerWalk(), scope, ignoreLineIds,
+                MapConfig.getTraversalCoasterSampleStep());
         runningWalk = walk;
         // 分片遍历期间主线程被一段段占用，异步线程只读 walk 的计数器汇报进度。
         BukkitTask progressTask = startProgressFeedback(walk, log);

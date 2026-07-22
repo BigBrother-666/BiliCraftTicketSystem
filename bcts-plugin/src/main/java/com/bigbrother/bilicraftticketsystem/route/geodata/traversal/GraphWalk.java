@@ -56,6 +56,11 @@ public class GraphWalk {
      * 与 {@link #lineScope} 正交：scope 是「只跟进」白名单（单线遍历），ignore 是「不跟进」黑名单（全图遍历）。
      */
     private final Set<String> ignoreLineIds;
+    /**
+     * TCC 云轨曲线采样步长（方块），透传给每段 {@link TrackWalker}。仅影响云轨的几何采样密度，
+     * 普通铁轨采样不受影响。见 {@link com.bigbrother.bilicraftticketsystem.config.MapConfig#getTraversalCoasterSampleStep()}。
+     */
+    private final double coasterSampleStep;
 
     /**
      * 已展开的 {@code (节点,入向,出向,lineId)} 状态，跨所有起点共享，防止环线 / 重复死循环、并在
@@ -93,11 +98,13 @@ public class GraphWalk {
      * @param visited         去重状态集合（跨起点共享）
      * @param maxNodes        整次遍历最多展开段数（兜底防环）
      * @param maxEdgesPerWalk 单段行走最多采样的坐标点数
-     * @param lineScope       出向线路范围限定（见 {@link #lineScope}）；null 表示不限定
-     * @param ignoreLineIds   忽略的线路 id 集合（见 {@link #ignoreLineIds}）；null / 空表示不忽略
+     * @param lineScope        出向线路范围限定（见 {@link #lineScope}）；null 表示不限定
+     * @param ignoreLineIds    忽略的线路 id 集合（见 {@link #ignoreLineIds}）；null / 空表示不忽略
+     * @param coasterSampleStep TCC 云轨曲线采样步长（方块，见 {@link #coasterSampleStep}）；{@code <=0} 关闭云轨密采
      */
     public GraphWalk(TraversalCollector collector, GeoTraversalLogger log, Set<String> visited,
-                     int maxNodes, int maxEdgesPerWalk, Set<String> lineScope, Set<String> ignoreLineIds) {
+                     int maxNodes, int maxEdgesPerWalk, Set<String> lineScope, Set<String> ignoreLineIds,
+                     double coasterSampleStep) {
         this.collector = collector;
         this.log = log;
         this.visited = visited;
@@ -105,6 +112,7 @@ public class GraphWalk {
         this.maxEdgesPerWalk = maxEdgesPerWalk;
         this.lineScope = lineScope;
         this.ignoreLineIds = ignoreLineIds == null ? java.util.Collections.emptySet() : ignoreLineIds;
+        this.coasterSampleStep = coasterSampleStep;
     }
 
     /**
@@ -202,13 +210,19 @@ public class GraphWalk {
         TrackWalker walker = new TrackWalker(st.rail(), st.direction());
         walker.setLineTag(lineId);
         walker.setForcedDirection(st.forcedDir());
+        walker.setSampleStep(coasterSampleStep);
         try {
             List<LngLatAlt> coords = new ArrayList<>();
             int[] count = {0};
-            TrackWalker.WalkResult result = walker.walkToNextNode(railBlock -> {
+            // 本段是否含 TCC 云轨采样点：含则用云轨曲线精度简化（保留弧线），否则用普通轨精度（压平阶梯斜线）
+            boolean[] hasCoaster = {false};
+            TrackWalker.WalkResult result = walker.walkToNextNode((x, y, z, coaster) -> {
                 if (count[0] < maxEdgesPerWalk) {
-                    coords.add(toCoord(railBlock));
+                    coords.add(new LngLatAlt(x, z, y));
                     count[0]++;
+                    if (coaster) {
+                        hasCoaster[0] = true;
+                    }
                 }
             });
 
@@ -237,8 +251,9 @@ public class GraphWalk {
             // 作为本段物理出向写入，供运行时道岔对带导航的列车直接选向。
             // 如果上一个节点是车站节点 且 车站节点的下一个节点包含当前lineId 才添加
             if (st.prevNodeId() != null && !st.prevNodeId().equals(node.getId())) {
+                double tolerance = hasCoaster[0] ? GeoUtils.COASTER_HORIZONTAL_TOLERANCE : GeoUtils.HORIZONTAL_TOLERANCE;
                 collector.recordEdge(lineId, st.prevNodeId(), node.getId(), lineId, railwaySystemId, color,
-                        GeoUtils.simplifyLineString(coords), result.length(), st.forcedDir(),
+                        GeoUtils.simplifyLineString(coords, tolerance), result.length(), st.forcedDir(),
                         node.getRailBlock().getWorld().getName(), st.fromEnterFace(), arrivalFace, st.ownerLineId());
             }
 
@@ -356,16 +371,6 @@ public class GraphWalk {
         int x = (int) Math.signum(dir.getX());
         int z = (int) Math.signum(dir.getZ());
         return x + "_" + z;
-    }
-
-    /**
-     * 铁轨方块 -> geojson 坐标（经度=x, 纬度=z, 高度=y，沿用旧 geojson 约定）。
-     *
-     * @param railBlock 铁轨方块
-     * @return 坐标
-     */
-    private LngLatAlt toCoord(Block railBlock) {
-        return new LngLatAlt(railBlock.getX(), railBlock.getZ(), railBlock.getY());
     }
 }
 

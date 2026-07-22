@@ -260,13 +260,13 @@ platform 处达到该速度。**只改速度不改最大速度**。
 
 以下所有指令需要 `bcts.railgeo` 权限：
 
-| 指令                            | 功能                                |
-|-------------------------------|-----------------------------------|
+| 指令                             | 功能                                                                 |
+|--------------------------------|--------------------------------------------------------------------|
 | railgeo walkAll [--ignore ...] | 遍历所有已登记线路起点，按线路分文件保存为 geojson；`--ignore` 后跟若干 lineId（空格分隔）表示不遍历这些线 |
-| railgeo walk \<lineIds>       | 只遍历一条或多条线路（空格分隔）及与其直接相连的联络线       |
-| railgeo stopWalk              | 停止当前正在进行的铁轨遍历任务                   |
-| railgeo setStartPos \<lineId> | 登记某线路的遍历起点，以玩家所在铁轨为起点坐标、面朝方向为起点方向 |
-| railgeo delStartPos \<lineId> | 删除某线路已登记的遍历起点                     |
+| railgeo walk \<lineIds>        | 只遍历一条或多条线路（空格分隔）及与其直接相连的联络线                                        |
+| railgeo stopWalk               | 停止当前正在进行的铁轨遍历任务                                                    |
+| railgeo setStartPos \<lineId>  | 登记某线路的遍历起点，以玩家所在铁轨为起点坐标、面朝方向为起点方向                                  |
+| railgeo delStartPos \<lineId>  | 删除某线路已登记的遍历起点                                                      |
 
 > `setStartPos` / `delStartPos` 仅允许该线路所属**铁路系统的成员**执行（避免非本系统成员改动线路遍历数据）。
 >
@@ -294,7 +294,7 @@ platform 处达到该速度。**只改速度不改最大速度**。
 
 ### 9.5 遍历流程与 geojson 结构
 
-**遍历流程**（`railgeo walkAll`）：
+**遍历流程**（`railgeo walkAll`，支持普通铁轨和TCCoasters轨道）：
 
 1. 从数据库读出各条线路登记的起点（由 `railgeo setStartPos` 设置）。
 2. 对每条线路做**有向图遍历**：以 bcswitcher / platform 为节点、其间铁路为有向边，从起点 BFS 展开。一节带该 lineId tag 的临时矿车按段行走（基于 TrainCarts 路径预测，正确触发沿途原版 switcher 的 addtag/remtag）：
