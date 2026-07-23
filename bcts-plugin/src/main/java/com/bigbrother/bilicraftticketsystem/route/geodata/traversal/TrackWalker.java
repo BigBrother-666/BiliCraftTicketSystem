@@ -209,7 +209,16 @@ public class TrackWalker {
             // 故这里对云轨步长再夹一个 1.0 上限（采样更密无害，只影响顶点数），保证逐格都会被下方检测覆盖。
             boolean moved = coaster ? wp.moveStep(Math.min(sampleStep, 1.0)) : wp.moveFull();
             if (!moved) {
-                return new WalkResult(StopReason.END, railBlock, null, state.enterDirection(), wp.movedTotal - startMoved);
+                // moveFull() 走 MAX_VALUE，只有真正到轨尾（NO_RAIL）才返回 false；但 moveStep(limit)
+                // 每次「走满 limit 距离」就会返回 false 并置 LIMIT_REACHED——这是云轨密采每一小步的
+                // 正常结果，不是断轨。若在此把它当 END 直接停，云轨段会在第一小步（约 sampleStep 格）
+                // 就中断，导致后续车站遍历不到（报「未在遍历中到达」）。故：LIMIT_REACHED 视为一步走完，
+                // 继续采样；只有 NO_RAIL / LOOP_DETECTED / CYCLIC_PATH / 寻路中止等真实失败才结束本段。
+                if (wp.failReason == TrackWalkingPoint.FailReason.LIMIT_REACHED) {
+                    wp.failReason = TrackWalkingPoint.FailReason.NONE;
+                } else {
+                    return new WalkResult(StopReason.END, railBlock, null, state.enterDirection(), wp.movedTotal - startMoved);
+                }
             }
 
             if (++steps >= maxStepsPerSegment) {
