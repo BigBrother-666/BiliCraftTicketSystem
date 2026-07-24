@@ -697,7 +697,8 @@ public class GeoTraversalTask {
             List<RailEdge> edges = new ArrayList<>(collector.edgesOf(lineId));
             // 先并回旧边的入向门控到达面（外线汇入本线起点道岔贡献、本次 scope 走不到），再保留本次结构上到不了的整条旧边
             mergeOldEnterFaces(edges, oldTarget.edges);
-            edges.addAll(preserveUnreachedEdges(oldTarget.edges, edges, visitedNodeIds));
+            edges.addAll(preserveExternalIngressEdges(oldTarget.edges, edges, visitedNodeIds,
+                    lineIdsByNode(oldTarget.nodes), lineId));
             targetEdgesByLine.put(lineId, edges);
 
             Map<String, RailNode> nodes = new LinkedHashMap<>(oldTarget.nodes);
@@ -788,6 +789,55 @@ public class GeoTraversalTask {
             preserved.add(e);
         }
         return preserved;
+    }
+
+    /**
+     * Incremental {@code /railgeo walk <lineId>} treats the walked target line as authoritative.
+     * Stale target-line segments whose start node belongs to the target line are dropped, even if
+     * that old node was not reached this time. The only old target-line segments kept are external
+     * ingress edges: an old edge in the target file whose start node metadata does not contain the
+     * target line, which means the edge was produced by another line flowing into this line and the
+     * current scoped walk cannot prove it obsolete.
+     */
+    static List<RailEdge> preserveExternalIngressEdges(List<RailEdge> oldEdges, List<RailEdge> currentEdges,
+                                                       Set<String> visitedNodeIds,
+                                                       Map<String, Set<String>> oldLineIdsByNode,
+                                                       String targetLineId) {
+        Set<String> currentIds = new HashSet<>();
+        for (RailEdge e : currentEdges) {
+            currentIds.add(e.getId());
+        }
+        List<RailEdge> preserved = new ArrayList<>();
+        for (RailEdge e : oldEdges) {
+            if (!Objects.equals(targetLineId, e.getLineId())) {
+                continue;
+            }
+            if (visitedNodeIds.contains(e.getFromNodeId())) {
+                continue;
+            }
+            if (currentIds.contains(e.getId())) {
+                continue;
+            }
+            Set<String> fromLineIds = oldLineIdsByNode == null
+                    ? Collections.emptySet()
+                    : oldLineIdsByNode.getOrDefault(e.getFromNodeId(), Collections.emptySet());
+            if (fromLineIds.contains(targetLineId)) {
+                continue;
+            }
+            if (fromLineIds.isEmpty()) {
+                continue;
+            }
+            preserved.add(e);
+        }
+        return preserved;
+    }
+
+    private static Map<String, Set<String>> lineIdsByNode(Map<String, RailNode> nodes) {
+        Map<String, Set<String>> result = new HashMap<>();
+        for (Map.Entry<String, RailNode> entry : nodes.entrySet()) {
+            result.put(entry.getKey(), new LinkedHashSet<>(entry.getValue().getLineIds()));
+        }
+        return result;
     }
 
     /**
