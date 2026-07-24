@@ -118,12 +118,15 @@ public class GeoRouteGraph {
      * @param lineId 当前线路id
      */
     private boolean isEnterSwitcher(GeoNode node, String lineId) {
-        if (node.isStation()) {
+        if (node == null || node.isStation() || lineId == null) {
             return false;
         }
-        List<GeoLink> links = GeoRouteEngine.getGraph().links(node.getId());
-        for (GeoLink link : links) {
-            if (!link.getLineId().equals(lineId)) {
+        List<GeoLink> outLinks = links(node.getId());
+        if (outLinks.isEmpty()) {
+            return false;
+        }
+        for (GeoLink link : outLinks) {
+            if (!lineId.equals(link.getLineId())) {
                 return false;
             }
         }
@@ -154,7 +157,7 @@ public class GeoRouteGraph {
      * @return 停靠线 platform 车站名；不满足条件返回 null
      */
     public String platformNameOfMainlineSwitch(GeoNode node, String lineId) {
-        if (node == null || !isEnterSwitcher(node, lineId)) {
+        if (!isEnterSwitcher(node, lineId)) {
             return null;
         }
         List<GeoLink> outLinks = links(node.getId());

@@ -4,6 +4,7 @@ import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import lombok.Getter;
 import lombok.Setter;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.util.*;
@@ -444,9 +445,11 @@ public class GeoRouteEngine {
     private static List<GeoRoutePath> kShortest(String startNodeId, String endStation, int k) {
         GeoRouteGraph g = graph;
         List<GeoRoutePath> results = new ArrayList<>();
-        if (g.getNode(startNodeId) == null || endStation == null || k < 1) {
+        GeoNode startNode = g.getNode(startNodeId);
+        if (startNode == null || endStation == null || k < 1) {
             return results;
         }
+        String startStation = startNode.isStation() ? startNode.getName() : null;
         PriorityQueue<Entry> pq = new PriorityQueue<>(Comparator.comparingDouble(Entry::dist));
         pq.add(new Entry(startNodeId, 0.0, null, null));
 
@@ -472,6 +475,17 @@ public class GeoRouteEngine {
                 // 「从某些到达面到达该道岔」的车合法。若入边到达面不在本段允许集合内，跳过——避免读到
                 // 反向牌的出边、算出物理非法路线（如从右侧来的车走了只给左侧来车准备的直行出边）。
                 if (!enterFaceAllows(cur.prevLink(), link)) {
+                    continue;
+                }
+                String curStationName = curNode != null && !curNode.isStation()
+                        ? getNodeStationName(g, curNode, link.getLineId()) : null;
+                boolean nextIsTerminal = nextNode.isStation() && endStation.equals(nextNode.getName());
+                if (repeatsStation(g, cur, curStationName, startStation, endStation, nextIsTerminal)) {
+                    continue;
+                }
+                String nextStationName = nextNode.isStation() ? nextNode.getName() : null;
+                if (nextStationName != null && !nextStationName.equals(curStationName)
+                        && repeatsStation(g, cur, nextStationName, startStation, endStation, nextIsTerminal)) {
                     continue;
                 }
                 // 无环约束：下一节点若已在当前路径中，跳过——避免重复经过同一节点。
@@ -532,6 +546,46 @@ public class GeoRouteEngine {
             }
         }
         return false;
+    }
+
+    private static boolean repeatsStation(GeoRouteGraph g, Entry cur, @Nullable String stationName,
+                                          @Nullable String startStation, String endStation, boolean nextIsTerminal) {
+        if (stationName == null || !stationInPath(g, cur, stationName)) {
+            return false;
+        }
+        return !nextIsTerminal || !stationName.equals(startStation) || !stationName.equals(endStation);
+    }
+
+    private static boolean stationInPath(GeoRouteGraph g, Entry entry, String stationName) {
+        GeoLink outgoing = null;
+        for (Entry e = entry; e != null; e = e.prev()) {
+            GeoNode node = g.getNode(e.nodeId());
+            String currentStation = node == null ? null
+                    : (node.isStation() ? node.getName()
+                    : (outgoing == null ? null : getNodeStationName(g, node, outgoing.getLineId())));
+            if (stationName.equals(currentStation)) {
+                return true;
+            }
+            outgoing = e.prevLink();
+        }
+        return false;
+    }
+
+    /**
+     * 如果某条线路的某个道岔是进站道岔（两个出边lineId相同，一条是正线，一条是停靠线，停靠线连接station节点，结构如下），返回对应的车站名
+     * 注：规定只有进站道岔可能会有两个出边的lineId相同
+     *     /-->S(车站)-->\
+     *   N1 ---(正线)---> N2
+     *   N1 为进站道岔
+     */
+    private static @Nullable String getNodeStationName(GeoRouteGraph g, GeoNode node, String lineId) {
+        if (node == null || lineId == null) {
+            return null;
+        }
+        if (node.isStation()) {
+            return node.getName();
+        }
+        return g.platformNameOfMainlineSwitch(node, lineId);
     }
 
     /**

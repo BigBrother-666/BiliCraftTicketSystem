@@ -330,6 +330,53 @@ public class GeoRouteEngineTest {
     }
 
     @Test
+    void routesNeverPassSameStationTwiceThroughMainlineSwitches() {
+        FeatureCollection f = new FeatureCollection();
+        f.add(point("nA", "station", "A", 0, 64, 0));
+        f.add(point("bIn1", "switch", null, 10, 64, 0));
+        f.add(point("bOut1", "switch", null, 20, 64, 0));
+        f.add(point("mid", "switch", null, 30, 64, 0));
+        f.add(point("bIn2", "switch", null, 40, 64, 0));
+        f.add(point("bOut2", "switch", null, 50, 64, 0));
+        f.add(point("nB1", "station", "B", 10, 64, 10));
+        f.add(point("nB2", "station", "B", 40, 64, 10));
+        f.add(point("nD", "station", "D", 60, 64, 0));
+
+        f.add(line("e.L.nA__bIn1", "nA", "bIn1", "L", 10, "e"));
+        f.add(line("e.L.bIn1__nB1", "bIn1", "nB1", "L", 1, "s"));
+        f.add(line("e.L.bIn1__bOut1", "bIn1", "bOut1", "L", 1, "e"));
+        f.add(line("e.L.bOut1__mid", "bOut1", "mid", "L", 10, "e"));
+        f.add(line("e.L.mid__bIn2", "mid", "bIn2", "L", 10, "e"));
+        f.add(line("e.L.bIn2__nB2", "bIn2", "nB2", "L", 1, "s"));
+        f.add(line("e.L.bIn2__bOut2", "bIn2", "bOut2", "L", 1, "e"));
+        f.add(line("e.L.bOut2__nD", "bOut2", "nD", "L", 10, "e"));
+        GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(f));
+
+        assertTrue(GeoRouteEngine.findByStation("A", "D").isEmpty(),
+                "正线经过同名车站 B 两次的路线应被拒绝");
+    }
+
+    @Test
+    void sameStationEndpointMayRepeatStartStationNameAtArrivalSwitcher() {
+        FeatureCollection f = new FeatureCollection();
+        f.add(point("nR", "station", "R", 0, 64, 0));
+        f.add(point("c1", "switch", null, 10, 64, 0));
+        f.add(point("rIn", "switch", null, 20, 64, 0));
+        f.add(point("nR2", "station", "R", 20, 64, 10));
+        f.add(point("dead", "switch", null, 30, 64, 0));
+        f.add(line("e.L.nR__c1", "nR", "c1", "L", 10, "e"));
+        f.add(line("e.L.c1__rIn", "c1", "rIn", "L", 10, "e"));
+        f.add(line("e.L.rIn__nR2", "rIn", "nR2", "L", 10, "s"));
+        f.add(line("e.L.rIn__dead", "rIn", "dead", "L", 1, "e"));
+        GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(f));
+
+        GeoRoutePath path = GeoRouteEngine.findFromNode("nR", "R");
+        assertNotNull(path, "起终点站相同时，最终到达同名站应合法");
+        assertEquals(List.of("nR", "c1", "rIn", "nR2"),
+                path.getNodes().stream().map(GeoNode::getId).toList());
+    }
+
+    @Test
     void validatePathRebuildsValidRoute() {
         GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(fc));
         // 合法路线 nA -> s1 -> s2 -> nB（L1 / contact / L1），与 findFromNode 同构
