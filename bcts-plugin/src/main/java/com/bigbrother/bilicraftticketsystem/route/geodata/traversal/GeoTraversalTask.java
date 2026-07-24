@@ -39,7 +39,7 @@ import java.util.logging.Level;
  *   <li>遍历后按线把实际到达车站与配置 {@code bossbar-stations} 比对，报告缺失 / 多余。</li>
  * </ol>
  * 遍历在主线程<b>分片</b>执行（需读取实时轨道数据）：每 tick 只展开
- * {@link MapConfig#getTraversalSegmentsPerTick()} 段后让出主线程，避免一次性展开整张图卡死服务器、
+ * {@link MapConfig#getTraversalEdgesPerInterval()} 段后让出主线程，避免一次性展开整张图卡死服务器、
  * 影响其它玩家。
  * <p>
  * 全局约束：同一时刻只允许一个遍历任务（{@link #RUNNING}），且完成后有全局冷却
@@ -241,8 +241,8 @@ public class GeoTraversalTask {
      * 在主线程把整次遍历分片到多个 tick 执行：
      * <ol>
      *   <li>先读取并 seed 所有登记起点（读起点铁轨方块，需主线程）；</li>
-     *   <li>用定时任务每 tick 调一次 {@link GraphWalk#stepBatch}，每批最多展开
-     *       {@link MapConfig#getTraversalSegmentsPerTick()} 段，队列空（或中止）后停止；</li>
+     *   <li>用定时任务每 {@link MapConfig#getTraversalIntervalTicks()} tick 调一次 {@link GraphWalk#stepBatch}，每批最多展开
+     *       {@link MapConfig#getTraversalEdgesPerInterval()} 段，队列空（或中止）后停止；</li>
      *   <li>展开结束后做车站校验、层级计算、写文件、重载配置。</li>
      * </ol>
      * 每段的行走矿车都在单个 tick 内生成并销毁，不跨 tick 持有，避免 keep-loaded 区块区域与遍历推进
@@ -272,14 +272,15 @@ public class GeoTraversalTask {
                 return;
             }
 
-            int segmentsPerTick = MapConfig.getTraversalSegmentsPerTick();
-            // 每 tick 展开一批；展开完毕（或中止）后取消自身并切到收尾流程。runTaskTimer 保证全程在主线程。
+            int intervalTicks = MapConfig.getTraversalIntervalTicks();
+            int edgesPerInterval = MapConfig.getTraversalEdgesPerInterval();
+            // 每 intervalTicks 展开一批；展开完毕（或中止）后取消自身并切到收尾流程。runTaskTimer 保证全程在主线程。
             new BukkitRunnable() {
                 @Override
                 public void run() {
                     if (walk.hasPending()) {
                         try {
-                            walk.stepBatch(segmentsPerTick);
+                            walk.stepBatch(edgesPerInterval);
                         } catch (Exception e) {
                             log.error("遍历展开失败", e);
                             log.message("构建铁路图任务失败：" + e, NamedTextColor.RED);
@@ -298,7 +299,7 @@ public class GeoTraversalTask {
                     cancel();
                     finalizeAndSave(log, walk, progressTask, bypassCooldown);
                 }
-            }.runTaskTimer(plugin, 1L, 1L);
+            }.runTaskTimer(plugin, 1L, intervalTicks);
         });
     }
 

@@ -4,9 +4,10 @@ traversal:
   max-edges-per-walk: 50000
   # 整次遍历最多展开的铁路边数
   max-total-nodes: 20000
-  # 分片遍历：每 tick（主线程）最多展开的铁路边数。遍历在主线程分多个 tick 执行，
-  # 该值越小对其它玩家的影响越小、但整次遍历耗时越长；越大遍历越快、但每 tick 占用主线程时间越多。
-  segments-per-tick: 20
+  # 分片遍历：每隔多少 tick 在主线程展开一批铁路边，最小值为 1。
+  interval-ticks: 3
+  # 分片遍历：每批最多展开的铁路边数，最小值为 1。实际效果为每 interval-ticks tick 遍历 edges-per-interval 条边。
+  edges-per-interval: 1
   # 每隔多少秒向发起者反馈一次当前进度（已遍历节点数），<=0 表示不反馈
   progress-interval-seconds: 5
   # walkAll（全图遍历）完成后的冷却（秒），冷却期间不能再次发起 walkAll。与 walk 冷却独立计时。
