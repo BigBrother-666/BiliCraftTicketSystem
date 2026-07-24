@@ -6,6 +6,15 @@
 #   income    : 累计收入（购票 / 刷卡实付按段分摊到本系统的部分），实时累加
 #   withdrawn : 已发放给创建者的金额；创建者上线时自动补发 income-withdrawn 并对齐到 income
 
+contact:
+  name: "联络线"
+  price-per-km: 0.2
+  creator: "5bc8940f-2e0e-4a30-a2c3-5552744f5d19"
+  income: 0.0
+  withdrawn: 0.0
+  members:
+    - "5bc8940f-2e0e-4a30-a2c3-5552744f5d19"
+
 # 铁路系统id，不可重复
 paralon-railway:
   # 铁路系统名称，必填

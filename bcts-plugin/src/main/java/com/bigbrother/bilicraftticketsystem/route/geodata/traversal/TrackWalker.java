@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
+import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 import com.bigbrother.bilicraftticketsystem.utils.GeoUtils;
 import com.bigbrother.bilicraftticketsystem.signactions.SignActionBcswitcher;
@@ -87,6 +88,12 @@ public class TrackWalker {
      */
     @Setter
     private int maxStepsPerSegment = 100000;
+    /**
+     * TCC 云轨曲线采样步长（方块）。仅在当前轨为 TCCoasters 云轨时生效：按此距离小步采样真实浮点位置
+     * 以还原弧线。{@code <=0} 表示关闭云轨密采（云轨也退回逐段整点采样）。普通铁轨采样与此无关。
+     */
+    @Setter
+    private double sampleStep = 0.5;
 
     /**
      * 创建行走器（会在 startRail 处生成一节不动的矿车）。必须在主线程调用。
@@ -155,25 +162,63 @@ public class TrackWalker {
      * <p>
      * 起点所在铁轨上的控制牌不触发停止（避免在出发点立刻停下）；只检测前进途中新铁轨上的牌。
      * 沿途处理 addtag / remtag，使原版 switcher 的按-tag 转折逻辑正常生效。
+     * <p>
+     * <b>采样精度按轨道类型区分</b>：
+     * <ul>
+     *   <li><b>普通铁轨</b>（原版轨等）：与历史行为完全一致——每格 {@link TrackWalkingPoint#moveFull()}
+     *       跨过整段 rail path，取铁轨方块的<b>整数</b>坐标采样一次。逻辑、拓扑、里程一字不变。</li>
+     *   <li><b>TCC 云轨</b>（{@link #isCoasterRail}，且 {@link #sampleStep} &gt; 0）：改用
+     *       {@link TrackWalkingPoint#moveStep(double)} 按 {@code sampleStep} 距离小步前进，取列车
+     *       <b>真实浮点位置</b>（{@link RailState#positionLocation()}）采样，使弧线在 geojson 里
+     *       画成弧而非直线。控制流（节点检测 / 断轨 / 里程 / tag）与普通轨完全共用。</li>
+     * </ul>
+     * 两种前进都经由 TC 的 {@code loadNextRail}（在轨道边界加载下一段、遵循预测寻路），故云轨密采
+     * 不改变走向选择；节点坐标一律锚在铁轨方块整数坐标（见下方节点采样），与 NodeId / 起点登记对齐。
      *
-     * @param collector 坐标收集器，每经过一格铁轨调用一次
+     * @param collector 坐标收集器，每采样一次调用一次（普通轨每格一次、云轨每小步一次）
      * @return 停止原因及位置
      */
     public WalkResult walkToNextNode(CoordCollector collector) {
         // 记录段首累计里程，段尾相减即为本段沿轨道的真实长度
         double startMoved = wp.movedTotal;
         int steps = 0;
+        // 上一次做过「节点牌检测 + tag 处理」的铁轨方块。云轨密采时一步可能仍停在同一格铁轨内，
+        // 只有铁轨方块变化（跨过 rail piece）才需要重新检测——避免同格重复处理、也保证不漏格。
+        Block lastProcessedRail = null;
         while (true) {
             RailState state = wp.state;
             Block railBlock = state.railBlock();
-            collector.accept(railBlock);
+            boolean coaster = sampleStep > 0 && isCoasterRail(state);
 
-            // 处理当前铁轨的 addtag / remtag（影响原版 switcher 后续选向）
-            applyTagSigns(state.railPiece().signs());
+            // 采样当前点：云轨取真实浮点位置（还原弧线），普通轨取铁轨方块整数坐标（历史行为不变）
+            if (coaster) {
+                org.bukkit.Location pos = state.positionLocation();
+                collector.accept(pos.getX(), pos.getY(), pos.getZ(), true);
+            } else {
+                collector.accept(railBlock.getX(), railBlock.getY(), railBlock.getZ(), false);
+            }
 
-            // 前进一格
-            if (!wp.moveFull()) {
-                return new WalkResult(StopReason.END, railBlock, null, state.enterDirection(), wp.movedTotal - startMoved);
+            // 处理当前铁轨的 addtag / remtag（影响原版 switcher 后续选向）。云轨密采时同一格只处理一次。
+            if (!sameBlock(lastProcessedRail, railBlock)) {
+                applyTagSigns(state.railPiece().signs());
+                lastProcessedRail = railBlock;
+            }
+
+            // 前进：普通轨一次跨完当前段；云轨按采样步长小步推进（两者都经 loadNextRail 处理轨道边界与预测寻路）。
+            // 关键：云轨采样步长不能大于 1 格，否则一步可能跨过整格铁轨、漏掉其上的节点牌 / addtag。
+            // 故这里对云轨步长再夹一个 1.0 上限（采样更密无害，只影响顶点数），保证逐格都会被下方检测覆盖。
+            boolean moved = coaster ? wp.moveStep(Math.min(sampleStep, 1.0)) : wp.moveFull();
+            if (!moved) {
+                // moveFull() 走 MAX_VALUE，只有真正到轨尾（NO_RAIL）才返回 false；但 moveStep(limit)
+                // 每次「走满 limit 距离」就会返回 false 并置 LIMIT_REACHED——这是云轨密采每一小步的
+                // 正常结果，不是断轨。若在此把它当 END 直接停，云轨段会在第一小步（约 sampleStep 格）
+                // 就中断，导致后续车站遍历不到（报「未在遍历中到达」）。故：LIMIT_REACHED 视为一步走完，
+                // 继续采样；只有 NO_RAIL / LOOP_DETECTED / CYCLIC_PATH / 寻路中止等真实失败才结束本段。
+                if (wp.failReason == TrackWalkingPoint.FailReason.LIMIT_REACHED) {
+                    wp.failReason = TrackWalkingPoint.FailReason.NONE;
+                } else {
+                    return new WalkResult(StopReason.END, railBlock, null, state.enterDirection(), wp.movedTotal - startMoved);
+                }
             }
 
             if (++steps >= maxStepsPerSegment) {
@@ -181,15 +226,47 @@ public class TrackWalker {
                 return new WalkResult(StopReason.END, wp.state.railBlock(), null, wp.state.enterDirection(), wp.movedTotal - startMoved);
             }
 
-            // 检查新铁轨上的节点控制牌
-            RailLookup.TrackedSign nodeSign = findNodeSign(wp.state.railPiece());
-            if (nodeSign != null) {
-                Block nodeRail = wp.state.railBlock();
-                collector.accept(nodeRail);
-                StopReason reason = signType(nodeSign);
-                return new WalkResult(reason, nodeRail, nodeSign, wp.state.enterDirection(), wp.movedTotal - startMoved);
+            // 检查新铁轨上的节点控制牌。云轨密采时可能多步仍在同格（还没跨到有牌的新格），
+            // 只有铁轨方块变化后才需要检测——同格重复检测无意义，且不会因步长大而跳过任何一格。
+            Block newRail = wp.state.railBlock();
+            if (!sameBlock(lastProcessedRail, newRail)) {
+                RailLookup.TrackedSign nodeSign = findNodeSign(wp.state.railPiece());
+                if (nodeSign != null) {
+                    // 节点坐标一律用铁轨方块整数坐标（锚定 NodeId / 起点登记 / 去重），按普通轨精度处理
+                    collector.accept(newRail.getX(), newRail.getY(), newRail.getZ(), false);
+                    StopReason reason = signType(nodeSign);
+                    return new WalkResult(reason, newRail, nodeSign, wp.state.enterDirection(), wp.movedTotal - startMoved);
+                }
             }
         }
+    }
+
+    /**
+     * 判断两个铁轨方块是否为同一格（含 null 处理）。用于云轨密采时避免同格重复检测节点牌 / tag。
+     *
+     * @param a 铁轨方块（可为 null）
+     * @param b 铁轨方块（可为 null）
+     * @return 同一格返回 true
+     */
+    private boolean sameBlock(Block a, Block b) {
+        if (a == null || b == null) {
+            return false;
+        }
+        return a.getX() == b.getX() && a.getY() == b.getY() && a.getZ() == b.getZ()
+                && a.getWorld().equals(b.getWorld());
+    }
+
+    /**
+     * 判断当前所在铁轨是否为 TCCoasters 的云轨（虚拟曲线轨）。
+     * <p>
+     * 用 {@link RailType} 的类名字符串判断，避免对 TCCoasters 产生编译期硬依赖（它是可选的运行时插件）。
+     *
+     * @param state 当前行走状态
+     * @return 当前轨为 TCCoasters 云轨返回 true
+     */
+    private boolean isCoasterRail(RailState state) {
+        RailType type = state.railType();
+        return type != null && "CoasterRailType".equals(type.getClass().getSimpleName());
     }
 
     /**
@@ -323,10 +400,15 @@ public class TrackWalker {
      */
     public interface CoordCollector {
         /**
-         * 收到一格铁轨坐标。
+         * 收到一个采样点的世界坐标。
+         * <p>
+         * 普通铁轨传入铁轨方块的整数坐标（每格一次）；TCC 云轨传入列车真实浮点位置（每采样步长一次）。
          *
-         * @param railBlock 铁轨方块
+         * @param x       世界 x 坐标
+         * @param y       世界 y 坐标
+         * @param z       世界 z 坐标
+         * @param coaster 该采样点是否取自 TCC 云轨（true 表示真实浮点位置，需按曲线精度简化）
          */
-        void accept(Block railBlock);
+        void accept(double x, double y, double z, boolean coaster);
     }
 }

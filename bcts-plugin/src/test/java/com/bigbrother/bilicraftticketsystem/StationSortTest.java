@@ -17,6 +17,9 @@ public class StationSortTest {
         // 北(b) / 长(c) / 安(a) -> 安 / 北 / 长
         List<String> sorted = StationProvider.sortByPinyin(List.of("北京站", "长沙站", "安阳站"));
         assertEquals(List.of("安阳站", "北京站", "长沙站"), sorted, "应按拼音首字母正序：安<北<长");
+
+        sorted = StationProvider.sortByPinyin(List.of("醍醐镇", "新赫洛堡", "翡翠岛", "匕首半岛"));
+        assertEquals(List.of("匕首半岛", "翡翠岛", "醍醐镇", "新赫洛堡"), sorted, "应按拼音首字母正序");
     }
 
     @Test

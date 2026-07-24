@@ -1,16 +1,26 @@
-# 铁轨遍历（railgeo walkAll）配置
+# 铁轨遍历（railgeo walk / walkAll）配置
 traversal:
   # 单边行走最多记录的铁轨格数
   max-edges-per-walk: 50000
   # 整次遍历最多展开的铁路边数
   max-total-nodes: 20000
-  # 分片遍历：每 tick（主线程）最多展开的铁路边数。遍历在主线程分多个 tick 执行，
-  # 该值越小对其它玩家的影响越小、但整次遍历耗时越长；越大遍历越快、但每 tick 占用主线程时间越多。
-  segments-per-tick: 20
+  # 分片遍历：每隔多少 tick 在主线程展开一批铁路边，最小值为 1。
+  interval-ticks: 3
+  # 分片遍历：每批最多展开的铁路边数，最小值为 1。实际效果为每 interval-ticks tick 遍历 edges-per-interval 条边。
+  edges-per-interval: 1
   # 每隔多少秒向发起者反馈一次当前进度（已遍历节点数），<=0 表示不反馈
   progress-interval-seconds: 5
-  # 一次遍历完成后的全局冷却（秒），冷却期间不能再次发起遍历
+  # walkAll（全图遍历）完成后的冷却（秒），冷却期间不能再次发起 walkAll。与 walk 冷却独立计时。
   cooldown-seconds: 3600
+  # walk（单线增量遍历）完成后的冷却（秒），冷却期间不能再次发起 walk。与 walkAll 冷却独立计时。
+  # 注意：两者共用单运行锁，任一遍历进行中另一个都不可发起（即使对方没在冷却）。
+  walk-cooldown-seconds: 300
+  # TCC 云轨（TCCoasters 虚拟曲线轨）几何采样步长，单位方块。仅作用于 TCCoasters 的曲线轨：
+  # 遍历经过云轨时按此步长用列车真实位置密采，使弧线在地图上画成弧而非直线。
+  # 普通铁轨（原版轨等）的遍历逻辑与采样完全不受影响。<=0 关闭云轨密采、退回旧行为（弧线呈直线）。
+  # 值越小弧线越平滑、顶点越多；仅影响几何精度，不改变遍历拓扑/车站/寻路。
+  # 实际步长最大按 1.0 格处理（更大的值无意义），以保证一步不跨过整格铁轨、不漏掉其上的控制牌。
+  coaster-sample-step: 1.0
 
 logo:
   # 网页端logo边像素数

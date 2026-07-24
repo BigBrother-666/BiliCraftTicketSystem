@@ -1,5 +1,8 @@
 package com.bigbrother.bilicraftticketsystem.route;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 
 /**
@@ -65,6 +68,75 @@ public final class NodeId {
             world.append(parts[i]);
         }
         return world.toString();
+    }
+
+    /**
+     * 节点 id 解析出的坐标（世界名 + 整数方块坐标）。纯数据，便于单元测试
+     * （不依赖 Bukkit）。
+     *
+     * @param world 世界名
+     * @param x     方块 x
+     * @param y     方块 y
+     * @param z     方块 z
+     */
+    public record Coords(String world, int x, int y, int z) {
+    }
+
+    /**
+     * 从节点 id 解析出世界名与整数方块坐标。
+     * <p>
+     * 节点 id 形如 {@code n.<world>.<x>.<y>.<z>}，末尾三段恒为整数坐标，world 名本身可能含
+     * {@code .}（如 {@code world.nether}），解析思路与 {@link #worldOf(String)} 一致。
+     * 纯逻辑、不依赖 Bukkit，供 {@link #toLocation(String)} 复用与单元测试。
+     *
+     * @param nodeId 节点 id
+     * @return 解析结果；格式非法（前缀不为 {@code n}、段数不足、末三段非整数）返回 null
+     */
+    public static Coords parseCoords(String nodeId) {
+        if (nodeId == null) {
+            return null;
+        }
+        String[] parts = nodeId.split("\\.");
+        // n + world(>=1 段) + x + y + z，至少 5 段
+        if (parts.length < 5 || !"n".equals(parts[0])) {
+            return null;
+        }
+        StringBuilder world = new StringBuilder();
+        for (int i = 1; i <= parts.length - 4; i++) {
+            if (i > 1) {
+                world.append('.');
+            }
+            world.append(parts[i]);
+        }
+        try {
+            int x = Integer.parseInt(parts[parts.length - 3]);
+            int y = Integer.parseInt(parts[parts.length - 2]);
+            int z = Integer.parseInt(parts[parts.length - 1]);
+            return new Coords(world.toString(), x, y, z);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
+     * 从节点 id 还原方块中心 {@link Location}。
+     * <p>
+     * 节点 id 已编码世界名 + 方块坐标（见 {@link #ofCoords}），故无需额外存储坐标即可定位。
+     * 返回的位置取方块中心（各坐标 +0.5）。
+     *
+     * @param nodeId 节点 id
+     * @return 方块中心位置；格式非法或世界未加载返回 null
+     */
+    public static Location toLocation(String nodeId) {
+        Coords coords = parseCoords(nodeId);
+        if (coords == null) {
+            return null;
+        }
+        World world = Bukkit.getWorld(coords.world());
+        if (world == null) {
+            return null;
+        }
+        return new Location(world, coords.x() + 0.5, coords.y() + 0.5, coords.z() + 0.5);
     }
 
     /**

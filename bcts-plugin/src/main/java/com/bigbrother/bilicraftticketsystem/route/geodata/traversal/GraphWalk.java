@@ -3,6 +3,7 @@ package com.bigbrother.bilicraftticketsystem.route.geodata.traversal;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
+import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
 import com.bigbrother.bilicraftticketsystem.utils.GeoUtils;
 import com.bigbrother.bilicraftticketsystem.signactions.component.BcSwitcherBranch;
 import lombok.Getter;
@@ -43,6 +44,23 @@ public class GraphWalk {
     private final GeoTraversalLogger log;
     private final int maxNodes;
     private final int maxEdgesPerWalk;
+    /**
+     * 出向线路范围限定：非 null 时，bcswitcher 展开只跟进 lineId ∈ 本集合的出向分支
+     * （单线遍历用，集合为 {@code {targetLineId, "contact"}}）。为 null 表示不限定（全图遍历，
+     * {@code walkAll} 行为不变）。
+     */
+    private final Set<String> lineScope;
+    /**
+     * 忽略的线路 id 集合（{@code walkAll --ignore} 用）：bcswitcher 展开时，出向声明为这些 id 的分支
+     * <b>不展开</b>（不流入这些线），从而整次遍历不覆盖这些线路的轨道 / 车站。空集表示不忽略任何线。
+     * 与 {@link #lineScope} 正交：scope 是「只跟进」白名单（单线遍历），ignore 是「不跟进」黑名单（全图遍历）。
+     */
+    private final Set<String> ignoreLineIds;
+    /**
+     * TCC 云轨曲线采样步长（方块），透传给每段 {@link TrackWalker}。仅影响云轨的几何采样密度，
+     * 普通铁轨采样不受影响。见 {@link com.bigbrother.bilicraftticketsystem.config.MapConfig#getTraversalCoasterSampleStep()}。
+     */
+    private final double coasterSampleStep;
 
     /**
      * 已展开的 {@code (节点,入向,出向,lineId)} 状态，跨所有起点共享，防止环线 / 重复死循环、并在
@@ -80,14 +98,21 @@ public class GraphWalk {
      * @param visited         去重状态集合（跨起点共享）
      * @param maxNodes        整次遍历最多展开段数（兜底防环）
      * @param maxEdgesPerWalk 单段行走最多采样的坐标点数
+     * @param lineScope        出向线路范围限定（见 {@link #lineScope}）；null 表示不限定
+     * @param ignoreLineIds    忽略的线路 id 集合（见 {@link #ignoreLineIds}）；null / 空表示不忽略
+     * @param coasterSampleStep TCC 云轨曲线采样步长（方块，见 {@link #coasterSampleStep}）；{@code <=0} 关闭云轨密采
      */
     public GraphWalk(TraversalCollector collector, GeoTraversalLogger log, Set<String> visited,
-                     int maxNodes, int maxEdgesPerWalk) {
+                     int maxNodes, int maxEdgesPerWalk, Set<String> lineScope, Set<String> ignoreLineIds,
+                     double coasterSampleStep) {
         this.collector = collector;
         this.log = log;
         this.visited = visited;
         this.maxNodes = maxNodes;
         this.maxEdgesPerWalk = maxEdgesPerWalk;
+        this.lineScope = lineScope;
+        this.ignoreLineIds = ignoreLineIds == null ? java.util.Collections.emptySet() : ignoreLineIds;
+        this.coasterSampleStep = coasterSampleStep;
     }
 
     /**
@@ -98,12 +123,13 @@ public class GraphWalk {
      * @param direction     本段起始方向
      * @param forcedDir     离开起始 bcswitcher 时的强制出向（platform 续行 / 起点首段为 null）
      * @param lineId        本段携带的当前线路 id（决定本段边归属及矿车导向 tag）
-     * @param prevNode      上一个节点
      * @param fromEnterFace 到达起点节点（道岔）时的到达面 key（起点首段为 null）——作为本段边的
      *                      {@code enterFaceFrom}，供寻路门控「从此方向来才可走本段」。
+     * @param ownerLineId   本段归属线路 id（见 {@link RailEdge#getOwnerLineId()}）：普通段 = lineId，
+     *                      联络线段 = 触发它的目标线。沿续行 / 首段透传，走 contact 出向时置为进入道岔的 lineId。
      */
     private record WalkState(String prevNodeId, Block rail, Vector direction, String forcedDir, String lineId,
-                             RailNode prevNode, String fromEnterFace) {
+                             String fromEnterFace, String ownerLineId) {
     }
 
     /**
@@ -116,7 +142,8 @@ public class GraphWalk {
      * @param startDirection 起点方向
      */
     public void seed(String startLineId, Block startRail, Vector startDirection) {
-        queue.add(new WalkState(null, startRail, startDirection, null, startLineId, null, null));
+        // 首段 owner = 起点登记线路（首段必是营运线，非 contact）
+        queue.add(new WalkState(null, startRail, startDirection, null, startLineId, null, startLineId));
     }
 
     /**
@@ -183,13 +210,19 @@ public class GraphWalk {
         TrackWalker walker = new TrackWalker(st.rail(), st.direction());
         walker.setLineTag(lineId);
         walker.setForcedDirection(st.forcedDir());
+        walker.setSampleStep(coasterSampleStep);
         try {
             List<LngLatAlt> coords = new ArrayList<>();
             int[] count = {0};
-            TrackWalker.WalkResult result = walker.walkToNextNode(railBlock -> {
+            // 本段是否含 TCC 云轨采样点：含则用云轨曲线精度简化（保留弧线），否则用普通轨精度（压平阶梯斜线）
+            boolean[] hasCoaster = {false};
+            TrackWalker.WalkResult result = walker.walkToNextNode((x, y, z, coaster) -> {
                 if (count[0] < maxEdgesPerWalk) {
-                    coords.add(toCoord(railBlock));
+                    coords.add(new LngLatAlt(x, z, y));
                     count[0]++;
+                    if (coaster) {
+                        hasCoaster[0] = true;
+                    }
                 }
             });
 
@@ -217,17 +250,17 @@ public class GraphWalk {
             // 记录入边（起点首段 prevNodeId 为 null，无边可记）。st.forcedDir() 即离开上一道岔所用出向，
             // 作为本段物理出向写入，供运行时道岔对带导航的列车直接选向。
             // 如果上一个节点是车站节点 且 车站节点的下一个节点包含当前lineId 才添加
-            if (st.prevNodeId() != null && !st.prevNodeId().equals(node.getId()) ||
-                    st.prevNode() != null && st.prevNode().getType().equals(RailNode.Type.STATION) && node.getLineIds().contains(lineId)) {
+            if (st.prevNodeId() != null && !st.prevNodeId().equals(node.getId())) {
+                double tolerance = hasCoaster[0] ? GeoUtils.COASTER_HORIZONTAL_TOLERANCE : GeoUtils.HORIZONTAL_TOLERANCE;
                 collector.recordEdge(lineId, st.prevNodeId(), node.getId(), lineId, railwaySystemId, color,
-                        GeoUtils.simplifyLineString(coords), result.length(), st.forcedDir(),
-                        node.getRailBlock().getWorld().getName(), st.fromEnterFace(), arrivalFace);
+                        GeoUtils.simplifyLineString(coords, tolerance), result.length(), st.forcedDir(),
+                        node.getRailBlock().getWorld().getName(), st.fromEnterFace(), arrivalFace, st.ownerLineId());
             }
 
             if (result.reason() == TrackWalker.StopReason.PLATFORM) {
-                expandPlatform(node, lineId, arrival, arrivalFace, queue, logPrefix);
+                expandPlatform(node, lineId, st.ownerLineId(), arrival, arrivalFace, queue, logPrefix);
             } else {
-                expandSwitcher(node, lineId, walker, result, arrival, arrivalFace, queue, logPrefix);
+                expandSwitcher(node, lineId, st.ownerLineId(), walker, result, arrival, arrivalFace, queue, logPrefix);
             }
         } finally {
             walker.destroy();
@@ -244,7 +277,7 @@ public class GraphWalk {
      * @param arrivalFace 到达方向的面 key（入向）
      * @param queue       待展开队列
      */
-    private void expandPlatform(RailNode node, String lineId, Vector arrival, String arrivalFace, Deque<WalkState> queue, String logPrefix) {
+    private void expandPlatform(RailNode node, String lineId, String ownerLineId, Vector arrival, String arrivalFace, Deque<WalkState> queue, String logPrefix) {
         LineInfo lineInfo = LineConfig.get(lineId);
         boolean reverse = lineInfo != null && lineInfo.isReverseStationByName(node.getStationName());
         Vector outDir = reverse ? arrival.clone().multiply(-1) : arrival.clone();
@@ -252,8 +285,9 @@ public class GraphWalk {
             log.info(logPrefix + "折返站 " + node.getStationName() + "，反向驶出");
         }
         String outFace = faceKey(outDir);
+
         tryEnqueue(node, arrivalFace, outFace, lineId, queue,
-                new WalkState(node.getId(), node.getRailBlock(), outDir, null, lineId, node, arrivalFace));
+                new WalkState(node.getId(), node.getRailBlock(), outDir, null, lineId, arrivalFace, ownerLineId));
     }
 
     /**
@@ -270,7 +304,7 @@ public class GraphWalk {
      * @param queue       待展开队列
      */
     @SuppressWarnings("unused")
-    private void expandSwitcher(RailNode node, String lineId, TrackWalker walker, TrackWalker.WalkResult result,
+    private void expandSwitcher(RailNode node, String lineId, String ownerLineId, TrackWalker walker, TrackWalker.WalkResult result,
                                 Vector arrival, String arrivalFace, Deque<WalkState> queue, String logPrefix) {
         RailPiece rail = result.sign().getRail();
         List<BcSwitcherBranch> branches = walker.collectSwitcherBranches(rail);
@@ -280,10 +314,24 @@ public class GraphWalk {
                     log.info(logPrefix + "bcswitcher(%s)的道岔lineId %s 不存在，跳过该分支".formatted(rail.block().getLocation(), outLineId));
                     continue;
                 }
+                // 单线遍历：只跟进范围内（目标线 / 联络线）的出向，其它线的出向到此为止，
+                // 使遍历只覆盖目标线全线 + 与其直接相连的联络线段。全图遍历时 lineScope 为 null，不过滤。
+                if (lineScope != null && !lineScope.contains(outLineId)) {
+                    continue;
+                }
+                // 忽略名单：出向声明为被忽略线路的分支不展开，遍历不流入这些线（walkAll --ignore）
+                if (ignoreLineIds.contains(outLineId)) {
+                    log.info(logPrefix + "bcswitcher(%s)的出向 %s 在忽略名单中，跳过该分支".formatted(rail.block().getLocation(), outLineId));
+                    continue;
+                }
+                // 归属线路：走 contact 出向时，本段归属「触发它的目标线」——即进入本道岔时携带的 owner
+                // （首次进 contact 时 owner=当前营运线；链式 contact 沿用同一 owner）。走普通线路出向时
+                // 归属该出向线路自身。据此增量遍历合并 contact 只删本次目标线拥有的旧段，不误删对端线的反向段。
+                String outOwner = RailwaySystemConfig.CONTACT_ID.equals(outLineId) ? ownerLineId : outLineId;
                 // 出向 key 用 (方向, 出向lineId)：共用出向按线拆 fork，各挂单一 tag 各走各记。
                 tryEnqueue(node, arrivalFace, branch.getDirectionStr(), outLineId, queue,
                         new WalkState(node.getId(), node.getRailBlock(), arrival.clone(),
-                                branch.getDirectionStr(), outLineId, node, arrivalFace));
+                                branch.getDirectionStr(), outLineId, arrivalFace, outOwner));
             }
         }
     }
@@ -317,16 +365,6 @@ public class GraphWalk {
         int x = (int) Math.signum(dir.getX());
         int z = (int) Math.signum(dir.getZ());
         return x + "_" + z;
-    }
-
-    /**
-     * 铁轨方块 -> geojson 坐标（经度=x, 纬度=z, 高度=y，沿用旧 geojson 约定）。
-     *
-     * @param railBlock 铁轨方块
-     * @return 坐标
-     */
-    private LngLatAlt toCoord(Block railBlock) {
-        return new LngLatAlt(railBlock.getX(), railBlock.getZ(), railBlock.getY());
     }
 }
 

@@ -63,10 +63,12 @@ public class TraversalCollector {
      * @param world           区间所在世界名
      * @param enterFaceFrom   本段在起点道岔的到达面 key（起点首段 / 无门控传 null）
      * @param enterFaceTo     本段在终点节点的到达面 key（无门控传 null）
+     * @param ownerLineId     归属线路 id（见 {@link RailEdge#getOwnerLineId()}；增量遍历合并 contact 时按此删除）
      */
     public void recordEdge(String fileKey, String fromNodeId, String toNodeId, String lineId,
                            String railwaySystemId, String color, List<LngLatAlt> coords, double length,
-                           String departDirection, String world, String enterFaceFrom, String enterFaceTo) {
+                           String departDirection, String world, String enterFaceFrom, String enterFaceTo,
+                           String ownerLineId) {
         Map<String, RailEdge> group = edgeGroups.computeIfAbsent(fileKey, k -> new LinkedHashMap<>());
         String edgeId = com.bigbrother.bilicraftticketsystem.route.NodeId.ofEdge(fromNodeId, toNodeId, lineId);
         RailEdge existing = group.get(edgeId);
@@ -77,7 +79,7 @@ public class TraversalCollector {
             return;
         }
         group.put(edgeId, new RailEdge(fromNodeId, toNodeId, lineId, railwaySystemId, coords, color, length, 0,
-                departDirection, world, enterFaceFrom, enterFaceTo));
+                departDirection, world, enterFaceFrom, enterFaceTo, ownerLineId));
     }
 
     /**
@@ -101,6 +103,20 @@ public class TraversalCollector {
      */
     public java.util.Set<String> fileKeys() {
         return edgeGroups.keySet();
+    }
+
+    /**
+     * 本次遍历实际 {@link #resolveNode 到达}过的全部节点 id（副本，跨所有文件分组共享的全局节点注册表键集）。
+     * <p>
+     * 增量遍历（{@code /railgeo walk}）/ {@code walkAll --ignore} 收尾合并时据此保留旧文件里
+     * 「起点节点本次没走到」的区间：这类边的起点在本次 scope / 忽略名单外，本次结构上不可能重现，
+     * 全量覆盖会误删（如外线汇入本线的入边），保留即可避免断链。见
+     * {@code GeoTraversalTask#preserveUnreachedEdges}。
+     *
+     * @return 到达过的节点 id 集合（副本）
+     */
+    public java.util.Set<String> nodeIds() {
+        return new java.util.LinkedHashSet<>(nodes.keySet());
     }
 
     /**

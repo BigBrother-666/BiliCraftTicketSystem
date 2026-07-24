@@ -17,8 +17,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.text.Collator;
+import com.github.promeg.pinyinhelper.Pinyin;
+
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -42,10 +44,11 @@ public class StationProvider {
     }
 
     /**
-     * 中文站名排序器：按拼音正序（{@link Locale#CHINA} 的 Collator 内置拼音排序规则），
-     * 非中文字符回退到 Collator 的通用规则。无需引入额外拼音库，离线可用。
+     * 中文站名排序键：整串转成全拼（TinyPinyin，离线内置词典）再按字典序比较。
      */
-    private static final Collator PINYIN = Collator.getInstance(Locale.CHINA);
+    private static final Comparator<String> PINYIN_ORDER =
+            Comparator.comparing((String name) -> Pinyin.toPinyin(name, "").toLowerCase(Locale.ROOT))
+                    .thenComparing(Comparator.naturalOrder());
 
     /**
      * UI 消费的车站条目：站名 + 经过该站的所有线路 id（聚合同名各站台节点）。
@@ -64,7 +67,7 @@ public class StationProvider {
      */
     public static List<String> sortByPinyin(List<String> names) {
         List<String> sorted = new ArrayList<>(names);
-        sorted.sort(PINYIN);
+        sorted.sort(PINYIN_ORDER);
         return sorted;
     }
 
@@ -172,9 +175,20 @@ public class StationProvider {
         meta.displayName(Component.text(entry.name(), stationColor(entry))
                 .decoration(TextDecoration.ITALIC, false));
 
+        List<String> lineIds = new ArrayList<>(entry.lineIds());
+        lineIds.sort((lineId1, lineId2) -> {
+            LineInfo line1 = LineConfig.get(lineId1);
+            LineInfo line2 = LineConfig.get(lineId2);
+            if (line1 != null && line2 != null) {
+                return PINYIN_ORDER.compare(line1.getLineName(), line2.getLineName());
+            } else {
+                return 0;
+            }
+        });
+
         List<Component> lore = new ArrayList<>();
         lore.add(Component.text("途经此车站的铁路：", NamedTextColor.AQUA));
-        for (String lineId : entry.lineIds()) {
+        for (String lineId : lineIds) {
             LineInfo line = LineConfig.get(lineId);
             if (line == null) {
                 continue;

@@ -9,6 +9,7 @@ import com.bigbrother.bilicraftticketsystem.menu.items.common.BackItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.common.NextpageItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.common.PrevpageItem;
 import com.bigbrother.bilicraftticketsystem.menu.items.system.SystemItem;
+import com.bigbrother.bilicraftticketsystem.menu.station.StationProvider;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import xyz.xenondevs.invui.gui.PagedGui;
@@ -48,7 +49,10 @@ public class MenuSystem extends Menu {
 
         List<Item> items = new ArrayList<>();
         for (RailwaySystemInfo system : RailwaySystemConfig.getSystems().values()) {
-            items.add(new SystemItem(system, systemId -> onSelect.accept(systemId, reopenSelf)));
+            // 车站数量 > 0 才添加 联络线系统不添加
+            if (!system.getId().equals(RailwaySystemConfig.CONTACT_ID) && !StationProvider.listStationsOfSystem(system.getId()).isEmpty()) {
+                items.add(new SystemItem(system, systemId -> onSelect.accept(systemId, reopenSelf)));
+            }
         }
         gui.setContent(items);
 

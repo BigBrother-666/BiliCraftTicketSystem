@@ -4,6 +4,7 @@ import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import lombok.Getter;
 import lombok.Setter;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.util.*;
@@ -66,27 +67,48 @@ public class GeoRouteEngine {
             all.addAll(kShortest(start.getId(), endStation, kPerPlatform));
         }
 
-        // 去重：departDirectionSequence 相同视为重复路线，保留先出现（即最短）的一条
+        // 一级去重：departDirectionSequence 相同视为重复路线，保留转线次数少的一条
         Map<List<String>, GeoRoutePath> deduped = new HashMap<>();
         for (GeoRoutePath path : all) {
             List<String> departDirectionSequence = path.getDepartDirectionSequence();
-            if (!deduped.containsKey(departDirectionSequence)) {
+            GeoRoutePath old = deduped.get(departDirectionSequence);
+            if (old == null || isBetterRoute(path, old)) {
                 deduped.put(departDirectionSequence, path);
-            } else {
-                // departDirectionSequence 相同 则 优先保留转线次数少的
-                List<String> oldLineIdSeq = deduped.get(departDirectionSequence).getLineIdSequence();
-                if (getLineTransferCnt(oldLineIdSeq) > getLineTransferCnt(path.getLineIdSequence())) {
-                    deduped.put(departDirectionSequence, path);
-                }
             }
         }
 
-        List<GeoRoutePath> ret = new ArrayList<>(deduped.values().stream().toList());
+        // 二级去重：stationSequence（经过的车站序列）相同也视为同一条路线，保留转线次数少者、次数相同保留距离短者。
+        Map<List<String>, GeoRoutePath> byStations = new HashMap<>();
+        for (GeoRoutePath path : deduped.values()) {
+            List<String> stationSequence = path.stationSequence();
+            GeoRoutePath old = byStations.get(stationSequence);
+            if (old == null || isBetterRoute(path, old)) {
+                byStations.put(stationSequence, path);
+            }
+        }
+
+        List<GeoRoutePath> ret = new ArrayList<>(byStations.values());
         ret.sort(Comparator.comparingDouble(GeoRoutePath::getDistance));
-        if (maxResults > 0 && deduped.size() > maxResults) {
+        if (maxResults > 0 && ret.size() > maxResults) {
             return new ArrayList<>(ret.subList(0, maxResults));
         }
         return ret;
+    }
+
+    /**
+     * 去重时的择优规则：转线次数少者优先；转线次数相同则距离短者优先。
+     *
+     * @param candidate 待比较的新路径
+     * @param current   已保留的路径
+     * @return {@code candidate} 应取代 {@code current} 时返回 true
+     */
+    private static boolean isBetterRoute(GeoRoutePath candidate, GeoRoutePath current) {
+        int candTransfers = getLineTransferCnt(candidate.getLineIdSequence());
+        int curTransfers = getLineTransferCnt(current.getLineIdSequence());
+        if (candTransfers != curTransfers) {
+            return candTransfers < curTransfers;
+        }
+        return candidate.getDistance() < current.getDistance();
     }
 
     /**
@@ -271,6 +293,139 @@ public class GeoRouteEngine {
     }
 
     /**
+     * 启发式寻找「一次换乘」的行程方案（两段直达票）：起点站 → 换乘站 → 终点站。
+     * <p>
+     * 用于两站没有便宜直达、但「中途某站下车换乘另一条线路」更近的场景（如 L1 绕远、在中途站 M 换 L2 更短）。
+     * <b>完全复用 {@link #findByStation}</b> 作为单段求解器，不改动图与既有寻路：
+     * <ol>
+     *   <li>候选换乘站集合（启发式）：起终点若干条直达候选路径上的所有经停站
+     *       （{@link GeoRoutePath#stationSequence()}）∪ 终点站所属线路经停的车站；</li>
+     *   <li>对每个候选站 M（排除起点 / 终点自身）：分别求 {@code start→M} 与 {@code M→end} 的最短一条；</li>
+     *   <li>两段都存在，且换乘总距离 {@code < 最短直达 ×(1 - minImprovement)}（无直达时无条件接受）→ 记一个 {@link JourneyPlan}；</li>
+     *   <li>按换乘站去重（只留总距离最短者），按总距离升序，取前 {@code maxResults} 条。</li>
+     * </ol>
+     * {@code minImprovement} 是<b>最低改善门槛</b>：直达 A→C 若本就经过换乘站 B，则 A→B + B→C 的最短距离之和
+     * 几乎总 ≤ 该直达距离（只省一点点也算「更短」），会产生「没必要下车换乘」的噪音。要求换乘至少比直达短
+     * {@code minImprovement} 比例（如 0.2 = 短 20%）才显示，可滤掉这类噪音，同时保留「换乘大幅更近」的有用方案。
+     * <p>
+     * 每段仍是一趟独立直达车（到换乘站停车、下车换乘再上另一段），下游车票 / 导航 / 计价逻辑零改动。
+     *
+     * @param startStation   起点站名
+     * @param endStation     终点站名
+     * @param maxResults     最多返回方案数（{@code <=0} 不限制）
+     * @param minImprovement 最低改善比例 [0,1)：换乘总距离须 {@code < 最短直达 ×(1 - minImprovement)}；
+     *                       {@code <=0} 等价「严格短于直达」。两站无直达时此门槛不生效。
+     * @return 换乘方案列表（按总距离升序、按换乘站去重），无可行方案返回空列表
+     */
+    public static List<JourneyPlan> findTransferJourneys(String startStation, String endStation,
+                                                         int maxResults, double minImprovement) {
+        if (startStation == null || endStation == null || startStation.equals(endStation)) {
+            return new ArrayList<>();
+        }
+        GeoRouteGraph g = graph;
+
+        // 直达最短距离 → 换乘须短于的阈值。无直达则为正无穷，此时任何换乘方案都接受。
+        List<GeoRoutePath> directPaths = findByStation(startStation, endStation);
+        double bestDirect = Double.POSITIVE_INFINITY;
+        for (GeoRoutePath p : directPaths) {
+            bestDirect = Math.min(bestDirect, p.getDistance());
+        }
+        // 有直达时套用最低改善门槛：换乘总距离须严格小于此阈值
+        double threshold = bestDirect;
+        if (!Double.isInfinite(bestDirect) && minImprovement > 0) {
+            threshold = bestDirect * (1.0 - minImprovement);
+        }
+
+        // 用站名级缩合距离矩阵（~78 个站名，非 ~639 个物理节点）枚举<b>全部</b>换乘站，按估计总距离
+        // （下界）预筛：凡「start 一趟直达 mid」且「mid 一趟直达 end」均可达，且估计总距离比阈值更近的
+        // mid 都是候选。缩合距离忽略了 enterFace/折返等约束是乐观下界，只用于选候选并排序，最终每段仍由
+        // findByStation 权威实体化施加全部约束。据估计总距离升序排序，只对最有潜力的前若干个做实体化。
+        Map<String, Map<String, Double>> matrix = g.stationDirectDistances();
+        Map<String, Double> fromStart = matrix.getOrDefault(startStation, Collections.emptyMap());
+        List<Map.Entry<String, Double>> ranked = new ArrayList<>();
+        for (Map.Entry<String, Double> e : fromStart.entrySet()) {
+            String mid = e.getKey();
+            if (mid.equals(startStation) || mid.equals(endStation)) {
+                continue;
+            }
+            Double midToEnd = matrix.getOrDefault(mid, Collections.emptyMap()).get(endStation);
+            if (midToEnd == null) {
+                continue; // mid 到不了终点，直接跳过
+            }
+            double estTotal = e.getValue() + midToEnd;
+            if (estTotal >= threshold) {
+                continue; // 下界都不比阈值近，实体化后只会更远，无需考察
+            }
+            ranked.add(Map.entry(mid, estTotal));
+        }
+        ranked.sort(Map.Entry.comparingByValue());
+
+        // 只对最有潜力的前若干候选做实体化（每个要跑两段 findByStation）；取需要条数的数倍作缓冲，
+        // 兼顾「下界乐观导致个别候选实体化后被阈值淘汰」的情形。maxResults<=0（不限）时实体化全部候选。
+        int materializeCap = maxResults > 0 ? Math.max(maxResults * MATERIALIZE_FACTOR, MATERIALIZE_MIN) : Integer.MAX_VALUE;
+
+        // 逐候选站实体化两段真实路径，按换乘站去重（留真实总距离最短者）
+        Map<String, JourneyPlan> byTransfer = new HashMap<>();
+        int materialized = 0;
+        for (Map.Entry<String, Double> entry : ranked) {
+            if (materialized >= materializeCap) {
+                break;
+            }
+            String mid = entry.getKey();
+            List<GeoRoutePath> leg1List = findByStation(startStation, mid, 1);
+            if (leg1List.isEmpty()) {
+                continue;
+            }
+            List<GeoRoutePath> leg2List = findByStation(mid, endStation, 1);
+            if (leg2List.isEmpty()) {
+                continue;
+            }
+            materialized++;
+            GeoRoutePath leg1 = leg1List.getFirst();
+            GeoRoutePath leg2 = leg2List.getFirst();
+            double total = leg1.getDistance() + leg2.getDistance();
+            // 实体化后的真实总距离仍须比阈值更近（下界乐观，实体化后可能变远被淘汰）
+            if (total >= threshold) {
+                continue;
+            }
+            JourneyPlan plan = new JourneyPlan(List.of(leg1, leg2), List.of(mid));
+            JourneyPlan old = byTransfer.get(mid);
+            if (old == null || plan.getTotalDistance() < old.getTotalDistance()) {
+                byTransfer.put(mid, plan);
+            }
+        }
+
+        List<JourneyPlan> ret = new ArrayList<>(byTransfer.values());
+        ret.sort(Comparator.comparingDouble(JourneyPlan::getTotalDistance));
+        if (maxResults > 0 && ret.size() > maxResults) {
+            return new ArrayList<>(ret.subList(0, maxResults));
+        }
+        return ret;
+    }
+
+    /**
+     * 换乘候选实体化倍数：最终要 {@code maxResults} 条，实体化前 {@code maxResults × 此值} 个下界最优候选，
+     * 给「下界乐观、实体化后被阈值淘汰」留缓冲。
+     */
+    private static final int MATERIALIZE_FACTOR = 3;
+    /**
+     * 换乘候选实体化的最小个数下限（{@code maxResults} 很小时也至少考察这么多候选）。
+     */
+    private static final int MATERIALIZE_MIN = 8;
+
+    /**
+     * 换乘寻路（门槛=严格短于直达，等价 {@code findTransferJourneys(start, end, maxResults, 0)}）。
+     *
+     * @param startStation 起点站名
+     * @param endStation   终点站名
+     * @param maxResults   最多返回方案数（{@code <=0} 不限制）
+     * @return 换乘方案列表
+     */
+    public static List<JourneyPlan> findTransferJourneys(String startStation, String endStation, int maxResults) {
+        return findTransferJourneys(startStation, endStation, maxResults, 0.0);
+    }
+
+    /**
      * 从单一起点节点求最短的 K 条<b>无环</b>路线，终点为任一名为 {@code endStation} 的 station 节点。
      * <p>
      * 规则：一条路线<b>不得重复经过同一节点</b>（simple path）。采用按累计距离排序的优先队列逐条扩展，
@@ -290,9 +445,11 @@ public class GeoRouteEngine {
     private static List<GeoRoutePath> kShortest(String startNodeId, String endStation, int k) {
         GeoRouteGraph g = graph;
         List<GeoRoutePath> results = new ArrayList<>();
-        if (g.getNode(startNodeId) == null || endStation == null || k < 1) {
+        GeoNode startNode = g.getNode(startNodeId);
+        if (startNode == null || endStation == null || k < 1) {
             return results;
         }
+        String startStation = startNode.isStation() ? startNode.getName() : null;
         PriorityQueue<Entry> pq = new PriorityQueue<>(Comparator.comparingDouble(Entry::dist));
         pq.add(new Entry(startNodeId, 0.0, null, null));
 
@@ -318,6 +475,17 @@ public class GeoRouteEngine {
                 // 「从某些到达面到达该道岔」的车合法。若入边到达面不在本段允许集合内，跳过——避免读到
                 // 反向牌的出边、算出物理非法路线（如从右侧来的车走了只给左侧来车准备的直行出边）。
                 if (!enterFaceAllows(cur.prevLink(), link)) {
+                    continue;
+                }
+                String curStationName = curNode != null && !curNode.isStation()
+                        ? getNodeStationName(g, curNode, link.getLineId()) : null;
+                boolean nextIsTerminal = nextNode.isStation() && endStation.equals(nextNode.getName());
+                if (repeatsStation(g, cur, curStationName, startStation, endStation, nextIsTerminal)) {
+                    continue;
+                }
+                String nextStationName = nextNode.isStation() ? nextNode.getName() : null;
+                if (nextStationName != null && !nextStationName.equals(curStationName)
+                        && repeatsStation(g, cur, nextStationName, startStation, endStation, nextIsTerminal)) {
                     continue;
                 }
                 // 无环约束：下一节点若已在当前路径中，跳过——避免重复经过同一节点。
@@ -378,6 +546,46 @@ public class GeoRouteEngine {
             }
         }
         return false;
+    }
+
+    private static boolean repeatsStation(GeoRouteGraph g, Entry cur, @Nullable String stationName,
+                                          @Nullable String startStation, String endStation, boolean nextIsTerminal) {
+        if (stationName == null || !stationInPath(g, cur, stationName)) {
+            return false;
+        }
+        return !nextIsTerminal || !stationName.equals(startStation) || !stationName.equals(endStation);
+    }
+
+    private static boolean stationInPath(GeoRouteGraph g, Entry entry, String stationName) {
+        GeoLink outgoing = null;
+        for (Entry e = entry; e != null; e = e.prev()) {
+            GeoNode node = g.getNode(e.nodeId());
+            String currentStation = node == null ? null
+                    : (node.isStation() ? node.getName()
+                    : (outgoing == null ? null : getNodeStationName(g, node, outgoing.getLineId())));
+            if (stationName.equals(currentStation)) {
+                return true;
+            }
+            outgoing = e.prevLink();
+        }
+        return false;
+    }
+
+    /**
+     * 如果某条线路的某个道岔是进站道岔（两个出边lineId相同，一条是正线，一条是停靠线，停靠线连接station节点，结构如下），返回对应的车站名
+     * 注：规定只有进站道岔可能会有两个出边的lineId相同
+     *     /-->S(车站)-->\
+     *   N1 ---(正线)---> N2
+     *   N1 为进站道岔
+     */
+    private static @Nullable String getNodeStationName(GeoRouteGraph g, GeoNode node, String lineId) {
+        if (node == null || lineId == null) {
+            return null;
+        }
+        if (node.isStation()) {
+            return node.getName();
+        }
+        return g.platformNameOfMainlineSwitch(node, lineId);
     }
 
     /**

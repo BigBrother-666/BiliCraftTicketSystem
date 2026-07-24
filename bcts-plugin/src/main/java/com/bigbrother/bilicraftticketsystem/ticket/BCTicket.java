@@ -12,6 +12,7 @@ import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteNavigator;
 import com.bigbrother.bilicraftticketsystem.menu.PlayerOption;
+import lombok.Getter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -26,6 +27,7 @@ import java.util.*;
 
 import static com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem.plugin;
 import static com.bigbrother.bilicraftticketsystem.config.MainConfig.message;
+import static com.bigbrother.bilicraftticketsystem.config.MainConfig.ticketPriceLore;
 
 
 public class BCTicket extends BCTransitPass {
@@ -43,9 +45,15 @@ public class BCTicket extends BCTransitPass {
     public static final String KEY_TICKET_START_LINE_ID = "startLineId";
     public static final String KEY_TICKET_MAX_SPEED = "ticketMaxSpeed";
     public static final String KEY_TICKET_DISTANCE = "ticketDistance";
+    /**
+     * 起点站台节点 id（{@code n.world.x.y.z}）。本身编码了世界名 + 方块坐标，用于
+     * 「寻找上车站台」引导直接还原站台位置（见 {@code guide.PlatformGuide}），无需额外存坐标。
+     */
+    public static final String KEY_TICKET_START_PLATFORM_NODE = "startPlatformNode";
 
     private final Player owner;
-    private int maxUses;
+    @Getter
+    private Integer maxUses;
 
 
     public BCTicket(PlayerOption option, GeoRoutePath pathInfo, Player owner) {
@@ -77,7 +85,7 @@ public class BCTicket extends BCTransitPass {
 
         CommonTagCompound nbt = commonItemStack.getCustomData();
         this.owner = Bukkit.getPlayer(nbt.getValue(KEY_TICKET_OWNER_UUID, ""));
-        this.payerUuid = nbt.containsKey(KEY_TICKET_OWNER_UUID) ? nbt.getUUID(KEY_TICKET_OWNER_UUID) : null;
+        this.payerUuid = owner != null ? owner.getUniqueId() : null;
         this.maxUses = nbt.getValue(KEY_TICKET_MAX_NUMBER_OF_USES, 1);
         this.maxSpeed = nbt.getValue(KEY_TICKET_MAX_SPEED, 4.0);
 
@@ -91,14 +99,6 @@ public class BCTicket extends BCTransitPass {
             this.pathInfo = null;
             commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TICKET_EXPIRATION_TIME, 0));
         }
-        // 车票拿在手中时不再 refresh，上车时再计算路径
-//        this.pathInfo = GeoRouteEngine.findClosestByDistance(startStation, endStation, distance);
-//        if (pathInfo == null) {
-//            // 找不到路线，标记为过期
-//            commonItemStack.updateCustomData(tag -> tag.putValue(KEY_TICKET_EXPIRATION_TIME, 0));
-//        } else {
-//            refreshTicketMeta(false);
-//        }
     }
 
     @Nullable
@@ -118,7 +118,7 @@ public class BCTicket extends BCTransitPass {
         return new BCTicket(display.getMapItem());
     }
 
-    public void purchase() {
+    public EconomyResponse purchase() {
         EconomyResponse r = purchaseSilently();
         String ticketName = getTicketName();
 
@@ -133,6 +133,7 @@ public class BCTicket extends BCTransitPass {
                     CommonUtils.mmStr2Component(message.get("ticket-buy-failure", "车票购买失败：%s").formatted(r.errorMessage)).decoration(TextDecoration.ITALIC, false)
             ));
         }
+        return r;
     }
 
     /**
@@ -147,24 +148,36 @@ public class BCTicket extends BCTransitPass {
     public EconomyResponse purchaseSilently() {
         EconomyResponse r = plugin.getEcon().withdrawPlayer(owner, this.getPrice());
         if (r.transactionSuccess()) {
-            this.give();
-            // 按段所属铁路系统分摊实付金额，实时累加各系统收入（车票在购买时一次性结算全部次数）
-            RailwaySystemConfig.addIncome(allocateIncome(r.amount, 0.0));
-            // 写入数据库
-            plugin.getTrainDatabaseManager().getRevenueService().recordTicketPurchase(owner.getName(), owner.getUniqueId().toString(), r.amount, CommonItemStack.of(itemStack).getCustomData());
+            deliverAfterPayment(r.amount);
         }
         return r;
+    }
+
+    /**
+     * 扣款成功后的交付动作（不含扣款本身）：交付实体票 + 按段所属系统分摊 {@code paidAmount} 收入 + 写收入流水库。
+     * <p>
+     * 从 {@link #purchaseSilently()} 抽出，供联程票「一次性扣总价后逐段交付」复用：联程票对每段传入该段应分摊的
+     * 金额（各段之和 == 一次性扣除的总价），使各段按其所属铁路系统正确建账。须在主线程调用。
+     *
+     * @param paidAmount 本票实际计入的金额（单票=Vault 实付；联程票=该段分摊额）
+     */
+    public void deliverAfterPayment(double paidAmount) {
+        this.give();
+        // 按段所属铁路系统分摊实付金额，实时累加各系统收入（车票在购买时一次性结算全部次数）
+        RailwaySystemConfig.addIncome(allocateIncome(paidAmount, 0.0));
+        // 写入数据库
+        plugin.getTrainDatabaseManager().getRevenueService().recordTicketPurchase(owner.getName(), owner.getUniqueId().toString(), paidAmount, CommonItemStack.of(itemStack).getCustomData());
     }
 
     public void give() {
         CommonItemStack.of(itemStack).updateCustomData(this::updateNbt);
         List<Component> lore = itemStack.lore();
-        if (lore != null && lore.size() > 2) {
-            lore.removeLast();
-            lore.removeLast();
+        int priceLoreSize = ticketPriceLore.size();
+        if (lore != null && lore.size() >= priceLoreSize) {
+            lore = lore.subList(0, lore.size() - priceLoreSize);
         }
         ItemStack newTicket = itemStack.clone();
-        newTicket.editMeta(itemMeta -> itemMeta.lore(lore));
+        newTicket.lore(lore);
         if (!owner.getInventory().addItem(newTicket).isEmpty()) {
             // 背包满 车票丢到地上
             owner.getWorld().dropItemNaturally(owner.getLocation(), newTicket);
@@ -298,7 +311,20 @@ public class BCTicket extends BCTransitPass {
         if (isTicketExpired()) {
             return;
         }
-        // 更新lore
+        List<Component> lore = buildLore(addPrice);
+        itemStack.editMeta(itemMeta -> {
+            itemMeta.lore(lore);
+            itemMeta.displayName(Component.text(getTicketName(), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false).decoration(TextDecoration.BOLD, true));
+        });
+    }
+
+    /**
+     * 构建车票 lore（不写回物品），供 {@link #refreshTicketMeta(boolean)} 与联程票拼装复用。
+     *
+     * @param addPrice 是否附加价格部分（{@link MainConfig#ticketPriceLore}）
+     * @return lore 行列表
+     */
+    public List<Component> buildLore(boolean addPrice) {
         Map<String, Object> placeholder = new HashMap<>();
         placeholder.put("max_uses", maxUses);
         placeholder.put("owner_name", owner.getName());
@@ -306,12 +332,8 @@ public class BCTicket extends BCTransitPass {
         if (addPrice) {
             placeholder.put("distance_info_lore", getPriceInfoLore());
             lore.addAll(parseConfigLore(MainConfig.ticketPriceLore, placeholder));
-
         }
-        itemStack.editMeta(itemMeta -> {
-            itemMeta.lore(lore);
-            itemMeta.displayName(Component.text(getTicketName(), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false).decoration(TextDecoration.BOLD, true));
-        });
+        return lore;
     }
 
     public String getTicketName() {
@@ -353,6 +375,8 @@ public class BCTicket extends BCTransitPass {
         tag.putValue(KEY_TICKET_DISTANCE, pathInfo.getDistance());
         // 起点所属营运线 id：上车时与列车 lineId 比对（同站可能有多条线路始发，据此区分）
         tag.putValue(KEY_TICKET_START_LINE_ID, pathInfo.getStartLineId() == null ? "" : pathInfo.getStartLineId());
+        // 起点站台节点 id：供「寻找上车站台」引导还原站台坐标
+        tag.putValue(KEY_TICKET_START_PLATFORM_NODE, pathInfo.getStartNode().getId());
         tag.putValue(KEY_TRANSIT_PASS_BACKGROUND_IMAGE_PATH, MainConfig.expressTicketBgimage);
     }
 
@@ -360,6 +384,7 @@ public class BCTicket extends BCTransitPass {
     public double getPrice() {
         double totalPrice = calculateFare(pathInfo.getDistance()) * maxUses;
 
+        // 次数优惠
         for (String s : MainConfig.discount) {
             String[] split = s.split("-");
             if (maxUses >= Integer.parseInt(split[0]) && maxUses <= Integer.parseInt(split[1])) {
@@ -368,6 +393,7 @@ public class BCTicket extends BCTransitPass {
             }
         }
 
+        // 权限组优惠
         Set<String> perms = MainConfig.permDiscount.getKeys();
         for (String perm : perms) {
             List<String> discount = MainConfig.permDiscount.getList(perm, String.class, null);
@@ -403,6 +429,27 @@ public class BCTicket extends BCTransitPass {
                     nbt.getValue(KEY_TICKET_END_STATION, "Unknown")
             );
         }
+    }
+
+    /**
+     * 读取车票 NBT 中记录的起点站台节点 id（购买时写入）。
+     * <p>
+     * 节点 id 形如 {@code n.world.x.y.z}，供「寻找上车站台」引导还原站台坐标。
+     * 旧格式车票无此字段，返回空串。
+     *
+     * @return 起点站台节点 id；缺失返回空串
+     */
+    public String getStartPlatformNodeId() {
+        return CommonItemStack.of(itemStack).getCustomData().getValue(KEY_TICKET_START_PLATFORM_NODE, "");
+    }
+
+    /**
+     * 读取车票 NBT 中记录的起点站名（购买时写入），无需重新寻路。
+     *
+     * @return 起点站名；缺失返回空串
+     */
+    public String getStartStationNameNbt() {
+        return CommonItemStack.of(itemStack).getCustomData().getValue(KEY_TICKET_START_STATION, "");
     }
 
     public static boolean isBctsTicket(ItemStack itemStack) {

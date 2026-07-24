@@ -23,7 +23,7 @@ public class BossbarTitleTest {
     }
 
     private static String title(List<String> stations, boolean ring, int idx) {
-        return plain(CommonRouteBossbar.scrollTitle(stations, ring, idx, P, N, 2, 3));
+        return plain(CommonRouteBossbar.scrollTitle(stations, ring, idx, P, N, 2, 3, false));
     }
 
     @Test
@@ -80,6 +80,105 @@ public class BossbarTitleTest {
         String t = title(s, false, 4);
         assertFalse(t.endsWith("→ ..."), "终到站尾部不应有省略号，实际：" + t);
         assertTrue(t.contains("E"), "应包含终到站");
+    }
+
+    private static int stationCount(String t) {
+        // 去掉两端省略号后按 " → " 分隔统计站名个数
+        String core = t;
+        if (core.startsWith("...")) {
+            core = core.substring(3);
+        }
+        if (core.endsWith(" → ...")) {
+            core = core.substring(0, core.length() - " → ...".length());
+        }
+        core = core.strip();
+        if (core.startsWith("→")) {
+            core = core.substring(1).strip();
+        }
+        return core.isEmpty() ? 0 : core.split(" → ").length;
+    }
+
+    @Test
+    void fixedWindowSizeAcrossWholeLine() {
+        // P=2,N=3 → 固定显示 min(5, size) 个车站，全程不增不减
+        List<String> s = List.of("A", "B", "C", "D", "E", "F", "G", "H");
+        for (int idx = 0; idx < s.size(); idx++) {
+            assertEquals(5, stationCount(title(s, false, idx)),
+                    "idx=" + idx + " 应固定显示 5 个车站，实际：" + title(s, false, idx));
+        }
+    }
+
+    @Test
+    void startWindowDoesNotSlideUntilPassedNumExceeded() {
+        // 前 passedNum(=2) 个站都经过前，窗口锁定在 [A..E]，不滑动
+        List<String> s = List.of("A", "B", "C", "D", "E", "F", "G", "H");
+        assertEquals("A → B → C → D → E → ...", title(s, false, 0));
+        assertEquals("A → B → C → D → E → ...", title(s, false, 1));
+        assertEquals("A → B → C → D → E → ...", title(s, false, 2));
+        // idx=3 起开始滑动
+        assertTrue(title(s, false, 3).startsWith("..."), "idx=3 应开始滑动，出现前导省略号");
+    }
+
+    @Test
+    void endWindowStopsSlidingAndAccumulatesPassed() {
+        // 滑到尾部后窗口锁定 [D..H]，站数不减，已过站越来越多
+        List<String> s = List.of("A", "B", "C", "D", "E", "F", "G", "H");
+        assertEquals(5, stationCount(title(s, false, 6)));
+        assertEquals(5, stationCount(title(s, false, 7)));
+        assertTrue(title(s, false, 7).endsWith("H"), "终到站尾部不应有省略号");
+        assertFalse(title(s, false, 7).endsWith("..."));
+    }
+
+    /**
+     * 收集 component 树中所有含文本的叶子节点（含拼接顺序），便于逐段核对颜色。
+     */
+    private static void flatten(Component c, List<Component> out) {
+        if (c instanceof net.kyori.adventure.text.TextComponent tc && !tc.content().isEmpty()) {
+            out.add(c);
+        }
+        for (Component child : c.children()) {
+            flatten(child, out);
+        }
+    }
+
+    @Test
+    void arrivedArrowToCurrentStationUsesPassedColor() {
+        // 到站(arrived=true)：通向当前站的箭头用已过色 P，当前站名仍为未过色 N
+        List<String> s = List.of("A", "B", "C", "D", "E", "F", "G", "H");
+        Component c = CommonRouteBossbar.scrollTitle(s, false, 4, P, N, 2, 3, true);
+        List<Component> parts = new java.util.ArrayList<>();
+        flatten(c, parts);
+        // 找到当前站名 "E" 的段，其紧前一段应是 " → " 且为已过色
+        int eIdx = -1;
+        for (int i = 0; i < parts.size(); i++) {
+            if (parts.get(i) instanceof net.kyori.adventure.text.TextComponent tc && tc.content().equals("E")) {
+                eIdx = i;
+                break;
+            }
+        }
+        assertTrue(eIdx > 0, "应找到当前站 E 且其前有箭头段");
+        Component arrow = parts.get(eIdx - 1);
+        assertEquals(" → ", ((net.kyori.adventure.text.TextComponent) arrow).content());
+        assertEquals(P, arrow.color(), "到站时通向当前站的箭头应为已过色");
+        assertEquals(N, parts.get(eIdx).color(), "当前站名仍应为未过色");
+    }
+
+    @Test
+    void notArrivedArrowToCurrentStationUsesNotPassedColor() {
+        // 未到站(arrived=false)：通向当前站的箭头仍为未过色 N
+        List<String> s = List.of("A", "B", "C", "D", "E", "F", "G", "H");
+        Component c = CommonRouteBossbar.scrollTitle(s, false, 4, P, N, 2, 3, false);
+        List<Component> parts = new java.util.ArrayList<>();
+        flatten(c, parts);
+        int eIdx = -1;
+        for (int i = 0; i < parts.size(); i++) {
+            if (parts.get(i) instanceof net.kyori.adventure.text.TextComponent tc && tc.content().equals("E")) {
+                eIdx = i;
+                break;
+            }
+        }
+        assertTrue(eIdx > 0);
+        assertEquals(N, parts.get(eIdx - 1).color(), "未到站时通向当前站的箭头应为未过色");
     }
 
     @Test

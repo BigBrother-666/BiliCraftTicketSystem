@@ -114,7 +114,7 @@ public class WebLinkCommand {
             sender.sendMessage(Component.text("网页对接未启用", NamedTextColor.RED));
             return;
         }
-        web.getClient().connect();
-        sender.sendMessage(Component.text("已发起重连", NamedTextColor.GREEN));
+        web.getClient().reconnect();
+        sender.sendMessage(Component.text("已发起强制重连", NamedTextColor.GREEN));
     }
 }

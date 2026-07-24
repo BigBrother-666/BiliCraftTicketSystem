@@ -6,6 +6,8 @@ import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.properties.TrainProperties;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.config.MapConfig;
+import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
+import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoNode;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRoutePath;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcLineIdProperty;
@@ -95,6 +97,8 @@ public class TrainTelemetryTask extends BukkitRunnable {
         headNode.put("yaw", loc.getYaw());
         TrainProperties properties = group.getProperties();
         dto.put("speedKph", CommonUtils.mpt2Kph(properties.hasHolder() ? properties.getHolder().head().getRealSpeedLimited() : 0.0));
+        dto.put("secondsLived", group.getTicksLived() / 20.0);
+        dto.put("trainName", group.getProperties().getTrainName());
         dto.put("cartCount", group.size());
         dto.set("passengers", passengers);
 
@@ -104,6 +108,10 @@ public class TrainTelemetryTask extends BukkitRunnable {
         String lineId = BCTransitPass.getTrainLineId(group);
         if (lineId != null && !lineId.isEmpty()) {
             dto.put("lineId", lineId);
+            LineInfo lineInfo = LineConfig.get(lineId);
+            if (lineInfo != null) {
+                dto.put("lineName", lineInfo.getLineName());
+            }
         }
 
         if (express) {

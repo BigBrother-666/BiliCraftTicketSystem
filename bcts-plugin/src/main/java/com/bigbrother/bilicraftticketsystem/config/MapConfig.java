@@ -84,20 +84,45 @@ public class MapConfig {
     @Getter
     private static int traversalMaxTotalNodes;
     /**
-     * 分片遍历：每个 tick（主线程）最多展开的段数。值越小对其它玩家影响越小、但遍历越慢。
+     * 分片遍历：每隔多少 tick 在主线程展开一批边。
      */
     @Getter
-    private static int traversalSegmentsPerTick;
+    private static int traversalIntervalTicks;
+    /**
+     * 分片遍历：每批最多展开的边数。
+     */
+    @Getter
+    private static int traversalEdgesPerInterval;
     /**
      * 每隔多少秒向发起者反馈一次遍历进度，{@code <=0} 表示不反馈。
      */
     @Getter
     private static int traversalProgressIntervalSeconds;
     /**
-     * 一次遍历完成后的全局冷却（秒）。
+     * 一次 {@code walkAll}（全图遍历）完成后的冷却（秒）。与 {@code walk} 冷却独立计时。
      */
     @Getter
     private static int traversalCooldownSeconds;
+    /**
+     * 一次 {@code walk}（单线增量遍历）完成后的冷却（秒）。与 {@code walkAll} 冷却独立计时。
+     */
+    @Getter
+    private static int walkCooldownSeconds;
+    /**
+     * TCC 云轨（TCCoasters 虚拟曲线轨）几何采样步长，单位方块。
+     * <p>
+     * <b>仅作用于 TCCoasters 的曲线轨</b>：遍历经过这类轨道时，按此步长用列车真实浮点位置密采，
+     * 使弧线在 geojson 里画成弧而非直线。<b>普通铁轨（原版轨 / 其它 RailType）的遍历逻辑与采样一概不变</b>
+     * （仍逐轨道方块取整数坐标），本配置对其零影响。
+     * <p>
+     * {@code <=0} 时完全关闭云轨密采、退回旧行为（云轨也逐段取整点，弧线会呈直线）。值越小弧线越平滑、
+     * 但 LineString 顶点越多；0.5 是兼顾观感与体积的推荐值。仅影响几何精度，不改变遍历拓扑 / 车站 / 寻路。
+     * <p>
+     * 实际步长被夹在 {@code 1.0} 格以内（大于 1 的配置按 1 处理）：保证密采一步不跨过整格铁轨、
+     * 不漏掉其上的节点牌 / addtag，使采样率参数对遍历行为始终安全。
+     */
+    @Getter
+    private static double traversalCoasterSampleStep;
     /**
      * 网页端logo边长（像素）
      */
@@ -134,9 +159,12 @@ public class MapConfig {
         ConfigurationNode traversal = MapConfig.webConfig.getNode("traversal");
         MapConfig.traversalMaxEdgesPerWalk = traversal.get("max-edges-per-walk", 5000);
         MapConfig.traversalMaxTotalNodes = traversal.get("max-total-nodes", 100000);
-        MapConfig.traversalSegmentsPerTick = traversal.get("segments-per-tick", 20);
+        MapConfig.traversalIntervalTicks = Math.max(1, traversal.get("interval-ticks", 1));
+        MapConfig.traversalEdgesPerInterval = Math.max(1, traversal.get("edges-per-interval", 20));
         MapConfig.traversalProgressIntervalSeconds = traversal.get("progress-interval-seconds", 5);
         MapConfig.traversalCooldownSeconds = traversal.get("cooldown-seconds", 3600);
+        MapConfig.walkCooldownSeconds = traversal.get("walk-cooldown-seconds", 300);
+        MapConfig.traversalCoasterSampleStep = traversal.get("coaster-sample-step", 0.5);
 
         ConfigurationNode logo = MapConfig.webConfig.getNode("logo");
         MapConfig.webLogoDim = logo.get("web-logo-dim", 128);

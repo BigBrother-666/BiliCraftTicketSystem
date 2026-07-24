@@ -208,6 +208,34 @@ public class GeoDatabaseManager {
         return result;
     }
 
+    /**
+     * 获取某条线路已登记的遍历起点。
+     *
+     * @param lineId 线路 id
+     * @return 起点；未登记返回 null
+     */
+    public GeoNodeLoc getGeoNodeLoc(String lineId) {
+        String sql = """
+                SELECT line_id, start_loc, start_direction
+                FROM %s WHERE line_id = ?
+                """.formatted(geoNodeLocTableName);
+
+        try (Connection conn = ds.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, lineId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return new GeoNodeLoc(
+                        rs.getString("line_id"),
+                        deserializeLocation(rs.getString("start_loc")),
+                        deserializeVector(rs.getString("start_direction"))
+                );
+            }
+        } catch (SQLException e) {
+            plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.RED));
+        }
+        return null;
+    }
+
     // =================== 序列化 反序列化方法 ===================
     public String serializeLocation(Location loc) {
         return loc.getWorld().getName() + ":" +

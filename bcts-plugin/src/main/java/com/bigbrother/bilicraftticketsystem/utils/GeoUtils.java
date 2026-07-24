@@ -16,7 +16,13 @@ public class GeoUtils {
      * 游戏内的斜线是用阶梯状的方块逼近的（走一格 x 再走一格 z），相邻方块离理想斜线最多约半格。
      * 该容差大于半格即可把整段阶梯压成一条直斜线；同时小于 1，保证 1 格以上的真实折返 / 拐弯被保留。
      */
-    private static final double HORIZONTAL_TOLERANCE = 0.75;
+    public static final double HORIZONTAL_TOLERANCE = 0.75;
+    /**
+     * TCC 云轨区间的水平简化容差（方块）。远小于 {@link #HORIZONTAL_TOLERANCE}：云轨用真实浮点位置密采、
+     * 没有整数阶梯噪声，须用小容差保留弧线曲率——否则 RDP 会把偏离弦线不足半格的缓弧中间点抹平、弧又变直线。
+     * 仍足以删除真正共线的直轨点与浮点噪声。
+     */
+    public static final double COASTER_HORIZONTAL_TOLERANCE = 0.2;
     /**
      * 高度方向（mc 的 y）简化容差，单位为 mc 方块。
      * <p>
@@ -75,6 +81,23 @@ public class GeoUtils {
      * 一定会被保留。
      */
     public static List<LngLatAlt> simplifyLineString(List<LngLatAlt> coords) {
+        return simplifyLineString(coords, HORIZONTAL_TOLERANCE);
+    }
+
+    /**
+     * 同 {@link #simplifyLineString(List)}，但可指定水平简化容差，用于不同采样精度的区间。
+     * <p>
+     * 普通铁轨用默认 {@link #HORIZONTAL_TOLERANCE}（0.75，&gt; 半格）把整数坐标的阶梯斜线压回直斜线；
+     * TCC 云轨用<b>更小</b>的容差（真实浮点采样、无阶梯噪声），以保留弧线的曲率——否则 RDP 会把弧线
+     * 上偏离弦线不足 0.75 格的中间点全部抹掉、弧又变回直线，使密采失去意义。
+     * <p>
+     * 无论容差大小，真正共线的直斜轨点都会被删除（直轨仍是干净直线），只有弧线这类真实弯折才被保留。
+     *
+     * @param coords              原始坐标
+     * @param horizontalTolerance 水平简化容差（方块），越小保留的曲率细节越多
+     * @return 简化后的坐标
+     */
+    public static List<LngLatAlt> simplifyLineString(List<LngLatAlt> coords, double horizontalTolerance) {
         if (coords.size() <= 2) return coords;
 
         // 先去掉连续重复点，避免零长线段干扰距离计算
@@ -107,7 +130,7 @@ public class GeoUtils {
             int splitIdx = -1;
             double maxRatio = 0;
             for (int i = start + 1; i < end; i++) {
-                double ratio = normalizedDeviation(dedup.get(i), a, b);
+                double ratio = normalizedDeviation(dedup.get(i), a, b, horizontalTolerance);
                 if (ratio > maxRatio) {
                     maxRatio = ratio;
                     splitIdx = i;
@@ -146,7 +169,7 @@ public class GeoUtils {
      * 再分别除以 {@link #HORIZONTAL_TOLERANCE} 与 {@link #ALTITUDE_TOLERANCE} 归一化，取较大者。
      * 返回值 &gt; 1 表示在某一方向上超出了容差、该点不可丢弃。
      */
-    private static double normalizedDeviation(LngLatAlt p, LngLatAlt a, LngLatAlt b) {
+    private static double normalizedDeviation(LngLatAlt p, LngLatAlt a, LngLatAlt b, double horizontalTolerance) {
         double ax = a.getLongitude(), ay = a.getLatitude(), az = a.getAltitude();
         double bx = b.getLongitude(), by = b.getLatitude(), bz = b.getAltitude();
         double px = p.getLongitude(), py = p.getLatitude(), pz = p.getAltitude();
@@ -166,7 +189,7 @@ public class GeoUtils {
         double horiz = Math.hypot(px - cx, py - cy);
         double alt = Math.abs(pz - cz);
 
-        return Math.max(horiz / HORIZONTAL_TOLERANCE, alt / ALTITUDE_TOLERANCE);
+        return Math.max(horiz / horizontalTolerance, alt / ALTITUDE_TOLERANCE);
     }
 
     public static boolean isRail(Material type) {
