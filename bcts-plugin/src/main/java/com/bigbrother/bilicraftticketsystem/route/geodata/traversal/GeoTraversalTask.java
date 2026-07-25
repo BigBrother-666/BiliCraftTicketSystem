@@ -24,6 +24,7 @@ import java.io.File;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 /**
  * 铁路遍历任务：从所有已登记起点做全图 BFS，按线路分文件产出 geojson。
@@ -600,7 +601,9 @@ public class GeoTraversalTask {
             if (RailwaySystemConfig.CONTACT_ID.equals(fileKey)) {
                 continue;
             }
-            if (LineConfig.contains(fileKey)) {
+            Set<String> lineIds = plugin.getGeoDatabaseManager().getAllGeoNodeLoc()
+                    .stream().map(GeoNodeLoc::getLineId).collect(Collectors.toSet());
+            if (lineIds.contains(fileKey)) {
                 continue;
             }
             if (f.delete()) {
