@@ -31,10 +31,19 @@ public class GeoUtils {
     private static final double ALTITUDE_TOLERANCE = 0.1;
 
     /**
-     * 解析 bcswitcher 控制牌的一行出向声明 {@code <方向>@<线路id>;[线路id]...}，返回道岔分支。
+     * bcswitcher 牌头进入方向允许的<b>方向字符</b>（普通铁轨）：相对方向 f/b/l/r 与绝对方向 e/s/w/n。
+     */
+    private static final String ENTER_DIRECTION_CHARS = "fblreswn";
+
+    /**
+     * 解析 bcswitcher 控制牌的一行出向声明 {@code <出向>@<线路id>;[线路id]...}，返回道岔分支。
      * <p>
      * {@code @} 后可用分号分隔多个线路 id，表示该出向轨道被多条线路共用
      * （如 {@code r@pr-cw;pr-s1}）。
+     * <p>
+     * 出向可以是方向（{@code e/s/w/n} 或 {@code f/b/l/r}）或<b>道岔节点名</b>（TCCoasters 云轨用数字
+     * 标记各出向，如 {@code 1@pr-cw}），此处只按字符串原样保留，运行时才结合铁轨的节点表解析
+     * （见 {@code SignActionBcswitcher.findJunction}）。
      *
      * @param line bcswitcher 控制牌的一行（第三或第四行）
      * @return 解析出的道岔分支；该行为空、缺少 '@' 或无有效线路 id 时返回 null
@@ -64,6 +73,80 @@ public class GeoUtils {
             return null;
         }
         return new BcSwitcherBranch(directionStr, lineIds);
+    }
+
+    /**
+     * 校验 bcswitcher 牌头是否指定了合法的进入方向。
+     * <p>
+     * 牌头形如 {@code [+train:lf]}，冒号后为进入方向。要求：非空、不含 {@code *}（任意方向），
+     * 且为下列两种写法之一：
+     * <ul>
+     *   <li><b>方向字符序列</b>（普通铁轨）：每个字符都是 {@link #ENTER_DIRECTION_CHARS} 之一，
+     *       如 {@code lf} 表示「从左侧或正面驶入」；</li>
+     *   <li><b>TCC 道岔节点名</b>（TCCoasters 云轨）：云轨用<b>数字</b>标记各出向，进入方向即从哪个
+     *       节点驶入，如 {@code [+train:1]}。多个节点名<b>用逗号分隔</b>，如 {@code [+train:1,3]}。
+     *       traincarts 解析牌头进入方向时按<b>子串</b>匹配节点名，故连写（如 {@code 12}）在同时存在
+     *       {@code 1}/{@code 2}/{@code 12} 号节点时结果取决于节点表顺序，是有歧义的；写成
+     *       {@code 1,2} 则匹配不到 {@code 12}，只会命中 1 与 2 两个节点，唯一确定。</li>
+     * </ul>
+     * 两种写法不混用：整串要么全是方向字符，要么是逗号分隔的节点名。
+     *
+     * @param headerLine 牌头原始文本（控制牌第一行）
+     * @return true 表示进入方向合法
+     */
+    public static boolean hasValidBcSwitcherEnterDirection(String headerLine) {
+        if (headerLine == null) {
+            return false;
+        }
+        int colon = headerLine.indexOf(':');
+        if (colon < 0 || colon == headerLine.length() - 1) {
+            return false;
+        }
+        // 取冒号后到结尾，去掉可能的右括号与空白
+        String dirs = headerLine.substring(colon + 1).replace("]", "").trim().toLowerCase();
+        if (dirs.isEmpty() || dirs.contains("*")) {
+            return false;
+        }
+        return isDirectionCharSequence(dirs) || isJunctionNameList(dirs);
+    }
+
+    /**
+     * 是否为普通铁轨的方向字符序列（每个字符都是 {@link #ENTER_DIRECTION_CHARS} 之一）。
+     *
+     * @param dirs 牌头冒号后的内容（已小写去空白）
+     * @return true 表示是合法的方向字符序列
+     */
+    private static boolean isDirectionCharSequence(String dirs) {
+        for (int i = 0; i < dirs.length(); i++) {
+            if (ENTER_DIRECTION_CHARS.indexOf(dirs.charAt(i)) < 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 是否为 TCC 道岔节点名列表：逗号分隔的若干个纯数字节点名（如 {@code 1}、{@code 1,3}）。
+     * <p>
+     * 建牌时铁轨可能还未加载 / 节点尚未连好，无法核对节点是否真实存在，故只校验写法；运行时由
+     * traincarts 按实际节点表匹配（不存在的节点名不会触发本牌）。
+     *
+     * @param dirs 牌头冒号后的内容（已小写去空白）
+     * @return true 表示是合法的节点名列表
+     */
+    private static boolean isJunctionNameList(String dirs) {
+        for (String part : dirs.split(",", -1)) {
+            String name = part.trim();
+            if (name.isEmpty()) {
+                return false;
+            }
+            for (int i = 0; i < name.length(); i++) {
+                if (!Character.isDigit(name.charAt(i))) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     /**

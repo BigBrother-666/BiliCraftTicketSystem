@@ -1,7 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.signactions;
 
-import com.bergerkiller.bukkit.tc.Direction;
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
+import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathPredictEvent;
@@ -39,9 +39,11 @@ import java.util.List;
  *       遍历铁轨时作为有向图的道岔节点：到达方向匹配牌头进入方向，按出向逐条展开。</li>
  *   <li>运行时根据列车<b>当前应走的 lineId</b> 控制道岔走向。</li>
  * </ul>
- * 方向沿用 traincarts switcher 的写法（e/s/w/n 或 f/b/l/r），通过
- * {@link com.bergerkiller.bukkit.tc.Direction} 解析。进入方向写在牌头（如 {@code [+train:lf]}），
- * 由 traincarts 原生解析并在运行时只对匹配进入方向的列车触发本牌。
+ * 方向沿用 traincarts switcher 的写法：绝对方向 e/s/w/n、相对牌子的 f/b/l/r，或<b>道岔节点名</b>
+ * （TCCoasters 云轨节点用数字标记各出向，如 {@code 1@pr-cw}）。出向统一交给 {@link #findJunction}
+ * 解析（先按节点名匹配、再退回方向解析），与 traincarts 原生 switcher 牌一致。进入方向写在牌头
+ * （如 {@code [+train:lf]}、云轨可写 {@code [+train:1]}），由 traincarts 原生解析并在运行时只对匹配
+ * 进入方向的列车触发本牌。
  * <p>
  * 运行时选向：列车携带有序的导航序列（{@link com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteNavigator}），
  * 本道岔按列车<b>当前道岔步骤的物理出向</b>直接 {@code setRailsTo}，列车每经过一个 bcswitcher 推进一格——
@@ -133,13 +135,13 @@ public class SignActionBcswitcher extends SignAction {
         String sidingDir = navDir != null ? null : structuralSidingDir(info);
         BcSwitcherBranch branch = null;
         if (navDir != null) {
-            info.setRailsTo(info.findJunction(Direction.parse(navDir)));
+            setRailsTo(info, navDir);
         } else if (sidingDir != null) {
-            info.setRailsTo(info.findJunction(Direction.parse(sidingDir)));
+            setRailsTo(info, sidingDir);
         } else {
             branch = selectBranch(branches, group);
             if (branch != null) {
-                info.setRailsTo(info.findJunction(branch.getDirection()));
+                setRailsTo(info, branch.getDirectionStr());
             }
         }
         // 没有匹配的线路，保持默认（不切换）
@@ -194,7 +196,7 @@ public class SignActionBcswitcher extends SignAction {
         // 使遍历器能在一个道岔逐个出向 fork（同一条线在此可能有多个出边，lineId 选向只会返回一个）。
         String forcedDir = readForcedDirection(group);
         if (forcedDir != null) {
-            prediction.setSwitchedJunction(info.findJunction(Direction.parse(forcedDir)));
+            setSwitchedJunction(info, prediction, forcedDir);
             return;
         }
         // 带导航：按当前道岔步骤的物理出向直接选向（与 execute 一致，消除共用 lineId 歧义）。
@@ -213,19 +215,72 @@ public class SignActionBcswitcher extends SignAction {
             navDir = aligned ? BcRouteNavigator.currentSwitchDirection(group) : null;
         }
         if (navDir != null) {
-            prediction.setSwitchedJunction(info.findJunction(Direction.parse(navDir)));
+            setSwitchedJunction(info, prediction, navDir);
             return;
         }
         // 无导航车在进站道岔：按结构判定的到发线出向选向（普通车 / 手动车一律走到发线进站停靠）。
         String sidingDir = structuralSidingDir(info);
         if (sidingDir != null) {
-            prediction.setSwitchedJunction(info.findJunction(Direction.parse(sidingDir)));
+            setSwitchedJunction(info, prediction, sidingDir);
             return;
         }
         // 回退：无导航 / 出向缺失 / 非进站道岔，按 lineId / tag 选 branch。
         BcSwitcherBranch branch = selectBranch(parseBranches(info), group);
         if (branch != null) {
-            prediction.setSwitchedJunction(info.findJunction(branch.getDirection()));
+            setSwitchedJunction(info, prediction, branch.getDirectionStr());
+        }
+    }
+
+    /**
+     * 解析一个出向字符串为本道岔铁轨上的具体道岔分叉（junction）。
+     * <p>
+     * 委托 traincarts 的 {@code SignActionEvent.findJunction(String)}，其解析顺序与原生 switcher 牌一致：
+     * <ol>
+     *   <li>先按<b>道岔节点名</b>精确匹配（普通铁轨的节点名就是 {@code n/e/s/w}；<b>TCCoasters 云轨的
+     *       节点名是数字</b>，如 {@code 1}、{@code 2}）；</li>
+     *   <li>再识别 {@code c/continue}（沿进入方向续行）与 {@code i/rev/reverse/inverse}（反向）；</li>
+     *   <li>最后退回 {@link com.bergerkiller.bukkit.tc.Direction} 解析，支持相对方向 {@code f/b/l/r}
+     *       与绝对方向别名。</li>
+     * </ol>
+     * 因此本方法同时支持普通铁轨的方向写法与 TCC 云轨的数字节点写法。绝不可改回
+     * {@code findJunction(Direction.parse(dir))}：那样会跳过节点名匹配，数字出向被解析成
+     * {@code Direction.NONE}，云轨道岔无法切换。
+     *
+     * @param info 控制牌事件
+     * @param dir  出向字符串（方向或道岔节点名）
+     * @return 对应的道岔分叉；出向为空或该铁轨上无此分叉时返回 null
+     */
+    private RailJunction findJunction(SignActionEvent info, String dir) {
+        if (dir == null || dir.isEmpty()) {
+            return null;
+        }
+        return info.findJunction(dir);
+    }
+
+    /**
+     * 按出向切换本道岔铁轨走向（运行时真实经过）。出向无法解析成分叉时保持默认，不切换。
+     *
+     * @param info 控制牌事件
+     * @param dir  出向字符串（方向或 TCC 节点名）
+     */
+    private void setRailsTo(SignActionEvent info, String dir) {
+        RailJunction junction = findJunction(info, dir);
+        if (junction != null) {
+            info.setRailsTo(junction);
+        }
+    }
+
+    /**
+     * 按出向设置<b>预测寻路</b>的道岔走向。出向无法解析成分叉时不干预预测（由 TC 走默认分叉）。
+     *
+     * @param info       控制牌事件
+     * @param prediction 路径预测事件
+     * @param dir        出向字符串（方向或 TCC 节点名）
+     */
+    private void setSwitchedJunction(SignActionEvent info, PathPredictEvent prediction, String dir) {
+        RailJunction junction = findJunction(info, dir);
+        if (junction != null) {
+            prediction.setSwitchedJunction(junction);
         }
     }
 
@@ -349,11 +404,11 @@ public class SignActionBcswitcher extends SignAction {
         if (!event.getPlayer().hasPermission("bcts.buildsign.bcswitcher")) {
             return false;
         }
-        // 牌头进入方向必填：不能为空、不能为 *（任意方向），只能是 f/b/l/r/e/s/w/n 的一个或多个
-        if (!hasValidEnterDirection(event.getLine(0))) {
+        // 牌头进入方向必填：不能为空、不能为 *（任意方向），只能是 f/b/l/r/e/s/w/n 或 TCC 数字节点名
+        if (!GeoUtils.hasValidBcSwitcherEnterDirection(event.getLine(0))) {
             event.getPlayer().sendMessage(Component.text(
                     "bcswitcher 控制牌格式错误，牌头必须指定进入方向（如 [+train:lf]），不能为空或 *，"
-                            + "只能用 f/b/l/r/e/s/w/n", NamedTextColor.RED));
+                            + "只能用 f/b/l/r/e/s/w/n 或 TCC 道岔节点名（数字，如 [+train:1]）", NamedTextColor.RED));
             return false;
         }
         List<BcSwitcherBranch> branches = new ArrayList<>();
@@ -370,36 +425,6 @@ public class SignActionBcswitcher extends SignAction {
         }
         event.getPlayer().sendMessage(Component.text(
                 "建立 bcswitcher 道岔控制牌成功，声明了 %d 个出向".formatted(branches.size()), NamedTextColor.GREEN));
-        return true;
-    }
-
-    /**
-     * 校验牌头是否指定了合法的进入方向。
-     * <p>
-     * 牌头形如 {@code [+train:lf]}，冒号后为进入方向字符。要求：非空、不含 {@code *}（任意方向），
-     * 且每个字符都是 f/b/l/r/e/s/w/n 之一。
-     *
-     * @param headerLine 牌头原始文本（第一行）
-     * @return true 表示进入方向合法
-     */
-    private boolean hasValidEnterDirection(String headerLine) {
-        if (headerLine == null) {
-            return false;
-        }
-        int colon = headerLine.indexOf(':');
-        if (colon < 0 || colon == headerLine.length() - 1) {
-            return false;
-        }
-        // 取冒号后到结尾，去掉可能的右括号与空白
-        String dirs = headerLine.substring(colon + 1).replace("]", "").trim().toLowerCase();
-        if (dirs.isEmpty() || dirs.contains("*")) {
-            return false;
-        }
-        for (int i = 0; i < dirs.length(); i++) {
-            if ("fblreswn".indexOf(dirs.charAt(i)) < 0) {
-                return false;
-            }
-        }
         return true;
     }
 
