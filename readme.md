@@ -83,6 +83,8 @@
 | 建立 platform 控制牌                              | bcts.buildsign.platform   |                                                    |
 | 建立 bcswitcher 控制牌                            | bcts.buildsign.bcswitcher |                                                    |
 | 建立 slowdown 控制牌                              | bcts.buildsign.slowdown   |                                                    |
+| 建立 isexpress 控制牌                             | bcts.buildsign.isexpress  |                                                    |
+| 建立 switchline 控制牌                            | bcts.buildsign.switchline |                                                    |
 | 建立 showroute 控制牌                             | bcts.buildsign.showroute  |                                                    |
 
 ## 5. 自定义菜单界面（menu_*.yml）
@@ -243,6 +245,21 @@ platform 处达到该速度。**只改速度不改最大速度**。
 - **直达车**跨站直达，需额外判断终点：取列车**终点站台节点坐标**与预测到的 platform 铁轨坐标比对（用坐标而非站名——同站各站台 platform 站名相同，站名不可靠），相同才减速，防止在中途经过的 platform 处被误减速；取不到终点信息（如重启后内存丢失）则不减速。
 
 **缓存机制**：每次预测开销较大，结果按车种缓存到数据库 `slowdown_cache` 表，启动与重载时载入内存。字段：slowdown 铁轨坐标 `world,x,y,z`、车种 `train_type`（express/common）、到达车站名 `station`、到达的 platform 铁轨坐标 `platform_x/y/z`、减速距离 `distance`。
+
+### 8.7 isexpress
+
+列车种类判别控制牌：列车经过时，若是**直达车**（持票/刷卡的快速车）则**拉下与本牌相连的拉杆**，否则复位。控制牌格式如下：
+
+- 第一行：\[+train\]
+- 第二行：isexpress
+
+### 8.8 switchline
+
+转线控制牌：**收到红石信号**时，把当前位于本牌所在铁轨上的列车的**所属线路（lineId）**改写为牌面指定的下一条线路。控制牌格式如下：
+
+- 第一行：\[train\]
+- 第二行：switchline
+- 第三行：<下一站线路id>:<下一站车站名>
 
 ## 9. 地理信息(GEO) / 实时数据模块
 

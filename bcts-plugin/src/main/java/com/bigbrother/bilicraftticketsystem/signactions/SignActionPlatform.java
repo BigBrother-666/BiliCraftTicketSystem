@@ -255,21 +255,7 @@ public class SignActionPlatform extends SignAction {
      * @param bbEnabled    本站是否启用 BOSSBAR 功能位
      */
     private void rebuildBossbarForTransfer(MinecartGroup group, String entryStation, boolean bbEnabled) {
-        LineInfo line = resolveLine(group);
-        for (MinecartMember<?> member : group) {
-            // 移除旧线 bossbar（换乘到别的线路必重建）
-            RouteBossbarBase old = BossbarManager.get(member);
-            if (old != null) {
-                BossbarManager.remove(member);
-            }
-            if (bbEnabled && line != null) {
-                CommonRouteBossbar common = new CommonRouteBossbar(line);
-                if (common.getBossBar() != null) {
-                    BossbarManager.put(member, common);
-                    common.approach(entryStation);
-                }
-            }
-        }
+        LineTransfer.rebuildBossbar(group, entryStation, bbEnabled);
     }
 
     /**

@@ -72,6 +72,8 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
     private final SignActionPlatform signActionPlatform = new SignActionPlatform();
     private final SignActionBcswitcher signActionBcswitcher = new SignActionBcswitcher();
     private final SignActionSlowdown signActionSlowdown = new SignActionSlowdown();
+    private final SignActionIsExpress signActionIsExpress = new SignActionIsExpress();
+    private final SignActionSwitchLine signActionSwitchLine = new SignActionSwitchLine();
 
     // Command
     private final AdminCommand adminCommand = new AdminCommand(this);
@@ -257,6 +259,8 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         SignAction.register(signActionPlatform, true);
         SignAction.register(signActionBcswitcher, true);
         SignAction.register(signActionSlowdown, true);
+        SignAction.register(signActionIsExpress, true);
+        SignAction.register(signActionSwitchLine, true);
 
         // 将要移除
         SignAction.register(customSignActionStation, true);
