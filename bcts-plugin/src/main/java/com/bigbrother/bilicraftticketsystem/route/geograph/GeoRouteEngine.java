@@ -60,11 +60,25 @@ public class GeoRouteEngine {
      * @return 路径列表（按距离升序、已去重），无解返回空列表
      */
     public static List<GeoRoutePath> findByStation(String startStation, String endStation, int maxResults) {
+        return findByStation(startStation, endStation, maxResults, 0L);
+    }
+
+    /**
+     * 同 {@link #findByStation(String, String, int)}，附加计算耗时上限。
+     *
+     * @param deadlineNanos {@code System.nanoTime()} 的截止时间；{@code <=0} 表示不限时。超时则停止枚举
+     *                      剩余站台 / 剩余候选，返回目前已找到的部分结果（非错误）
+     */
+    public static List<GeoRoutePath> findByStation(String startStation, String endStation, int maxResults,
+                                                    long deadlineNanos) {
         // 每个起点站台各求 K 条最短路；K 取请求条数，未限制时退到安全上限
         int kPerPlatform = maxResults > 0 ? maxResults : KSP_SAFETY_CAP;
         List<GeoRoutePath> all = new ArrayList<>();
         for (GeoNode start : graph.stationNodes(startStation)) {
-            all.addAll(kShortest(start.getId(), endStation, kPerPlatform));
+            all.addAll(kShortest(start.getId(), endStation, kPerPlatform, deadlineNanos));
+            if (deadlineNanos > 0 && System.nanoTime() > deadlineNanos) {
+                break; // 超时：不再枚举剩余站台，已累积的部分结果仍走下面的去重/排序/截断逻辑返回
+            }
         }
 
         // 一级去重：departDirectionSequence 相同视为重复路线，保留转线次数少的一条
@@ -150,7 +164,7 @@ public class GeoRouteEngine {
      * @return 最短路径，无解返回 null
      */
     public static GeoRoutePath findFromNode(String startNodeId, String endStation) {
-        List<GeoRoutePath> paths = kShortest(startNodeId, endStation, 1);
+        List<GeoRoutePath> paths = kShortest(startNodeId, endStation, 1, 0L);
         return paths.isEmpty() ? null : paths.getFirst();
     }
 
@@ -319,13 +333,25 @@ public class GeoRouteEngine {
      */
     public static List<JourneyPlan> findTransferJourneys(String startStation, String endStation,
                                                          int maxResults, double minImprovement) {
+        return findTransferJourneys(startStation, endStation, maxResults, minImprovement, 0L);
+    }
+
+    /**
+     * 同 {@link #findTransferJourneys(String, String, int, double)}，附加计算耗时上限。
+     *
+     * @param deadlineNanos {@code System.nanoTime()} 的截止时间；{@code <=0} 表示不限时。超时则停止实体化
+     *                      剩余候选换乘站，返回目前已找到的部分方案（非错误）
+     */
+    public static List<JourneyPlan> findTransferJourneys(String startStation, String endStation,
+                                                         int maxResults, double minImprovement,
+                                                         long deadlineNanos) {
         if (startStation == null || endStation == null || startStation.equals(endStation)) {
             return new ArrayList<>();
         }
         GeoRouteGraph g = graph;
 
         // 直达最短距离 → 换乘须短于的阈值。无直达则为正无穷，此时任何换乘方案都接受。
-        List<GeoRoutePath> directPaths = findByStation(startStation, endStation);
+        List<GeoRoutePath> directPaths = findByStation(startStation, endStation, 0, deadlineNanos);
         double bestDirect = Double.POSITIVE_INFINITY;
         for (GeoRoutePath p : directPaths) {
             bestDirect = Math.min(bestDirect, p.getDistance());
@@ -371,12 +397,17 @@ public class GeoRouteEngine {
             if (materialized >= materializeCap) {
                 break;
             }
+            if (deadlineNanos > 0 && System.nanoTime() > deadlineNanos) {
+                // 超时：不再实体化剩余候选站，已实体化成功的换乘方案（如果有）仍是真实完整的方案，
+                // 继续走下面的排序/截断逻辑返回它们，而不是一并丢弃。
+                break;
+            }
             String mid = entry.getKey();
-            List<GeoRoutePath> leg1List = findByStation(startStation, mid, 1);
+            List<GeoRoutePath> leg1List = findByStation(startStation, mid, 1, deadlineNanos);
             if (leg1List.isEmpty()) {
                 continue;
             }
-            List<GeoRoutePath> leg2List = findByStation(mid, endStation, 1);
+            List<GeoRoutePath> leg2List = findByStation(mid, endStation, 1, deadlineNanos);
             if (leg2List.isEmpty()) {
                 continue;
             }
@@ -426,6 +457,137 @@ public class GeoRouteEngine {
     }
 
     /**
+     * 可达性 Dijkstra 的一个队列条目：状态 = (节点, 到达面)。{@code face} 为 null 表示无到达面信息
+     * （等价于 {@link #enterFaceAllows} 里 {@code inLink==null} 或 {@code inLink.getEnterFaceTo()==null}
+     * 的放行语义）。
+     */
+    private record ReachEntry(String nodeId, String face, double dist) {
+    }
+
+    /**
+     * 用标准 Dijkstra（状态 = 节点 + 到达面，每个状态只处理一次）判断从 {@code startNodeId} 到任一名为
+     * {@code endStation} 的车站节点是否存在合法路径，套用 {@link #kShortest} 除「同名站不可重复经过」
+     * 之外的全部边约束（{@link #enterFaceAllows} / {@link #hasMainlineBypass} / 折返站跳过）。
+     * <p>
+     * 忽略「同名站不可重复经过」这一条约束只会让判定更宽松（更容易判定为「可达」），绝不会把真实可达的
+     * 两点误判为不可达——因此这里返回 {@code false} 时，{@link #kShortest} 在完整约束下也必然找不到任何
+     * 合法路径，可安全用作必要条件剪枝：不可达时让 {@link #kShortest} 跳过昂贵的完整路径枚举直接返回空；
+     * 可达时不影响任何现有行为（{@link #kShortest} 仍按原逻辑跑一遍，因为可能恰好都被同名站约束挡住，
+     * 这里的「可达」只是必要条件不是充分条件）。
+     * <p>
+     * {@code deadlineNanos <= 0} 表示不限时。搜索预算耗尽（耗时检查命中截止时间）时保守返回 {@code true}
+     * （交给 {@link #kShortest} 走完整逻辑，不产生假阴性——它自己的耗时检查会在同一个 deadline 下接管）。
+     *
+     * @param startNodeId  起点节点 id
+     * @param endStation   终点站名
+     * @param deadlineNanos {@code System.nanoTime()} 的截止时间；{@code <=0} 表示不限时
+     * @return 可达返回 true；不可达返回 false
+     */
+    private static boolean reachableIgnoringRevisit(String startNodeId, String endStation, long deadlineNanos) {
+        GeoRouteGraph g = graph;
+        GeoNode startNode = g.getNode(startNodeId);
+        if (startNode == null) {
+            return false;
+        }
+
+        Map<String, Double> dist = new HashMap<>();
+        PriorityQueue<ReachEntry> pq = new PriorityQueue<>(Comparator.comparingDouble(ReachEntry::dist));
+
+        // 起点第一跳：等价于 kShortest 里 cur.prevLink()==null 的种子条目，enterFaceAllows(null, outLink) 恒放行。
+        // 故意不把起点本身当作一个普通状态放进 dist——否则「绕回起点、到达面恰好也是无信息」的合法状态会
+        // 与起点撞上同一个 key，被误判为已访问过而漏判可达（起点从未真正「以到达面 X 被访问」过，它是查询
+        // 的种子，不是搜索过程中被发现的状态）。
+        for (GeoLink link : g.links(startNodeId)) {
+            if (reachSkipIntermediate(g, startNodeId, link, endStation)) {
+                continue;
+            }
+            String face = link.getEnterFaceTo();
+            String key = reachStateKey(link.getToNodeId(), face);
+            Double old = dist.get(key);
+            if (old == null || link.getDistance() < old) {
+                dist.put(key, link.getDistance());
+                pq.add(new ReachEntry(link.getToNodeId(), face, link.getDistance()));
+            }
+        }
+
+        int pops = 0;
+        while (!pq.isEmpty()) {
+            if (deadlineNanos > 0 && pops % 4096 == 0 && System.nanoTime() > deadlineNanos) {
+                return true; // 预算耗尽：放弃短路判断，交给 kShortest 走完整逻辑（不产生假阴性）
+            }
+            ReachEntry cur = pq.poll();
+            pops++;
+            Double best = dist.get(reachStateKey(cur.nodeId(), cur.face()));
+            if (best != null && cur.dist() > best) {
+                continue; // 过期条目（已被更优路径取代）
+            }
+            GeoNode node = g.getNode(cur.nodeId());
+            if (node != null && node.isStation() && endStation.equals(node.getName())) {
+                return true;
+            }
+            for (GeoLink link : g.links(cur.nodeId())) {
+                if (!enterFaceAllowsByFace(cur.face(), link)) {
+                    continue;
+                }
+                if (reachSkipIntermediate(g, cur.nodeId(), link, endStation)) {
+                    continue;
+                }
+                String face = link.getEnterFaceTo();
+                String key = reachStateKey(link.getToNodeId(), face);
+                double nd = cur.dist() + link.getDistance();
+                Double old = dist.get(key);
+                if (old == null || nd < old) {
+                    dist.put(key, nd);
+                    pq.add(new ReachEntry(link.getToNodeId(), face, nd));
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 把 (节点, 到达面) 编码成 map key；face 为 null（无到达面信息）用一个不可能出现在真实 face 字符串里
+     * 的哨兵拼接，避免与真实值冲突。
+     */
+    private static String reachStateKey(String nodeId, String face) {
+        return nodeId + "|" + (face == null ? "\u0000" : face);
+    }
+
+    /**
+     * 判断沿 {@code link} 从 {@code fromId} 走到下一节点是否应被过滤——目标节点不存在，或它是一个
+     * 「非终点」中途车站且存在正线绕行 / 属于折返站（与 {@link #kShortest} 里同一段过滤逻辑一致）。
+     */
+    private static boolean reachSkipIntermediate(GeoRouteGraph g, String fromId, GeoLink link, String endStation) {
+        GeoNode nextNode = g.getNode(link.getToNodeId());
+        if (nextNode == null) {
+            return true;
+        }
+        if (nextNode.isStation() && !endStation.equals(nextNode.getName())) {
+            if (hasMainlineBypass(g, fromId, nextNode)) {
+                return true;
+            }
+            if (LineInfo.isReverseStation(link.getLineId(), nextNode.getName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 与 {@link #enterFaceAllows} 语义相同，只是入参是「到达面」而非完整 {@code inLink}
+     * （{@link #reachableIgnoringRevisit} 的搜索状态只保留到达面，不保留完整 {@link GeoLink}）。
+     */
+    private static boolean enterFaceAllowsByFace(String arrivedFace, GeoLink outLink) {
+        if (outLink.getEnterFacesFrom().isEmpty()) {
+            return true;
+        }
+        if (arrivedFace == null) {
+            return true;
+        }
+        return outLink.getEnterFacesFrom().contains(arrivedFace);
+    }
+
+    /**
      * 从单一起点节点求最短的 K 条<b>无环</b>路线，终点为任一名为 {@code endStation} 的 station 节点。
      * <p>
      * 规则：一条路线<b>不得重复经过同一节点</b>（simple path）。采用按累计距离排序的优先队列逐条扩展，
@@ -440,21 +602,34 @@ public class GeoRouteEngine {
      * @param startNodeId 起点节点 id
      * @param endStation  终点站名
      * @param k           最多求多少条（>=1）
+     * @param deadlineNanos {@code System.nanoTime()} 的截止时间；{@code <=0} 表示不限时。超时则停止枚举，
+     *                      返回目前已找到的部分结果（非错误，语义同「凑不满 K 条」）
      * @return 按距离升序的至多 K 条无环路径；起点不存在 / 无解返回空列表
      */
-    private static List<GeoRoutePath> kShortest(String startNodeId, String endStation, int k) {
+    private static List<GeoRoutePath> kShortest(String startNodeId, String endStation, int k, long deadlineNanos) {
         GeoRouteGraph g = graph;
         List<GeoRoutePath> results = new ArrayList<>();
         GeoNode startNode = g.getNode(startNodeId);
         if (startNode == null || endStation == null || k < 1) {
             return results;
         }
+
+        // 快速短路：先用一次忽略「同名站不可重复经过」约束的 Dijkstra 判断可达性。忽略该约束只会让
+        // 判定更宽松，故返回不可达时，下面完整约束下的枚举也必然找不到任何合法路径——可安全跳过，
+        // 避免「两站根本无解」时把整片死胡同路径空间穷举到 KSP_MAX_POPS 才放弃（可能耗时数十秒）。
+        if (deadlineNanos > 0 && !reachableIgnoringRevisit(startNodeId, endStation, deadlineNanos)) {
+            return results;
+        }
+
         String startStation = startNode.isStation() ? startNode.getName() : null;
         PriorityQueue<Entry> pq = new PriorityQueue<>(Comparator.comparingDouble(Entry::dist));
         pq.add(new Entry(startNodeId, 0.0, null, null));
 
         int pops = 0;
         while (!pq.isEmpty() && results.size() < k && pops < KSP_MAX_POPS) {
+            if (deadlineNanos > 0 && pops % 4096 == 0 && System.nanoTime() > deadlineNanos) {
+                break; // 超时：返回已找到的部分结果（非空时是可用的真实路径，语义同「凑不满 K 条」）
+            }
             Entry cur = pq.poll();
             pops++;
 

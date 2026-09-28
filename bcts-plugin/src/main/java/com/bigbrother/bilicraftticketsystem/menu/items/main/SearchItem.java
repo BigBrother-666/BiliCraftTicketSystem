@@ -63,6 +63,12 @@ public class SearchItem extends AbstractItem {
             String start = option.getStartStationString();
             String end = option.getEndStationString();
 
+            // 单次搜索的计算耗时上限：超时后 findByStation/findTransferJourneys 会停止枚举，
+            // 返回目前已找到的部分结果（不算错误），避免极端无解/复杂查询长时间占用异步线程。
+            long deadlineNanos = MainConfig.searchComputeTimeoutSeconds > 0
+                    ? System.nanoTime() + MainConfig.searchComputeTimeoutSeconds * 1_000_000_000L
+                    : 0L;
+
             // 直达候选池：只需覆盖「距离前 N ∪ 票价前 M」，取两者之和作上限即可满足混合排序，
             // 避免不限条数(k=16)在大图上的重 KSP。任一维度不限(<=0)时退回不限条数。
             int directPool;
@@ -72,13 +78,13 @@ public class SearchItem extends AbstractItem {
                 directPool = MainConfig.maxDistanceResults + MainConfig.maxPriceResults;
             }
             List<BCTicket> directTickets = new ArrayList<>();
-            for (GeoRoutePath path : GeoRouteEngine.findByStation(start, end, directPool)) {
+            for (GeoRoutePath path : GeoRouteEngine.findByStation(start, end, directPool, deadlineNanos)) {
                 directTickets.add(new BCTicket(option, path, player));
             }
             // 换乘（联程）候选：限方案数 + 限候选换乘站数，防止大线组合爆炸
             List<ThroughTicket> throughTickets = new ArrayList<>();
             for (JourneyPlan plan : GeoRouteEngine.findTransferJourneys(start, end,
-                    MainConfig.maxTransferResults, MainConfig.transferMinImprovement)) {
+                    MainConfig.maxTransferResults, MainConfig.transferMinImprovement, deadlineNanos)) {
                 throughTickets.add(new ThroughTicket(option, plan, player));
             }
 

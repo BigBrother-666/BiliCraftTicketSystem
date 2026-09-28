@@ -72,6 +72,11 @@ public class MainConfig {
      * 联程票最低改善比例：仅当换乘总距离 {@code < 最短直达 ×(1 - 此值)} 时才显示。两站无直达时不生效。
      */
     public static double transferMinImprovement;
+    /**
+     * 单次寻路计算（直达 + 联程票枚举）最长耗时（秒），超时则停止枚举并返回已找到的部分结果（不算错误）。
+     * {@code <=0} 表示不限时。
+     */
+    public static int searchComputeTimeoutSeconds;
 
     public static int loreStationNameCntRow;
     public static int loreRailwayNameCntRow;
@@ -198,6 +203,7 @@ public class MainConfig {
         minDirectResults = search.get("min-direct-results", 1);
         maxTransferResults = search.get("max-transfer-results", 3);
         transferMinImprovement = search.get("transfer-min-improvement", 0.2);
+        searchComputeTimeoutSeconds = search.get("compute-timeout-seconds", 15);
 
         cardConfig = mainConfig.getNode("card");
         ConfigurationNode lore = mainConfig.getNode("lore");
