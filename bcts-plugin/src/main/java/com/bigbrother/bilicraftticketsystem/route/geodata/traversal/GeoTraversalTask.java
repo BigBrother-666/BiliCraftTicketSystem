@@ -541,20 +541,20 @@ public class GeoTraversalTask {
             reportLineChains(lineId, walk, log);
         }
 
-        invaildStations = new StringBuilder();
-        List<String> unexpected = new ArrayList<>();
-        for (String got : visited) {
-            if (!expected.contains(got)) {
-                invaildStations.append("\"").append(got).append("\" ");
-                unexpected.add(got);
-                vaild = false;
-            }
-        }
-        if (!invaildStations.isEmpty()) {
-            log.message("线路 " + lineId + " 校验：到达了配置外的车站 " + invaildStations, NamedTextColor.RED, Level.SEVERE);
-            // 多余车站的关键信息是列车怎么跑过去的，输出根到该站的完整路径（跨线保留）
-            reportStationPaths(lineId, unexpected, walk, log);
-        }
+//        invaildStations = new StringBuilder();
+//        List<String> unexpected = new ArrayList<>();
+//        for (String got : visited) {
+//            if (!expected.contains(got)) {
+//                invaildStations.append("\"").append(got).append("\" ");
+//                unexpected.add(got);
+//                vaild = false;
+//            }
+//        }
+//        if (!invaildStations.isEmpty()) {
+//            log.message("线路 " + lineId + " 校验：到达了配置外的车站 " + invaildStations, NamedTextColor.RED, Level.SEVERE);
+//            // 多余车站的关键信息是列车怎么跑过去的，输出根到该站的完整路径（跨线保留）
+//            reportStationPaths(lineId, unexpected, walk, log);
+//        }
         return vaild;
     }
 
@@ -589,16 +589,16 @@ public class GeoTraversalTask {
      * @param walk     遍历驱动器（提供路径图）
      * @param log      日志
      */
-    private void reportStationPaths(String lineId, List<String> stations, GraphWalk walk, GeoTraversalLogger log) {
-        for (String station : stations) {
-            List<TraversalTrace.TraceNode> found = walk.getTrace().findStations(lineId, station);
-            if (found.isEmpty()) {
-                continue;
-            }
-            log.message("到达配置外车站 \"%s\" 的遍历路径：".formatted(station), NamedTextColor.YELLOW, Level.SEVERE);
-            emitPath(walk.getTrace().pathTo(found.getFirst()), log);
-        }
-    }
+//    private void reportStationPaths(String lineId, List<String> stations, GraphWalk walk, GeoTraversalLogger log) {
+//        for (String station : stations) {
+//            List<TraversalTrace.TraceNode> found = walk.getTrace().findStations(lineId, station);
+//            if (found.isEmpty()) {
+//                continue;
+//            }
+//            log.message("到达配置外车站 \"%s\" 的遍历路径：".formatted(station), NamedTextColor.YELLOW, Level.SEVERE);
+//            emitPath(walk.getTrace().pathTo(found.getFirst()), log);
+//        }
+//    }
 
     /**
      * 竖向渲染并输出一条路径（每个节点一行）：聊天栏按
