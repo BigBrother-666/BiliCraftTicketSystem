@@ -57,7 +57,7 @@ class TraversalTraceTest {
         assertEquals("""
                 起点[l1](world,0,64,0)
                 ↓ 车站A-platform(world,1,64,1)
-                ↓ switcher(world,2,64,2)
+                ↓ bcswitcher(world,2,64,2)
                 ↓ 车站B-platform(world,3,64,3)
                 ↓ 断轨结束(world,4,64,4)""", plain(trace.pathOfLine("l1")));
     }
@@ -82,7 +82,7 @@ class TraversalTraceTest {
         // 取路必须跨分支缝合到 shared 并继续走到断轨，而不是停在道岔上报「已遍历过」
         assertEquals("""
                 起点[l1](world,0,64,0)
-                ↓ switcher(world,1,64,1)
+                ↓ bcswitcher(world,1,64,1)
                 ↓ 车站B-platform(world,2,64,2)
                 ↓ 断轨结束(world,3,64,3)""", plain(trace.pathOfLine("l1")));
     }
@@ -109,7 +109,7 @@ class TraversalTraceTest {
         // 岔路应走经停站那一支，正线不展示
         assertEquals("""
                 起点[l1](world,0,64,0)
-                ↓ switcher(world,1,64,1)
+                ↓ bcswitcher(world,1,64,1)
                 ↓ 车站A-platform(world,2,64,2)
                 ↓ 断轨结束(world,3,64,3)""", plain(trace.pathOfLine("l1")));
     }
@@ -125,7 +125,7 @@ class TraversalTraceTest {
 
         assertEquals("""
                 起点[l1](world,0,64,0)
-                ↓ switcher(world,1,64,1)[该道岔没有匹配此到达方向的出向]""", plain(trace.pathOfLine("l1")));
+                ↓ bcswitcher(world,1,64,1)[该道岔没有匹配此到达方向的出向]""", plain(trace.pathOfLine("l1")));
     }
 
     @Test
@@ -166,7 +166,7 @@ class TraversalTraceTest {
 
         // 链首的父节点（l1 的道岔）作为上下文前缀保留，并标出两侧线路
         assertEquals("""
-                switcher(world,1,64,1){l1}
+                bcswitcher(world,1,64,1){l1}
                 ↓ 换线站-platform(world,2,64,2){l2}
                 ↓ 断轨结束(world,3,64,3)""", plain(trace.pathOfLine("l2")));
     }
@@ -183,7 +183,7 @@ class TraversalTraceTest {
 
         assertEquals("""
                 起点[l1](world,0,64,0)
-                ↓ switcher(world,1,64,1)[没有继续沿本线的出向]""", plain(trace.pathOfLine("l1")));
+                ↓ bcswitcher(world,1,64,1)[没有继续沿本线的出向]""", plain(trace.pathOfLine("l1")));
     }
 
     @Test
@@ -201,7 +201,7 @@ class TraversalTraceTest {
         // 完整发现路径从登记起点开始，跨线部分不省略
         assertEquals("""
                 起点[l1](world,0,64,0)
-                ↓ switcher(world,1,64,1)
+                ↓ bcswitcher(world,1,64,1)
                 ↓ 配置外站-platform(world,2,64,2){l2}""", plain(trace.pathTo(found.getFirst())));
     }
 

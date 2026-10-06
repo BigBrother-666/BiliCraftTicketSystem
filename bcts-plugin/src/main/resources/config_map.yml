@@ -25,7 +25,7 @@ traversal:
   # 路径竖向排版、每个节点一行，用于定位问题所在，形如：
   #   起点[pr-s1](world,1,64,2)
   #   ↓ 车站A-platform(world,10,64,20)
-  #   ↓ switcher(world,15,64,30)
+  #   ↓ bcswitcher(world,15,64,30)
   #   ↓ 断轨结束(world,20,64,40)
   # -1 表示不限制（全部输出），0 表示不向聊天栏输出。无论此值如何，完整路径一律写入 logs/railgeo_*.log。
   trace-max-chat-lines: -1

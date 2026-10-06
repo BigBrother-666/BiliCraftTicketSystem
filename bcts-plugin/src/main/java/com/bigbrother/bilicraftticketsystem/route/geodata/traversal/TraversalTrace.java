@@ -447,7 +447,7 @@ public class TraversalTrace {
      * <pre>
      * 起点[pr-s1](world,1,64,2)
      * ↓ 车站A-platform(world,...)
-     * ↓ switcher(world,...)
+     * ↓ bcswitcher(world,...)
      * ↓ 断轨结束(world,...)
      * </pre>
      * 配色：起点金色、车站青色、道岔灰色、断轨红色、换线标记黄色、终止说明深灰，箭头深灰。
@@ -493,7 +493,7 @@ public class TraversalTrace {
         return switch (node.kind) {
             case START -> Component.text("起点[" + node.lineId + "]" + coords, NamedTextColor.GOLD);
             case STATION -> Component.text(node.stationName + "-platform" + coords, NamedTextColor.AQUA);
-            case SWITCH -> Component.text("switcher" + coords, NamedTextColor.GRAY);
+            case SWITCH -> Component.text("bcswitcher" + coords, NamedTextColor.GRAY);
             case END -> Component.text("断轨结束" + coords, NamedTextColor.RED);
         };
     }
