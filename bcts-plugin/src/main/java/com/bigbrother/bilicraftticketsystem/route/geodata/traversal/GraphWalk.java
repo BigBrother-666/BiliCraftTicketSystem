@@ -296,10 +296,25 @@ public class GraphWalk {
 
     /**
      * platform 节点展开：一进一出。非折返站沿进入方向续行；折返站（{@code :RV}）反向驶出。
-     * 当前 lineId 原样带过去（platform 不提供 lineId）。出向不强制，forcedDir 传 null。
+     * 出向不强制，forcedDir 传 null。
+     * <p>
+     * <b>终点站到此为止</b>：本站是当前线路配置站序的最后一站（{@link LineInfo#isTerminalStation}）时，
+     * 本线不再向前展开——否则终点站之后若还接着轨道与 platform（如 {@code A->B->C} 之后物理上还连着 D），
+     * 矿车会带着本线 lineId 继续走出 {@code C->D}，把不属于本线的区间写进 {@code <lineId>.geojson}。
+     * 环线（站序首尾同名）恒不判定为终点站，故环线闭合段不受影响。
+     * <p>
+     * 终点站配置了<b>转线</b>（{@code bossbar-stations} 末项写成 {@code <线路id>[:<进入站名>]}，见
+     * {@link LineInfo#getNextLineId()}）时例外：继续展开，但后继段的 lineId / owner 一并切换为
+     * 下一条线路，使转线之后的几何落到<b>新线</b>的文件里。这与运行时一致——
+     * {@link com.bigbrother.bilicraftticketsystem.signactions.SignActionPlatform} 正是在终点站
+     * <b>出站时</b>改写列车所属线路。下一线不存在 / 不在本次遍历范围内时按「无转线」处理（停住）。
+     * <p>
+     * 终点判定优先于 scope 与折返：既是终点又是折返站（{@code 站名:RV}）时，仍按折返反向驶出，
+     * 但只在配置了转线时才继续展开（否则本线在此结束，不会沿原路反向把整条线再记一遍）。
      *
      * @param node        platform 节点
      * @param lineId      本段携带的当前线路 id
+     * @param ownerLineId 本段归属线路 id（见 {@link RailEdge#getOwnerLineId()}）
      * @param arrival     到达方向
      * @param arrivalFace 到达方向的面 key（入向）
      * @param queue       待展开队列
@@ -308,19 +323,68 @@ public class GraphWalk {
     private void expandPlatform(RailNode node, String lineId, String ownerLineId, Vector arrival, String arrivalFace,
                                 Deque<WalkState> queue, String logPrefix, TraversalTrace.TraceNode traceNode) {
         LineInfo lineInfo = LineConfig.get(lineId);
-        boolean reverse = lineInfo != null && lineInfo.isReverseStationByName(node.getStationName());
+        String stationName = node.getStationName();
+        boolean reverse = lineInfo != null && lineInfo.isReverseStationByName(stationName);
         Vector outDir = reverse ? arrival.clone().multiply(-1) : arrival.clone();
         if (reverse) {
-            log.info(logPrefix + "折返站 " + node.getStationName() + "，反向驶出");
+            log.info(logPrefix + "折返站 " + stationName + "，反向驶出");
         }
         String outFace = faceKey(outDir);
 
+        // 后继段携带的线路 id：默认原样带过去（platform 不提供 lineId）；终点站转线时切换为下一条线路
+        String outLineId = lineId;
+        String outOwner = ownerLineId;
+        if (lineInfo != null && lineInfo.isTerminalStation(stationName)) {
+            String nextLineId = resolveTransferLine(lineInfo, logPrefix);
+            if (nextLineId == null) {
+                // 本线在此结束：不登记后继、不入队，终点之后的轨道不再归入本线
+                log.info(logPrefix + "到达线路 " + lineId + " 的终点站 " + stationName + "，本线不再向前展开");
+                trace.note(traceNode, "线路 %s 的终点站（%s），本线到此为止".formatted(lineId, stationName));
+                return;
+            }
+            log.info(logPrefix + "终点站 " + stationName + " 转入线路 " + nextLineId + "，后续区间归入该线");
+            outLineId = nextLineId;
+            outOwner = nextLineId;
+        }
+
         // 无论本次是否入队（可能已被别的分支展开过）都登记这条后继：取路时按 key 解析即可缝合续行，
         // 不会把「已遍历过」误报成停止原因。
-        String key = stateKey(node, arrivalFace, outFace, lineId);
+        String key = stateKey(node, arrivalFace, outFace, outLineId);
         trace.link(traceNode, key);
-        tryEnqueue(key, queue, new WalkState(node.getId(), node.getRailBlock(), outDir, null, lineId, arrivalFace,
-                ownerLineId, traceNode, key));
+        tryEnqueue(key, queue, new WalkState(node.getId(), node.getRailBlock(), outDir, null, outLineId, arrivalFace,
+                outOwner, traceNode, key));
+    }
+
+    /**
+     * 解析终点站的转线目标线路：{@code bossbar-stations} 末项声明的 {@code nextLineId}，
+     * 经「线路存在 + 在本次遍历范围内 + 不在忽略名单」校验后返回。
+     * <p>
+     * 转线是除 bcswitcher 出向之外的另一个「换线」入口，故同样要受 {@link #lineScope} /
+     * {@link #ignoreLineIds} 约束：否则增量遍历（{@code walk <lineId>}）会顺着转线跟进到 scope 外的线，
+     * 超出「只覆盖目标线 + 其联络线」的范围。校验不通过时返回 null，调用方按「无转线」处理（在终点站停住），
+     * 与运行时「下一线不存在时不改写列车所属线路」的保守做法一致。
+     *
+     * @param lineInfo  当前线路配置
+     * @param logPrefix 日志前缀
+     * @return 可跟进的转线目标线路 id；无转线 / 校验不通过返回 null
+     */
+    private String resolveTransferLine(LineInfo lineInfo, String logPrefix) {
+        String nextLineId = lineInfo.getNextLineId();
+        if (nextLineId == null || nextLineId.isEmpty()) {
+            return null;
+        }
+        if (!LineConfig.contains(nextLineId)) {
+            log.info(logPrefix + "转线目标线路 " + nextLineId + " 不存在，终点站不再向前展开");
+            return null;
+        }
+        if (lineScope != null && !lineScope.contains(nextLineId)) {
+            return null;
+        }
+        if (ignoreLineIds.contains(nextLineId)) {
+            log.info(logPrefix + "转线目标线路 " + nextLineId + " 在忽略名单中，终点站不再向前展开");
+            return null;
+        }
+        return nextLineId;
     }
 
     /**
