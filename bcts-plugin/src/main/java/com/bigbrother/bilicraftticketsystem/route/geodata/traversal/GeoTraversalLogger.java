@@ -3,6 +3,7 @@ package com.bigbrother.bilicraftticketsystem.route.geodata.traversal;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
 
@@ -174,6 +175,34 @@ public class GeoTraversalLogger {
                 plugin.getComponentLogger().info(Component.text(msg, color));
             }
         }
+    }
+
+    /**
+     * 记录一条已着色的富文本消息：发给发起者 / 控制台时保留颜色，写入日志文件时转为纯文本
+     * （日志文件是 UTF-8 纯文本，样式码只会变成噪声）。
+     * <p>
+     * 供遍历失败时输出多色路径链（见 {@code TraversalTrace#render}）。
+     *
+     * @param component 已着色的消息
+     * @param level     写入日志文件的级别
+     * @param toSender  是否同时发给发起者 / 控制台（false 表示只写日志文件，用于全量明细）
+     */
+    public void message(Component component, Level level, boolean toSender) {
+        String plain = PlainTextComponentSerializer.plainText().serialize(component);
+        if (level == Level.WARNING) {
+            warn(plain);
+        } else if (level == Level.SEVERE) {
+            error(plain, null);
+        } else {
+            info(plain);
+        }
+        if (!toSender || sender == null) {
+            return;
+        }
+        if (!(sender instanceof ConsoleCommandSender)) {
+            sender.sendMessage(component);
+        }
+        plugin.getComponentLogger().info(component);
     }
 
     /**

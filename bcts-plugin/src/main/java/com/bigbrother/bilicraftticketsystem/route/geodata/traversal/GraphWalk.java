@@ -78,9 +78,19 @@ public class GraphWalk {
     @Getter
     private final Map<String, Set<String>> visitedStationsByLine = new LinkedHashMap<>();
     /**
+     * 遍历路径树：记录节点间的先后关系，供车站校验失败时回放列车实际跑出的链路
+     * （见 {@code GeoTraversalTask#reportTrace}）。
+     */
+    @Getter
+    private final TraversalTrace trace = new TraversalTrace();
+    /**
      * 整次遍历累计处理的段数（跨所有起点），用于兜底防环。
      */
     private int processed = 0;
+    /**
+     * 已 seed 的起点数，用于给每个起点首段编一个独有的路径图 key（见 {@link #seed}）。
+     */
+    private int seedCount = 0;
     /**
      * 是否已因异常情况（达到段数上限）中止。中止后整次遍历应停止并放弃写文件。
      */
@@ -127,9 +137,13 @@ public class GraphWalk {
      *                      {@code enterFaceFrom}，供寻路门控「从此方向来才可走本段」。
      * @param ownerLineId   本段归属线路 id（见 {@link RailEdge#getOwnerLineId()}）：普通段 = lineId，
      *                      联络线段 = 触发它的目标线。沿续行 / 首段透传，走 contact 出向时置为进入道岔的 lineId。
+     * @param traceParent   本段出发节点在 {@link #trace 路径图}上的节点（起点首段为该起点的根节点）。
+     * @param traceStateKey 本段对应的去重状态 key（即 {@link #stateKey}；起点首段为 null）。走到下一个节点后
+     *                      以此 key 登记「该状态到达了哪个节点」，使被去重跳过的分支在取路时能缝合出完整路径。
      */
     private record WalkState(String prevNodeId, Block rail, Vector direction, String forcedDir, String lineId,
-                             String fromEnterFace, String ownerLineId) {
+                             String fromEnterFace, String ownerLineId, TraversalTrace.TraceNode traceParent,
+                             String traceStateKey) {
     }
 
     /**
@@ -143,7 +157,12 @@ public class GraphWalk {
      */
     public void seed(String startLineId, Block startRail, Vector startDirection) {
         // 首段 owner = 起点登记线路（首段必是营运线，非 contact）
-        queue.add(new WalkState(null, startRail, startDirection, null, startLineId, null, startLineId));
+        TraversalTrace.TraceNode root = trace.seedRoot(startLineId, startRail);
+        // 首段不经过道岔决策、没有 (节点,入向,出向,lineId) 状态，但路径图仍需一个 key 把「根节点 -> 首段
+        // 走到的节点」接起来，否则根节点没有后继、取路第一步就断。故给首段编一个独有的 seed key。
+        String key = "seed|" + (seedCount++) + "|" + startLineId;
+        trace.link(root, key);
+        queue.add(new WalkState(null, startRail, startDirection, null, startLineId, null, startLineId, root, key));
     }
 
     /**
@@ -228,6 +247,8 @@ public class GraphWalk {
 
             if (result.reason() == TrackWalker.StopReason.END) {
                 log.info(logPrefix + "线路 " + lineId + " 轨道结束（断轨/死路 @ " + result.railBlock().getLocation() + "）");
+                trace.arrive(st.traceParent(), st.traceStateKey(), TraversalTrace.Kind.END, null,
+                        result.railBlock(), lineId);
                 return;
             }
 
@@ -235,14 +256,19 @@ public class GraphWalk {
             String arrivalFace = faceKey(arrival);
 
             RailNode node;
+            TraversalTrace.TraceNode traceNode;
             if (result.reason() == TrackWalker.StopReason.PLATFORM) {
                 String stationName = result.sign().getLine(2).trim();
                 node = collector.resolveNode(RailNode.Type.STATION, result.railBlock(), stationName);
                 visitedStationsByLine.computeIfAbsent(lineId, k -> new LinkedHashSet<>()).add(stationName);
                 log.info(logPrefix + "到达车站 " + stationName + " @ " + node.getId());
+                traceNode = trace.arrive(st.traceParent(), st.traceStateKey(), TraversalTrace.Kind.STATION,
+                        stationName, result.railBlock(), lineId);
             } else {
                 node = collector.resolveNode(RailNode.Type.SWITCH, result.railBlock(), null);
                 log.info(logPrefix + "经过道岔 @ " + node.getId());
+                traceNode = trace.arrive(st.traceParent(), st.traceStateKey(), TraversalTrace.Kind.SWITCH, null,
+                        result.railBlock(), lineId);
             }
             node.addLineId(lineId);
             node.addRailwaySystemId(railwaySystemId);
@@ -258,9 +284,10 @@ public class GraphWalk {
             }
 
             if (result.reason() == TrackWalker.StopReason.PLATFORM) {
-                expandPlatform(node, lineId, st.ownerLineId(), arrival, arrivalFace, queue, logPrefix);
+                expandPlatform(node, lineId, st.ownerLineId(), arrival, arrivalFace, queue, logPrefix, traceNode);
             } else {
-                expandSwitcher(node, lineId, st.ownerLineId(), walker, result, arrival, arrivalFace, queue, logPrefix);
+                expandSwitcher(node, lineId, st.ownerLineId(), walker, result, arrival, arrivalFace, queue, logPrefix,
+                        traceNode);
             }
         } finally {
             walker.destroy();
@@ -276,8 +303,10 @@ public class GraphWalk {
      * @param arrival     到达方向
      * @param arrivalFace 到达方向的面 key（入向）
      * @param queue       待展开队列
+     * @param traceNode   本节点在路径树上的节点（后继挂其下；没能续行时写终止说明）
      */
-    private void expandPlatform(RailNode node, String lineId, String ownerLineId, Vector arrival, String arrivalFace, Deque<WalkState> queue, String logPrefix) {
+    private void expandPlatform(RailNode node, String lineId, String ownerLineId, Vector arrival, String arrivalFace,
+                                Deque<WalkState> queue, String logPrefix, TraversalTrace.TraceNode traceNode) {
         LineInfo lineInfo = LineConfig.get(lineId);
         boolean reverse = lineInfo != null && lineInfo.isReverseStationByName(node.getStationName());
         Vector outDir = reverse ? arrival.clone().multiply(-1) : arrival.clone();
@@ -286,8 +315,12 @@ public class GraphWalk {
         }
         String outFace = faceKey(outDir);
 
-        tryEnqueue(node, arrivalFace, outFace, lineId, queue,
-                new WalkState(node.getId(), node.getRailBlock(), outDir, null, lineId, arrivalFace, ownerLineId));
+        // 无论本次是否入队（可能已被别的分支展开过）都登记这条后继：取路时按 key 解析即可缝合续行，
+        // 不会把「已遍历过」误报成停止原因。
+        String key = stateKey(node, arrivalFace, outFace, lineId);
+        trace.link(traceNode, key);
+        tryEnqueue(key, queue, new WalkState(node.getId(), node.getRailBlock(), outDir, null, lineId, arrivalFace,
+                ownerLineId, traceNode, key));
     }
 
     /**
@@ -302,26 +335,37 @@ public class GraphWalk {
      * @param arrival     到达方向
      * @param arrivalFace 到达方向的面 key（入向）
      * @param queue       待展开队列
+     * @param traceNode   本道岔在路径树上的节点（各出向后继挂其下；一个出向都没展开时写终止说明）
      */
     @SuppressWarnings("unused")
     private void expandSwitcher(RailNode node, String lineId, String ownerLineId, TrackWalker walker, TrackWalker.WalkResult result,
-                                Vector arrival, String arrivalFace, Deque<WalkState> queue, String logPrefix) {
+                                Vector arrival, String arrivalFace, Deque<WalkState> queue, String logPrefix,
+                                TraversalTrace.TraceNode traceNode) {
         RailPiece rail = result.sign().getRail();
         List<BcSwitcherBranch> branches = walker.collectSwitcherBranches(rail);
+        // 统计各出向的去处：一个出向都没留下时据此写明原因（无匹配出向 / 全被过滤）。
+        // 注意「已被别处展开」不算终止——那条后继照样 link，取路时会缝合，不写终止说明。
+        int candidates = 0;
+        int linked = 0;
+        int filtered = 0;
         for (BcSwitcherBranch branch : branches) {
             for (String outLineId : branch.getLineIds()) {
+                candidates++;
                 if (!LineConfig.getLines().containsKey(outLineId)) {
                     log.info(logPrefix + "bcswitcher(%s)的道岔lineId %s 不存在，跳过该分支".formatted(rail.block().getLocation(), outLineId));
+                    filtered++;
                     continue;
                 }
                 // 单线遍历：只跟进范围内（目标线 / 联络线）的出向，其它线的出向到此为止，
                 // 使遍历只覆盖目标线全线 + 与其直接相连的联络线段。全图遍历时 lineScope 为 null，不过滤。
                 if (lineScope != null && !lineScope.contains(outLineId)) {
+                    filtered++;
                     continue;
                 }
                 // 忽略名单：出向声明为被忽略线路的分支不展开，遍历不流入这些线（walkAll --ignore）
                 if (ignoreLineIds.contains(outLineId)) {
                     log.info(logPrefix + "bcswitcher(%s)的出向 %s 在忽略名单中，跳过该分支".formatted(rail.block().getLocation(), outLineId));
+                    filtered++;
                     continue;
                 }
                 // 归属线路：走 contact 出向时，本段归属「触发它的目标线」——即进入本道岔时携带的 owner
@@ -329,30 +373,71 @@ public class GraphWalk {
                 // 归属该出向线路自身。据此增量遍历合并 contact 只删本次目标线拥有的旧段，不误删对端线的反向段。
                 String outOwner = RailwaySystemConfig.CONTACT_ID.equals(outLineId) ? ownerLineId : outLineId;
                 // 出向 key 用 (方向, 出向lineId)：共用出向按线拆 fork，各挂单一 tag 各走各记。
-                tryEnqueue(node, arrivalFace, branch.getDirectionStr(), outLineId, queue,
-                        new WalkState(node.getId(), node.getRailBlock(), arrival.clone(),
-                                branch.getDirectionStr(), outLineId, arrivalFace, outOwner));
+                // 无论本次是否入队都 link：被去重的后继在取路时按 key 解析即可缝合出完整路径。
+                String key = stateKey(node, arrivalFace, branch.getDirectionStr(), outLineId);
+                trace.link(traceNode, key);
+                linked++;
+                tryEnqueue(key, queue, new WalkState(node.getId(), node.getRailBlock(), arrival.clone(),
+                        branch.getDirectionStr(), outLineId, arrivalFace, outOwner, traceNode, key));
             }
+        }
+        if (linked == 0) {
+            trace.note(traceNode, switchStopNote(candidates, filtered));
         }
     }
 
     /**
-     * 按 {@code (节点,入向,出向,lineId)} 去重后入队。已展开过的状态跳过，防止环线 / 重复死循环，
-     * 并在多起点间复用进度。
+     * 道岔一个出向都没留下时的终止说明（供路径报告指出卡在哪、为什么）。
+     * <p>
+     * 只在<b>确实没有任何出向</b>时调用：出向被别的分支先展开过不算终止（照样 link，取路时缝合）。
      *
-     * @param node    节点
-     * @param inFace  入向 key
-     * @param outFace 出向 key
-     * @param lineId  本后继段携带的当前线路 id
-     * @param queue   待展开队列
-     * @param next    后继状态
+     * @param candidates 本次到达方向匹配到的出向声明总数（含被过滤的）
+     * @param filtered   其中被过滤掉的数量（线路不存在 / 不在 scope / 在忽略名单）
+     * @return 终止说明
      */
-    private void tryEnqueue(RailNode node, String inFace, String outFace, String lineId,
-                            Deque<WalkState> queue, WalkState next) {
-        String key = node.getId() + "|" + inFace + "|" + outFace + "|" + lineId;
+    private String switchStopNote(int candidates, int filtered) {
+        if (candidates == 0) {
+            return "该道岔没有匹配此到达方向的出向";
+        }
+        if (filtered >= candidates) {
+            return "该道岔的出向均被跳过（线路不存在或不在本次遍历范围内）";
+        }
+        return "该道岔没有可展开的出向";
+    }
+
+    /**
+     * 按 {@code (节点,入向,出向,lineId)} 状态去重后入队。已展开过的状态跳过，防止环线 / 重复死循环，
+     * 并在多起点间复用进度。
+     * <p>
+     * 被跳过不代表那条后继不存在——它由最先碰到该状态的分支展开。调用方已先 {@link TraversalTrace#link}
+     * 登记该 key，故报告取路时仍能按 key 找到它实际到达的节点。
+     *
+     * @param key   状态 key（见 {@link #stateKey}）
+     * @param queue 待展开队列
+     * @param next  后继状态
+     * @return 实际入队返回 true；已展开过（被去重跳过）返回 false
+     */
+    private boolean tryEnqueue(String key, Deque<WalkState> queue, WalkState next) {
         if (visited.add(key)) {
             queue.add(next);
+            return true;
         }
+        return false;
+    }
+
+    /**
+     * 生成一段行走的去重状态 key：{@code (节点,入向,出向,lineId)}。
+     * <p>
+     * 同时用作 {@link #trace 路径图}里「这条后继到达了哪个节点」的索引键，使跨分支缝合完整路径成为可能。
+     *
+     * @param node    出发节点
+     * @param inFace  入向 key
+     * @param outFace 出向 key
+     * @param lineId  本后继段携带的线路 id
+     * @return 状态 key
+     */
+    private String stateKey(RailNode node, String inFace, String outFace, String lineId) {
+        return node.getId() + "|" + inFace + "|" + outFace + "|" + lineId;
     }
 
     /**

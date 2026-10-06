@@ -11,6 +11,7 @@ import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import com.bigbrother.bilicraftticketsystem.wizard.WizardManager;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -535,20 +536,93 @@ public class GeoTraversalTask {
             }
         }
         if (!invaildStations.isEmpty()) {
-            log.message("线路 " + lineId + " 校验：配置车站 " + invaildStations + "未在遍历中到达（轨道未铺设或道岔未声明该线？）", NamedTextColor.RED, Level.SEVERE);
+            log.message("线路 " + lineId + " 校验：配置车站 " + invaildStations + "未在遍历中到达", NamedTextColor.RED, Level.SEVERE);
+            // 缺站多因遍历在半路断掉（断轨 / 道岔没声明该线），输出本线最有代表性的那条途经车站链路
+            reportLineChains(lineId, walk, log);
         }
 
         invaildStations = new StringBuilder();
+        List<String> unexpected = new ArrayList<>();
         for (String got : visited) {
             if (!expected.contains(got)) {
                 invaildStations.append("\"").append(got).append("\" ");
+                unexpected.add(got);
                 vaild = false;
             }
         }
         if (!invaildStations.isEmpty()) {
-            log.message("线路 " + lineId + " 校验：到达了配置外的车站 " + invaildStations + "（站名写错或控制牌归属线路有误？）", NamedTextColor.RED, Level.SEVERE);
+            log.message("线路 " + lineId + " 校验：到达了配置外的车站 " + invaildStations, NamedTextColor.RED, Level.SEVERE);
+            // 多余车站的关键信息是列车怎么跑过去的，输出根到该站的完整路径（跨线保留）
+            reportStationPaths(lineId, unexpected, walk, log);
         }
         return vaild;
+    }
+
+    /**
+     * 输出某条线的遍历路径，用于「配置车站未在遍历中到达」的定位。
+     * <p>
+     * 路径从该线登记起点出发一直向前探寻本线分支（见 {@link TraversalTrace#pathOfLine}）：岔路优先走
+     * 经停站那一支（跨站直通的正线对定位缺站没有帮助），被去重跳过的后继按状态 key 缝合，
+     * 故末端给出的是<b>真正走不下去的位置与原因</b>（断轨 / 道岔无出向 / 环线闭合），不会停在去重假象上。
+     *
+     * @param lineId 线路 id
+     * @param walk   遍历驱动器（提供路径图）
+     * @param log    日志
+     */
+    private void reportLineChains(String lineId, GraphWalk walk, GeoTraversalLogger log) {
+        TraversalTrace.Path path = walk.getTrace().pathOfLine(lineId);
+        if (path.nodes().isEmpty()) {
+            log.message("线路 " + lineId + " 没有任何遍历记录，请检查其登记起点与起点处的轨道",
+                    NamedTextColor.RED, Level.SEVERE);
+            return;
+        }
+        log.message("线路 %s 的遍历路径：".formatted(lineId), NamedTextColor.YELLOW, Level.SEVERE);
+        emitPath(path, log);
+    }
+
+    /**
+     * 输出到达「配置外车站」的完整路径（从登记起点起、跨线保留），用于定位站名写错或控制牌归属线路有误。
+     * 多个配置外车站时每站各输出一条（取首次到达的那条路径）。
+     *
+     * @param lineId   线路 id
+     * @param stations 配置外的车站名
+     * @param walk     遍历驱动器（提供路径图）
+     * @param log      日志
+     */
+    private void reportStationPaths(String lineId, List<String> stations, GraphWalk walk, GeoTraversalLogger log) {
+        for (String station : stations) {
+            List<TraversalTrace.TraceNode> found = walk.getTrace().findStations(lineId, station);
+            if (found.isEmpty()) {
+                continue;
+            }
+            log.message("到达配置外车站 \"%s\" 的遍历路径：".formatted(station), NamedTextColor.YELLOW, Level.SEVERE);
+            emitPath(walk.getTrace().pathTo(found.getFirst()), log);
+        }
+    }
+
+    /**
+     * 竖向渲染并输出一条路径（每个节点一行）：聊天栏按
+     * {@link MapConfig#getTraversalTraceMaxChatLines()} 截断（{@code <0} 不限制，{@code 0} 不输出到聊天栏），
+     * 日志文件恒写全量。
+     *
+     * @param path 路径
+     * @param log  日志
+     */
+    private void emitPath(TraversalTrace.Path path, GeoTraversalLogger log) {
+        int maxChat = MapConfig.getTraversalTraceMaxChatLines();
+        List<Component> rows = TraversalTrace.renderVertical(path);
+        int shown = 0;
+        for (Component row : rows) {
+            boolean toSender = maxChat < 0 || shown < maxChat;
+            log.message(row, Level.SEVERE, toSender);
+            if (toSender) {
+                shown++;
+            }
+        }
+        if (shown < rows.size()) {
+            log.message("（聊天栏仅显示前 %d 行，共 %d 行，完整路径见 logs/railgeo_*.log）"
+                    .formatted(shown, rows.size()), NamedTextColor.GRAY, Level.SEVERE);
+        }
     }
 
     /**

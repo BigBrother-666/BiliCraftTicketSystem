@@ -124,6 +124,16 @@ public class MapConfig {
     @Getter
     private static double traversalCoasterSampleStep;
     /**
+     * 构建失败（车站校验不通过）时，最多向发起者聊天栏输出多少<b>行</b>遍历路径
+     * （路径竖向排版，每个节点一行）。
+     * <p>
+     * {@code <0} 表示不限制（全部输出），{@code 0} 表示不向聊天栏输出。无论此值如何，
+     * 完整路径一律写入 {@code logs/railgeo_*.log}，仅聊天栏输出受限——长线路一条路径可能上百个节点，
+     * 一次刷满会把玩家聊天栏冲掉。
+     */
+    @Getter
+    private static int traversalTraceMaxChatLines;
+    /**
      * 网页端logo边长（像素）
      */
     @Getter
@@ -165,6 +175,7 @@ public class MapConfig {
         MapConfig.traversalCooldownSeconds = traversal.get("cooldown-seconds", 3600);
         MapConfig.walkCooldownSeconds = traversal.get("walk-cooldown-seconds", 300);
         MapConfig.traversalCoasterSampleStep = traversal.get("coaster-sample-step", 0.5);
+        MapConfig.traversalTraceMaxChatLines = traversal.get("trace-max-chat-lines", -1);
 
         ConfigurationNode logo = MapConfig.webConfig.getNode("logo");
         MapConfig.webLogoDim = logo.get("web-logo-dim", 128);
