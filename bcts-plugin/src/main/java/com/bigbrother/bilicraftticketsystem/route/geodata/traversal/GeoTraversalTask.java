@@ -5,7 +5,6 @@ import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.config.MapConfig;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
-import com.bigbrother.bilicraftticketsystem.utils.GeoUtils;
 import com.bigbrother.bilicraftticketsystem.route.geodata.entity.GeoNodeLoc;
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
@@ -14,7 +13,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -343,10 +341,10 @@ public class GeoTraversalTask {
                 log.info("线路 " + start.getLineId() + " 在忽略名单中，跳过其起点");
                 continue;
             }
-            Block startRail = resolveStartRail(start.getStartLocation());
+            Block startRail = StartRailResolver.resolve(start.getStartLocation(), start.getStartDirection());
             if (startRail == null) {
                 walk.abort("起点 " + start.getLineId() + " 坐标处没有铁轨（坐标 " + start.getStartLocation()
-                        + "）。请检查该线路登记的起点是否仍在轨道上，如果该起点已废弃，请使用/railgeo delStartPos <lineId>删除");
+                        + "）。实体铁轨与 TCC 轨道均未找到，请检查该线路登记的起点是否仍在轨道上");
                 return false;
             }
             startLineIds.add(start.getLineId());
@@ -623,27 +621,6 @@ public class GeoTraversalTask {
             log.message("（聊天栏仅显示前 %d 行，共 %d 行，完整路径见 logs/railgeo_*.log）"
                     .formatted(shown, rows.size()), NamedTextColor.GRAY, Level.SEVERE);
         }
-    }
-
-    /**
-     * 解析起点铁轨方块（起点坐标即铁轨方块；若该处不是铁轨再看下方一格）。
-     *
-     * @param loc 起点坐标
-     * @return 铁轨方块，找不到返回 null
-     */
-    private Block resolveStartRail(Location loc) {
-        if (loc == null || loc.getWorld() == null) {
-            return null;
-        }
-        Block block = loc.getBlock();
-        if (GeoUtils.isRail(block.getType())) {
-            return block;
-        }
-        Block below = block.getRelative(0, -1, 0);
-        if (GeoUtils.isRail(below.getType())) {
-            return below;
-        }
-        return null;
     }
 
     /**

@@ -6,8 +6,11 @@ import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemInfo;
 import com.bigbrother.bilicraftticketsystem.route.geodata.traversal.GeoTraversalTask;
+import com.bigbrother.bilicraftticketsystem.route.geodata.traversal.StartRailResolver;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Location;
+import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
@@ -99,7 +102,16 @@ public class GeoCommand {
         if (!checkLineSystemMember(player, lineId)) {
             return;
         }
-        plugin.getGeoDatabaseManager().upsertGeoNodeLoc(lineId, player.getLocation(), player.getLocation().getDirection());
+        // 登记前先按遍历时的同一判据解析一次轨道（实体轨 + TCC 云轨）：站在空中也能登记成功的话，
+        // 问题要到下次遍历才以「起点坐标处没有铁轨」中止暴露出来，排查成本高得多。
+        Location loc = player.getLocation();
+        Block rail = StartRailResolver.resolve(loc, loc.getDirection());
+        if (rail == null) {
+            player.sendMessage(Component.text(
+                    "你当前位置没有铁轨，无法作为线路 [%s] 的遍历起点。".formatted(lineId),NamedTextColor.RED));
+            return;
+        }
+        plugin.getGeoDatabaseManager().upsertGeoNodeLoc(lineId, loc, loc.getDirection());
         player.sendMessage(Component.text("成功设置线路 [%s] 的遍历起点".formatted(lineId), NamedTextColor.GREEN));
     }
 
