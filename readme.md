@@ -50,7 +50,6 @@
 | `/ticketconfig editRoute <线路id>`  | bcts.ticket.editroute  | 新建 / 修改线路           |
 | `/ticketconfig delRoute <线路id>`   | bcts.ticket.editroute  | 删除线路                |
 
-> 删除正在运营的线路或铁路系统后，请执行 `/railgeo walkAll` 重新构建线路图。
 
 ### 2.3 线路图构建指令
 

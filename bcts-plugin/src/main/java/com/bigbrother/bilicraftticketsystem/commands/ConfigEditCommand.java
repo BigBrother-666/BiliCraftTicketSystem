@@ -6,7 +6,9 @@ import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemInfo;
+import com.bigbrother.bilicraftticketsystem.route.geodata.GeodataLineRemover;
 import com.bigbrother.bilicraftticketsystem.route.geodata.traversal.GeoTraversalTask;
+import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRouteEngine;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.wizard.RouteWizard;
 import com.bigbrother.bilicraftticketsystem.wizard.SystemWizard;
@@ -15,12 +17,14 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.incendo.cloud.annotations.Argument;
 import org.incendo.cloud.annotations.Command;
 import org.incendo.cloud.annotations.CommandDescription;
 import org.incendo.cloud.annotations.Permission;
 
+import java.util.Collection;
 import java.util.List;
 
 public class ConfigEditCommand {
@@ -194,10 +198,8 @@ public class ConfigEditCommand {
         LineConfig.delete(lineId);
         player.sendMessage(MainConfig.prefix.append(Component.text(
                 "已删除线路 [%s]，正在重载配置...".formatted(lineId), NamedTextColor.GREEN)));
-        player.sendMessage(MainConfig.prefix.append(Component.text(
-                "提示：删除的线路如果在运营（包含在路由图中），请用 /railgeo walkAll 重新遍历生成路由图。",
-                NamedTextColor.YELLOW)));
         reloadConfig(player);
+        removeGeodata(player, List.of(lineId), List.of());
     }
 
     @CommandDescription("删除一个铁路系统配置（railway_system.yml），并连带删除其下所有线路")
@@ -287,10 +289,53 @@ public class ConfigEditCommand {
                     "已删除铁路系统 [%s] 及其下 %d 条线路 %s，正在重载配置...".formatted(
                             systemId, lineIds.size(), lineIds), NamedTextColor.GREEN)));
         }
-        player.sendMessage(MainConfig.prefix.append(Component.text(
-                "提示：删除的铁路系统下如果包含正在运营的线路（包含在路由图中的线路），请用 /railgeo walkAll 重新遍历生成路由图。",
-                NamedTextColor.YELLOW)));
         reloadConfig(player);
+        removeGeodata(player, lineIds, List.of(systemId));
+    }
+
+    /**
+     * 删除线路后同步清理其线路图数据，使删除立即生效、无需重新 {@code /railgeo walkAll}：
+     * <ol>
+     *   <li>删除这些线路登记的遍历起点（否则残留的起点会让下次遍历报错、也会挡住孤立文件清理）；</li>
+     *   <li>删除这些线路的 geojson 文件，并清掉其它线路文件中通往它们的区间（见 {@link GeodataLineRemover}）；</li>
+     *   <li>重载路由图，并在已连接网页后端时推送最新快照。</li>
+     * </ol>
+     * 文件读写放异步线程，完成后回主线程反馈与推送。
+     *
+     * @param player    操作玩家
+     * @param lineIds   被删除的线路 id
+     * @param systemIds 被删除的铁路系统 id（只删线路时为空）
+     */
+    private void removeGeodata(Player player, Collection<String> lineIds, Collection<String> systemIds) {
+        for (String lineId : lineIds) {
+            plugin.getGeoDatabaseManager().deleteGeoNodeLoc(lineId);
+        }
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            String error = null;
+            GeodataLineRemover.Result result = null;
+            try {
+                result = new GeodataLineRemover().removeLines(plugin.getGeodataDir(), lineIds, systemIds);
+                GeoRouteEngine.load(plugin.getGeodataDir(), plugin.getComponentLogger());
+            } catch (Exception e) {
+                error = e.getMessage();
+            }
+            String finalError = error;
+            GeodataLineRemover.Result finalResult = result;
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (finalError != null) {
+                    player.sendMessage(MainConfig.prefix.append(Component.text(
+                            "清理线路图数据失败：%s。请用 /railgeo walkAll 重新构建线路图".formatted(finalError),
+                            NamedTextColor.RED)));
+                    return;
+                }
+                player.sendMessage(MainConfig.prefix.append(Component.text(
+                        "已清理线路图数据（删除 %d 个文件，更新 %d 个文件）".formatted(
+                                finalResult.deletedFiles(), finalResult.rewrittenFiles()), NamedTextColor.GREEN)));
+                if (plugin.getWebLink() != null && plugin.getWebLink().getClient().isConnected()) {
+                    plugin.getWebLink().getSnapshotPublisher().publishAll();
+                }
+            });
+        });
     }
 
     /**
