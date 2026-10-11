@@ -12,6 +12,7 @@ public final class MsgType {
     public static final String SNAPSHOT_GEO = "snapshot.geo";
     public static final String SNAPSHOT_SYSTEMS = "snapshot.systems";
     public static final String SNAPSHOT_LINES = "snapshot.lines";
+    public static final String SNAPSHOT_STATIONS = "snapshot.stations";
     public static final String REALTIME_TRAINS = "realtime.trains";
     public static final String REALTIME_REMOVED = "realtime.removed";
     public static final String PURCHASE_RESULT = "purchase.result";

@@ -89,7 +89,7 @@ public class WebLinkCommand {
     @Permission("bcts.ticket.reload")
     public void weblinkSync(
             CommandSender sender,
-            @Argument(value = "what", description = "geo|systems|lines|all") String what
+            @Argument(value = "what", description = "geo|systems|lines|stations|all") String what
     ) {
         WebLink web = plugin.getWebLink();
         if (web == null || !web.getClient().isConnected()) {
@@ -100,6 +100,7 @@ public class WebLinkCommand {
             case "geo" -> web.getSnapshotPublisher().publishGeo();
             case "systems" -> web.getSnapshotPublisher().publishSystems();
             case "lines" -> web.getSnapshotPublisher().publishLines();
+            case "stations" -> web.getSnapshotPublisher().publishStations();
             default -> web.getSnapshotPublisher().publishAll();
         }
         sender.sendMessage(Component.text("已推送快照：" + what, NamedTextColor.GREEN));

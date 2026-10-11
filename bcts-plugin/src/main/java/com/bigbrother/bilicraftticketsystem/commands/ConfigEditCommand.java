@@ -2,6 +2,8 @@ package com.bigbrother.bilicraftticketsystem.commands;
 
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
+import com.bigbrother.bilicraftticketsystem.config.StationAliasConfig;
+import com.bigbrother.bilicraftticketsystem.config.StationGroupConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
@@ -18,14 +20,21 @@ import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotation.specifier.Greedy;
 import org.incendo.cloud.annotations.Argument;
 import org.incendo.cloud.annotations.Command;
 import org.incendo.cloud.annotations.CommandDescription;
 import org.incendo.cloud.annotations.Permission;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class ConfigEditCommand {
     private final BiliCraftTicketSystem plugin;
@@ -352,6 +361,164 @@ public class ConfigEditCommand {
         } catch (Exception e) {
             player.sendMessage(MainConfig.prefix.append(Component.text(
                     "配置重载时发生错误：" + e.getMessage(), NamedTextColor.RED)));
+        }
+    }
+
+    @CommandDescription("新增 / 修改车站别名（station_alias.yml）")
+    @Command("ticketconfig editStationAlias <stationName> [englishName]")
+    @Permission("bcts.ticket.stationalias")
+    public void editStationAlias(
+            CommandSender sender,
+            @Argument(value = "stationName", description = "中文车站名", suggestions = "stationName")
+            String stationName,
+            @Greedy
+            @Argument(value = "englishName", description = "英文车站名（可含空格）")
+            @Nullable String englishName
+    ) {
+        if (englishName == null || englishName.isBlank()) {
+            sender.sendMessage(MainConfig.prefix.append(Component.text(
+                    "请输入英文车站名：/ticketconfig editStationAlias <中文车站名> <英文车站名>", NamedTextColor.RED)));
+            return;
+        }
+        // 合并连续空白，保留单词间单个空格
+        String en = englishName.trim().replaceAll("\\s+", " ");
+        warnIfStationMissing(sender, List.of(stationName));
+        String old = StationAliasConfig.get(stationName);
+        StationAliasConfig.upsert(stationName, en);
+        sender.sendMessage(MainConfig.prefix.append(Component.text(
+                (old == null ? "已添加车站别名：%s -> %s" : "已修改车站别名：%s -> %s").formatted(stationName, en),
+                NamedTextColor.GREEN)));
+        publishStations();
+    }
+
+    @CommandDescription("删除车站别名（station_alias.yml）")
+    @Command("ticketconfig delStationAlias <stationName>")
+    @Permission("bcts.ticket.stationalias")
+    public void delStationAlias(
+            CommandSender sender,
+            @Argument(value = "stationName", description = "中文车站名", suggestions = "stationAliasName")
+            String stationName
+    ) {
+        if (!StationAliasConfig.delete(stationName)) {
+            sender.sendMessage(MainConfig.prefix.append(Component.text(
+                    "车站 [%s] 没有设置英文名。".formatted(stationName), NamedTextColor.RED)));
+            return;
+        }
+        sender.sendMessage(MainConfig.prefix.append(Component.text(
+                "已删除车站 [%s] 的英文名。".formatted(stationName), NamedTextColor.GREEN)));
+        publishStations();
+    }
+
+    @CommandDescription("新建 / 覆盖车站组，组内不同名车站两两之间可换乘（station_group.yml）")
+    @Command("ticketconfig editStationGroup <groupName> <stations>")
+    @Permission("bcts.ticket.stationgroup")
+    public void editStationGroup(
+            CommandSender sender,
+            @Argument(value = "groupName", description = "车站组名", suggestions = "stationGroupName")
+            String groupName,
+            @Greedy
+            @Argument(value = "stations", description = "车站名（至少两个，空格分隔）", suggestions = "stationNames")
+            String stations
+    ) {
+        // 去重并保持输入顺序
+        Set<String> unique = new LinkedHashSet<>();
+        for (String token : stations.trim().split("\\s+")) {
+            if (!token.isEmpty()) {
+                unique.add(token);
+            }
+        }
+        if (unique.size() < 2) {
+            sender.sendMessage(MainConfig.prefix.append(Component.text(
+                    "车站组至少需要两个不同的车站：/ticketconfig editStationGroup <组名> <车站1> <车站2> [车站3...]",
+                    NamedTextColor.RED)));
+            return;
+        }
+        // 一个车站最多属于一个车站组（覆盖本组时，本组原有车站不算冲突）
+        List<String> conflicts = new ArrayList<>();
+        for (String station : unique) {
+            String owner = StationGroupConfig.groupOf(station);
+            if (owner != null && !owner.equals(groupName)) {
+                conflicts.add("%s(已在组 %s)".formatted(station, owner));
+            }
+        }
+        if (!conflicts.isEmpty()) {
+            sender.sendMessage(MainConfig.prefix.append(Component.text(
+                    "以下车站已属于其它车站组，一个车站只能属于一个组：" + String.join("、", conflicts),
+                    NamedTextColor.RED)));
+            return;
+        }
+        warnIfStationMissing(sender, unique);
+        boolean existed = StationGroupConfig.all().containsKey(groupName);
+        List<String> members = new ArrayList<>(unique);
+        StationGroupConfig.upsert(groupName, members);
+        sender.sendMessage(MainConfig.prefix.append(Component.text(
+                (existed ? "已覆盖车站组 [%s]：%s" : "已创建车站组 [%s]：%s").formatted(groupName, String.join(" ", members)),
+                NamedTextColor.GREEN)));
+        publishStations();
+    }
+
+    @CommandDescription("列出所有车站组（station_group.yml）")
+    @Command("ticketconfig listStationGroup")
+    @Permission("bcts.ticket.stationgroup")
+    public void listStationGroup(CommandSender sender) {
+        Map<String, List<String>> groups = StationGroupConfig.all();
+        if (groups.isEmpty()) {
+            sender.sendMessage(MainConfig.prefix.append(Component.text("当前没有车站组。", NamedTextColor.YELLOW)));
+            return;
+        }
+        sender.sendMessage(MainConfig.prefix.append(Component.text(
+                "当前共有 %d 个车站组：".formatted(groups.size()), NamedTextColor.AQUA)));
+        for (Map.Entry<String, List<String>> e : groups.entrySet()) {
+            sender.sendMessage(Component.text("  - %s: ".formatted(e.getKey()), NamedTextColor.GOLD)
+                    .append(Component.text(String.join(" ", e.getValue()), NamedTextColor.GRAY)));
+        }
+    }
+
+    @CommandDescription("删除车站组（station_group.yml）")
+    @Command("ticketconfig delStationGroup <groupName>")
+    @Permission("bcts.ticket.stationgroup")
+    public void delStationGroup(
+            CommandSender sender,
+            @Argument(value = "groupName", description = "车站组名", suggestions = "stationGroupName")
+            String groupName
+    ) {
+        if (!StationGroupConfig.delete(groupName)) {
+            sender.sendMessage(MainConfig.prefix.append(Component.text(
+                    "车站组 [%s] 不存在。".formatted(groupName), NamedTextColor.RED)));
+            return;
+        }
+        sender.sendMessage(MainConfig.prefix.append(Component.text(
+                "已删除车站组 [%s]。".formatted(groupName), NamedTextColor.GREEN)));
+        publishStations();
+    }
+
+    /**
+     * 车站不在当前线路图中时给出警告（仍会保存：线路图可能尚未构建）。
+     *
+     * @param sender   指令发送者
+     * @param stations 待检查的车站名
+     */
+    private void warnIfStationMissing(CommandSender sender, Collection<String> stations) {
+        Collection<String> known = GeoRouteEngine.getGraph().allStationNames();
+        List<String> missing = new ArrayList<>();
+        for (String station : stations) {
+            if (!known.contains(station)) {
+                missing.add(station);
+            }
+        }
+        if (!missing.isEmpty()) {
+            sender.sendMessage(MainConfig.prefix.append(Component.text(
+                    "警告：当前线路图中不存在车站 %s，仍将保存。".formatted(String.join("、", missing)),
+                    NamedTextColor.YELLOW)));
+        }
+    }
+
+    /**
+     * 已连接网页后端时推送最新车站别名 / 车站组快照。
+     */
+    private void publishStations() {
+        if (plugin.getWebLink() != null && plugin.getWebLink().getClient().isConnected()) {
+            plugin.getWebLink().getSnapshotPublisher().publishStations();
         }
     }
 }

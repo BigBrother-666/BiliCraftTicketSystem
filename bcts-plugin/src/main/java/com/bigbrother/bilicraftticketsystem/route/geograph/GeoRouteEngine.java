@@ -1,5 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.route.geograph;
 
+import com.bigbrother.bilicraftticketsystem.config.StationGroupConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import lombok.Getter;
 import lombok.Setter;
@@ -318,6 +319,8 @@ public class GeoRouteEngine {
      *   <li>两段都存在，且换乘总距离 {@code < 最短直达 ×(1 - minImprovement)}（无直达时无条件接受）→ 记一个 {@link JourneyPlan}；</li>
      *   <li>按换乘站去重（只留总距离最短者），按总距离升序，取前 {@code maxResults} 条。</li>
      * </ol>
+     * 车站组（{@link StationGroupConfig}）：在 M 下车后，也可在与 M 同组的不同名车站 M' 上车，
+     * 即第二段为 {@code M'→end}，此时按 (M, M') 去重。
      * {@code minImprovement} 是<b>最低改善门槛</b>：直达 A→C 若本就经过换乘站 B，则 A→B + B→C 的最短距离之和
      * 几乎总 ≤ 该直达距离（只省一点点也算「更短」），会产生「没必要下车换乘」的噪音。要求换乘至少比直达短
      * {@code minImprovement} 比例（如 0.2 = 短 20%）才显示，可滤掉这类噪音，同时保留「换乘大幅更近」的有用方案。
@@ -367,33 +370,41 @@ public class GeoRouteEngine {
         // mid 都是候选。缩合距离忽略了 enterFace/折返等约束是乐观下界，只用于选候选并排序，最终每段仍由
         // findByStation 权威实体化施加全部约束。据估计总距离升序排序，只对最有潜力的前若干个做实体化。
         Map<String, Map<String, Double>> matrix = g.stationDirectDistances();
+        // 车站组：leg1 在 mid1 下车后，可在同组任一车站 mid2（含 mid1 自身）上车继续 leg2。
         Map<String, Double> fromStart = matrix.getOrDefault(startStation, Collections.emptyMap());
-        List<Map.Entry<String, Double>> ranked = new ArrayList<>();
+        List<TransferCandidate> ranked = new ArrayList<>();
         for (Map.Entry<String, Double> e : fromStart.entrySet()) {
-            String mid = e.getKey();
-            if (mid.equals(startStation) || mid.equals(endStation)) {
+            String mid1 = e.getKey();
+            if (mid1.equals(startStation) || mid1.equals(endStation)) {
                 continue;
             }
-            Double midToEnd = matrix.getOrDefault(mid, Collections.emptyMap()).get(endStation);
-            if (midToEnd == null) {
-                continue; // mid 到不了终点，直接跳过
+            for (String mid2 : StationGroupConfig.groupMembers(mid1)) {
+                if (mid2.equals(startStation) || mid2.equals(endStation)) {
+                    continue;
+                }
+                Double midToEnd = matrix.getOrDefault(mid2, Collections.emptyMap()).get(endStation);
+                if (midToEnd == null) {
+                    continue; // mid2 到不了终点，直接跳过
+                }
+                double estTotal = e.getValue() + midToEnd;
+                if (estTotal >= threshold) {
+                    continue; // 下界都不比阈值近，实体化后只会更远，无需考察
+                }
+                ranked.add(new TransferCandidate(mid1, mid2, estTotal));
             }
-            double estTotal = e.getValue() + midToEnd;
-            if (estTotal >= threshold) {
-                continue; // 下界都不比阈值近，实体化后只会更远，无需考察
-            }
-            ranked.add(Map.entry(mid, estTotal));
         }
-        ranked.sort(Map.Entry.comparingByValue());
+        ranked.sort(Comparator.comparingDouble(TransferCandidate::estTotal));
 
         // 只对最有潜力的前若干候选做实体化（每个要跑两段 findByStation）；取需要条数的数倍作缓冲，
         // 兼顾「下界乐观导致个别候选实体化后被阈值淘汰」的情形。maxResults<=0（不限）时实体化全部候选。
         int materializeCap = maxResults > 0 ? Math.max(maxResults * MATERIALIZE_FACTOR, MATERIALIZE_MIN) : Integer.MAX_VALUE;
 
-        // 逐候选站实体化两段真实路径，按换乘站去重（留真实总距离最短者）
-        Map<String, JourneyPlan> byTransfer = new HashMap<>();
+        // 逐候选实体化两段真实路径，按 (下车站, 上车站) 去重（留真实总距离最短者）
+        Map<List<String>, JourneyPlan> byTransfer = new HashMap<>();
+        // 同一 mid1 可能对应多个 mid2，leg1 结果按 mid1 缓存避免重复计算
+        Map<String, List<GeoRoutePath>> leg1Cache = new HashMap<>();
         int materialized = 0;
-        for (Map.Entry<String, Double> entry : ranked) {
+        for (TransferCandidate cand : ranked) {
             if (materialized >= materializeCap) {
                 break;
             }
@@ -402,12 +413,14 @@ public class GeoRouteEngine {
                 // 继续走下面的排序/截断逻辑返回它们，而不是一并丢弃。
                 break;
             }
-            String mid = entry.getKey();
-            List<GeoRoutePath> leg1List = findByStation(startStation, mid, 1, deadlineNanos);
+            String mid1 = cand.alightStation();
+            String mid2 = cand.boardStation();
+            List<GeoRoutePath> leg1List = leg1Cache.computeIfAbsent(mid1,
+                    m -> findByStation(startStation, m, 1, deadlineNanos));
             if (leg1List.isEmpty()) {
                 continue;
             }
-            List<GeoRoutePath> leg2List = findByStation(mid, endStation, 1, deadlineNanos);
+            List<GeoRoutePath> leg2List = findByStation(mid2, endStation, 1, deadlineNanos);
             if (leg2List.isEmpty()) {
                 continue;
             }
@@ -419,10 +432,11 @@ public class GeoRouteEngine {
             if (total >= threshold) {
                 continue;
             }
-            JourneyPlan plan = new JourneyPlan(List.of(leg1, leg2), List.of(mid));
-            JourneyPlan old = byTransfer.get(mid);
+            JourneyPlan plan = new JourneyPlan(List.of(leg1, leg2), List.of(mid1));
+            List<String> key = List.of(mid1, mid2);
+            JourneyPlan old = byTransfer.get(key);
             if (old == null || plan.getTotalDistance() < old.getTotalDistance()) {
-                byTransfer.put(mid, plan);
+                byTransfer.put(key, plan);
             }
         }
 
@@ -432,6 +446,13 @@ public class GeoRouteEngine {
             return new ArrayList<>(ret.subList(0, maxResults));
         }
         return ret;
+    }
+
+    /**
+     * 换乘候选：在 {@code alightStation} 下车，在 {@code boardStation} 上车（同名或同一车站组），
+     * {@code estTotal} 为按站名距离矩阵估计的总距离下界。
+     */
+    private record TransferCandidate(String alightStation, String boardStation, double estTotal) {
     }
 
     /**

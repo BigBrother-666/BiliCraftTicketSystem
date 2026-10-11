@@ -1,0 +1,10 @@
+# 车站组配置
+#
+# 同一车站组内的不同名车站两两之间可换乘（仅影响联程票查询）。一个车站最多属于一个车站组。
+# 用指令 /ticketconfig editStationGroup <组名> <车站1> <车站2> [车站3...] 新增 / 覆盖，
+# /ticketconfig delStationGroup <组名> 删除，/ticketconfig listStationGroup 列出。
+#
+# 格式：
+#   组名:
+#     - 车站A
+#     - 车站B

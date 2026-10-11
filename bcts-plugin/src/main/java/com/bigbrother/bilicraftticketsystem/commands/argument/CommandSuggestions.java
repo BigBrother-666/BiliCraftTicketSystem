@@ -2,6 +2,9 @@ package com.bigbrother.bilicraftticketsystem.commands.argument;
 
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.ItemsConfig;
+import com.bigbrother.bilicraftticketsystem.config.StationAliasConfig;
+import com.bigbrother.bilicraftticketsystem.config.StationGroupConfig;
+import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRouteEngine;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
 import com.bigbrother.bilicraftticketsystem.ticket.BCCard;
 import com.bigbrother.bilicraftticketsystem.ticket.BCCardInfo;
@@ -109,6 +112,72 @@ public class CommandSuggestions {
         for (String lineId : LineConfig.getLines().keySet()) {
             if (!own.contains(lineId)) {
                 result.add(lineId);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 车站名补全：当前路由图中的全部车站名，再并上已设置英文名的车站（便于修改尚未构建线路图的车站）。
+     *
+     * @param context 命令上下文
+     * @param input   命令输入
+     * @return 车站名列表
+     */
+    @Suggestions("stationName")
+    public List<String> stationNameSuggestions(CommandContext<CommandSender> context, CommandInput input) {
+        Set<String> names = new LinkedHashSet<>(GeoRouteEngine.getGraph().allStationNames());
+        names.addAll(StationAliasConfig.all().keySet());
+        return new ArrayList<>(names);
+    }
+
+    /**
+     * 已设置英文名的车站补全（{@code delStationAlias} 用）。
+     *
+     * @param context 命令上下文
+     * @param input   命令输入
+     * @return 已有映射的中文站名
+     */
+    @Suggestions("stationAliasName")
+    public List<String> stationAliasNameSuggestions(CommandContext<CommandSender> context, CommandInput input) {
+        return new ArrayList<>(StationAliasConfig.all().keySet());
+    }
+
+    /**
+     * 已有车站组名补全。
+     *
+     * @param context 命令上下文
+     * @param input   命令输入
+     * @return 车站组名列表
+     */
+    @Suggestions("stationGroupName")
+    public List<String> stationGroupNameSuggestions(CommandContext<CommandSender> context, CommandInput input) {
+        return new ArrayList<>(StationGroupConfig.all().keySet());
+    }
+
+    /**
+     * {@code editStationGroup} 多车站参数（{@code @Greedy}，空格分隔）的补全：与 {@link #lineIdsSuggestions}
+     * 同理，返回带已输入前缀的完整候选串，并排除已选过的车站。
+     *
+     * @param context 命令上下文
+     * @param input   命令输入
+     * @return 带已输入前缀的完整候选串
+     */
+    @Suggestions("stationNames")
+    public List<String> stationNamesSuggestions(CommandContext<CommandSender> context, CommandInput input) {
+        String remaining = input.remainingInput();
+        String typing = input.lastRemainingToken();
+        String committed = remaining.substring(0, remaining.length() - typing.length());
+        Set<String> chosen = new LinkedHashSet<>();
+        for (String token : committed.trim().split("\\s+")) {
+            if (!token.isEmpty()) {
+                chosen.add(token);
+            }
+        }
+        List<String> result = new ArrayList<>();
+        for (String station : GeoRouteEngine.getGraph().allStationNames()) {
+            if (!chosen.contains(station)) {
+                result.add(committed + station);
             }
         }
         return result;

@@ -1,5 +1,6 @@
 package com.bigbrother.bilicraftticketsystem.menu.station;
 
+import com.bigbrother.bilicraftticketsystem.config.StationAliasConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import com.bigbrother.bilicraftticketsystem.config.StationIconConfig;
@@ -172,7 +173,8 @@ public class StationProvider {
         ItemStack item = customIconOrDefault(entry.name(), systemId);
         ItemMeta meta = item.getItemMeta();
 
-        meta.displayName(Component.text(entry.name(), stationColor(entry))
+        // 显示名带英文站名：中文 (英文)；仅展示用，选站逻辑仍使用 entry.name()
+        meta.displayName(Component.text(StationAliasConfig.displayName(entry.name()), stationColor(entry))
                 .decoration(TextDecoration.ITALIC, false));
 
         List<String> lineIds = new ArrayList<>(entry.lineIds());

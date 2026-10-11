@@ -17,7 +17,7 @@ public class SyncHandler {
     /**
      * 处理一条 sync.request 信封。
      *
-     * @param env 信封（data.what = geo|systems|lines|all）
+     * @param env 信封（data.what = geo|systems|lines|stations|all）
      */
     public void handle(Envelope env) {
         String what = "all";
@@ -29,6 +29,7 @@ public class SyncHandler {
             case "geo" -> publisher.publishGeo();
             case "systems" -> publisher.publishSystems();
             case "lines" -> publisher.publishLines();
+            case "stations" -> publisher.publishStations();
             default -> publisher.publishAll();
         }
     }

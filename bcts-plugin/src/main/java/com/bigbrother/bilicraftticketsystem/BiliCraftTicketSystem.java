@@ -125,6 +125,8 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
             LineConfig.load(this);
             ItemsConfig.loadItemsConfig(this);
             StationIconConfig.load(this);
+            StationAliasConfig.load(this);
+            StationGroupConfig.load(this);
             MenuConfig.loadMenuConfig(this);
             MapConfig.loadMapConfig(this);
             plugin.getComponentLogger().info(Component.text("成功加载配置文件", NamedTextColor.GOLD));
@@ -183,6 +185,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
             // reload：线路 / 系统配置可能变更，补推
             webLink.getSnapshotPublisher().publishSystems();
             webLink.getSnapshotPublisher().publishLines();
+            webLink.getSnapshotPublisher().publishStations();
         }
     }
 
@@ -194,6 +197,8 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
         saveResourceIfAbsent(EnumConfig.MENU_LOCATION.getFileName());
         saveResourceIfAbsent(EnumConfig.MENU_ITEMS.getFileName());
         saveResourceIfAbsent(EnumConfig.ICON_ITEMS.getFileName());
+        saveResourceIfAbsent(EnumConfig.STATION_ALIAS.getFileName());
+        saveResourceIfAbsent(EnumConfig.STATION_GROUP.getFileName());
         saveResourceIfAbsent(EnumConfig.MENU_TICKETBG.getFileName());
         saveResourceIfAbsent(EnumConfig.WEB_CONFIG.getFileName());
         saveResourceIfAbsent(EnumConfig.MENU_CARD.getFileName());

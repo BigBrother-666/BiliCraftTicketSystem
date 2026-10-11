@@ -25,6 +25,8 @@
 | `messages.yml`       | 提示文字                              |
 | `menu_*.yml`         | 各界面布局                             |
 | `menuitems.yml`      | 界面中使用的自定义物品                       |
+| `station_alias.yml`  | 车站英文名                             |
+| `station_group.yml`  | 车站组                               |
 
 所有文字字符串都支持 **MiniMessage 标签**和 **`&` 颜色代码**，两种写法可以混用。
 
@@ -43,13 +45,21 @@
 
 ### 2.2 线路配置指令
 
-| 指令                                | 权限                     | 说明                  |
-|-----------------------------------|------------------------|---------------------|
-| `/ticketconfig editSystem <系统id>` | bcts.ticket.editsystem | 新建 / 修改铁路系统         |
-| `/ticketconfig delSystem <系统id>`  | bcts.ticket.editsystem | 删除铁路系统（会连带删除其下所有线路） |
-| `/ticketconfig editRoute <线路id>`  | bcts.ticket.editroute  | 新建 / 修改线路           |
-| `/ticketconfig delRoute <线路id>`   | bcts.ticket.editroute  | 删除线路                |
+| 指令                                                         | 权限                       | 说明                     |
+|------------------------------------------------------------|--------------------------|------------------------|
+| `/ticketconfig editSystem <系统id>`                          | bcts.ticket.editsystem   | 新建 / 修改铁路系统            |
+| `/ticketconfig delSystem <系统id>`                           | bcts.ticket.editsystem   | 删除铁路系统（会连带删除其下所有线路）    |
+| `/ticketconfig editRoute <线路id>`                           | bcts.ticket.editroute    | 新建 / 修改线路              |
+| `/ticketconfig delRoute <线路id>`                            | bcts.ticket.editroute    | 删除线路                   |
+| `/ticketconfig editStationAlias <中文车站名> <英文车站名>`           | bcts.ticket.stationalias | 新增 / 修改车站英文名，英文名可含空格   |
+| `/ticketconfig delStationAlias <中文车站名>`                    | bcts.ticket.stationalias | 删除车站英文名                |
+| `/ticketconfig editStationGroup <组名> <车站1> <车站2> [车站3...]` | bcts.ticket.stationgroup | 新建 / 覆盖车站组，组内车站两两之间可换乘 |
+| `/ticketconfig listStationGroup`                           | bcts.ticket.stationgroup | 列出所有车站组                |
+| `/ticketconfig delStationGroup <组名>`                       | bcts.ticket.stationgroup | 删除车站组                  |
 
+- **车站英文名**：只用于展示。车票系统选站界面显示为「中文车站名 (英文车站名)」，网页线路图在中文站名下方显示英文名。车站不在当前线路图中时会提示警告，但仍会保存。
+- **车站组**：车票系统默认只有同名车站之间可以换乘。把距离较近的不同名车站加入同一车站组后，查询联程票时可以在组内任一车站下车、在另一车站上车。车站组只影响联程票，不影响直达票。一个车站只能属于一个车站组。
+- 修改英文名或车站组后会自动推送到网页（网页需要刷新页面才会生效）。
 
 ### 2.3 线路图构建指令
 
@@ -67,18 +77,18 @@
 
 ### 2.4 管理员指令
 
-| 指令                                                  | 权限                        | 说明                                    |
-|-----------------------------------------------------|---------------------------|---------------------------------------|
-| `/ticketadmin reload`                               | bcts.ticket.reload        | 重载所有配置文件                              |
-| `/ticketadmin weblink <status/reconnect>`           | bcts.ticket.reload        | 查看网页后端连接状态 / 重连                       |
-| `/ticketadmin weblink sync <geo/systems/lines/all>` | bcts.ticket.reload        | 手动向网页后端推送数据                           |
-| `/ticketbg adminupload <图片链接> <背景名> [字体颜色]`         | bcts.ticket.adminuploadbg | 上传所有玩家都可使用的共享背景（不限个数）                 |
-| `/ticketbg delete <图片id>`                           | bcts.ticket.deletebg      | 按 id 删除任意背景图                          |
-| `/ticketadmin card give <玩家> [交通卡UUID]`             | bcts.ticket.getcard       | 给予玩家一张新交通卡，或一张已存在的交通卡                 |
-| `/ticketadmin card delete <交通卡UUID>`                | bcts.ticket.delcard       | 删除交通卡                                 |
-| `/ticketadmin menuitem <add/get> <物品名>`             | bcts.ticket.menuitem      | 把手中物品存为自定义物品 / 取出自定义物品（用于编辑界面，见第 6 节） |
-| `/ticketadmin statistics <类型> <天数>`                 | bcts.ticket.statistics    | 查询近 n 天的统计数据                          |
-| `/ticketadmin migrate-olddb`                        | bcts.ticket.migrate       | 从旧版本数据库 `data.db` 迁移交通卡与车票背景          |
+| 指令                                                           | 权限                        | 说明                                    |
+|--------------------------------------------------------------|---------------------------|---------------------------------------|
+| `/ticketadmin reload`                                        | bcts.ticket.reload        | 重载所有配置文件                              |
+| `/ticketadmin weblink <status/reconnect>`                    | bcts.ticket.reload        | 查看网页后端连接状态 / 重连                       |
+| `/ticketadmin weblink sync <geo/systems/lines/stations/all>` | bcts.ticket.reload        | 手动向网页后端推送数据                           |
+| `/ticketbg adminupload <图片链接> <背景名> [字体颜色]`                  | bcts.ticket.adminuploadbg | 上传所有玩家都可使用的共享背景（不限个数）                 |
+| `/ticketbg delete <图片id>`                                    | bcts.ticket.deletebg      | 按 id 删除任意背景图                          |
+| `/ticketadmin card give <玩家> [交通卡UUID]`                      | bcts.ticket.getcard       | 给予玩家一张新交通卡，或一张已存在的交通卡                 |
+| `/ticketadmin card delete <交通卡UUID>`                         | bcts.ticket.delcard       | 删除交通卡                                 |
+| `/ticketadmin menuitem <add/get> <物品名>`                      | bcts.ticket.menuitem      | 把手中物品存为自定义物品 / 取出自定义物品（用于编辑界面，见第 6 节） |
+| `/ticketadmin statistics <类型> <天数>`                          | bcts.ticket.statistics    | 查询近 n 天的统计数据                          |
+| `/ticketadmin migrate-olddb`                                 | bcts.ticket.migrate       | 从旧版本数据库 `data.db` 迁移交通卡与车票背景          |
 
 ### 2.5 调试指令
 
@@ -363,5 +373,5 @@ switchline
 | `purchase.max-uses`              | 网页购票单次允许的最大使用次数          |
 | `purchase.require-online`        | 是否要求玩家在线才能网页购票（车票直接送到背包） |
 
-- 线路图构建完成后自动推送到网页；`/ticketadmin reload` 后推送线路与铁路系统信息；也可用 `/ticketadmin weblink sync` 手动推送。
+- 线路图构建完成后自动推送到网页；`/ticketadmin reload` 后推送线路、铁路系统、车站英文名与车站组信息；修改车站英文名 / 车站组后也会自动推送；也可用 `/ticketadmin weblink sync` 手动推送。
 - 玩家用 `/ticket weblogin bind` 获得网页登录资格。

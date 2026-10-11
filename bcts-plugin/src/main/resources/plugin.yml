@@ -70,6 +70,12 @@ permissions:
   bcts.ticket.editsystem:
     description: "游戏内新建/修改铁路系统配置权限"
     default: op
+  bcts.ticket.stationalias:
+    description: "新增/修改/删除车站英文名权限"
+    default: op
+  bcts.ticket.stationgroup:
+    description: "新增/修改/删除/查看车站组权限"
+    default: op
   bcts.ticket.debug:
     description: "列车/图调试相关指令"
     default: op

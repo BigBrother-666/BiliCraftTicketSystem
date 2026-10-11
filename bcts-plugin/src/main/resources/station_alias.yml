@@ -1,0 +1,7 @@
+# 车站英文名映射配置
+#
+# 用指令 /ticketconfig editStationAlias <中文车站名> <英文车站名> 新增 / 修改，
+# /ticketconfig delStationAlias <中文车站名> 删除。英文名仅用于网页线路图与车票系统选站界面展示。
+#
+# 格式：
+#   中文车站名: English Station Name

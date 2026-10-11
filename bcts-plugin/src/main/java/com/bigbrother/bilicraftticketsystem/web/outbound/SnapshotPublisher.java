@@ -1,6 +1,8 @@
 package com.bigbrother.bilicraftticketsystem.web.outbound;
 
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
+import com.bigbrother.bilicraftticketsystem.config.StationAliasConfig;
+import com.bigbrother.bilicraftticketsystem.config.StationGroupConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
@@ -37,12 +39,34 @@ public class SnapshotPublisher {
     }
 
     /**
-     * 全量同步：geo + systems + lines。
+     * 全量同步：geo + systems + lines + stations。
      */
     public void publishAll() {
         publishGeo();
         publishSystems();
         publishLines();
+        publishStations();
+    }
+
+    /**
+     * 推 {@code snapshot.stations}：车站别名映射与车站组。
+     * <p>
+     * 数据格式：{@code {"aliases": {中文站名: 英文站名}, "groups": {组名: [车站...]}}}
+     */
+    public void publishStations() {
+        ObjectNode data = Envelope.MAPPER.createObjectNode();
+        ObjectNode aliases = data.putObject("aliases");
+        for (Map.Entry<String, String> e : StationAliasConfig.all().entrySet()) {
+            aliases.put(e.getKey(), e.getValue());
+        }
+        ObjectNode groups = data.putObject("groups");
+        for (Map.Entry<String, List<String>> e : StationGroupConfig.all().entrySet()) {
+            ArrayNode stations = groups.putArray(e.getKey());
+            for (String s : e.getValue()) {
+                stations.add(s);
+            }
+        }
+        client.send(Envelope.of(MsgType.SNAPSHOT_STATIONS, data));
     }
 
     /**

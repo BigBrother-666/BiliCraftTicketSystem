@@ -20,7 +20,10 @@ public class JourneyPlan {
      */
     private final List<GeoRoutePath> legs;
     /**
-     * 各换乘站名，按顺序排列（size = legs.size()-1）。第 i 个换乘站 == legs[i] 的终点 == legs[i+1] 的起点。
+     * 各换乘站名，按顺序排列（size = legs.size()-1）。第 i 个换乘站 == legs[i] 的终点站（下车站）。
+     * <p>
+     * legs[i+1] 的起点（上车站）通常与之同名；若两站属于同一车站组（见 {@code StationGroupConfig}），
+     * 则可能不同名，上车站请从 legs[i+1] 读取。
      */
     private final List<String> transferStations;
     /**
@@ -29,7 +32,7 @@ public class JourneyPlan {
     private final double totalDistance;
 
     /**
-     * @param legs             各段直达路径（至少两段，且相邻段首尾站名一致）
+     * @param legs             各段直达路径（至少两段，相邻段首尾站名一致或属于同一车站组）
      * @param transferStations 各换乘站名（size = legs.size()-1）
      */
     public JourneyPlan(List<GeoRoutePath> legs, List<String> transferStations) {
