@@ -394,7 +394,7 @@ public class SignActionBcswitcher extends SignAction {
                 }
             }
         }
-        return null;
+        return branches.isEmpty() ? null : branches.getFirst();
     }
 
     private void publishRideEvent(MinecartGroup group, String nodeId) {
