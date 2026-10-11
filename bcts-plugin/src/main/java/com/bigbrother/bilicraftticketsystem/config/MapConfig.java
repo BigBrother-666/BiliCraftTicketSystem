@@ -79,10 +79,12 @@ public class MapConfig {
     @Getter
     private static int traversalMaxEdgesPerWalk;
     /**
-     * 整次遍历最多展开的段数（跨所有起点，兜底防环）。
+     * <b>单个遍历单元</b>（一条线路及其联络线分支）最多展开的段数（兜底防环）。
+     * <p>
+     * 按单元计而非整次计：超限只让该条线路构建失败（保留其上次数据），其余线路照常写出。
      */
     @Getter
-    private static int traversalMaxTotalNodes;
+    private static int traversalMaxEdgesPerUnit;
     /**
      * 分片遍历：每隔多少 tick 在主线程展开一批边。
      */
@@ -168,7 +170,9 @@ public class MapConfig {
 
         ConfigurationNode traversal = MapConfig.webConfig.getNode("traversal");
         MapConfig.traversalMaxEdgesPerWalk = traversal.get("max-edges-per-walk", 5000);
-        MapConfig.traversalMaxTotalNodes = traversal.get("max-total-nodes", 100000);
+        // 兼容旧键名 max-total-nodes（整次预算）：新键缺失时沿用旧值作为单元预算
+        MapConfig.traversalMaxEdgesPerUnit = traversal.get("max-edges-per-unit",
+                traversal.get("max-total-nodes", 20000));
         MapConfig.traversalIntervalTicks = Math.max(1, traversal.get("interval-ticks", 1));
         MapConfig.traversalEdgesPerInterval = Math.max(1, traversal.get("edges-per-interval", 20));
         MapConfig.traversalProgressIntervalSeconds = traversal.get("progress-interval-seconds", 5);

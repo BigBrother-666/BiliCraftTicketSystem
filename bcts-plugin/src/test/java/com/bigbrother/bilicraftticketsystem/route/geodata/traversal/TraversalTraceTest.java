@@ -76,7 +76,7 @@ class TraversalTraceTest {
         trace.link(shared, "s3");
         trace.arrive(shared, "s3", TraversalTrace.Kind.END, null, "world", 3, 64, 3, "l1");
 
-        // 主线道岔的出向正是 "shared"：GraphWalk 会因去重不再入队，但照样 link
+        // 主线道岔的出向正是 "shared"：UnitWalk 会因去重不再入队，但照样 link
         trace.link(sw, "shared");
 
         // 取路必须跨分支缝合到 shared 并继续走到断轨，而不是停在道岔上报「已遍历过」
@@ -207,7 +207,7 @@ class TraversalTraceTest {
 
     @Test
     void seedSegmentMustBeLinkedOrPathBreaksImmediately() {
-        // 回归：起点首段不经过道岔、没有 (节点,入向,出向,lineId) 状态，但 GraphWalk#seed 仍须给它编一个
+        // 回归：起点首段不经过道岔、没有 (节点,入向,出向,lineId) 状态，但 UnitWalk#seed 仍须给它编一个
         // seed key 并 link 到根节点。漏掉这一步时根节点没有后继，取路第一步就报「此处没有记录任何后继分支」。
         TraversalTrace linked = new TraversalTrace();
         TraversalTrace.TraceNode linkedRoot = linked.seedRoot("l1", "world", 0, 64, 0);

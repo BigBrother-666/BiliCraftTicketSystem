@@ -7,7 +7,11 @@ import org.geojson.LngLatAlt;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class GeoUtils {
     /**
@@ -34,6 +38,29 @@ public class GeoUtils {
      * bcswitcher 牌头进入方向允许的<b>方向字符</b>（普通铁轨）：相对方向 f/b/l/r 与绝对方向 e/s/w/n。
      */
     private static final String ENTER_DIRECTION_CHARS = "fblreswn";
+
+    /**
+     * 把同一道岔上的多个出向分支<b>按出向合并</b>：出向字符串相同的分支合成一个，线路 id 取并集
+     * （去重，保持首次出现顺序）；不同出向保持各自独立、按首次出现顺序排列。
+     * <p>
+     * 用于统一「一块牌写共用」与「多块牌分开写」两种写法：
+     * {@code r@pr-cw;pr-s3} 与分写在两块牌上的 {@code r@pr-s3} + {@code r@pr-cw} 合并后结果相同。
+     * 调用方应先把出向规整为物理分叉名（见 {@code TrackWalker#collectSwitcherBranches}），
+     * 否则不同朝向牌子上的相对方向无法正确比较。
+     *
+     * @param branches 待合并的分支（出向字符串应已规整）
+     * @return 合并后的分支列表
+     */
+    public static List<BcSwitcherBranch> mergeBranchesByDirection(List<BcSwitcherBranch> branches) {
+        Map<String, Set<String>> byDirection = new LinkedHashMap<>();
+        for (BcSwitcherBranch branch : branches) {
+            byDirection.computeIfAbsent(branch.getDirectionStr(), k -> new LinkedHashSet<>())
+                    .addAll(branch.getLineIds());
+        }
+        List<BcSwitcherBranch> merged = new ArrayList<>();
+        byDirection.forEach((dir, lineIds) -> merged.add(new BcSwitcherBranch(dir, new ArrayList<>(lineIds))));
+        return merged;
+    }
 
     /**
      * 解析 bcswitcher 控制牌的一行出向声明 {@code <出向>@<线路id>;[线路id]...}，返回道岔分支。

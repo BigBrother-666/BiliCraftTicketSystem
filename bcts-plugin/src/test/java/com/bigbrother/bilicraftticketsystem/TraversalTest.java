@@ -33,22 +33,6 @@ public class TraversalTest {
         return new RailEdge(from, to, lineId, railwaySystemId, coords, "#AA0000", 10, 0, null, "test_world", null, null, ownerLineId);
     }
 
-    /**
-     * 复刻 {@code GeoTraversalTask.saveLineIncremental} 的联络线合并删除判据（该方法私有且依赖 Bukkit，
-     * 无法直接单测）：只丢弃 owner ∈ targetLineIds 的旧段，其余（含 owner=null）保留。
-     */
-    private List<RailEdge> mergeContact(List<RailEdge> oldContact, java.util.Set<String> targetLineIds) {
-        List<RailEdge> kept = new ArrayList<>();
-        for (RailEdge e : oldContact) {
-            String owner = e.getOwnerLineId();
-            if (owner != null && targetLineIds.contains(owner)) {
-                continue;
-            }
-            kept.add(e);
-        }
-        return kept;
-    }
-
     @Test
     void edgeIdIsDeterministic() {
         RailEdge a = edge("n.w.1.64.2", "n.w.3.64.4", "pr-cw");
@@ -85,6 +69,20 @@ public class TraversalTest {
     }
 
     @Test
+    void parallelEdgesDoNotDuplicatePrevNext() {
+        // 同一对节点之间有两条不同 lineId 的边（如联络线与营运线并行）：两条边都要保留，
+        // 但节点的 prev / next 表达的是相邻节点，只能出现一次。
+        List<RailEdge> edges = new ArrayList<>();
+        edges.add(edge("A", "B", "pr-s3"));
+        edges.add(edge("A", "B", "contact", null, "pr-s3"));
+        edges.add(edge("A", "C", "pr-s3"));
+        Map<String, List<String>> next = new GeojsonBuilder().adjacency(edges, true);
+        Map<String, List<String>> prev = new GeojsonBuilder().adjacency(edges, false);
+        assertEquals(List.of("B", "C"), next.get("A"), "next 不应重复");
+        assertEquals(List.of("A"), prev.get("B"), "prev 不应重复");
+    }
+
+    @Test
     void contactEdgeOmitsRailwaySystemId() {
         // 联络线区间 railwaySystemId 为 null，geojson 中应省略该属性
         List<RailEdge> edges = new ArrayList<>();
@@ -96,39 +94,12 @@ public class TraversalTest {
 
     @Test
     void builderWritesOwnerProperty() {
-        // owner 非空时写出；联络线段 owner = 触发它的目标线（与自身 lineId=contact 不同）
+        // owner = 产出本段的遍历单元（即本段所在的文件名）。联络线段的 owner 是带出它的营运线，
+        // 与自身 lineId=contact 不同——这正是「文件归属按单元、而非按 lineId」的体现。
         List<RailEdge> edges = new ArrayList<>();
         edges.add(edge("switchA", "switchB", "contact", null, "line-a"));
         FeatureCollection fc = new GeojsonBuilder().build(new ArrayList<>(), edges);
         Map<String, Object> props = fc.getFeatures().getFirst().getProperties();
-        assertEquals("line-a", props.get("owner"), "联络线段应写出 owner=触发它的目标线");
-    }
-
-    @Test
-    void incrementalMergeKeepsOtherLinesReverseContactSegment() {
-        // 同一物理联络线：walk line-a 走出 switchA->switchB(owner=line-a)，
-        // 走 line-b 时曾走出反向 switchB->switchA(owner=line-b)。
-        // 现在 walk line-a：只应删 owner=line-a 的旧段，保留 owner=line-b 的反向段（否则联络线断开）。
-        List<RailEdge> oldContact = new ArrayList<>();
-        RailEdge aToB = edge("switchA", "switchB", "contact", null, "line-a");
-        RailEdge bToA = edge("switchB", "switchA", "contact", null, "line-b");
-        oldContact.add(aToB);
-        oldContact.add(bToA);
-
-        List<RailEdge> kept = mergeContact(oldContact, java.util.Set.of("line-a"));
-
-        assertEquals(1, kept.size(), "只应保留对端线拥有的反向段");
-        assertEquals(bToA.getId(), kept.getFirst().getId(), "保留的必须是 owner=line-b 的反向段");
-        assertTrue(kept.stream().noneMatch(e -> e.getId().equals(aToB.getId())),
-                "owner=line-a 的旧段应被删除，由本次遍历重新走出");
-    }
-
-    @Test
-    void incrementalMergeKeepsLegacyNullOwnerSegments() {
-        // 旧文件（owner 字段引入前）的联络线段 owner=null，合并时应保守保留
-        List<RailEdge> oldContact = new ArrayList<>();
-        oldContact.add(edge("switchA", "switchB", "contact", null, null));
-        List<RailEdge> kept = mergeContact(oldContact, java.util.Set.of("line-a"));
-        assertEquals(1, kept.size(), "owner=null 的旧段应保守保留");
+        assertEquals("line-a", props.get("owner"), "联络线段应写出 owner=带出它的营运线");
     }
 }

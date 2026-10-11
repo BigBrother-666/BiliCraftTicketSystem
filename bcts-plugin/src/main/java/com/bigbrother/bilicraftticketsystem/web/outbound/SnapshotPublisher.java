@@ -126,10 +126,18 @@ public class SnapshotPublisher {
     }
 
     /**
-     * 读取目录下所有 {@code *.geojson} 并按节点 id 去重合并成单个 FeatureCollection。
+     * 读取目录下所有 {@code *.geojson} 并按 feature id 去重合并成单个 FeatureCollection。
      * <p>
-     * Point（含 {@code id}）按 id 去重，合并 {@code lineIds} / {@code railwaySystemIds} 并集；
-     * LineString 全部保留（共线靠 layer 叠层）。纯逻辑（除文件读取），便于复用 / 测试。
+     * Point（含 {@code id}）按 id 去重，合并 {@code lineIds} / {@code railwaySystemIds} 并集。
+     * <p>
+     * LineString <b>同样按 id 去重</b>、合并 {@code enterFrom} 并集：同一条边可能被<b>两个遍历单元</b>
+     * 各产出一份（共用轨道 / 越界边，见 {@code TraversalCollector}），各自只记下自己那一侧能到达的面。
+     * 不去重会让后端图里出现重复出边，只取其中一份又会让门控面残缺。
+     * <p>
+     * 注意：物理上重合但 lineId 不同的边 id 本就不同（{@code e.<lineId>.<from>__<to>}），
+     * 仍各占一条 feature 靠 layer 叠层显示——这里只合并真正的「同 id 重复」。
+     * <p>
+     * 纯逻辑（除文件读取），便于复用 / 测试。
      *
      * @param dir geojson 目录
      * @return 合并后的 FeatureCollection；目录不存在 / 无文件返回 null
@@ -145,7 +153,9 @@ public class SnapshotPublisher {
         ObjectMapper mapper = Envelope.MAPPER;
         // 节点按 id 去重（保留首个，合并 lineIds / railwaySystemIds）
         Map<String, Feature> points = new LinkedHashMap<>();
-        List<Feature> lines = new ArrayList<>();
+        // 区间同样按 id 去重（保留首个，合并 enterFrom）；无 id 的区间无从判重，原样保留
+        Map<String, Feature> lines = new LinkedHashMap<>();
+        List<Feature> unkeyedLines = new ArrayList<>();
         for (File file : files) {
             FeatureCollection fc;
             try {
@@ -157,8 +167,8 @@ public class SnapshotPublisher {
                 continue;
             }
             for (Feature f : fc.getFeatures()) {
+                String id = stringProp(f, "id");
                 if (f.getGeometry() instanceof org.geojson.Point) {
-                    String id = stringProp(f, "id");
                     if (id == null) {
                         continue;
                     }
@@ -169,14 +179,23 @@ public class SnapshotPublisher {
                         mergeStringArray(existing, f, "lineIds");
                         mergeStringArray(existing, f, "railwaySystemIds");
                     }
+                } else if (id == null) {
+                    unkeyedLines.add(f);
                 } else {
-                    lines.add(f);
+                    Feature existing = lines.get(id);
+                    if (existing == null) {
+                        lines.put(id, f);
+                    } else {
+                        // 两个单元各产出一份：到达面取并集，门控才完整
+                        mergeStringArray(existing, f, "enterFrom");
+                    }
                 }
             }
         }
         FeatureCollection merged = new FeatureCollection();
         points.values().forEach(merged::add);
-        lines.forEach(merged::add);
+        lines.values().forEach(merged::add);
+        unkeyedLines.forEach(merged::add);
         return merged;
     }
 

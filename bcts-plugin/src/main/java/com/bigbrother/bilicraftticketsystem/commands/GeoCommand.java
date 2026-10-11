@@ -53,7 +53,7 @@ public class GeoCommand {
         new GeoTraversalTask(plugin, commandSender, Set.of(), ignoreLineIds).runAll();
     }
 
-    @CommandDescription("只遍历一条或多条线路及与其直接相连的联络线，增量更新这些线与 contact 的 geojson")
+    @CommandDescription("只遍历一条或多条线路（含其带出的联络线），增量重建这些线各自的 geojson")
     @Command("railgeo walk <lineIds>")
     @Permission("bcts.railgeo")
     public void walk(

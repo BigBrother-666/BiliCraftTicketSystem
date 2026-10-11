@@ -28,6 +28,10 @@ public class GeoRouteGraph {
      * 节点 id -> 从该节点出发的有向边列表。
      */
     private final Map<String, List<GeoLink>> adjacency = new LinkedHashMap<>();
+    /**
+     * 边 id -> 边。供构图时按 id 判重（同一条边可能被多个遍历单元各产出一份，须合并而非重复加入）。
+     */
+    private final Map<String, GeoLink> linksById = new LinkedHashMap<>();
 
     /**
      * 站名级「直达可达」缩合距离矩阵的缓存：起点站名 -> 终点站名 -> 最短可达距离（km，下界估计）。
@@ -62,6 +66,7 @@ public class GeoRouteGraph {
      * @param link 边
      */
     public void addLink(GeoLink link) {
+        linksById.put(link.getId(), link);
         adjacency.computeIfAbsent(link.getFromNodeId(), k -> new ArrayList<>()).add(link);
         GeoNode from = nodes.get(link.getFromNodeId());
         if (from != null) {
@@ -81,6 +86,17 @@ public class GeoRouteGraph {
      */
     public GeoNode getNode(String id) {
         return nodes.get(id);
+    }
+
+    /**
+     * 按 id 取边。供构图时判重：同一条边可能被多个遍历单元各产出一份（共用轨道 / 越界边），
+     * 须按 id 合并到达面而不是重复加入邻接表。
+     *
+     * @param id 边 id
+     * @return 边，不存在返回 null
+     */
+    public GeoLink getLink(String id) {
+        return linksById.get(id);
     }
 
     /**
@@ -112,25 +128,27 @@ public class GeoRouteGraph {
     }
 
     /**
-     * 判断是否是某线路的入站道岔
+     * 取某道岔节点上<b>属于指定线路</b>的出边，供进站道岔判定使用。
+     * <p>
+     * 只看本线自己的出边，别的线路的出边一律不计：共线车站（如两条线共用的 Station B）的进站道岔上
+     * 同时挂着两条线各自的正线与停靠线出边，若要求「全部出边同属一条线」才算进站道岔，共线车站就永远
+     * 认不出来——表现为线路高亮时正线没被隐藏、寻路时车站去重失效。
      *
      * @param node   判断的节点
      * @param lineId 当前线路id
+     * @return 本线出边；节点为空 / 是车站 / lineId 为空时返回空列表
      */
-    private boolean isEnterSwitcher(GeoNode node, String lineId) {
+    private List<GeoLink> lineLinksOfSwitch(GeoNode node, String lineId) {
         if (node == null || node.isStation() || lineId == null) {
-            return false;
+            return Collections.emptyList();
         }
-        List<GeoLink> outLinks = links(node.getId());
-        if (outLinks.isEmpty()) {
-            return false;
-        }
-        for (GeoLink link : outLinks) {
-            if (!lineId.equals(link.getLineId())) {
-                return false;
+        List<GeoLink> result = new ArrayList<>();
+        for (GeoLink link : links(node.getId())) {
+            if (lineId.equals(link.getLineId())) {
+                result.add(link);
             }
         }
-        return true;
+        return result;
     }
 
     /**
@@ -149,18 +167,19 @@ public class GeoRouteGraph {
      * 结构判定（不再依赖 {@code default} 特殊 lineId）：进站道岔是一个 bcswitcher，其一条出边通往
      * <b>道岔</b>节点（正线，跨站全速通过）、另一条出边通往<b>车站</b>节点（停靠线 platform）。
      * <p>
-     * 仅当传入节点<b>同时</b>有通往道岔与通往车站的出边时，返回那条通往车站的停靠线车站名；
-     * 否则（不是道岔、无正线绕行、或找不到停靠线车站）返回 null。
+     * 仅当传入节点<b>本线的出边</b>里同时有通往道岔与通往车站的出边时，返回那条通往车站的停靠线车站名；
+     * 否则（不是道岔、无正线绕行、或找不到停靠线车站）返回 null。只看本线出边：共线车站的进站道岔上
+     * 还挂着别的线路的出边，它们不影响本线的判定（见 {@link #lineLinksOfSwitch}）。
      *
      * @param node   待判断的节点（通常为进站道岔节点）
      * @param lineId 当前线路id
      * @return 停靠线 platform 车站名；不满足条件返回 null
      */
     public String platformNameOfMainlineSwitch(GeoNode node, String lineId) {
-        if (!isEnterSwitcher(node, lineId)) {
+        List<GeoLink> outLinks = lineLinksOfSwitch(node, lineId);
+        if (outLinks.isEmpty()) {
             return null;
         }
-        List<GeoLink> outLinks = links(node.getId());
         boolean toSwitch = false;
         String platformName = null;
         for (GeoLink out : outLinks) {

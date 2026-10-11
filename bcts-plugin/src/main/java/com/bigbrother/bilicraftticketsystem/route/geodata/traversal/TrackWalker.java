@@ -4,6 +4,7 @@ import com.bergerkiller.bukkit.common.math.Quaternion;
 import com.bergerkiller.bukkit.tc.TrainCarts;
 import com.bergerkiller.bukkit.tc.controller.MinecartMember;
 import com.bergerkiller.bukkit.tc.controller.MinecartMemberStore;
+import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
@@ -19,7 +20,9 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -63,12 +66,19 @@ public class TrackWalker {
     /**
      * 单段行走结果。
      *
+     * @param sign      代表性节点控制牌：{@link StopReason#PLATFORM} 为首块 platform 牌（取站名用），
+     *                  {@link StopReason#SWITCHER} 为首块 bcswitcher 牌。轨道结束时为 null。
+     * @param nodeSigns 停止位置铁轨上的<b>全部</b>节点控制牌（platform + bcswitcher）。一格铁轨可挂多块
+     *                  牌，出向必须跨全部牌收集——只看 {@link #sign} 会漏掉同格其它道岔牌的出向。
+     * @param mixedNode 停止位置同格<b>既有 bcswitcher 又有 platform</b>（不符合标准车站格式，按道岔处理
+     *                  并告警，见 {@link #findNodeSigns}）。
      * @param direction 到达停止位置时的行走方向（供下一段行走作为出发方向）。
      * @param length    本段沿轨道的真实长度（{@link TrackWalkingPoint#movedTotal} 段首段尾之差，
      *                  按 RailPath 实际移动距离计，曲线/斜坡/对角轨道均精确，优于数铁轨方块数）。
      */
-        public record WalkResult(StopReason reason, Block railBlock, RailLookup.TrackedSign sign, Vector direction,
-                                 double length) {
+    public record WalkResult(StopReason reason, Block railBlock, RailLookup.TrackedSign sign,
+                             List<RailLookup.TrackedSign> nodeSigns, boolean mixedNode, Vector direction,
+                             double length) {
     }
 
     private final TrackWalkingPoint wp;
@@ -182,9 +192,18 @@ public class TrackWalker {
         // 记录段首累计里程，段尾相减即为本段沿轨道的真实长度
         double startMoved = wp.movedTotal;
         int steps = 0;
-        // 上一次做过「节点牌检测 + tag 处理」的铁轨方块。云轨密采时一步可能仍停在同一格铁轨内，
-        // 只有铁轨方块变化（跨过 rail piece）才需要重新检测——避免同格重复处理、也保证不漏格。
-        Block lastProcessedRail = null;
+        // 上一次做过 tag 处理（addtag / remtag）的铁轨方块。云轨密采时一步可能仍停在同一格铁轨内，
+        // 只有铁轨方块变化（跨过 rail piece）才需要重新处理——避免同格重复加减 tag。
+        Block lastTaggedRail = null;
+        // 已检测过节点牌的控制牌集合。出发点所在铁轨的节点牌先行记入，使本段不会在出发点立刻停下；
+        // 之后逐牌判断而非整格跳过——云轨可能在同格内连续推进多步、或离开后又回到同一格，
+        // 按格去重会漏掉该格上的节点牌。
+        // 用 TrackedSign#getUniqueKey() 而非对象身份作为 key：TrackedSign 的 equals 是身份比较，
+        // 而 TC 的铁轨缓存可能在行走途中刷新、同一块牌换成新的 TrackedSign 实例，按身份去重会失效
+        // （出发点的牌再次出现就会被当成新牌、让本段在原地停下）。getUniqueKey 对真实牌返回按
+        // 牌坐标 + 正反面比较的值对象，跨实例稳定。
+        Set<Object> checkedSigns = new HashSet<>();
+        collectSignsInto(wp.state.railPiece(), checkedSigns);
         while (true) {
             RailState state = wp.state;
             Block railBlock = state.railBlock();
@@ -199,9 +218,9 @@ public class TrackWalker {
             }
 
             // 处理当前铁轨的 addtag / remtag（影响原版 switcher 后续选向）。云轨密采时同一格只处理一次。
-            if (!sameBlock(lastProcessedRail, railBlock)) {
+            if (!sameBlock(lastTaggedRail, railBlock)) {
                 applyTagSigns(state.railPiece().signs());
-                lastProcessedRail = railBlock;
+                lastTaggedRail = railBlock;
             }
 
             // 前进：普通轨一次跨完当前段；云轨按采样步长小步推进（两者都经 loadNextRail 处理轨道边界与预测寻路）。
@@ -217,28 +236,39 @@ public class TrackWalker {
                 if (wp.failReason == TrackWalkingPoint.FailReason.LIMIT_REACHED) {
                     wp.failReason = TrackWalkingPoint.FailReason.NONE;
                 } else {
-                    return new WalkResult(StopReason.END, railBlock, null, state.enterDirection(), wp.movedTotal - startMoved);
+                    return endResult(railBlock, state.enterDirection(), startMoved);
                 }
             }
 
             if (++steps >= maxStepsPerSegment) {
                 // 兜底：疑似无控制牌物理环路，按断轨处理避免死循环
-                return new WalkResult(StopReason.END, wp.state.railBlock(), null, wp.state.enterDirection(), wp.movedTotal - startMoved);
+                return endResult(wp.state.railBlock(), wp.state.enterDirection(), startMoved);
             }
 
-            // 检查新铁轨上的节点控制牌。云轨密采时可能多步仍在同格（还没跨到有牌的新格），
-            // 只有铁轨方块变化后才需要检测——同格重复检测无意义，且不会因步长大而跳过任何一格。
+            // 检查新位置铁轨上「尚未检测过」的节点控制牌：逐牌去重而非整格跳过。一格可挂多块节点牌，
+            // 且云轨可能在同格内连续推进多步或离开后回到同格，按格去重会漏牌。
             Block newRail = wp.state.railBlock();
-            if (!sameBlock(lastProcessedRail, newRail)) {
-                RailLookup.TrackedSign nodeSign = findNodeSign(wp.state.railPiece());
-                if (nodeSign != null) {
-                    // 节点坐标一律用铁轨方块整数坐标（锚定 NodeId / 起点登记 / 去重），按普通轨精度处理
-                    collector.accept(newRail.getX(), newRail.getY(), newRail.getZ(), false);
-                    StopReason reason = signType(nodeSign);
-                    return new WalkResult(reason, newRail, nodeSign, wp.state.enterDirection(), wp.movedTotal - startMoved);
-                }
+            NodeSigns found = findNodeSigns(wp.state.railPiece(), checkedSigns);
+            if (found != null) {
+                // 节点坐标一律用铁轨方块整数坐标（锚定 NodeId / 起点登记 / 去重），按普通轨精度处理
+                collector.accept(newRail.getX(), newRail.getY(), newRail.getZ(), false);
+                return new WalkResult(found.reason(), newRail, found.primary(), found.all(), found.mixed(),
+                        wp.state.enterDirection(), wp.movedTotal - startMoved);
             }
         }
+    }
+
+    /**
+     * 构造一个「轨道结束」结果（断轨 / 死路 / 步数上限）。
+     *
+     * @param railBlock  停止位置铁轨方块
+     * @param direction  停止时的行走方向
+     * @param startMoved 段首累计里程（用于算本段长度）
+     * @return 轨道结束的行走结果
+     */
+    private WalkResult endResult(Block railBlock, Vector direction, double startMoved) {
+        return new WalkResult(StopReason.END, railBlock, null, List.of(), false, direction,
+                wp.movedTotal - startMoved);
     }
 
     /**
@@ -309,12 +339,38 @@ public class TrackWalker {
     }
 
     /**
-     * 在一个铁轨片上查找节点控制牌（platform 或 bcswitcher）。
+     * 一格铁轨上找到的节点控制牌集合。
      *
-     * @param railPiece 铁轨片
-     * @return 找到的控制牌，无则 null
+     * @param reason  本次停止的节点类型：同格<b>有任一 bcswitcher 即判为道岔</b>
+     *                （道岔的出向决定后继走向，不能被同格的 platform 掩盖），否则为车站
+     * @param primary 代表性控制牌：道岔取首块 bcswitcher，车站取首块 platform（用于取站名）
+     * @param all     同格全部节点控制牌（出向须跨全部 bcswitcher 牌收集）
+     * @param mixed   同格既有 bcswitcher 又有 platform（不符合标准车站格式，调用方应告警）
      */
-    private RailLookup.TrackedSign findNodeSign(com.bergerkiller.bukkit.tc.controller.components.RailPiece railPiece) {
+    private record NodeSigns(StopReason reason, RailLookup.TrackedSign primary,
+                             List<RailLookup.TrackedSign> all, boolean mixed) {
+    }
+
+    /**
+     * 在一个铁轨片上查找<b>全部</b>尚未检测过的节点控制牌（platform / bcswitcher），并把它们记入
+     * {@code checkedSigns} 以免重复触发。
+     * <p>
+     * <b>为什么必须收全部而不是第一块</b>：一格铁轨下可以挂多块 bcswitcher（各声明不同进入方向），
+     * 旧实现只返回 {@code signs()} 的第一块，于是：
+     * <ul>
+     *   <li>若第一块牌的进入方向与本次到达方向不匹配，该道岔的出向会被整块跳过——表现为
+     *       「bcswitcher 识别不到」。<b>普通铁轨同样会触发</b>，只要一格上放了多块 bcswitcher。</li>
+     *   <li>若同格既有 platform 又有 bcswitcher，{@code signs()} 的顺序决定认哪个；认成 platform
+     *       时该道岔的全部出向都会丢失。</li>
+     * </ul>
+     * 故此处返回同格所有节点牌，由 {@link #collectSwitcherBranches} 跨全部牌收集出向；类型判定上
+     * <b>bcswitcher 优先于 platform</b>（出向决定走向，不可被掩盖）。
+     *
+     * @param railPiece    铁轨片
+     * @param checkedSigns 已检测过的控制牌集合（原地加入本次新发现的牌）
+     * @return 找到的节点牌集合；本格无未检测过的节点牌时返回 null
+     */
+    private NodeSigns findNodeSigns(RailPiece railPiece, Set<Object> checkedSigns) {
         if (railPiece == null) {
             return null;
         }
@@ -322,12 +378,55 @@ public class TrackWalker {
         if (signs == null) {
             return null;
         }
+        List<RailLookup.TrackedSign> all = new ArrayList<>();
+        RailLookup.TrackedSign firstSwitcher = null;
+        RailLookup.TrackedSign firstPlatform = null;
         for (RailLookup.TrackedSign sign : signs) {
-            if (signType(sign) != null) {
-                return sign;
+            StopReason type = signType(sign);
+            if (type == null) {
+                continue;
+            }
+            // 已检测过（出发点所在格的牌 / 同格上一次已触发的牌）不再触发，但仍计入 all：
+            // 出向收集需要同格全部 bcswitcher。
+            boolean fresh = checkedSigns.add(sign.getUniqueKey());
+            all.add(sign);
+            if (type == StopReason.SWITCHER) {
+                if (firstSwitcher == null && fresh) {
+                    firstSwitcher = sign;
+                }
+            } else if (firstPlatform == null && fresh) {
+                firstPlatform = sign;
             }
         }
-        return null;
+        if (firstSwitcher == null && firstPlatform == null) {
+            return null;
+        }
+        boolean mixed = firstSwitcher != null && firstPlatform != null;
+        return firstSwitcher != null
+                ? new NodeSigns(StopReason.SWITCHER, firstSwitcher, all, mixed)
+                : new NodeSigns(StopReason.PLATFORM, firstPlatform, all, mixed);
+    }
+
+    /**
+     * 把一个铁轨片上的全部节点控制牌记入集合（不触发停止）。用于把<b>出发点</b>所在铁轨的节点牌
+     * 预先标记为已检测，使本段不会在出发点立刻停下。
+     *
+     * @param railPiece 铁轨片（可为 null）
+     * @param sink      接收集合
+     */
+    private void collectSignsInto(RailPiece railPiece, Set<Object> sink) {
+        if (railPiece == null) {
+            return;
+        }
+        RailLookup.TrackedSign[] signs = railPiece.signs();
+        if (signs == null) {
+            return;
+        }
+        for (RailLookup.TrackedSign sign : signs) {
+            if (signType(sign) != null) {
+                sink.add(sign.getUniqueKey());
+            }
+        }
     }
 
     /**
@@ -348,42 +447,83 @@ public class TrackWalker {
     }
 
     /**
-     * 收集当前停止位置铁轨上、其进入方向匹配本次<b>到达方向</b>的所有 bcswitcher 出向分支。
+     * 收集给定节点控制牌中、其进入方向匹配本次<b>到达方向</b>的所有 bcswitcher 出向分支，
+     * 并<b>按物理分叉合并</b>。
      * <p>
-     * 一格铁轨下可能有多块 bcswitcher 牌（依次处理，不合并）：每块牌的牌头声明了它适用的进入方向
-     * （如 {@code [+train:lf]}）。只有牌头进入方向匹配本次到达方向的牌，其出向才纳入；不匹配的牌
-     * （为反方向来车准备）跳过。这样有向图的「入边方向 → 出边」关系才正确。
+     * 分两步：
+     * <ol>
+     *   <li><b>逐牌筛选</b>：一格铁轨下可能有多块 bcswitcher 牌，每块牌的牌头声明了它适用的进入方向
+     *       （如 {@code [+train:lf]}）。只有牌头进入方向匹配本次到达方向的牌，其出向才纳入；不匹配的牌
+     *       （为反方向来车准备）跳过。进入方向是<b>每块牌各自</b>的属性，故必须在合并之前判定。</li>
+     *   <li><b>按分叉合并</b>：把每个出向规整为本铁轨上的物理分叉名（{@link #normalizeDirection}），
+     *       同一分叉的出向合成一个分支、线路 id 取并集（{@link GeoUtils#mergeBranchesByDirection}）。
+     *       这样一块牌写 {@code r@pr-cw;pr-s3} 与两块牌分写 {@code r@pr-s3}、{@code r@pr-cw} 得到
+     *       完全相同的结果，下游的共线段判定、联络线判定只需处理一种形态。</li>
+     * </ol>
+     * 按分叉而不是按出向文本合并：相对方向（f/b/l/r）以<b>牌子朝向</b>为基准，贴在不同面的两块牌上
+     * 同一个 {@code r} 可能是两条不同的轨道，而一块写 {@code r}、一块写 {@code e} 又可能是同一条。
+     * <p>
+     * <b>方向匹配用 {@link SignActionEvent#isEnterActivated()}，不能用
+     * {@code isWatchedDirection(Vector)}</b>：后者对每个进入方向求 {@code motionDot(向量) > 0}，
+     * 而 <b>TCC 云轨</b>的牌头写的是数字节点名，解析成 {@code RailEnterDirectionFromJunction}，
+     * 其 {@code motionDot} 是「对该 junction 终点位置向量取反再点积」——在曲线上这个符号并不可靠，
+     * 导致该匹配的匹配不上（整块牌的出向被跳过，表现为道岔识别不到）、不该匹配的也可能匹配上。
+     * {@code isEnterActivated} 走的是 {@code RailEnterDirection.match(RailState)}：把 RailState 沿路径
+     * <b>往回走</b>到端点再比位置与方向，对节点名与方向字符都精确。traincarts 原版 switcher 牌用的
+     * 也正是它（见 {@code SignActionSwitcher}）。
+     * <p>
+     * 判据需要一个 {@link RailState}。行走器用 {@code member} 构造事件时，TC 会去
+     * {@code member.getGroup().getRailTracker()} 里找匹配的 rail——遍历矿车停在起点不动，那里没有
+     * 本节点的记录，故必须用 {@link SignActionEvent#overrideCartEnterState} 显式传入行走器当前的
+     * {@code wp.state}（TC 自己在路径预测里也是这么做的，见 {@code PathProvider.predict}）。
      *
-     * @param nodeRailPiece 节点所在铁轨片
-     * @return 匹配的出向分支（跨多块牌合并收集，按声明顺序）
+     * @param nodeSigns 节点所在铁轨片上的全部节点控制牌（见 {@link WalkResult#nodeSigns()}）
+     * @return 匹配的出向分支（跨多块牌、按物理分叉合并，按首次声明顺序）
      */
-    public List<BcSwitcherBranch> collectSwitcherBranches(RailPiece nodeRailPiece) {
+    public List<BcSwitcherBranch> collectSwitcherBranches(List<RailLookup.TrackedSign> nodeSigns) {
         List<BcSwitcherBranch> result = new ArrayList<>();
-        if (nodeRailPiece == null) {
+        if (nodeSigns == null) {
             return result;
         }
-        RailLookup.TrackedSign[] signs = nodeRailPiece.signs();
-        if (signs == null) {
-            return result;
-        }
-        Vector arrival = wp.state.motionVector();
-        for (RailLookup.TrackedSign sign : signs) {
+        for (RailLookup.TrackedSign sign : nodeSigns) {
             if (signType(sign) != StopReason.SWITCHER) {
                 continue;
             }
             SignActionEvent event = new SignActionEvent(sign, member);
+            // 用行走器当前的 RailState 作为「到达状态」，使 isEnterActivated 能精确判定进入方向
+            event.overrideCartEnterState(wp.state);
             // 牌头声明了进入方向时，只在到达方向匹配时纳入；未声明则视为不限方向（兼容，但建牌已强制声明）
-            if (event.isWatchedDirectionsDefined() && !event.isWatchedDirection(arrival)) {
+            if (event.isWatchedDirectionsDefined() && !event.isEnterActivated()) {
                 continue;
             }
             for (int i = 2; i <= 3; i++) {
                 BcSwitcherBranch branch = GeoUtils.parseBcSwitcherBranch(sign.getLine(i));
                 if (branch != null) {
-                    result.add(branch);
+                    // 出向规整为物理分叉名后再合并：消除牌子朝向对相对方向的影响
+                    result.add(new BcSwitcherBranch(normalizeDirection(event, branch.getDirectionStr()),
+                            branch.getLineIds()));
                 }
             }
         }
-        return result;
+        return GeoUtils.mergeBranchesByDirection(result);
+    }
+
+    /**
+     * 把一块牌上写的出向规整为本铁轨上的<b>物理分叉名</b>（{@link RailJunction#name()}）。
+     * <p>
+     * 解析委托 traincarts 的 {@link SignActionEvent#findJunction(String)}（先按分叉名、再按方向，
+     * 相对方向以该牌朝向为基准），与运行时 bcswitcher 切道岔的解析完全一致。规整后的分叉名对任意一块
+     * 牌再次 {@code findJunction} 都能精确命中同一分叉，故可直接用作强制出向与 geojson 的 {@code departDir}。
+     * <p>
+     * 无法解析（该铁轨上没有这个方向的分叉）时原样返回，交由后续行走按原逻辑处理。
+     *
+     * @param event 该牌的控制牌事件（提供牌子朝向与所在铁轨）
+     * @param dir   牌上写的出向字符串
+     * @return 物理分叉名；无法解析时为原字符串
+     */
+    private String normalizeDirection(SignActionEvent event, String dir) {
+        RailJunction junction = event.findJunction(dir);
+        return junction == null ? dir : junction.name();
     }
 
     /**

@@ -204,7 +204,7 @@ public final class MermaidExporter {
     }
 
     /**
-     * 把到达面 key（{@link com.bigbrother.bilicraftticketsystem.route.geodata.traversal.GraphWalk#faceKey}，
+     * 把到达面 key（{@link com.bigbrother.bilicraftticketsystem.route.geodata.traversal.UnitWalk#faceKey}，
      * 形如 {@code "1_0"} / {@code "1_1"}）转成可读方位。
      * <p>
      * faceKey 由方向向量的 {@code (signum(x), signum(z))} 组成，沿用 Minecraft 坐标约定

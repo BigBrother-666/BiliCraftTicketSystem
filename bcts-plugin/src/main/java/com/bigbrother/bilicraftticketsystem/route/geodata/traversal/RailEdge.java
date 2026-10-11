@@ -93,15 +93,20 @@ public class RailEdge {
     private final String enterFaceTo;
 
     /**
-     * 本段的<b>归属线路 id</b>——决定增量遍历（{@code /railgeo walk}）合并 {@code contact.geojson}
-     * 时该删哪些旧联络线段。
+     * 产出本段的<b>遍历单元 id</b>（即某条营运线的 lineId）——也就是本段写进哪个 geojson 文件。
      * <p>
-     * 语义：普通线段 owner = 该段自身 {@link #lineId}；联络线段（{@code lineId == "contact"}）
-     * owner = <b>触发该联络线分支的目标线</b>（进入声明了 {@code @contact} 出向的 bcswitcher 时矿车
-     * 携带的当前 lineId）。同一条物理联络线从两条线的道岔出发会产出方向相反的两条边、owner 各不同，
-     * 故 {@code walk T} 只删 owner ∈ T 的旧 contact 段，绝不误删其它线拥有的反向段（否则联络线断开）。
+     * <b>与 {@link #lineId} 的区别</b>：{@code lineId} 是本段「属于哪条线」（由 bcswitcher 的出向声明
+     * 决定，决定列车怎么走、前端怎么着色）；{@code owner} 是本段「由哪次行走走出来」（决定存在哪个文件）。
+     * 两者通常相同，但在下列情形不同：
+     * <ul>
+     *   <li><b>联络线段</b>：{@code lineId == "contact"}，owner = 带出这条联络线的营运线；</li>
+     *   <li><b>越界边</b>：L 的道岔上声明了通往 L' 的出向，该段 {@code lineId == L'}、owner == L；</li>
+     *   <li><b>转线段</b>：终点站转入下一条线的那一段，{@code lineId ==} 下一条线、owner == 本线。</li>
+     * </ul>
+     * 按 owner 分文件使<b>每个文件只有一个写者</b>，保存即整体覆盖，无需读回旧文件做任何合并
+     * （详见 {@link TraversalCollector} 的类注释）。
      * <p>
-     * 旧文件（本字段引入前产出）读回时为 null，合并时保守保留、一次 {@code walkAll} 全量重建即可补齐。
+     * 读回旧 geojson 时若无该属性则为 null（只用于 layer 重算，不影响保存）。
      */
     private final String ownerLineId;
 

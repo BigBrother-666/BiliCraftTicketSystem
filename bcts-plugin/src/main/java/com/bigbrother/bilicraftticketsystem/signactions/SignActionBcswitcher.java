@@ -93,7 +93,10 @@ public class SignActionBcswitcher extends SignAction {
             return;
         }
         MinecartGroup group = info.getGroup();
-        if (group == null || !info.isWatchedDirection(info.getCartEnterDirection())) {
+        // 进入方向判定用 isEnterActivated（基于 RailState 精确匹配），不用 isWatchedDirection(向量)：
+        // 后者对 TCC 云轨的数字节点名牌头（RailEnterDirectionFromJunction）求的点积符号在曲线上不可靠，
+        // 会让本该触发的牌不触发（道岔识别不到）。详见 TrackWalker#collectSwitcherBranches 的说明。
+        if (group == null || !info.isEnterActivated()) {
             return;
         }
 
@@ -188,7 +191,9 @@ public class SignActionBcswitcher extends SignAction {
      */
     @Override
     public void predictPathFinding(SignActionEvent info, PathPredictEvent prediction) {
-        if (!info.hasRailedMember() || !info.isWatchedDirection(info.getCartEnterDirection())) {
+        // 同 execute：进入方向判定用 isEnterActivated（TC 调用本方法前已 overrideCartEnterState，
+        // 故此处拿到的就是预测中的真实 RailState），避免云轨数字节点名牌头被漏判。
+        if (!info.hasRailedMember() || !info.isEnterActivated()) {
             return;
         }
         MinecartGroup group = info.getMember().getGroup();

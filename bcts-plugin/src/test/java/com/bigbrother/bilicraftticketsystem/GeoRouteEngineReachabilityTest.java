@@ -117,6 +117,29 @@ public class GeoRouteEngineReachabilityTest {
     }
 
     @Test
+    void transferLandingHopMakesTerminalTransferReachable() {
+        // 终点站 T 转线到下一条线：转线车从 T 弯进落点道岔 sw（到达面 1_1），而下一条线自己经过 sw 时是直着来的
+        // （1_0），所以它产出的 sw→N 只允许 1_0。没有落点补边时，「T 停站再转线」被门控拦截。
+        FeatureCollection before = new FeatureCollection();
+        before.add(point("nT", "station", "T", 0, 64, 0));
+        before.add(point("sw", "switch", null, 10, 64, 10));
+        before.add(point("nN", "station", "N", 30, 64, 10));
+        before.add(line("e.contact.nT__sw", "nT", "sw", "contact", 10, null, null, "1_1"));
+        before.add(line("e.L2.sw__nN", "sw", "nN", "L2", 20, "e", List.of("1_0"), "1_0"));
+        GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(before));
+        assertTrue(GeoRouteEngine.findByStation("T", "N", 0, 0L).isEmpty(),
+                "落点道岔出边只允许下一条线自己的到达面时，转线路线应被门控拦截");
+
+        // 落点补边：转线单元在 sw 沿下一条线再记一段同 id 的边（到达面 1_1），读取时按 id 合并、enterFrom 取并集
+        FeatureCollection after = new FeatureCollection();
+        after.getFeatures().addAll(before.getFeatures());
+        after.add(line("e.L2.sw__nN", "sw", "nN", "L2", 20, "e", List.of("1_1"), "1_0"));
+        GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(after));
+        assertFalse(GeoRouteEngine.findByStation("T", "N", 0, 0L).isEmpty(),
+                "有了落点补边，终点站停站后转线应可达");
+    }
+
+    @Test
     void unreachableWhenStationsAreCompletelyDisconnected() {
         FeatureCollection f = new FeatureCollection();
         f.add(point("nA", "station", "A", 0, 64, 0));

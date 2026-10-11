@@ -9,8 +9,10 @@ import org.geojson.Point;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 把遍历得到的节点 / 区间转换为 geojson FeatureCollection。
@@ -36,12 +38,8 @@ public class GeojsonBuilder {
         FeatureCollection collection = new FeatureCollection();
 
         // 先根据区间推算每个节点的 prev / next
-        Map<String, List<String>> prevMap = new LinkedHashMap<>();
-        Map<String, List<String>> nextMap = new LinkedHashMap<>();
-        for (RailEdge edge : edges) {
-            nextMap.computeIfAbsent(edge.getFromNodeId(), k -> new ArrayList<>()).add(edge.getToNodeId());
-            prevMap.computeIfAbsent(edge.getToNodeId(), k -> new ArrayList<>()).add(edge.getFromNodeId());
-        }
+        Map<String, List<String>> prevMap = adjacency(edges, false);
+        Map<String, List<String>> nextMap = adjacency(edges, true);
 
         for (RailNode node : nodes) {
             collection.add(buildPointFeature(node, prevMap, nextMap));
@@ -50,6 +48,28 @@ public class GeojsonBuilder {
             collection.add(buildLineFeature(edge));
         }
         return collection;
+    }
+
+    /**
+     * 由区间推算节点的相邻关系（prev 或 next），按节点 id 去重、保持首次出现顺序。
+     * <p>
+     * 同一对节点之间可能有多条不同 lineId 的边（联络线与营运线并行 / 共线段），prev / next
+     * 表达的是「相邻节点」，同一个节点只应出现一次。
+     *
+     * @param edges   全部区间
+     * @param forward true 求 next（from -> to），false 求 prev（to -> from）
+     * @return 节点 id -> 相邻节点 id 列表（无重复）
+     */
+    public Map<String, List<String>> adjacency(Collection<RailEdge> edges, boolean forward) {
+        Map<String, Set<String>> sets = new LinkedHashMap<>();
+        for (RailEdge edge : edges) {
+            String key = forward ? edge.getFromNodeId() : edge.getToNodeId();
+            String other = forward ? edge.getToNodeId() : edge.getFromNodeId();
+            sets.computeIfAbsent(key, k -> new LinkedHashSet<>()).add(other);
+        }
+        Map<String, List<String>> result = new LinkedHashMap<>();
+        sets.forEach((k, v) -> result.put(k, new ArrayList<>(v)));
+        return result;
     }
 
     /**
@@ -118,8 +138,8 @@ public class GeojsonBuilder {
         if (edge.getEnterFaceTo() != null) {
             props.put("enterTo", edge.getEnterFaceTo());
         }
-        // 归属线路 id：增量遍历合并 contact.geojson 时按此精确删除本次目标线拥有的旧联络线段。
-        // 普通线段 owner 与 lineId 相同；联络线段 owner = 触发它的目标线。为空省略（向后兼容旧文件）。
+        // 产出本段的遍历单元（= 本段所在的文件名）。普通线段与 lineId 相同；联络线段 / 越界边 /
+        // 转线段则是带出它的那条营运线。为空省略（读回旧文件时可能缺失）。
         if (edge.getOwnerLineId() != null) {
             props.put("owner", edge.getOwnerLineId());
         }

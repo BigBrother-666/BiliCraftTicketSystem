@@ -58,6 +58,21 @@ public class GeoLink {
     private final String enterFaceTo;
 
     /**
+     * 合并另一份同 id 边的到达面集合。
+     * <p>
+     * 同一条边可能被<b>两个遍历单元</b>各产出一份（共用轨道 / 越界边），各自只记下了「自己那一侧
+     * 能到达的面」。构图时按 id 合并、到达面取并集，门控集合才完整——否则某方向来车会被门控拒绝，
+     * 表现为「汇入本线的线路断开」。
+     *
+     * @param faces 另一份的到达面集合（null / 空忽略）
+     */
+    public void mergeEnterFacesFrom(Set<String> faces) {
+        if (faces != null) {
+            this.enterFacesFrom.addAll(faces);
+        }
+    }
+
+    /**
      * @param id         边 id
      * @param fromNodeId 起点节点 id
      * @param toNodeId   终点节点 id
@@ -77,7 +92,10 @@ public class GeoLink {
         this.distance = distance;
         this.color = color;
         this.departDirection = departDirection;
-        this.enterFacesFrom = enterFacesFrom == null ? java.util.Collections.emptySet() : enterFacesFrom;
+        // 可变副本：同 id 边合并时要往里并入另一份的到达面（见 mergeEnterFacesFrom）
+        this.enterFacesFrom = enterFacesFrom == null
+                ? new java.util.LinkedHashSet<>()
+                : new java.util.LinkedHashSet<>(enterFacesFrom);
         this.enterFaceTo = enterFaceTo;
     }
 }
