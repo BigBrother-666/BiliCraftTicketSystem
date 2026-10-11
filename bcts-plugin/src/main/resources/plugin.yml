@@ -14,7 +14,7 @@ permissions:
     description: "上传车票背景图权限"
     default: op
   bcts.ticket.adminuploadbg:
-    description: "放置showroute控制牌权限"
+    description: "上传所有玩家都可使用的共享背景（不限个数）"
     default: op
   bcts.ticket.deletebg:
     description: "删除任意车票背景图权限"
