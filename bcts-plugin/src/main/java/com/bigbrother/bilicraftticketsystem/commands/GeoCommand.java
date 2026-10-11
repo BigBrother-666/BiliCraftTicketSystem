@@ -108,7 +108,7 @@ public class GeoCommand {
         Block rail = StartRailResolver.resolve(loc, loc.getDirection());
         if (rail == null) {
             player.sendMessage(Component.text(
-                    "你当前位置没有铁轨，无法作为线路 [%s] 的遍历起点。".formatted(lineId),NamedTextColor.RED));
+                    "你当前位置没有铁轨，无法作为线路 [%s] 的遍历起点。".formatted(lineId), NamedTextColor.RED));
             return;
         }
         plugin.getGeoDatabaseManager().upsertGeoNodeLoc(lineId, loc, loc.getDirection());
@@ -151,7 +151,7 @@ public class GeoCommand {
                     NamedTextColor.RED));
             return false;
         }
-        if (!system.isMember(player.getUniqueId())) {
+        if (!system.isMember(player.getUniqueId()) && !player.hasPermission("bcts.bypass")) {
             player.sendMessage(Component.text(
                     "你不是该线路所属铁路系统 [%s] 的成员，无权操作其遍历起点。".formatted(systemId),
                     NamedTextColor.RED));

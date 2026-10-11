@@ -102,15 +102,15 @@
 
 ### 2.6 其它权限
 
-| 权限                        | 说明                     |
-|---------------------------|------------------------|
-| bcts.buildsign.bcspawn    | 放置 bcspawn 控制牌         |
-| bcts.buildsign.platform   | 放置 platform 控制牌        |
-| bcts.buildsign.bcswitcher | 放置 bcswitcher 控制牌      |
-| bcts.buildsign.slowdown   | 放置 slowdown 控制牌        |
-| bcts.buildsign.isexpress  | 放置 isexpress 控制牌       |
-| bcts.buildsign.switchline | 放置 switchline 控制牌      |
-| bcts.bypass               | 发起线路图构建时绕过冷却（且不刷新冷却时间） |
+| 权限                        | 说明                |
+|---------------------------|-------------------|
+| bcts.buildsign.bcspawn    | 放置 bcspawn 控制牌    |
+| bcts.buildsign.platform   | 放置 platform 控制牌   |
+| bcts.buildsign.bcswitcher | 放置 bcswitcher 控制牌 |
+| bcts.buildsign.slowdown   | 放置 slowdown 控制牌   |
+| bcts.buildsign.isexpress  | 放置 isexpress 控制牌  |
+| bcts.buildsign.switchline | 放置 switchline 控制牌 |
+| bcts.bypass               | 免除部分限制            |
 
 ## 3. 控制牌
 
