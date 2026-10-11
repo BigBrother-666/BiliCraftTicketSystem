@@ -1,6 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.route.geodata.traversal;
 
 import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
+import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
@@ -166,10 +167,13 @@ public class UnitWalk {
      *                      {@code lineId} 推断：终点站转线那一跳的 lineId 是 {@code contact}，但要接入的是下一条线
      * @param traceParent   本段出发节点在 {@link #trace 路径图}上的节点
      * @param traceStateKey 本段对应的去重状态 key（起点首段为 seed key）
+     * @param startState    本段起步的真实铁轨状态（道岔 fork 时为到达该道岔的状态；起点首段 / platform 续行为
+     *                      null，按 {@code rail} + {@code direction} 起步）。道岔 fork 必须用真实状态起步：
+     *                      合成状态在斜向轨道上算不对进入面，bcswitcher 进入方向判定失败、强制出向不生效
      */
     private record WalkState(String prevNodeId, Block rail, Vector direction, String forcedDir, String lineId,
                              String fromEnterFace, Hop hop, String targetLineId,
-                             TraversalTrace.TraceNode traceParent, String traceStateKey) {
+                             TraversalTrace.TraceNode traceParent, String traceStateKey, RailState startState) {
     }
 
     /**
@@ -185,7 +189,7 @@ public class UnitWalk {
         String key = "seed|" + unitLineId;
         trace.link(root, key);
         mainQueue.add(new WalkState(null, startRail, startDirection, null, unitLineId, null, Hop.NORMAL, null,
-                root, key));
+                root, key, null));
     }
 
     /**
@@ -256,7 +260,9 @@ public class UnitWalk {
         String color = LineConfig.getColor(lineId);
         String railwaySystemId = LineConfig.getSystemId(lineId);
         String logPrefix = " [%s/%s] ".formatted(railwaySystemId, lineId);
-        TrackWalker walker = new TrackWalker(st.rail(), st.direction());
+        TrackWalker walker = st.startState() != null
+                ? new TrackWalker(st.startState())
+                : new TrackWalker(st.rail(), st.direction());
         walker.setLineTag(lineId);
         walker.setForcedDirection(st.forcedDir());
         walker.setSampleStep(coasterSampleStep);
@@ -398,7 +404,7 @@ public class UnitWalk {
         String key = stateKey(node, arrivalFace, outFace, outLineId);
         trace.link(traceNode, key);
         tryEnqueue(key, new WalkState(node.getId(), node.getRailBlock(), outDir, null, outLineId, arrivalFace,
-                hop, targetLineId, traceNode, key), false);
+                hop, targetLineId, traceNode, key, null), false);
     }
 
     /**
@@ -488,7 +494,7 @@ public class UnitWalk {
                 boolean contact = RailwaySystemConfig.CONTACT_ID.equals(outLineId);
                 tryEnqueue(key, new WalkState(node.getId(), node.getRailBlock(), arrival.clone(),
                         branch.getDirectionStr(), outLineId, arrivalFace, cross ? Hop.CROSS : Hop.NORMAL,
-                        cross ? outLineId : null, traceNode, key), contact);
+                        cross ? outLineId : null, traceNode, key, result.arrivalState()), contact);
             }
         }
         if (linked == 0) {
@@ -549,7 +555,8 @@ public class UnitWalk {
                 String key = stateKey(node, arrivalFace, branch.getDirectionStr(), targetLine);
                 trace.link(traceNode, key);
                 tryEnqueue(key, new WalkState(node.getId(), node.getRailBlock(), arrival.clone(),
-                        branch.getDirectionStr(), targetLine, arrivalFace, Hop.FINAL, targetLine, traceNode, key),
+                        branch.getDirectionStr(), targetLine, arrivalFace, Hop.FINAL, targetLine, traceNode, key,
+                        result.arrivalState()),
                         false);
             }
             return;
@@ -565,7 +572,7 @@ public class UnitWalk {
                 trace.link(traceNode, key);
                 tryEnqueue(key, new WalkState(node.getId(), node.getRailBlock(), arrival.clone(),
                         branch.getDirectionStr(), RailwaySystemConfig.CONTACT_ID, arrivalFace, Hop.NORMAL, null,
-                        traceNode, key), true);
+                        traceNode, key, result.arrivalState()), true);
             }
             return;
         }

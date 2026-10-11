@@ -75,10 +75,13 @@ public class TrackWalker {
      * @param direction 到达停止位置时的行走方向（供下一段行走作为出发方向）。
      * @param length    本段沿轨道的真实长度（{@link TrackWalkingPoint#movedTotal} 段首段尾之差，
      *                  按 RailPath 实际移动距离计，曲线/斜坡/对角轨道均精确，优于数铁轨方块数）。
+     * @param arrivalState 到达停止位置时的铁轨状态快照（已复制）。道岔 fork 时用它起步
+     *                  （{@link #TrackWalker(RailState)}），保证离开道岔时的进入方向判定与到达时一致。
+     *                  轨道结束时为 null。
      */
     public record WalkResult(StopReason reason, Block railBlock, RailLookup.TrackedSign sign,
                              List<RailLookup.TrackedSign> nodeSigns, boolean mixedNode, Vector direction,
-                             double length) {
+                             double length, RailState arrivalState) {
     }
 
     private final TrackWalkingPoint wp;
@@ -112,6 +115,31 @@ public class TrackWalker {
      * @param startDirection 起始方向向量
      */
     public TrackWalker(Block startRail, Vector startDirection) {
+        this(startRail, startDirection, new TrackWalkingPoint(startRail.getLocation(), startDirection));
+    }
+
+    /**
+     * 从一个<b>真实的到达状态</b>创建行走器（会在该状态所在铁轨处生成一节不动的矿车）。必须在主线程调用。
+     * <p>
+     * 用于道岔 fork：沿用上一段到达道岔时的 {@link RailState}（见 {@link WalkResult#arrivalState()}）起步。
+     * 若改用「铁轨方块 + 方向向量」合成起步状态，进入位置会落在方块角点，斜向轨道上
+     * {@link RailState#enterFace()} 会算错，导致 bcswitcher 的 {@code isEnterActivated} 判定失败、
+     * 强制出向不生效（列车按默认走向弹回）。真实到达状态的进入位置就是实际入口，判定与到达时一致。
+     *
+     * @param startState 起始铁轨状态（内部会复制，不修改传入对象）
+     */
+    public TrackWalker(RailState startState) {
+        this(startState.railBlock(), startState.enterDirection(), new TrackWalkingPoint(startState));
+    }
+
+    /**
+     * 公共初始化：生成载 tag 的矿车并配置行走点。
+     *
+     * @param startRail      起始铁轨方块（矿车生成位置）
+     * @param startDirection 起始方向向量（矿车朝向）
+     * @param wp             已定位到起点的行走点
+     */
+    private TrackWalker(Block startRail, Vector startDirection, TrackWalkingPoint wp) {
         this.member = MinecartMemberStore.spawn(TrainCarts.plugin, startRail.getLocation(), EntityType.MINECART);
         this.member.getGroup().getProperties().setDefault();
         this.member.getGroup().getProperties().setKeepChunksLoaded(true);
@@ -119,7 +147,7 @@ public class TrackWalker {
         this.member.setOrientation(Quaternion.fromLookDirection(startDirection));
         this.member.getGroup().getProperties().setTrainName("rail_geo_" + UUID.randomUUID());
 
-        this.wp = new TrackWalkingPoint(startRail.getLocation(), startDirection);
+        this.wp = wp;
         // 不开 loopFilter：环线闭合时会重新经过起点附近已访问的铁轨，loopFilter 会把它误判为
         // 断轨并提前停止，导致环线最后一段（回到起始节点）走不完、环闭不上。改用步数上限兜底。
         this.wp.setLoopFilter(false);
@@ -253,7 +281,7 @@ public class TrackWalker {
                 // 节点坐标一律用铁轨方块整数坐标（锚定 NodeId / 起点登记 / 去重），按普通轨精度处理
                 collector.accept(newRail.getX(), newRail.getY(), newRail.getZ(), false);
                 return new WalkResult(found.reason(), newRail, found.primary(), found.all(), found.mixed(),
-                        wp.state.enterDirection(), wp.movedTotal - startMoved);
+                        wp.state.enterDirection(), wp.movedTotal - startMoved, wp.state.clone());
             }
         }
     }
@@ -268,7 +296,7 @@ public class TrackWalker {
      */
     private WalkResult endResult(Block railBlock, Vector direction, double startMoved) {
         return new WalkResult(StopReason.END, railBlock, null, List.of(), false, direction,
-                wp.movedTotal - startMoved);
+                wp.movedTotal - startMoved, null);
     }
 
     /**
