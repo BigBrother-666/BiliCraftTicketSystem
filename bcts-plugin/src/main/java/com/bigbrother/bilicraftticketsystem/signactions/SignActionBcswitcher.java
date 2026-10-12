@@ -5,6 +5,7 @@ import com.bergerkiller.bukkit.tc.controller.components.RailJunction;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent;
 import com.bergerkiller.bukkit.tc.pathfinding.PathPredictEvent;
+import com.bergerkiller.bukkit.tc.rails.RailLookup;
 import com.bergerkiller.bukkit.tc.signactions.SignAction;
 import com.bergerkiller.bukkit.tc.signactions.SignActionType;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
@@ -93,6 +94,8 @@ public class SignActionBcswitcher extends SignAction {
             return;
         }
         MinecartGroup group = info.getGroup();
+        // TCC 虚拟牌的进入方向缓存可能过期，判定前强制重新解析（见 refreshEnterDirections）
+        refreshEnterDirections(info.getTrackedSign());
         // 进入方向判定用 isEnterActivated（基于 RailState 精确匹配），不用 isWatchedDirection(向量)：
         // 后者对 TCC 云轨的数字节点名牌头（RailEnterDirectionFromJunction）求的点积符号在曲线上不可靠，
         // 会让本该触发的牌不触发（道岔识别不到）。详见 TrackWalker#collectSwitcherBranches 的说明。
@@ -193,6 +196,8 @@ public class SignActionBcswitcher extends SignAction {
     public void predictPathFinding(SignActionEvent info, PathPredictEvent prediction) {
         // 同 execute：进入方向判定用 isEnterActivated（TC 调用本方法前已 overrideCartEnterState，
         // 故此处拿到的就是预测中的真实 RailState），避免云轨数字节点名牌头被漏判。
+        // TCC 虚拟牌的进入方向缓存可能过期，判定前强制重新解析（见 refreshEnterDirections）
+        refreshEnterDirections(info.getTrackedSign());
         if (!info.hasRailedMember() || !info.isEnterActivated()) {
             return;
         }
@@ -395,6 +400,28 @@ public class SignActionBcswitcher extends SignAction {
             }
         }
         return branches.isEmpty() ? null : branches.getFirst();
+    }
+
+    /**
+     * 让 TCC 虚拟控制牌的牌头进入方向在下次使用时重新解析。必须在调用 {@code isEnterActivated} 之前调用。
+     * <p>
+     * <b>为什么需要</b>（TC / TCC 缓存缺陷）：TCC 的 {@code TrackNodeSign#getTrackedSign} 只要牌所在铁轨格不变
+     * 就一直复用同一个 {@code TrackedFakeSign}（只有编辑牌子内容才会重建）。牌头 {@code SignActionHeader}
+     * 缓存在该实例上，其 {@code getEnterDirections(rail, fwd)} 又按 RailPiece <b>对象身份</b> + 朝向缓存解析结果——
+     * 虚拟牌 rail 恒为同一对象、朝向恒为 NORTH，于是首次解析结果被永久复用。数字节点名（如 {@code [+train:1]}）
+     * 解析成的 {@code RailEnterDirectionFromJunction} 持有解析当时的道岔分叉位置快照；若当时分叉信息不对
+     * （云轨节点未就绪 / 之后节点被编辑重排），此后 {@code isEnterActivated} 恒为 false，表现为
+     * 「bcswitcher 没有对应出向」，而改一下牌子内容再改回去（重建实例）就恢复。
+     * <p>
+     * 清掉缓存的 header 后，下次 {@code getHeader()} 会按当前分叉重新解析。实体牌的 header 由 TC
+     * {@code SignController} 管理且 RailPiece 随缓存重建，不受此问题影响，故不处理。
+     *
+     * @param sign 控制牌
+     */
+    public static void refreshEnterDirections(RailLookup.TrackedSign sign) {
+        if (sign != null && !sign.isRealSign()) {
+            sign.setCachedHeader(null);
+        }
     }
 
     private void publishRideEvent(MinecartGroup group, String nodeId) {

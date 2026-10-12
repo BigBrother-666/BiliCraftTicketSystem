@@ -231,6 +231,8 @@ public class TrackWalker {
         // （出发点的牌再次出现就会被当成新牌、让本段在原地停下）。getUniqueKey 对真实牌返回按
         // 牌坐标 + 正反面比较的值对象，跨实例稳定。
         Set<Object> checkedSigns = new HashSet<>();
+        // 出发点铁轨同样可能命中 TC 缓存漏扫控制牌的问题（见 ensureSignsDiscovered），先补扫再登记
+        ensureSignsDiscovered();
         collectSignsInto(wp.state.railPiece(), checkedSigns);
         while (true) {
             RailState state = wp.state;
@@ -276,6 +278,10 @@ public class TrackWalker {
             // 检查新位置铁轨上「尚未检测过」的节点控制牌：逐牌去重而非整格跳过。一格可挂多块节点牌，
             // 且云轨可能在同格内连续推进多步或离开后回到同格，按格去重会漏牌。
             Block newRail = wp.state.railBlock();
+            // 进入新铁轨格：补扫可能被 TC 缓存漏掉的控制牌，必要时重新预测本格道岔走向
+            if (!sameBlock(railBlock, newRail)) {
+                ensureSignsDiscovered();
+            }
             NodeSigns found = findNodeSigns(wp.state.railPiece(), checkedSigns);
             if (found != null) {
                 // 节点坐标一律用铁轨方块整数坐标（锚定 NodeId / 起点登记 / 去重），按普通轨精度处理
@@ -354,6 +360,33 @@ public class TrackWalker {
             }
         }
         if (changed) {
+            refreshPredictedPath();
+        }
+    }
+
+    /**
+     * 确保当前铁轨的控制牌已被 TC 铁轨缓存扫描到；补扫出控制牌时重新预测本格走向。
+     * <p>
+     * <b>为什么需要</b>（TC 缓存缺陷，见 TC {@code WorldRailLookupImpl}）：detector 区域加载时
+     * （{@code DetectorRegion} 构造 → {@code storeDetectorRegions} → {@code getOrCreateAtCoordinates}）
+     * 会为区域内每格铁轨预建 {@code RailType.NONE} 的缓存条目。首次有行走点经过时，
+     * {@code computeRailsAtPosition} 用 {@code swapOutNoneType} 把它换成真实铁轨类型的新条目，
+     * 但<b>不扫描控制牌</b>（signs 留在空的 {@code MISSING_RAILS_NO_SIGNS}）；而 {@code Bucket.verify()}
+     * 在同一 tick 内（{@code rail_life >= lifeTimer}）直接返回 true，不会补扫。遍历在一个 tick 内同步完成，
+     * 于是整段遍历都看不到这格的控制牌：bcswitcher 的预测寻路不被调用、道岔按默认走向（正线）通过，
+     * 到发线上的 platform 遍历不到。下一 tick 起缓存自愈，所以「重启后第一次遍历必失败、第二次成功」。
+     * <p>
+     * 处理：本格读到空控制牌时调 {@link RailPiece#forceCacheVerification()} 强制下次访问重扫；
+     * 重扫出控制牌说明刚才的预测是在「看不到牌」的状态下做的，需重新预测本格走向
+     * （{@link #refreshPredictedPath} 会对当前状态重新跑一次 navigate）。真正无牌的铁轨只多一次扫描。
+     */
+    private void ensureSignsDiscovered() {
+        RailPiece piece = wp.state.railPiece();
+        if (piece == null || piece.signs().length > 0) {
+            return;
+        }
+        piece.forceCacheVerification();
+        if (piece.signs().length > 0) {
             refreshPredictedPath();
         }
     }
@@ -517,6 +550,8 @@ public class TrackWalker {
             if (signType(sign) != StopReason.SWITCHER) {
                 continue;
             }
+            // TCC 虚拟牌的牌头进入方向缓存可能过期，必须在构造事件（事件构造时会取 header）之前清掉
+            SignActionBcswitcher.refreshEnterDirections(sign);
             SignActionEvent event = new SignActionEvent(sign, member);
             // 用行走器当前的 RailState 作为「到达状态」，使 isEnterActivated 能精确判定进入方向
             event.overrideCartEnterState(wp.state);
