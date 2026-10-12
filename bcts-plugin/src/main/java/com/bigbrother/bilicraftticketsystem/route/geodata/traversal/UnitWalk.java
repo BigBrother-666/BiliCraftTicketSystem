@@ -310,7 +310,8 @@ public class UnitWalk {
                         stationName, result.railBlock(), lineId);
             } else {
                 node = collector.resolveNode(RailNode.Type.SWITCH, result.railBlock(), null);
-                log.info(logPrefix + "经过道岔 @ " + node.getId());
+                // 行走器此刻停在道岔上，到达状态即本次到达：输出入向 / 各牌出向供排查
+                log.info(logPrefix + "经过道岔 @ " + node.getId() + "，" + walker.describeSwitcher(result.nodeSigns()));
                 traceNode = trace.arrive(st.traceParent(), st.traceStateKey(), TraversalTrace.Kind.SWITCH, null,
                         result.railBlock(), lineId);
             }
@@ -555,8 +556,8 @@ public class UnitWalk {
                 String key = stateKey(node, arrivalFace, branch.getDirectionStr(), targetLine);
                 trace.link(traceNode, key);
                 tryEnqueue(key, new WalkState(node.getId(), node.getRailBlock(), arrival.clone(),
-                        branch.getDirectionStr(), targetLine, arrivalFace, Hop.FINAL, targetLine, traceNode, key,
-                        result.arrivalState()),
+                                branch.getDirectionStr(), targetLine, arrivalFace, Hop.FINAL, targetLine, traceNode, key,
+                                result.arrivalState()),
                         false);
             }
             return;
@@ -579,10 +580,9 @@ public class UnitWalk {
 
         // 情况 3：落点道岔没有匹配此到达方向的出向，寻路从这个方向接不上对端线
         stopAtLanding(node, targetLine, logPrefix, traceNode);
-        log.message(("线路 %s 接入线路 %s 时到达道岔 %s（到达面 %s），但该道岔没有匹配此到达方向的 %s 出向，"
+        log.warn(("线路 %s 接入线路 %s 时到达道岔 %s（到达面 %s），但该道岔没有匹配此到达方向的 %s 出向，"
                 + "寻路从这个方向接不上 %s。请检查该道岔 bcswitcher 牌头的进入方向")
-                        .formatted(unitLineId, targetLine, node.getId(), arrivalFace, targetLine, targetLine),
-                NamedTextColor.YELLOW, Level.WARNING);
+                .formatted(unitLineId, targetLine, node.getId(), arrivalFace, targetLine, targetLine));
     }
 
     /**

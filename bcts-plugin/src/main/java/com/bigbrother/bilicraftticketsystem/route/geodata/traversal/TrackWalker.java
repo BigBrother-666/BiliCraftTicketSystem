@@ -9,6 +9,9 @@ import com.bergerkiller.bukkit.tc.controller.components.RailPiece;
 import com.bergerkiller.bukkit.tc.controller.components.RailState;
 import com.bergerkiller.bukkit.tc.events.SignActionEvent;
 import com.bergerkiller.bukkit.tc.rails.RailLookup;
+import com.bergerkiller.bukkit.tc.rails.direction.RailEnterDirection;
+import com.bergerkiller.bukkit.tc.rails.direction.RailEnterDirectionFromJunction;
+import com.bergerkiller.bukkit.tc.rails.direction.RailEnterDirectionToFace;
 import com.bergerkiller.bukkit.tc.rails.type.RailType;
 import com.bergerkiller.bukkit.tc.utils.TrackWalkingPoint;
 import com.bigbrother.bilicraftticketsystem.utils.GeoUtils;
@@ -569,6 +572,109 @@ public class TrackWalker {
             }
         }
         return GeoUtils.mergeBranchesByDirection(result);
+    }
+
+    /**
+     * 生成本次到达道岔的排查日志：到达方向，以及同格每块 bcswitcher 的牌头入向、是否匹配、各出向。
+     * 必须在行走器停在该道岔（{@link #walkToNextNode} 刚返回 SWITCHER）时调用，用的是当前到达状态。
+     * <p>
+     * 方向一律写成列车<b>行进方向</b>的绝对方向（n/e/s/w，斜向为 ne/nw/se/sw），与牌上写的相对方向 /
+     * 数字节点名并列给出，便于对照：
+     * <ul>
+     *   <li>到达：到达状态的进入方向向量。</li>
+     *   <li>牌头入向：方向字符（{@code RailEnterDirectionToFace}）本身就是驶入时的行进方向；数字节点名
+     *       （{@code RailEnterDirectionFromJunction}）表示从该分叉驶入，行进方向取分叉朝外方向的反向。</li>
+     *   <li>出向：解析到的分叉（{@link SignActionEvent#findJunction(String)}）的朝外方向；解析不到写「无此分叉」。</li>
+     * </ul>
+     *
+     * @param nodeSigns 节点所在铁轨片上的全部节点控制牌
+     * @return 多行日志文本（首行为到达方向，之后每块 bcswitcher 一行）
+     */
+    public String describeSwitcher(List<RailLookup.TrackedSign> nodeSigns) {
+        StringBuilder sb = new StringBuilder();
+        Vector arrival = wp.state.enterDirection();
+        sb.append("到达行进方向 ").append(absDir(arrival.getX(), arrival.getZ()));
+        if (nodeSigns == null) {
+            return sb.toString();
+        }
+        for (RailLookup.TrackedSign sign : nodeSigns) {
+            if (signType(sign) != StopReason.SWITCHER) {
+                continue;
+            }
+            SignActionBcswitcher.refreshEnterDirections(sign);
+            SignActionEvent event = new SignActionEvent(sign, member);
+            event.overrideCartEnterState(wp.state);
+            Block signBlock = sign.signBlock;
+            sb.append("\n    bcswitcher(%d,%d,%d%s) 牌头入向 ".formatted(signBlock.getX(), signBlock.getY(),
+                    signBlock.getZ(), sign.isRealSign() ? "" : ",TCC"));
+            if (event.isWatchedDirectionsDefined()) {
+                List<String> enters = new ArrayList<>();
+                for (RailEnterDirection dir : event.getEnterDirections()) {
+                    enters.add(describeEnterDirection(dir));
+                }
+                sb.append(enters.isEmpty() ? "[解析为空]" : enters.toString());
+                sb.append(event.isEnterActivated() ? " 匹配" : " 不匹配（本牌出向不展开）");
+            } else {
+                sb.append("未声明");
+            }
+            List<String> outs = new ArrayList<>();
+            for (int i = 2; i <= 3; i++) {
+                BcSwitcherBranch branch = GeoUtils.parseBcSwitcherBranch(sign.getLine(i));
+                if (branch == null) {
+                    continue;
+                }
+                RailJunction junction = event.findJunction(branch.getDirectionStr());
+                String target = junction == null
+                        ? "无此分叉"
+                        : junction.name() + "/" + absDir(junction.position().motX, junction.position().motZ);
+                outs.add("%s→%s@%s".formatted(branch.getDirectionStr(), target,
+                        String.join(";", branch.getLineIds())));
+            }
+            sb.append(" 出向 ").append(outs);
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 牌头进入方向的排查文本：方向字符原样输出；数字节点名附上驶入行进方向（分叉朝外方向的反向）。
+     *
+     * @param dir 进入方向
+     * @return 如 {@code e}、{@code 1/s}
+     */
+    private String describeEnterDirection(RailEnterDirection dir) {
+        if (dir instanceof RailEnterDirectionFromJunction fromJunction) {
+            RailJunction junction = fromJunction.getJunction();
+            return junction.name() + "/" + absDir(-junction.position().motX, -junction.position().motZ);
+        }
+        if (dir instanceof RailEnterDirectionToFace toFace) {
+            return absDir(toFace.getFace().getModX(), toFace.getFace().getModZ());
+        }
+        return dir.name();
+    }
+
+    /**
+     * 把水平方向向量转成绝对方向（n/e/s/w，偏离坐标轴超过 22.5° 时为 ne/nw/se/sw）。
+     *
+     * @param x 方向 x 分量（east 为正）
+     * @param z 方向 z 分量（south 为正）
+     * @return 绝对方向；水平分量为 0（纯竖直）时为 {@code ?}
+     */
+    private static String absDir(double x, double z) {
+        double ax = Math.abs(x);
+        double az = Math.abs(z);
+        if (ax < 1e-9 && az < 1e-9) {
+            return "?";
+        }
+        String ew = x > 0 ? "e" : "w";
+        String ns = z > 0 ? "s" : "n";
+        // tan(67.5°) ≈ 2.414：一个分量是另一个的 2.414 倍以上即视为正方向
+        if (ax > az * 2.414) {
+            return ew;
+        }
+        if (az > ax * 2.414) {
+            return ns;
+        }
+        return ns + ew;
     }
 
     /**
