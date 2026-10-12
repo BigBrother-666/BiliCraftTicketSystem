@@ -585,12 +585,12 @@ public class GeoTraversalTask {
             progressTask.cancel();
         }
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            List<UnitResult> writable = new ArrayList<>();
+            List<UnitResult> failed = new ArrayList<>();
             try {
                 log.message("全部线路构建完毕，开始校验...", NamedTextColor.DARK_AQUA);
                 int warnings = validateCrossBoundary(log);
 
-                List<UnitResult> writable = new ArrayList<>();
-                List<UnitResult> failed = new ArrayList<>();
                 for (UnitResult unit : units) {
                     (unit.valid ? writable : failed).add(unit);
                 }
@@ -598,15 +598,14 @@ public class GeoTraversalTask {
                 int files = 0;
                 if (!writable.isEmpty()) {
                     files = saveUnits(writable, log);
+                    int orphans = cleanOrphanFiles(log);
+                    if (orphans > 0) {
+                        log.message("清理了 %d 个线路配置文件（线路配置已删除）".formatted(orphans), NamedTextColor.YELLOW);
+                    }
+                    log.message("计算 LineString 层级...", NamedTextColor.DARK_AQUA);
+                    int relayered = recomputeAllLayers(log);
+                    log.info("全局重算 layer：更新了 " + relayered + " 个文件的层级");
                 }
-                int orphans = cleanOrphanFiles(log);
-                if (orphans > 0) {
-                    log.message("清理了 %d 个线路配置文件（线路配置已删除）".formatted(orphans), NamedTextColor.YELLOW);
-                }
-                log.message("计算 LineString 层级...", NamedTextColor.DARK_AQUA);
-                int relayered = recomputeAllLayers(log);
-                log.info("全局重算 layer：更新了 " + relayered + " 个文件的层级");
-
                 reportSummary(log, files, writable, failed, warnings);
             } catch (Exception e) {
                 log.error("构建铁路图任务收尾失败", e);
@@ -618,14 +617,16 @@ public class GeoTraversalTask {
             // 回主线程：重载配置（会触碰 Bukkit / 各配置单例）+ 推送快照，随后收尾。
             Bukkit.getScheduler().runTask(plugin, () -> {
                 try {
-                    log.message("重载配置文件...", NamedTextColor.DARK_AQUA);
-                    plugin.loadConfig(null);
-                    log.message("重载配置完成", NamedTextColor.GREEN);
+                    if (!writable.isEmpty()) {
+                        log.message("重载配置文件...", NamedTextColor.DARK_AQUA);
+                        plugin.loadConfig(null);
+                        log.message("重载配置完成", NamedTextColor.GREEN);
 
-                    // 遍历产出新 geojson，若已连后端则推送 geo 快照
-                    if (plugin.getWebLink() != null && plugin.getWebLink().getClient().isConnected()) {
-                        plugin.getWebLink().getSnapshotPublisher().publishGeo();
-                        log.message("已向线路图后端推送 geojson 快照", NamedTextColor.GREEN);
+                        // 遍历产出新 geojson，若已连后端则推送 geo 快照
+                        if (plugin.getWebLink() != null && plugin.getWebLink().getClient().isConnected()) {
+                            plugin.getWebLink().getSnapshotPublisher().publishGeo();
+                            log.message("已向线路图后端推送 geojson 快照", NamedTextColor.GREEN);
+                        }
                     }
                 } catch (Exception e) {
                     log.error("重载配置失败", e);
@@ -634,6 +635,7 @@ public class GeoTraversalTask {
                     finishTraversal(log, progressTask, bypassCooldown);
                 }
             });
+
         });
     }
 
