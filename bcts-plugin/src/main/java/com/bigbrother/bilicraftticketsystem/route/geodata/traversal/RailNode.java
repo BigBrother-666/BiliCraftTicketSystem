@@ -3,6 +3,7 @@ package com.bigbrother.bilicraftticketsystem.route.geodata.traversal;
 import com.bigbrother.bilicraftticketsystem.route.NodeId;
 import lombok.Getter;
 import org.bukkit.block.Block;
+import org.bukkit.util.Vector;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -62,6 +63,17 @@ public class RailNode {
      * 一个车站可能被分属不同铁路系统的多条线路经过，故为集合。未配置系统的线路不贡献系统 id。
      */
     private final Set<String> railwaySystemIds = new LinkedHashSet<>();
+    /**
+     * 节点的<b>真实位置</b>（geojson Point 坐标、相邻边的首尾点）。
+     * <p>
+     * TCC 云轨节点为云轨节点位置（浮点，见 {@link TrackWalker.WalkResult#nodePosition()}）；普通铁轨为铁轨方块整数坐标。
+     * 节点 id 始终按铁轨方块整数坐标生成，与本字段无关。
+     */
+    private Vector position;
+    /**
+     * {@link #position} 是否已替换为云轨真实位置。
+     */
+    private boolean coasterPositionSet;
 
     /**
      * @param type        节点类型
@@ -73,6 +85,19 @@ public class RailNode {
         this.type = type;
         this.railBlock = railBlock;
         this.stationName = stationName;
+        this.position = new Vector(railBlock.getX(), railBlock.getY(), railBlock.getZ());
+    }
+
+    /**
+     * 记录节点的云轨真实位置（仅首次记录生效，保证同一节点所有相邻边用同一个点）。
+     *
+     * @param coasterPosition 云轨节点位置（null 忽略）
+     */
+    public void setCoasterPosition(Vector coasterPosition) {
+        if (coasterPosition != null && !coasterPositionSet) {
+            this.position = coasterPosition.clone();
+            this.coasterPositionSet = true;
+        }
     }
 
     /**

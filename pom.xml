@@ -20,6 +20,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <paper.version>1.21.11-R0.1-SNAPSHOT</paper.version>
         <traincarts.version>1.21.11-v1</traincarts.version>
+        <tccoasters.version>2.0.1</tccoasters.version>
         <vault.version>1.7</vault.version>
         <oraxen.version>1.213.0</oraxen.version>
         <hikari.version>5.0.1</hikari.version>

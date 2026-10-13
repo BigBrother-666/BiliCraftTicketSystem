@@ -148,16 +148,16 @@ public class GeojsonBuilder {
     }
 
     /**
-     * 把节点所在方块转换为 geojson 坐标（经度=x, 纬度=z, 高度=y）。
+     * 把节点真实位置（云轨为云轨节点位置，普通铁轨为方块整数坐标）转换为 geojson 坐标（经度=x, 纬度=z, 高度=y）。
      *
      * @param node 节点
      * @return geojson 坐标
      */
     private LngLatAlt blockToCoord(RailNode node) {
         return new LngLatAlt(
-                node.getRailBlock().getX(),
-                node.getRailBlock().getZ(),
-                node.getRailBlock().getY()
+                node.getPosition().getX(),
+                node.getPosition().getZ(),
+                node.getPosition().getY()
         );
     }
 }

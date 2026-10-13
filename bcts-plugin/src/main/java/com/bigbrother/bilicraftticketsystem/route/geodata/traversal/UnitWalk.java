@@ -266,6 +266,11 @@ public class UnitWalk {
         walker.setLineTag(lineId);
         walker.setForcedDirection(st.forcedDir());
         walker.setSampleStep(coasterSampleStep);
+        // 从节点出发：告诉行走器起点节点位置，云轨上据此把出边首点对齐到节点（与入边终点、Point 一致）
+        RailNode prevNode = st.prevNodeId() == null ? null : collector.node(st.prevNodeId());
+        if (prevNode != null) {
+            walker.setStartNodePosition(prevNode.getPosition());
+        }
         try {
             List<LngLatAlt> coords = new ArrayList<>();
             int[] count = {0};
@@ -317,6 +322,7 @@ public class UnitWalk {
             }
             node.addLineId(lineId);
             node.addRailwaySystemId(railwaySystemId);
+            node.setCoasterPosition(result.nodePosition());
 
             // 记录入边（起点首段 prevNodeId 为 null，无边可记）。st.forcedDir() 即离开上一道岔所用出向，
             // 作为本段物理出向写入，供运行时道岔对带导航的列车直接选向。

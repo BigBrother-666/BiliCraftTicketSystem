@@ -140,6 +140,12 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>com.bergerkiller.bukkit</groupId>
+            <artifactId>TCCoasters</artifactId>
+            <version>${tccoasters.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>com.github.MilkBowl</groupId>
             <artifactId>VaultAPI</artifactId>
             <version>${vault.version}</version>

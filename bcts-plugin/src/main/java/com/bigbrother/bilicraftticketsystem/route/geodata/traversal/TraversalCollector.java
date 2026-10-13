@@ -1,5 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.route.geodata.traversal;
 
+import com.bigbrother.bilicraftticketsystem.route.NodeId;
+import org.bukkit.block.Block;
 import org.geojson.LngLatAlt;
 
 import java.util.ArrayList;
@@ -53,8 +55,8 @@ public class TraversalCollector {
      * @param stationName 车站名（SWITCH 传 null）
      * @return 节点
      */
-    public RailNode resolveNode(RailNode.Type type, org.bukkit.block.Block railBlock, String stationName) {
-        String id = com.bigbrother.bilicraftticketsystem.route.NodeId.ofBlock(railBlock);
+    public RailNode resolveNode(RailNode.Type type, Block railBlock, String stationName) {
+        String id = NodeId.ofBlock(railBlock);
         RailNode existing = nodes.get(id);
         if (existing != null) {
             return existing;
@@ -62,6 +64,16 @@ public class TraversalCollector {
         RailNode node = new RailNode(type, railBlock, stationName);
         nodes.put(id, node);
         return node;
+    }
+
+    /**
+     * 按 id 取本单元已登记的节点。
+     *
+     * @param nodeId 节点 id
+     * @return 节点；未登记返回 null
+     */
+    public RailNode node(String nodeId) {
+        return nodes.get(nodeId);
     }
 
     /**
@@ -87,7 +99,7 @@ public class TraversalCollector {
                            String railwaySystemId, String color, List<LngLatAlt> coords, double length,
                            String departDirection, String world, String enterFaceFrom, String enterFaceTo,
                            String ownerLineId) {
-        String edgeId = com.bigbrother.bilicraftticketsystem.route.NodeId.ofEdge(fromNodeId, toNodeId, lineId);
+        String edgeId = NodeId.ofEdge(fromNodeId, toNodeId, lineId);
         RailEdge existing = edges.get(edgeId);
         if (existing != null) {
             // 同一 (from,to,lineId) 边被不同到达面产出（如 [+train:lr] 多进入方向续行同一段）：

@@ -83,10 +83,12 @@ public class TrackWalker {
      * @param arrivalState 到达停止位置时的铁轨状态快照（已复制）。道岔 fork 时用它起步
      *                  （{@link #TrackWalker(RailState)}），保证离开道岔时的进入方向判定与到达时一致。
      *                  轨道结束时为 null。
+     * @param nodePosition 停止节点的<b>真实位置</b>：TCC 云轨为云轨节点位置（{@link CoasterNodeLocator}），
+     *                  本段最后一个坐标点即此位置；普通铁轨或定位不到时为 null（用铁轨方块整数坐标）。
      */
     public record WalkResult(StopReason reason, Block railBlock, RailLookup.TrackedSign sign,
                              List<RailLookup.TrackedSign> nodeSigns, boolean mixedNode, Vector direction,
-                             double length, RailState arrivalState) {
+                             double length, RailState arrivalState, Vector nodePosition) {
     }
 
     private final TrackWalkingPoint wp;
@@ -113,14 +115,18 @@ public class TrackWalker {
     @Setter
     private double sampleStep = 0.5;
     /**
-     * 是否从<b>节点到达状态</b>起步（{@link #TrackWalker(RailState)}，道岔 fork）。
+     * 起点节点的位置（离开一个节点时设置；首段无起点节点为 null）。
      * <p>
-     * TCC 云轨上，到达状态位于节点铁轨片（节点所在连接的近端半段）的<b>入口</b>，离节点还有一段距离；
-     * 若照常从该处采样，出边会先把入边已走过的这半段再画一遍，且起点不在节点上——前端表现为道岔附近
-     * 线路断开、像分叉。故从到达状态起步时，云轨上跳过起始铁轨片内的采样、以节点坐标作为首点，
-     * 里程也从离开起始铁轨片处算起（见 {@link #walkToNextNode}）。
+     * TCC 云轨上，起步位置（道岔 fork 的到达状态 / 车站续行的方块位置）在节点铁轨片（节点所在连接的近端半段）
+     * 内、未必在节点上；若照常从该处采样，出边会先把入边已走过的这半段再画一遍，且起点不在节点上——前端表现为
+     * 节点附近线路断开、像分叉或出现尖刺。故起点为云轨时，跳过起始铁轨片内节点之前的采样、以本位置作为首点，
+     * 里程也从节点算起（见 {@link #walkToNextNode}）。
+     * <p>
+     * 应传节点的真实位置（与入边终点、geojson Point 一致）：云轨节点为 {@link WalkResult#nodePosition()}，
+     * 普通铁轨为方块整数坐标。普通铁轨的起始铁轨片就是节点所在格，不做裁剪。
      */
-    private final boolean startFromArrival;
+    @Setter
+    private Vector startNodePosition;
 
     /**
      * 创建行走器（会在 startRail 处生成一节不动的矿车）。必须在主线程调用。
@@ -129,7 +135,7 @@ public class TrackWalker {
      * @param startDirection 起始方向向量
      */
     public TrackWalker(Block startRail, Vector startDirection) {
-        this(startRail, startDirection, new TrackWalkingPoint(startRail.getLocation(), startDirection), false);
+        this(startRail, startDirection, new TrackWalkingPoint(startRail.getLocation(), startDirection));
     }
 
     /**
@@ -143,7 +149,7 @@ public class TrackWalker {
      * @param startState 起始铁轨状态（内部会复制，不修改传入对象）
      */
     public TrackWalker(RailState startState) {
-        this(startState.railBlock(), startState.enterDirection(), new TrackWalkingPoint(startState), true);
+        this(startState.railBlock(), startState.enterDirection(), new TrackWalkingPoint(startState));
     }
 
     /**
@@ -152,10 +158,8 @@ public class TrackWalker {
      * @param startRail        起始铁轨方块（矿车生成位置）
      * @param startDirection   起始方向向量（矿车朝向）
      * @param wp               已定位到起点的行走点
-     * @param startFromArrival 是否从节点到达状态起步（见 {@link #startFromArrival}）
      */
-    private TrackWalker(Block startRail, Vector startDirection, TrackWalkingPoint wp, boolean startFromArrival) {
-        this.startFromArrival = startFromArrival;
+    private TrackWalker(Block startRail, Vector startDirection, TrackWalkingPoint wp) {
         this.member = MinecartMemberStore.spawn(TrainCarts.plugin, startRail.getLocation(), EntityType.MINECART);
         this.member.getGroup().getProperties().setDefault();
         this.member.getGroup().getProperties().setKeepChunksLoaded(true);
@@ -250,18 +254,18 @@ public class TrackWalker {
         // 出发点铁轨同样可能命中 TC 缓存漏扫控制牌的问题（见 ensureSignsDiscovered），先补扫再登记
         ensureSignsDiscovered();
         collectSignsInto(wp.state.railPiece(), checkedSigns);
-        // 从节点到达状态起步且起点为云轨：起始铁轨片内的采样先缓冲，离开该铁轨片时裁到节点处再输出
-        // （见 startFromArrival）。普通铁轨的起始铁轨片就是节点所在格，无需裁剪。
-        Block startBlock = wp.state.railBlock();
-        List<double[]> trimBuffer = startFromArrival && sampleStep > 0 && isCoasterRail(wp.state)
+        // 从节点出发且起点为云轨：起始铁轨片内的采样先缓冲，离开该铁轨片时裁到节点处再输出
+        // （见 startNodePosition）。普通铁轨的起始铁轨片就是节点所在格，无需裁剪。
+        List<double[]> trimBuffer = startNodePosition != null && sampleStep > 0 && isCoasterRail(wp.state)
                 ? new ArrayList<>() : null;
+        Block startBlock = wp.state.railBlock();
         while (true) {
             RailState state = wp.state;
             Block railBlock = state.railBlock();
             boolean coaster = sampleStep > 0 && isCoasterRail(state);
 
             if (trimBuffer != null && !sameBlock(startBlock, railBlock)) {
-                startMoved = flushTrimmed(trimBuffer, startBlock, collector, startMoved);
+                startMoved = flushTrimmed(trimBuffer, collector, startMoved);
                 trimBuffer = null;
             }
 
@@ -296,7 +300,7 @@ public class TrackWalker {
                     wp.failReason = TrackWalkingPoint.FailReason.NONE;
                 } else {
                     if (trimBuffer != null) {
-                        startMoved = flushTrimmed(trimBuffer, startBlock, collector, startMoved);
+                        startMoved = flushTrimmed(trimBuffer, collector, startMoved);
                     }
                     return endResult(railBlock, state.enterDirection(), startMoved);
                 }
@@ -305,7 +309,7 @@ public class TrackWalker {
             if (++steps >= maxStepsPerSegment) {
                 // 兜底：疑似无控制牌物理环路，按断轨处理避免死循环
                 if (trimBuffer != null) {
-                    startMoved = flushTrimmed(trimBuffer, startBlock, collector, startMoved);
+                    startMoved = flushTrimmed(trimBuffer, collector, startMoved);
                 }
                 return endResult(wp.state.railBlock(), wp.state.enterDirection(), startMoved);
             }
@@ -320,58 +324,77 @@ public class TrackWalker {
             NodeSigns found = findNodeSigns(wp.state.railPiece(), checkedSigns);
             if (found != null) {
                 if (trimBuffer != null) {
-                    startMoved = flushTrimmed(trimBuffer, startBlock, collector, startMoved);
+                    startMoved = flushTrimmed(trimBuffer, collector, startMoved);
                 }
                 double length = wp.movedTotal - startMoved;
-                // 云轨：到达节点铁轨片时列车还在该片入口（节点所在连接的近端半段起点），补采到节点处，
-                // 否则这半段只剩一条直弦、且与出边错开（出边从节点起画）。行走点本身不动，到达状态不变。
+                Vector nodePosition = null;
                 if (sampleStep > 0 && isCoasterRail(wp.state)) {
-                    length += sampleToNode(newRail, collector);
+                    // 云轨：到达节点铁轨片时列车还在该片入口（节点所在连接的近端半段起点），补采到节点真实位置，
+                    // 否则这半段只剩一条直弦、且与出边错开。行走点本身不动，到达状态不变。
+                    double[] tail = sampleToNode(newRail, collector);
+                    length += tail[0];
+                    if (tail.length > 1) {
+                        nodePosition = new Vector(tail[1], tail[2], tail[3]);
+                    }
                 }
-                // 节点坐标一律用铁轨方块整数坐标（锚定 NodeId / 起点登记 / 去重），按普通轨精度处理
-                collector.accept(newRail.getX(), newRail.getY(), newRail.getZ(), false);
+                if (nodePosition == null) {
+                    // 普通铁轨（或定位不到云轨节点）：节点坐标用铁轨方块整数坐标，与 NodeId 对齐
+                    collector.accept(newRail.getX(), newRail.getY(), newRail.getZ(), false);
+                }
                 return new WalkResult(found.reason(), newRail, found.primary(), found.all(), found.mixed(),
-                        wp.state.enterDirection(), length, wp.state.clone());
+                        wp.state.enterDirection(), length, wp.state.clone(), nodePosition);
             }
         }
     }
 
     /**
-     * 云轨到达节点时，从当前位置沿当前铁轨片的路径补采样到<b>离节点最近处</b>，返回补走的长度。
+     * 云轨到达节点时，从当前位置沿当前铁轨片的路径补采样到<b>节点真实位置</b>，并以该位置收尾。
      * <p>
      * TCC 把每条连接按中点拆成两半，分别归到近端节点的铁轨方块上；同一节点两侧的半段还会连成一条路径。
      * 所以行走点刚进入节点铁轨片时，离节点还有约半条连接；而这条路径走到尽头可能已越过节点、进入出向半段。
-     * 故沿路径采样到尽头，再截在离节点铁轨方块中心最近的点。用的是状态副本，不推进行走点。
+     * 故沿路径采样到尽头，截在离节点最近的采样点，再补上节点真实位置本身（{@link CoasterNodeLocator}）。
+     * 用的是状态副本，不推进行走点。
+     * <p>
+     * 定位不到云轨节点时退回旧行为：截在离铁轨方块中心最近处，由调用方补方块整数坐标。
      *
      * @param nodeRail  节点铁轨方块
      * @param collector 坐标收集器
-     * @return 从当前位置到截断点的沿轨长度
+     * @return {@code [补走长度]}，定位到节点时为 {@code [补走长度, x, y, z]}（节点真实位置）
      */
-    private double sampleToNode(Block nodeRail, CoordCollector collector) {
+    private double[] sampleToNode(Block nodeRail, CoordCollector collector) {
         List<double[]> samples = samplePath(wp.state, wp.currentRailPath, Math.min(sampleStep, 1.0));
-        int nearest = nearestIndex(samples, nodeRail);
+        Vector node = CoasterNodeLocator.findNodePosition(wp.state.railType(), nodeRail, samples);
+        int nearest = node != null ? nearestIndex(samples, node) : nearestIndex(samples, blockCenter(nodeRail));
         for (int i = 0; i <= nearest; i++) {
             double[] s = samples.get(i);
             collector.accept(s[0], s[1], s[2], true);
         }
-        return samples.get(nearest)[3];
+        double length = samples.get(nearest)[3];
+        if (node == null) {
+            return new double[]{length};
+        }
+        collector.accept(node.getX(), node.getY(), node.getZ(), true);
+        double[] s = samples.get(nearest);
+        length += Math.sqrt(sq(s[0] - node.getX()) + sq(s[1] - node.getY()) + sq(s[2] - node.getZ()));
+        return new double[]{length, node.getX(), node.getY(), node.getZ()};
     }
 
     /**
-     * 把起始铁轨片内缓冲的采样裁到节点处输出：先输出节点整数坐标（与入边终点一致），再输出越过节点之后的采样。
+     * 把起始铁轨片内缓冲的采样裁到起点节点处输出：先输出起点节点位置（与入边终点一致），
+     * 再输出越过节点之后的采样。
      *
      * @param buffer     起始铁轨片内的采样（{@code [x, y, z, movedTotal]}）
-     * @param nodeRail   起点节点铁轨方块
      * @param collector  坐标收集器
      * @param startMoved 原段首累计里程
      * @return 新的段首累计里程（截断点处），本段长度从节点算起
      */
-    private double flushTrimmed(List<double[]> buffer, Block nodeRail, CoordCollector collector, double startMoved) {
-        collector.accept(nodeRail.getX(), nodeRail.getY(), nodeRail.getZ(), false);
+    private double flushTrimmed(List<double[]> buffer, CoordCollector collector, double startMoved) {
+        Vector node = startNodePosition;
+        collector.accept(node.getX(), node.getY(), node.getZ(), true);
         if (buffer.isEmpty()) {
             return startMoved;
         }
-        int nearest = nearestIndex(buffer, nodeRail);
+        int nearest = nearestIndex(buffer, node);
         for (int i = nearest + 1; i < buffer.size(); i++) {
             double[] s = buffer.get(i);
             collector.accept(s[0], s[1], s[2], true);
@@ -407,30 +430,32 @@ public class TrackWalker {
     }
 
     /**
-     * 找出离铁轨方块中心最近的采样点下标。
+     * 找出离给定位置最近的采样点下标。
      *
-     * @param samples  采样点（{@code [x, y, z, ...]}，非空）
-     * @param railBlock 铁轨方块
+     * @param samples 采样点（{@code [x, y, z, ...]}，非空）
+     * @param target  目标位置
      * @return 最近点下标
      */
-    private int nearestIndex(List<double[]> samples, Block railBlock) {
-        double cx = railBlock.getX() + 0.5;
-        double cy = railBlock.getY() + 0.5;
-        double cz = railBlock.getZ() + 0.5;
+    private int nearestIndex(List<double[]> samples, Vector target) {
         int best = 0;
         double bestSq = Double.MAX_VALUE;
         for (int i = 0; i < samples.size(); i++) {
             double[] s = samples.get(i);
-            double dx = s[0] - cx;
-            double dy = s[1] - cy;
-            double dz = s[2] - cz;
-            double sq = dx * dx + dy * dy + dz * dz;
-            if (sq < bestSq) {
-                bestSq = sq;
+            double d = sq(s[0] - target.getX()) + sq(s[1] - target.getY()) + sq(s[2] - target.getZ());
+            if (d < bestSq) {
+                bestSq = d;
                 best = i;
             }
         }
         return best;
+    }
+
+    private static Vector blockCenter(Block block) {
+        return new Vector(block.getX() + 0.5, block.getY() + 0.5, block.getZ() + 0.5);
+    }
+
+    private static double sq(double v) {
+        return v * v;
     }
 
     /**
@@ -443,7 +468,7 @@ public class TrackWalker {
      */
     private WalkResult endResult(Block railBlock, Vector direction, double startMoved) {
         return new WalkResult(StopReason.END, railBlock, null, List.of(), false, direction,
-                wp.movedTotal - startMoved, null);
+                wp.movedTotal - startMoved, null, null);
     }
 
     /**
