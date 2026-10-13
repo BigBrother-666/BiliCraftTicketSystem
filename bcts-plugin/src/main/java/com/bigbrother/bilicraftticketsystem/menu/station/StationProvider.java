@@ -191,6 +191,9 @@ public class StationProvider {
         List<Component> lore = new ArrayList<>();
         lore.add(Component.text("途经此车站的铁路：", NamedTextColor.AQUA));
         for (String lineId : lineIds) {
+            if (lineId.equals(RailwaySystemConfig.CONTACT_ID)) {
+                continue;
+            }
             LineInfo line = LineConfig.get(lineId);
             if (line == null) {
                 continue;
