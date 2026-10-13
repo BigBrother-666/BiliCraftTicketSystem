@@ -2,12 +2,17 @@ package com.bigbrother.bilicraftticketsystem.route.geograph;
 
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 由 geojson 反向构建的路由图。
@@ -39,6 +44,10 @@ public class GeoRouteGraph {
      * 仅供 {@link GeoRouteEngine#findTransferJourneys} 快速筛选候选换乘站，不用于最终票价/路线。
      */
     private volatile Map<String, Map<String, Double>> stationDistCache;
+    /**
+     * 进站道岔索引缓存（见 {@link #mainlineSwitchStations()}），加边时失效。
+     */
+    private volatile Map<String, String> mainlineSwitchCache;
 
     /**
      * 加入或合并一个节点。若该 id 已存在，累积其 lineIds（保留已有节点对象）。
@@ -66,6 +75,7 @@ public class GeoRouteGraph {
      * @param link 边
      */
     public void addLink(GeoLink link) {
+        mainlineSwitchCache = null;
         linksById.put(link.getId(), link);
         adjacency.computeIfAbsent(link.getFromNodeId(), k -> new ArrayList<>()).add(link);
         GeoNode from = nodes.get(link.getFromNodeId());
@@ -128,30 +138,6 @@ public class GeoRouteGraph {
     }
 
     /**
-     * 取某道岔节点上<b>属于指定线路</b>的出边，供进站道岔判定使用。
-     * <p>
-     * 只看本线自己的出边，别的线路的出边一律不计：共线车站（如两条线共用的 Station B）的进站道岔上
-     * 同时挂着两条线各自的正线与停靠线出边，若要求「全部出边同属一条线」才算进站道岔，共线车站就永远
-     * 认不出来——表现为线路高亮时正线没被隐藏、寻路时车站去重失效。
-     *
-     * @param node   判断的节点
-     * @param lineId 当前线路id
-     * @return 本线出边；节点为空 / 是车站 / lineId 为空时返回空列表
-     */
-    private List<GeoLink> lineLinksOfSwitch(GeoNode node, String lineId) {
-        if (node == null || node.isStation() || lineId == null) {
-            return Collections.emptyList();
-        }
-        List<GeoLink> result = new ArrayList<>();
-        for (GeoLink link : links(node.getId())) {
-            if (lineId.equals(link.getLineId())) {
-                result.add(link);
-            }
-        }
-        return result;
-    }
-
-    /**
      * 取从某节点出发的出边。
      *
      * @param nodeId 节点 id
@@ -164,64 +150,81 @@ public class GeoRouteGraph {
     /**
      * 取「有正线的进站道岔」对应的停靠线 platform 车站名。
      * <p>
-     * 结构判定（不再依赖 {@code default} 特殊 lineId）：进站道岔是一个 bcswitcher，其一条出边通往
-     * <b>道岔</b>节点（正线，跨站全速通过）、另一条出边通往<b>车站</b>节点（停靠线 platform）。
-     * <p>
-     * 仅当传入节点<b>本线的出边</b>里同时有通往道岔与通往车站的出边时，返回那条通往车站的停靠线车站名；
-     * 否则（不是道岔、无正线绕行、或找不到停靠线车站）返回 null。只看本线出边：共线车站的进站道岔上
-     * 还挂着别的线路的出边，它们不影响本线的判定（见 {@link #lineLinksOfSwitch}）。
+     * 按 geojson 的 {@code track} 标记判定（不做结构推断）：进站道岔上本线有一条正线出边
+     * （{@code track=main}）和一条停靠线出边（{@code track=siding}），沿本线停靠线一路走到的第一个车站
+     * 即为所求。停靠线中途可以经过别的道岔。
      *
      * @param node   待判断的节点（通常为进站道岔节点）
      * @param lineId 当前线路id
-     * @return 停靠线 platform 车站名；不满足条件返回 null
+     * @return 停靠线 platform 车站名；不是本线进站道岔返回 null
      */
     public String platformNameOfMainlineSwitch(GeoNode node, String lineId) {
-        List<GeoLink> outLinks = lineLinksOfSwitch(node, lineId);
-        if (outLinks.isEmpty()) {
+        if (node == null || node.isStation() || lineId == null) {
             return null;
         }
-        boolean toSwitch = false;
-        String platformName = null;
-        for (GeoLink out : outLinks) {
-            GeoNode to = nodes.get(out.getToNodeId());
-            if (to == null) {
-                continue;
-            }
-            if (to.isStation()) {
-                if (to.getName() != null) {
-                    platformName = to.getName();
-                }
-            } else {
-                toSwitch = true;
-            }
-        }
-        // 须同时有「通往道岔的正线出边」和「通往车站的停靠线出边」，才算有正线的进站道岔
-        return toSwitch ? platformName : null;
+        return mainlineSwitchStations().get(mainlineSwitchKey(node.getId(), lineId));
     }
 
     /**
-     * 取「有正线的进站道岔」的<b>到发线物理出向</b>（e/s/w/n 或 f/b/l/r），供无导航列车（普通车 /
-     * 手动车）在此一律走到发线进站停靠。
-     *
-     * @param node 待判断的节点（通常为进站道岔节点）
-     * @return 到发线物理出向；不满足条件 / 无出向记录返回 null
+     * 进站道岔 → 停靠线车站名 的索引（key 见 {@link #mainlineSwitchKey}），惰性构建，加边时失效。
      */
-    public String sidingDirectionOfMainlineSwitch(GeoNode node) {
-        if (node == null) {
-            return null;
+    private Map<String, String> mainlineSwitchStations() {
+        Map<String, String> cache = mainlineSwitchCache;
+        if (cache != null) {
+            return cache;
         }
-        for (GeoLink out : links(node.getId())) {
-            GeoNode to = nodes.get(out.getToNodeId());
-            if (to == null) {
-                continue;
+        Map<String, String> result = new HashMap<>();
+        for (Map.Entry<String, List<GeoLink>> entry : adjacency.entrySet()) {
+            for (GeoLink main : entry.getValue()) {
+                if (!main.isMainline()) {
+                    continue;
+                }
+                String station = sidingStationFrom(entry.getKey(), main.getLineId());
+                if (station != null) {
+                    result.put(mainlineSwitchKey(entry.getKey(), main.getLineId()), station);
+                }
             }
-            if (to.isStation()) {
-                if (out.getDepartDirection() != null) {
-                    return out.getDepartDirection();
+        }
+        mainlineSwitchCache = result;
+        return result;
+    }
+
+    /**
+     * 从进站道岔出发沿本线停靠线（{@code track=siding}）出边前进，返回遇到的第一个车站名。
+     *
+     * @param switchNodeId 进站道岔节点 id
+     * @param lineId       线路 id
+     * @return 车站名；找不到返回 null
+     */
+    private String sidingStationFrom(String switchNodeId, String lineId) {
+        Deque<String> queue = new ArrayDeque<>();
+        Set<String> seen = new HashSet<>();
+        queue.add(switchNodeId);
+        seen.add(switchNodeId);
+        while (!queue.isEmpty()) {
+            String cur = queue.poll();
+            for (GeoLink link : links(cur)) {
+                if (!link.isSiding() || !lineId.equals(link.getLineId())) {
+                    continue;
+                }
+                GeoNode to = nodes.get(link.getToNodeId());
+                if (to == null) {
+                    continue;
+                }
+                if (to.isStation()) {
+                    if (to.getName() != null) {
+                        return to.getName();
+                    }
+                } else if (seen.add(to.getId())) {
+                    queue.add(to.getId());
                 }
             }
         }
         return null;
+    }
+
+    private static String mainlineSwitchKey(String nodeId, String lineId) {
+        return nodeId + "|" + lineId;
     }
 
     /**
@@ -250,7 +253,7 @@ public class GeoRouteGraph {
      * 快速枚举全部换乘站而无需对每个候选跑全图寻路。
      * <p>
      * 口径为<b>下界估计</b>：对每个站名的各站台节点跑一次普通 Dijkstra（边权 = {@link GeoLink#getDistance()}，
-     * 忽略 enterFace 门控与折返/正线绕行约束），取到各目标站名的最短距离。它只用于<b>筛选</b>候选换乘站，
+     * 忽略 enterFace 门控与折返/停靠线中途站约束），取到各目标站名的最短距离。它只用于<b>筛选</b>候选换乘站，
      * 最终每段行程仍由 {@link GeoRouteEngine#findByStation} 权威实体化并施加全部约束，故下界的乐观性不影响
      * 结果正确性（至多让个别不可行候选进入实体化阶段被自然淘汰）。
      * <p>

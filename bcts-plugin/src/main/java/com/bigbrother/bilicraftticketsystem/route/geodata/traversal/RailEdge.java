@@ -20,6 +20,15 @@ import java.util.Set;
 @Getter
 public class RailEdge {
     /**
+     * {@link #track} 取值：正线（进站道岔第四行出向，跨站直通到出站道岔）。
+     */
+    public static final String TRACK_MAIN = "main";
+    /**
+     * {@link #track} 取值：停靠线（进站道岔第三行出向起，直到第一个 platform 为止的每一段）。
+     */
+    public static final String TRACK_SIDING = "siding";
+
+    /**
      * 线段唯一 id。
      */
     private final String id;
@@ -109,6 +118,15 @@ public class RailEdge {
      * 读回旧 geojson 时若无该属性则为 null（只用于 layer 重算，不影响保存）。
      */
     private final String ownerLineId;
+
+    /**
+     * 正线 / 停靠线标记：{@link #TRACK_MAIN}、{@link #TRACK_SIDING}，普通区间为 null。
+     * <p>
+     * 由遍历按 bcswitcher 牌面标记（同一块牌第三、四行声明同一 lineId 即进站道岔，第三行为停靠线、
+     * 第四行为正线），寻路 / 前端据此判定正线跨站，不再做结构推断。
+     */
+    @Setter
+    private String track;
 
     /**
      * @param fromNodeId      起点节点 id

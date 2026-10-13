@@ -488,7 +488,7 @@ public class GeoRouteEngine {
     /**
      * 用标准 Dijkstra（状态 = 节点 + 到达面，每个状态只处理一次）判断从 {@code startNodeId} 到任一名为
      * {@code endStation} 的车站节点是否存在合法路径，套用 {@link #kShortest} 除「同名站不可重复经过」
-     * 之外的全部边约束（{@link #enterFaceAllows} / {@link #hasMainlineBypass} / 折返站跳过）。
+     * 之外的全部边约束（{@link #enterFaceAllows} / 停靠线中途站跳过 / 折返站跳过）。
      * <p>
      * 忽略「同名站不可重复经过」这一条约束只会让判定更宽松（更容易判定为「可达」），绝不会把真实可达的
      * 两点误判为不可达——因此这里返回 {@code false} 时，{@link #kShortest} 在完整约束下也必然找不到任何
@@ -576,7 +576,7 @@ public class GeoRouteEngine {
 
     /**
      * 判断沿 {@code link} 从 {@code fromId} 走到下一节点是否应被过滤——目标节点不存在，或它是一个
-     * 「非终点」中途车站且存在正线绕行 / 属于折返站（与 {@link #kShortest} 里同一段过滤逻辑一致）。
+     * 「非终点」中途车站且经停靠线进入（该站有正线可跨越） / 属于折返站（与 {@link #kShortest} 里同一段过滤逻辑一致）。
      */
     private static boolean reachSkipIntermediate(GeoRouteGraph g, String fromId, GeoLink link, String endStation) {
         GeoNode nextNode = g.getNode(link.getToNodeId());
@@ -584,7 +584,7 @@ public class GeoRouteEngine {
             return true;
         }
         if (nextNode.isStation() && !endStation.equals(nextNode.getName())) {
-            if (hasMainlineBypass(g, fromId, nextNode)) {
+            if (link.isSiding()) {
                 return true;
             }
             if (LineInfo.isReverseStation(link.getLineId(), nextNode.getName())) {
@@ -674,7 +674,7 @@ public class GeoRouteEngine {
                     continue;
                 }
                 String curStationName = curNode != null && !curNode.isStation()
-                        ? getNodeStationName(g, curNode, link.getLineId()) : null;
+                        ? getNodeStationName(g, curNode, link) : null;
                 boolean nextIsTerminal = nextNode.isStation() && endStation.equals(nextNode.getName());
                 if (repeatsStation(g, cur, curStationName, startStation, endStation, nextIsTerminal)) {
                     continue;
@@ -695,8 +695,8 @@ public class GeoRouteEngine {
                 }
                 // 下一个节点是非终点的车站节点
                 if (nextNode.isStation() && !endStation.equals(nextNode.getName())) {
-                    // 中途站避让正线：存在正线绕行时，放弃穿越该 station。
-                    if (hasMainlineBypass(g, cur.nodeId(), nextNode)) {
+                    // 中途站避让正线：经停靠线进入中途站说明该站有正线可跨越，放弃穿越该 station。
+                    if (link.isSiding()) {
                         continue;
                     }
                     // 下一个节点是折返站节点
@@ -758,7 +758,7 @@ public class GeoRouteEngine {
             GeoNode node = g.getNode(e.nodeId());
             String currentStation = node == null ? null
                     : (node.isStation() ? node.getName()
-                    : (outgoing == null ? null : getNodeStationName(g, node, outgoing.getLineId())));
+                    : getNodeStationName(g, node, outgoing));
             if (stationName.equals(currentStation)) {
                 return true;
             }
@@ -768,20 +768,24 @@ public class GeoRouteEngine {
     }
 
     /**
-     * 如果某条线路的某个道岔是进站道岔（两个出边lineId相同，一条是正线，一条是停靠线，停靠线连接station节点，结构如下），返回对应的车站名
-     * 注：规定只有进站道岔可能会有两个出边的lineId相同
+     * 如果某条线路的某个道岔是进站道岔（geojson 出边带 track=main 正线 / track=siding 停靠线标记，结构如下），返回对应的车站名
+     * 停靠线中途可能经过别的道岔（如 N1 --siding--> X --siding--> S）
      *     /-->S(车站)-->\
      *   N1 ---(正线)---> N2
      *   N1 为进站道岔
      */
-    private static @Nullable String getNodeStationName(GeoRouteGraph g, GeoNode node, String lineId) {
-        if (node == null || lineId == null) {
+    private static @Nullable String getNodeStationName(GeoRouteGraph g, GeoNode node, GeoLink outgoing) {
+        if (node == null || outgoing == null) {
             return null;
         }
         if (node.isStation()) {
             return node.getName();
         }
-        return g.platformNameOfMainlineSwitch(node, lineId);
+        // 走停靠线时会真正到达该站台，车站名由站台节点自身计入；只有走正线跨站时进站道岔才代表该站
+        if (outgoing.isSiding()) {
+            return null;
+        }
+        return g.platformNameOfMainlineSwitch(node, outgoing.getLineId());
     }
 
     /**
@@ -791,33 +795,6 @@ public class GeoRouteEngine {
     private record Entry(String nodeId, double dist, GeoLink prevLink, Entry prev) {
     }
 
-
-    /**
-     * 结构判定某节点是否存在「正线绕行」——即该处有正线可越过停靠线车站。
-     * <p>
-     * 车站节点和进站道岔节点连接了同一个节点（出站道岔），即为有正线
-     *
-     * @param g                 路由图
-     * @param nodeId            节点 id（一般是 station 前一个 switcher）
-     * @param targetStationNode 进站道岔对应的车站节点
-     * @return true 表示存在正线绕行
-     */
-    private static boolean hasMainlineBypass(GeoRouteGraph g, String nodeId, GeoNode targetStationNode) {
-        List<GeoLink> stationLinks = g.links(targetStationNode.getId());
-        if (stationLinks.isEmpty()) {
-            return false;
-        } else {
-            for (GeoLink link : g.links(nodeId)) {
-                GeoNode to = g.getNode(link.getToNodeId());
-                if (to.coordEquals(g.getNode(stationLinks.getFirst().getToNodeId()))) {
-                    // 连接了同一个坐标的出站道岔
-                    // 这里用坐标不用id，是因为考虑两线共线情况
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
 
     /**
      * 从 KSP 的 {@link Entry} 回溯链构建有序节点列表、逐段 lineId 序列与逐段物理出向序列。

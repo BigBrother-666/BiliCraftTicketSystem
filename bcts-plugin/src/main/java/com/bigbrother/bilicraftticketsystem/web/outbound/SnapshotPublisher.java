@@ -212,6 +212,10 @@ public class SnapshotPublisher {
                     } else {
                         // 两个单元各产出一份：到达面取并集，门控才完整
                         mergeStringArray(existing, f, "enterFrom");
+                        // 正线 / 停靠线标记：首份缺失时取另一份的
+                        if (existing.getProperty("track") == null && f.getProperty("track") != null) {
+                            existing.setProperty("track", f.getProperty("track"));
+                        }
                     }
                 }
             }

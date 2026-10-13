@@ -56,6 +56,39 @@ public class GeoLink {
      * {@link #enterFacesFrom} 须含本值才可续接。无信息时为 null。
      */
     private final String enterFaceTo;
+    /**
+     * 正线 / 停靠线标记（geojson {@code track}）：{@code main} 正线、{@code siding} 停靠线，普通段为 null。
+     */
+    private String track;
+
+    /**
+     * 本段是否为停靠线（进站道岔第三行出向起到第一个 platform 为止）。
+     *
+     * @return true 表示停靠线
+     */
+    public boolean isSiding() {
+        return "siding".equals(track);
+    }
+
+    /**
+     * 本段是否为正线（进站道岔第四行出向，跨站直通到出站道岔）。
+     *
+     * @return true 表示正线
+     */
+    public boolean isMainline() {
+        return "main".equals(track);
+    }
+
+    /**
+     * 合并另一份同 id 边的正线 / 停靠线标记：本份缺失时取另一份的。
+     *
+     * @param track 另一份的标记（null 忽略）
+     */
+    public void mergeTrack(String track) {
+        if (this.track == null) {
+            this.track = track;
+        }
+    }
 
     /**
      * 合并另一份同 id 边的到达面集合。
@@ -85,6 +118,23 @@ public class GeoLink {
      */
     public GeoLink(String id, String fromNodeId, String toNodeId, String lineId, double distance, String color,
                    String departDirection, Set<String> enterFacesFrom, String enterFaceTo) {
+        this(id, fromNodeId, toNodeId, lineId, distance, color, departDirection, enterFacesFrom, enterFaceTo, null);
+    }
+
+    /**
+     * @param id              边 id
+     * @param fromNodeId      起点节点 id
+     * @param toNodeId        终点节点 id
+     * @param lineId          所属线路 id
+     * @param distance        边权（长度）
+     * @param color           线路色
+     * @param departDirection 物理出向（无道岔决策为 null）
+     * @param enterFacesFrom  到达起点道岔的允许到达面集合（空集表示不门控）
+     * @param enterFaceTo     到达终点节点的到达面（无则 null）
+     * @param track           正线 / 停靠线标记（{@code main} / {@code siding}，普通段 null）
+     */
+    public GeoLink(String id, String fromNodeId, String toNodeId, String lineId, double distance, String color,
+                   String departDirection, Set<String> enterFacesFrom, String enterFaceTo, String track) {
         this.id = id;
         this.fromNodeId = fromNodeId;
         this.toNodeId = toNodeId;
@@ -97,5 +147,6 @@ public class GeoLink {
                 ? new java.util.LinkedHashSet<>()
                 : new java.util.LinkedHashSet<>(enterFacesFrom);
         this.enterFaceTo = enterFaceTo;
+        this.track = track;
     }
 }

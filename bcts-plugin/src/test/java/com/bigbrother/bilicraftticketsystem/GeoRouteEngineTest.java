@@ -89,6 +89,16 @@ public class GeoRouteEngineTest {
     }
 
     /**
+     * 构建带正线 / 停靠线标记（{@code track}）的边。
+     */
+    private Feature trackLine(String id, String from, String to, String lineId, double length, String departDir,
+                              String track) {
+        Feature f = line(id, from, to, lineId, length, departDir);
+        f.getProperties().put("track", track);
+        return f;
+    }
+
+    /**
      * 构建带入向面门控的边（{@code enterFrom} 允许到达面集合、{@code enterTo} 到达终点面）。
      *
      * @param enterFrom 允许到达起点道岔的面集合（null 省略）
@@ -198,20 +208,54 @@ public class GeoRouteEngineTest {
     }
 
     @Test
-    void sidingDirectionDetectsMainlineSwitch() {
-        // 进站道岔 sw：一条出边去 platform 车站(到发线, departDir=s)、一条去 sw2 道岔(正线, departDir=e)
+    void platformNameFollowsSidingThroughIntermediateSwitch() {
+        // 进站道岔 in：正线 in->out(main)；停靠线 in->x->plat(siding)，中间夹了一个道岔 x
         FeatureCollection f = new FeatureCollection();
-        f.add(point("sw", "switch", null, 0, 64, 0));
-        f.add(point("plat", "station", "P", 5, 64, 5));
-        f.add(point("sw2", "switch", null, 10, 64, 0));
-        f.add(line("e.L.sw__plat", "sw", "plat", "L", 5, "s"));
-        f.add(line("e.L.sw__sw2", "sw", "sw2", "L", 5, "e"));
+        f.add(point("in", "switch", null, 0, 64, 0));
+        f.add(point("x", "switch", null, 5, 64, 5));
+        f.add(point("plat", "station", "P", 10, 64, 5));
+        f.add(point("out", "switch", null, 20, 64, 0));
+        f.add(trackLine("e.L.in__x", "in", "x", "L", 5, "s", "siding"));
+        f.add(trackLine("e.L.x__plat", "x", "plat", "L", 5, "e", "siding"));
+        f.add(trackLine("e.L.in__out", "in", "out", "L", 20, "e", "main"));
         GeoRouteGraph g = new GeoGraphLoader(null).loadFeatureCollection(f);
-        // 进站道岔 sw → 到发线出向 = 通往车站那条边的 departDir = "s"
-        assertEquals("s", g.sidingDirectionOfMainlineSwitch(g.getNode("sw")));
-        // 普通分岔(只有去车站、无去道岔的出边) sw2 不是进站道岔 → null
-        assertNull(g.sidingDirectionOfMainlineSwitch(g.getNode("sw2")));
-        assertNull(g.sidingDirectionOfMainlineSwitch(null));
+        assertEquals("P", g.platformNameOfMainlineSwitch(g.getNode("in"), "L"));
+        // 停靠线中间道岔 x 不是进站道岔
+        assertNull(g.platformNameOfMainlineSwitch(g.getNode("x"), "L"));
+        assertNull(g.platformNameOfMainlineSwitch(g.getNode("in"), "L2"));
+    }
+
+    @Test
+    void expressSkipsIntermediateStationReachedViaSiding() {
+        // A -> in ==正线==> out -> C；停靠线 in -> x -> B -> y -> out，platform 前后都夹了道岔（旧结构判定会失效）
+        FeatureCollection f = new FeatureCollection();
+        f.add(point("nA", "station", "A", 0, 64, 0));
+        f.add(point("in", "switch", null, 10, 64, 0));
+        f.add(point("x", "switch", null, 15, 64, 5));
+        f.add(point("nB", "station", "B", 20, 64, 5));
+        f.add(point("y", "switch", null, 25, 64, 5));
+        f.add(point("out", "switch", null, 30, 64, 0));
+        f.add(point("nC", "station", "C", 40, 64, 0));
+        f.add(line("e.L.nA__in", "nA", "in", "L", 10, null));
+        f.add(trackLine("e.L.in__x", "in", "x", "L", 1, "s", "siding"));
+        f.add(trackLine("e.L.x__nB", "x", "nB", "L", 1, "e", "siding"));
+        f.add(line("e.L.nB__y", "nB", "y", "L", 1, null));
+        f.add(line("e.L.y__out", "y", "out", "L", 1, "e"));
+        f.add(trackLine("e.L.in__out", "in", "out", "L", 50, "e", "main"));
+        f.add(line("e.L.out__nC", "out", "nC", "L", 10, "e"));
+        GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(f));
+
+        // A -> C：停靠线更短，但中途站 B 经停靠线进入，快速车必须走正线
+        GeoRoutePath ac = GeoRouteEngine.findFromNode("nA", "C");
+        assertNotNull(ac);
+        assertEquals(List.of("nA", "in", "out", "nC"), ac.getNodes().stream().map(GeoNode::getId).toList());
+        // 站序仍包含跨越的 B（经进站道岔识别）
+        assertEquals(List.of("A", "B", "C"), ac.stationSequence());
+
+        // A -> B：终点站本身可经停靠线到达
+        GeoRoutePath ab = GeoRouteEngine.findFromNode("nA", "B");
+        assertNotNull(ab);
+        assertEquals("nB", ab.getEndNode().getId());
     }
 
     @Test
@@ -343,12 +387,12 @@ public class GeoRouteEngineTest {
         f.add(point("nD", "station", "D", 60, 64, 0));
 
         f.add(line("e.L.nA__bIn1", "nA", "bIn1", "L", 10, "e"));
-        f.add(line("e.L.bIn1__nB1", "bIn1", "nB1", "L", 1, "s"));
-        f.add(line("e.L.bIn1__bOut1", "bIn1", "bOut1", "L", 1, "e"));
+        f.add(trackLine("e.L.bIn1__nB1", "bIn1", "nB1", "L", 1, "s", "siding"));
+        f.add(trackLine("e.L.bIn1__bOut1", "bIn1", "bOut1", "L", 1, "e", "main"));
         f.add(line("e.L.bOut1__mid", "bOut1", "mid", "L", 10, "e"));
         f.add(line("e.L.mid__bIn2", "mid", "bIn2", "L", 10, "e"));
-        f.add(line("e.L.bIn2__nB2", "bIn2", "nB2", "L", 1, "s"));
-        f.add(line("e.L.bIn2__bOut2", "bIn2", "bOut2", "L", 1, "e"));
+        f.add(trackLine("e.L.bIn2__nB2", "bIn2", "nB2", "L", 1, "s", "siding"));
+        f.add(trackLine("e.L.bIn2__bOut2", "bIn2", "bOut2", "L", 1, "e", "main"));
         f.add(line("e.L.bOut2__nD", "bOut2", "nD", "L", 10, "e"));
         GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(f));
 
@@ -366,8 +410,8 @@ public class GeoRouteEngineTest {
         f.add(point("dead", "switch", null, 30, 64, 0));
         f.add(line("e.L.nR__c1", "nR", "c1", "L", 10, "e"));
         f.add(line("e.L.c1__rIn", "c1", "rIn", "L", 10, "e"));
-        f.add(line("e.L.rIn__nR2", "rIn", "nR2", "L", 10, "s"));
-        f.add(line("e.L.rIn__dead", "rIn", "dead", "L", 1, "e"));
+        f.add(trackLine("e.L.rIn__nR2", "rIn", "nR2", "L", 10, "s", "siding"));
+        f.add(trackLine("e.L.rIn__dead", "rIn", "dead", "L", 1, "e", "main"));
         GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(f));
 
         GeoRoutePath path = GeoRouteEngine.findFromNode("nR", "R");

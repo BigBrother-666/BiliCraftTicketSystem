@@ -88,6 +88,7 @@ public class GeojsonReader {
         RailEdge edge = new RailEdge(from, to, lineId, railwaySystemId, coords, color, length, layer,
                 departDir, world, firstEnterFrom, enterTo, owner);
         restEnterFrom.forEach(edge::addEnterFaceFrom);
+        edge.setTrack(str(f.getProperty("track")));
         return edge;
     }
 

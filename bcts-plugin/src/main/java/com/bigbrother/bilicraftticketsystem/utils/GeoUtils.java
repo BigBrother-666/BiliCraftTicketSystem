@@ -53,13 +53,49 @@ public class GeoUtils {
      */
     public static List<BcSwitcherBranch> mergeBranchesByDirection(List<BcSwitcherBranch> branches) {
         Map<String, Set<String>> byDirection = new LinkedHashMap<>();
+        Map<String, Set<String>> mainlineByDirection = new LinkedHashMap<>();
+        Map<String, Set<String>> sidingByDirection = new LinkedHashMap<>();
         for (BcSwitcherBranch branch : branches) {
-            byDirection.computeIfAbsent(branch.getDirectionStr(), k -> new LinkedHashSet<>())
-                    .addAll(branch.getLineIds());
+            String dir = branch.getDirectionStr();
+            byDirection.computeIfAbsent(dir, k -> new LinkedHashSet<>()).addAll(branch.getLineIds());
+            mainlineByDirection.computeIfAbsent(dir, k -> new LinkedHashSet<>()).addAll(branch.getMainlineIds());
+            sidingByDirection.computeIfAbsent(dir, k -> new LinkedHashSet<>()).addAll(branch.getSidingIds());
         }
         List<BcSwitcherBranch> merged = new ArrayList<>();
-        byDirection.forEach((dir, lineIds) -> merged.add(new BcSwitcherBranch(dir, new ArrayList<>(lineIds))));
+        byDirection.forEach((dir, lineIds) -> merged.add(new BcSwitcherBranch(dir, new ArrayList<>(lineIds),
+                mainlineByDirection.get(dir), sidingByDirection.get(dir))));
         return merged;
+    }
+
+    /**
+     * 解析<b>一块</b> bcswitcher 牌的第三、四行出向，并标记正线 / 停靠线。
+     * <p>
+     * 规则：两行都声明了同一条线路 L 时，该牌是 L 的进站道岔——第三行出向是 L 的<b>停靠线</b>
+     * （通往 platform；普通车先匹配第三行，自然进站停靠），第四行出向是 L 的<b>正线</b>（跨站直通）。
+     * 只有一行有效时不做标记。
+     *
+     * @param line3 牌的第三行
+     * @param line4 牌的第四行
+     * @return 有效的出向分支（0~2 个，按行顺序）
+     */
+    public static List<BcSwitcherBranch> parseSignBranches(String line3, String line4) {
+        BcSwitcherBranch siding = parseBcSwitcherBranch(line3);
+        BcSwitcherBranch mainline = parseBcSwitcherBranch(line4);
+        List<BcSwitcherBranch> result = new ArrayList<>();
+        if (siding == null || mainline == null) {
+            if (siding != null) {
+                result.add(siding);
+            }
+            if (mainline != null) {
+                result.add(mainline);
+            }
+            return result;
+        }
+        Set<String> common = new LinkedHashSet<>(siding.getLineIds());
+        common.retainAll(mainline.getLineIds());
+        result.add(new BcSwitcherBranch(siding.getDirectionStr(), siding.getLineIds(), null, common));
+        result.add(new BcSwitcherBranch(mainline.getDirectionStr(), mainline.getLineIds(), common, null));
+        return result;
     }
 
     /**

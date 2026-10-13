@@ -10,17 +10,17 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 /**
  * 共线车站的进站道岔判定测试。
  * <p>
- * 两条线共用一个车站时，进站道岔上同时挂着两条线各自的正线与停靠线出边。旧实现要求「全部出边同属
- * 一条线」才算进站道岔，共线车站因此永远认不出（前端高亮线路时正线不隐藏、寻路车站去重失效）。
+ * 两条线共用一个车站时，进站道岔上同时挂着两条线各自的正线与停靠线出边（{@code track} 标记），
+ * 须按线路分别识别。
  */
 class GeoRouteGraphSharedStationTest {
 
     /**
      * 构造一条有向边（不带门控面）。
      */
-    private static GeoLink link(String from, String to, String lineId, String departDir) {
+    private static GeoLink link(String from, String to, String lineId, String departDir, String track) {
         return new GeoLink("e." + lineId + "." + from + "__" + to, from, to, lineId, 5, "#fff",
-                departDir, Set.of(), null);
+                departDir, Set.of(), null, track);
     }
 
     /**
@@ -32,8 +32,8 @@ class GeoRouteGraphSharedStationTest {
         g.addNode(new GeoNode("platform", "station", "P", 10, 64, 10));
         g.addNode(new GeoNode("out", "switch", null, 20, 64, 0));
         for (String lineId : new String[]{"L1", "L2"}) {
-            g.addLink(link("in", "platform", lineId, "s"));
-            g.addLink(link("in", "out", lineId, "e"));
+            g.addLink(link("in", "platform", lineId, "s", "siding"));
+            g.addLink(link("in", "out", lineId, "e", "main"));
         }
         return g;
     }
@@ -67,8 +67,8 @@ class GeoRouteGraphSharedStationTest {
         g.addNode(new GeoNode("fork", "switch", null, 0, 64, 0));
         g.addNode(new GeoNode("platform", "station", "P", 10, 64, 10));
         g.addNode(new GeoNode("next", "switch", null, 20, 64, 0));
-        g.addLink(link("fork", "platform", "L1", "s"));
-        g.addLink(link("fork", "next", "L2", "e"));
+        g.addLink(link("fork", "platform", "L1", "s", null));
+        g.addLink(link("fork", "next", "L2", "e", null));
         assertNull(g.platformNameOfMainlineSwitch(g.getNode("fork"), "L1"));
         assertNull(g.platformNameOfMainlineSwitch(g.getNode("fork"), "L2"));
     }

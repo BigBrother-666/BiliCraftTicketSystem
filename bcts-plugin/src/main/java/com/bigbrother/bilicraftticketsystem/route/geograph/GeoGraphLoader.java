@@ -150,15 +150,17 @@ public class GeoGraphLoader {
                 }
             }
             String enterTo = str(props.get("enterTo"));
+            String track = str(props.get("track"));
             // 同一条边（同 id）可能被两个遍历单元各产出一份（共用轨道 / 越界边），各带不同的
             // enterFrom 到达面集合。按 id 合并、enterFrom 取并集，避免图里出现重复出边、
             // 也避免只取其中一份导致门控面残缺（表现为某方向来车寻路时接不上）。
             GeoLink existing = graph.getLink(id);
             if (existing != null) {
                 existing.mergeEnterFacesFrom(enterFrom);
+                existing.mergeTrack(track);
                 continue;
             }
-            graph.addLink(new GeoLink(id, from, to, lineId, distance, color, departDir, enterFrom, enterTo));
+            graph.addLink(new GeoLink(id, from, to, lineId, distance, color, departDir, enterFrom, enterTo, track));
         }
     }
 

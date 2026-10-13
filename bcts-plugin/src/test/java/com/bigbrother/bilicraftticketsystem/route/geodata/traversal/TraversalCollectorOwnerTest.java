@@ -39,7 +39,7 @@ class TraversalCollectorOwnerTest {
     private static void record(TraversalCollector collector, String from, String to, String lineId,
                                String owner, String enterFaceFrom) {
         collector.recordEdge(from, to, lineId, "paralon-railway", "#AA0000", coords(), 10,
-                "e", "world", enterFaceFrom, "1_0", owner);
+                "e", "world", enterFaceFrom, "1_0", owner, null);
     }
 
     /**

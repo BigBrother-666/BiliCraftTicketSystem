@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * 道岔出向合并测试：一块牌写共用与多块牌分开写，合并后结果应一致。
@@ -40,5 +42,38 @@ public class BcSwitcherBranchMergeTest {
         assertEquals(2, merged.size());
         assertEquals("e@pr-s3;pr-cw", merged.get(0).toString());
         assertEquals("s@contact", merged.get(1).toString());
+    }
+
+    /**
+     * 同一块牌第三、四行声明同一 lineId：第三行为该线停靠线、第四行为正线；只在一行出现的线路不标记。
+     */
+    @Test
+    void sameLineOnBothRowsMarksSidingAndMainline() {
+        List<BcSwitcherBranch> branches = GeoUtils.parseSignBranches("s@L1;L2", "e@L1;L3");
+        assertEquals(2, branches.size());
+        BcSwitcherBranch siding = branches.get(0);
+        BcSwitcherBranch main = branches.get(1);
+        assertTrue(siding.isSidingOf("L1"));
+        assertFalse(siding.isMainlineOf("L1"));
+        assertTrue(main.isMainlineOf("L1"));
+        assertFalse(main.isSidingOf("L1"));
+        assertFalse(siding.isSidingOf("L2"));
+        assertFalse(main.isMainlineOf("L3"));
+
+        // 按出向合并后保留标记
+        List<BcSwitcherBranch> merged = GeoUtils.mergeBranchesByDirection(branches);
+        assertTrue(merged.get(0).isSidingOf("L1"));
+        assertTrue(merged.get(1).isMainlineOf("L1"));
+    }
+
+    /**
+     * 只有一行有效时不标记。
+     */
+    @Test
+    void singleRowHasNoTrackMarks() {
+        List<BcSwitcherBranch> branches = GeoUtils.parseSignBranches("s@L1", "");
+        assertEquals(1, branches.size());
+        assertFalse(branches.getFirst().isSidingOf("L1"));
+        assertFalse(branches.getFirst().isMainlineOf("L1"));
     }
 }

@@ -12,7 +12,6 @@ import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.utils.GeoUtils;
 import com.bigbrother.bilicraftticketsystem.signactions.component.BcSwitcherBranch;
 import com.bigbrother.bilicraftticketsystem.route.NodeId;
-import com.bigbrother.bilicraftticketsystem.route.geograph.GeoNode;
 import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRouteEngine;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcLineIdProperty;
 import com.bigbrother.bilicraftticketsystem.route.geograph.nav.BcRouteNavigator;
@@ -136,14 +135,12 @@ public class SignActionBcswitcher extends SignAction {
         }
 
         List<BcSwitcherBranch> branches = parseBranches(info);
-        // 选向优先级：带导航(直达)按 S:出向；无导航在进站道岔按结构判定的到发线出向；再回退 lineId/tag。
+        // 选向优先级：带导航(直达)按 S:出向；无导航回退 lineId/tag 首个匹配出向——进站道岔第三行即停靠线，
+        // 普通车 / 手动车按行序先匹配到第三行，自然进站停靠。
         String navDir = navUsable ? BcRouteNavigator.currentSwitchDirection(group) : null;
-        String sidingDir = navDir != null ? null : structuralSidingDir(info);
         BcSwitcherBranch branch = null;
         if (navDir != null) {
             setRailsTo(info, navDir);
-        } else if (sidingDir != null) {
-            setRailsTo(info, sidingDir);
         } else {
             branch = selectBranch(branches, group);
             if (branch != null) {
@@ -160,8 +157,7 @@ public class SignActionBcswitcher extends SignAction {
                 branchLines.add(b.getDirectionStr() + "@" + String.join(";", b.getLineIds()));
             }
             String chosen = navDir != null ? navDir
-                    : (sidingDir != null ? sidingDir
-                    : (branch == null ? null : String.join(";", branch.getLineIds())));
+                    : (branch == null ? null : String.join(";", branch.getLineIds()));
             SwitchTrace.log(group,
                     NodeId.ofBlock(info.getRails()),
                     progress[0], progress[1],
@@ -228,13 +224,7 @@ public class SignActionBcswitcher extends SignAction {
             setSwitchedJunction(info, prediction, navDir);
             return;
         }
-        // 无导航车在进站道岔：按结构判定的到发线出向选向（普通车 / 手动车一律走到发线进站停靠）。
-        String sidingDir = structuralSidingDir(info);
-        if (sidingDir != null) {
-            setSwitchedJunction(info, prediction, sidingDir);
-            return;
-        }
-        // 回退：无导航 / 出向缺失 / 非进站道岔，按 lineId / tag 选 branch。
+        // 回退：无导航 / 出向缺失，按 lineId / tag 选 branch（进站道岔第三行即停靠线，普通车进站停靠）。
         BcSwitcherBranch branch = selectBranch(parseBranches(info), group);
         if (branch != null) {
             setSwitchedJunction(info, prediction, branch.getDirectionStr());
@@ -313,55 +303,9 @@ public class SignActionBcswitcher extends SignAction {
     }
 
     /**
-     * 判断是否是进站道岔（也就是包含正线的车站的进站道岔）
-     *
-     * @param info 控制牌事件
-     * @return 是否是进站道岔（也就是包含正线的车站的进站道岔）
-     */
-    private boolean isEnterSwitcher(SignActionEvent info) {
-        List<BcSwitcherBranch> bcSwitcherBranches = parseBranches(info);
-        if (bcSwitcherBranches.size() < 2) {
-            // 只有一个分支
-            return false;
-        }
-        String propLineId = BcLineIdProperty.read(info.getGroup());
-        if (propLineId != null && !propLineId.isEmpty()) {
-            for (BcSwitcherBranch bcSwitcherBranch : bcSwitcherBranches) {
-                if (!bcSwitcherBranch.getLineIds().contains(propLineId)) {
-                    // 某个分支不包含当前列车的ID
-                    return false;
-                }
-            }
-        }
-        // 全部分支包含列车ID
-        return true;
-    }
-
-    /**
-     * 取本道岔（若为「有正线的进站道岔」）的到发线物理出向，供无导航列车（普通车 / 手动车）一律走
-     * 到发线进站停靠。按运行时路由图结构判定：进站道岔节点有通往车站的出边时，返回通往
-     * 车站那条出边的物理出向。
-     * <p>
-     * 节点 id 由铁轨方块坐标确定性生成（{@link NodeId#ofBlock}），与遍历建图同源，可直接在图中查到。
-     * 非进站道岔 / 图未加载 / 旧 geojson 无出向记录时返回 null（调用方回退到 lineId / tag 选向）。
-     *
-     * @param info 控制牌事件
-     * @return 到发线物理出向（如 "s"）；不适用返回 null
-     */
-    private String structuralSidingDir(SignActionEvent info) {
-        if (info.getRails() == null) {
-            return null;
-        }
-        if (!isEnterSwitcher(info)) {
-            return null;
-        }
-        GeoNode node = GeoRouteEngine.getGraph().getNode(NodeId.ofBlock(info.getRails()));
-        return node == null ? null : GeoRouteEngine.getGraph().sidingDirectionOfMainlineSwitch(node);
-    }
-
-    /**
      * 回退选向（仅无导航序列时使用）：普通车 / 手动列车 / 遍历矿车没有导航出向，按线路属性 / tag 匹配
-     * 第一个归属出向，避免打断存量列车。带导航的列车不走这里——它们在 execute / predict 里按
+     * 第一个归属出向，避免打断存量列车。出向按牌面行序排列，进站道岔第三行（停靠线）先于第四行（正线），
+     * 故无导航车在进站道岔一律走停靠线。带导航的列车不走这里——它们在 execute / predict 里按
      * {@link BcRouteNavigator#currentSwitchDirection} 的物理出向直接选向。
      *
      * @param branches 道岔出向

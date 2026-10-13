@@ -94,21 +94,27 @@ public class TraversalCollector {
      * @param enterFaceFrom   本段在起点道岔的到达面 key（起点首段 / 无门控传 null）
      * @param enterFaceTo     本段在终点节点的到达面 key（无门控传 null）
      * @param ownerLineId     产出本段的遍历单元 id（即本单元，决定写进哪个文件）
+     * @param track           正线 / 停靠线标记（{@link RailEdge#TRACK_MAIN} / {@link RailEdge#TRACK_SIDING}，普通段 null）
      */
     public void recordEdge(String fromNodeId, String toNodeId, String lineId,
                            String railwaySystemId, String color, List<LngLatAlt> coords, double length,
                            String departDirection, String world, String enterFaceFrom, String enterFaceTo,
-                           String ownerLineId) {
+                           String ownerLineId, String track) {
         String edgeId = NodeId.ofEdge(fromNodeId, toNodeId, lineId);
         RailEdge existing = edges.get(edgeId);
         if (existing != null) {
             // 同一 (from,to,lineId) 边被不同到达面产出（如 [+train:lr] 多进入方向续行同一段）：
             // 合并到达面而非丢弃，保证门控集合完整。
             existing.addEnterFaceFrom(enterFaceFrom);
+            if (existing.getTrack() == null) {
+                existing.setTrack(track);
+            }
             return;
         }
-        edges.put(edgeId, new RailEdge(fromNodeId, toNodeId, lineId, railwaySystemId, coords, color, length, 0,
-                departDirection, world, enterFaceFrom, enterFaceTo, ownerLineId));
+        RailEdge edge = new RailEdge(fromNodeId, toNodeId, lineId, railwaySystemId, coords, color, length, 0,
+                departDirection, world, enterFaceFrom, enterFaceTo, ownerLineId);
+        edge.setTrack(track);
+        edges.put(edgeId, edge);
     }
 
     /**

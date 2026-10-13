@@ -20,7 +20,8 @@ import java.util.Set;
  * 产出符合 CLAUDE.md 规定的属性：
  * <ul>
  *   <li>Point：id（必须）、name（仅 station）、lineIds、railwaySystemIds（仅 station）、prev、next、type。</li>
- *   <li>LineString：id、from、to、lineId、railwaySystemId（未配置则省略）、color、length、layer。</li>
+ *   <li>LineString：id、from、to、lineId、railwaySystemId（未配置则省略）、color、length、layer、
+ *       track（正线 {@code main} / 停靠线 {@code siding}，普通段省略）。</li>
  * </ul>
  * prev / next 由所有区间的 from -> to 关系推算。该类为纯转换逻辑，不依赖 Bukkit / TC，
  * 便于单元测试。
@@ -142,6 +143,10 @@ public class GeojsonBuilder {
         // 转线段则是带出它的那条营运线。为空省略（读回旧文件时可能缺失）。
         if (edge.getOwnerLineId() != null) {
             props.put("owner", edge.getOwnerLineId());
+        }
+        // 正线 / 停靠线标记；普通段省略
+        if (edge.getTrack() != null) {
+            props.put("track", edge.getTrack());
         }
         feature.setProperties(props);
         return feature;

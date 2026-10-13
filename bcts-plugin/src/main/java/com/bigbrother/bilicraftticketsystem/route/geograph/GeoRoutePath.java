@@ -262,7 +262,7 @@ public class GeoRoutePath {
                         if (!result.isEmpty() && !result.getLast().stationName.equals(stationName)) {
                             result.add(new StationStep(stationName, lineId));
                         } else if (result.isEmpty()) {
-                            result.add(new StationStep(node.getName(), lineId));
+                            result.add(new StationStep(stationName, lineId));
                         }
                     }
                 }

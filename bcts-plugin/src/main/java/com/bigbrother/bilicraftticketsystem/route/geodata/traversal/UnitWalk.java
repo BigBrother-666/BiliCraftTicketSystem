@@ -45,7 +45,8 @@ import java.util.logging.Level;
  *   <tr><td>platform</td><td>非折返站沿进入方向续行、折返站（{@code :RV}）反向驶出、终点站停住
  *       （配了转线则按越界边处理）</td></tr>
  *   <tr><td>bcswitcher，出向含本线</td><td>按该出向续行（同一道岔多个属本线的出边逐个 fork，
- *       如正线 + 到发线）</td></tr>
+ *       如正线 + 到发线）。同一块牌第三、四行声明同一 lineId 时为进站道岔：第四行出向记为正线
+ *       （{@code track=main}），第三行出向起到第一个 platform 为止记为停靠线（{@code track=siding}）</td></tr>
  *   <tr><td>bcswitcher，出向含 {@code contact}</td><td>记录为待办联络线分支，压入阶段 2 队列</td></tr>
  *   <tr><td>bcswitcher，出向是另一条营运线</td><td><b>走一跳越界边</b>：走到下一个节点、记录这条边，
  *       就此停住，不流入对端路网（见 {@link #isCrossBoundary}）</td></tr>
@@ -170,10 +171,14 @@ public class UnitWalk {
      * @param startState    本段起步的真实铁轨状态（道岔 fork 时为到达该道岔的状态；起点首段 / platform 续行为
      *                      null，按 {@code rail} + {@code direction} 起步）。道岔 fork 必须用真实状态起步：
      *                      合成状态在斜向轨道上算不对进入面，bcswitcher 进入方向判定失败、强制出向不生效
+     * @param track         本段正线 / 停靠线标记（{@link RailEdge#TRACK_MAIN} / {@link RailEdge#TRACK_SIDING}，
+     *                      普通段为 null）。停靠线从进站道岔第三行出向开始，经过中间道岔一路沿用，到第一个
+     *                      platform 为止；正线只有进站道岔第四行出向这一段
      */
     private record WalkState(String prevNodeId, Block rail, Vector direction, String forcedDir, String lineId,
                              String fromEnterFace, Hop hop, String targetLineId,
-                             TraversalTrace.TraceNode traceParent, String traceStateKey, RailState startState) {
+                             TraversalTrace.TraceNode traceParent, String traceStateKey, RailState startState,
+                             String track) {
     }
 
     /**
@@ -189,7 +194,7 @@ public class UnitWalk {
         String key = "seed|" + unitLineId;
         trace.link(root, key);
         mainQueue.add(new WalkState(null, startRail, startDirection, null, unitLineId, null, Hop.NORMAL, null,
-                root, key, null));
+                root, key, null, null));
     }
 
     /**
@@ -331,7 +336,13 @@ public class UnitWalk {
                 double tolerance = hasCoaster[0] ? GeoUtils.COASTER_HORIZONTAL_TOLERANCE : GeoUtils.HORIZONTAL_TOLERANCE;
                 collector.recordEdge(st.prevNodeId(), node.getId(), lineId, railwaySystemId, color,
                         GeoUtils.simplifyLineString(coords, tolerance), result.length(), st.forcedDir(),
-                        node.getRailBlock().getWorld().getName(), st.fromEnterFace(), arrivalFace, unitLineId);
+                        node.getRailBlock().getWorld().getName(), st.fromEnterFace(), arrivalFace, unitLineId,
+                        st.track());
+            }
+            // 正线规定直通出站道岔，中间不能有 platform
+            if (RailEdge.TRACK_MAIN.equals(st.track()) && result.reason() == TrackWalker.StopReason.PLATFORM) {
+                log.warn(logPrefix + "线路 " + lineId + " 的正线（从道岔 " + st.prevNodeId() + " 出发）上存在 platform "
+                        + node.getId() + "。正线上不能有 platform / bcswitcher，请检查进站道岔第三、四行的出向是否写反");
             }
 
             // 落点补边：已沿目标线从落点道岔走出一段并记下，到此为止
@@ -349,7 +360,7 @@ public class UnitWalk {
             if (result.reason() == TrackWalker.StopReason.PLATFORM) {
                 expandPlatform(node, lineId, arrival, arrivalFace, logPrefix, traceNode);
             } else {
-                expandSwitcher(node, lineId, walker, result, arrival, arrivalFace, logPrefix, traceNode);
+                expandSwitcher(node, lineId, st.track(), walker, result, arrival, arrivalFace, logPrefix, traceNode);
             }
         } finally {
             walker.destroy();
@@ -410,8 +421,9 @@ public class UnitWalk {
         // 不会把「已遍历过」误报成停止原因。
         String key = stateKey(node, arrivalFace, outFace, outLineId);
         trace.link(traceNode, key);
+        // 停靠线到第一个 platform 为止，出站后的段不再标记
         tryEnqueue(key, new WalkState(node.getId(), node.getRailBlock(), outDir, null, outLineId, arrivalFace,
-                hop, targetLineId, traceNode, key, null), false);
+                hop, targetLineId, traceNode, key, null, null), false);
     }
 
     /**
@@ -449,13 +461,15 @@ public class UnitWalk {
      *
      * @param node        道岔节点
      * @param lineId      到达本道岔时携带的线路 id
+     * @param inTrack     到达本道岔所走的段的正线 / 停靠线标记
      * @param walker      当前行走器（提供 member 上下文以判断牌头进入方向匹配）
      * @param result      到达本道岔的行走结果
      * @param arrival     到达方向
      * @param arrivalFace 到达方向的面 key（入向）
      * @param traceNode   本道岔在路径树上的节点
      */
-    private void expandSwitcher(RailNode node, String lineId, TrackWalker walker, TrackWalker.WalkResult result,
+    private void expandSwitcher(RailNode node, String lineId, String inTrack, TrackWalker walker,
+                                TrackWalker.WalkResult result,
                                 Vector arrival, String arrivalFace, String logPrefix,
                                 TraversalTrace.TraceNode traceNode) {
         RailPiece rail = result.sign().getRail();
@@ -499,14 +513,44 @@ public class UnitWalk {
                 linked++;
                 // contact 出向进阶段 2 队列（联络线在本线主干走完后再展开）
                 boolean contact = RailwaySystemConfig.CONTACT_ID.equals(outLineId);
+                // 正线终点即出站道岔：它同时又是下一站的进站道岔时照常按牌面判定
+                String outTrack = outTrack(branch, lineId, inTrack, outLineId);
                 tryEnqueue(key, new WalkState(node.getId(), node.getRailBlock(), arrival.clone(),
                         branch.getDirectionStr(), outLineId, arrivalFace, cross ? Hop.CROSS : Hop.NORMAL,
-                        cross ? outLineId : null, traceNode, key, result.arrivalState()), contact);
+                        cross ? outLineId : null, traceNode, key, result.arrivalState(), outTrack), contact);
             }
         }
         if (linked == 0) {
             trace.note(traceNode, switchStopNote(candidates, filtered));
         }
+    }
+
+    /**
+     * 计算道岔某个出向的正线 / 停靠线标记。
+     * <ul>
+     *   <li>已在停靠线上（到达本道岔的段是停靠线）：沿本线续行的出向仍是停靠线，不再把本道岔判为新的进站道岔
+     *       （停靠线上的中间道岔可能也在两行写了同一 lineId，如多股停靠道）；</li>
+     *   <li>否则按牌面：同一块牌第三、四行都声明了该出向线路时，第三行为停靠线、第四行为正线；</li>
+     *   <li>其余为普通段（null）。</li>
+     * </ul>
+     *
+     * @param branch    出向
+     * @param lineId    到达本道岔时携带的线路 id
+     * @param inTrack   到达本道岔所走的段的标记
+     * @param outLineId 出向线路 id
+     * @return 出向段的标记
+     */
+    private static String outTrack(BcSwitcherBranch branch, String lineId, String inTrack, String outLineId) {
+        if (RailEdge.TRACK_SIDING.equals(inTrack)) {
+            return outLineId.equals(lineId) ? RailEdge.TRACK_SIDING : null;
+        }
+        if (branch.isSidingOf(outLineId)) {
+            return RailEdge.TRACK_SIDING;
+        }
+        if (branch.isMainlineOf(outLineId)) {
+            return RailEdge.TRACK_MAIN;
+        }
+        return null;
     }
 
     /**
@@ -561,9 +605,10 @@ public class UnitWalk {
             for (BcSwitcherBranch branch : targetBranches) {
                 String key = stateKey(node, arrivalFace, branch.getDirectionStr(), targetLine);
                 trace.link(traceNode, key);
+                // 落点补边与对端线自己产出的边同 id，正线 / 停靠线标记也按牌面给出，保持一致
                 tryEnqueue(key, new WalkState(node.getId(), node.getRailBlock(), arrival.clone(),
                                 branch.getDirectionStr(), targetLine, arrivalFace, Hop.FINAL, targetLine, traceNode, key,
-                                result.arrivalState()),
+                                result.arrivalState(), outTrack(branch, targetLine, null, targetLine)),
                         false);
             }
             return;
@@ -579,7 +624,7 @@ public class UnitWalk {
                 trace.link(traceNode, key);
                 tryEnqueue(key, new WalkState(node.getId(), node.getRailBlock(), arrival.clone(),
                         branch.getDirectionStr(), RailwaySystemConfig.CONTACT_ID, arrivalFace, Hop.NORMAL, null,
-                        traceNode, key, result.arrivalState()), true);
+                        traceNode, key, result.arrivalState(), null), true);
             }
             return;
         }

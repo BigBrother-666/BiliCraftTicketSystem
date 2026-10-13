@@ -725,13 +725,11 @@ public class TrackWalker {
             if (event.isWatchedDirectionsDefined() && !event.isEnterActivated()) {
                 continue;
             }
-            for (int i = 2; i <= 3; i++) {
-                BcSwitcherBranch branch = GeoUtils.parseBcSwitcherBranch(sign.getLine(i));
-                if (branch != null) {
-                    // 出向规整为物理分叉名后再合并：消除牌子朝向对相对方向的影响
-                    result.add(new BcSwitcherBranch(normalizeDirection(event, branch.getDirectionStr()),
-                            branch.getLineIds()));
-                }
+            // 按单块牌解析第三、四行：正线 / 停靠线标记只看同一块牌的两行
+            for (BcSwitcherBranch branch : GeoUtils.parseSignBranches(sign.getLine(2), sign.getLine(3))) {
+                // 出向规整为物理分叉名后再合并：消除牌子朝向对相对方向的影响
+                result.add(new BcSwitcherBranch(normalizeDirection(event, branch.getDirectionStr()),
+                        branch.getLineIds(), branch.getMainlineIds(), branch.getSidingIds()));
             }
         }
         return GeoUtils.mergeBranchesByDirection(result);

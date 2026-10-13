@@ -2,8 +2,11 @@ package com.bigbrother.bilicraftticketsystem.signactions.component;
 
 import lombok.Getter;
 
+import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * bcswitcher 道岔控制牌的一个出向分支声明：{@code <方向>@<线路id>;[线路id]...}。
@@ -21,8 +24,11 @@ import java.util.List;
  * {@code SignActionEvent.findJunction(String)}（先按节点名匹配、再退回方向解析）处理。若在此提前用
  * {@code Direction.parse} 解析，数字节点名会被解析成 {@code NONE}，道岔无法切换。
  * <p>
- * 线路 id 为 railway_routes.yml 中的线路 id（不再有 contact / default 特殊 id——遍历系统已取消正线 /
- * 联络线概念，每个出向都显式声明其归属线路）。
+ * 线路 id 为 routes.yml 中的线路 id。
+ * <p>
+ * <b>正线 / 停靠线</b>：同一块牌的第三、四行都声明了同一条线路 L 时，该牌是 L 的进站道岔——第三行出向
+ * 是 L 的停靠线（通往 platform），第四行出向是 L 的正线（跨站直通）。见 {@link #getMainlineIds()} /
+ * {@link #getSidingIds()}，由 {@code GeoUtils#parseSignBranches} 标记。
  */
 @Getter
 public class BcSwitcherBranch {
@@ -34,6 +40,14 @@ public class BcSwitcherBranch {
      * 本出向归属的线路 id 列表（共用轨道时为多条，分号分隔）。至少一个。
      */
     private final List<String> lineIds;
+    /**
+     * 本出向是这些线路的<b>正线</b>：同一块牌第三、四行都声明了该线路时，第四行出向即正线。
+     */
+    private final Set<String> mainlineIds = new LinkedHashSet<>();
+    /**
+     * 本出向是这些线路的<b>停靠线</b>：同一块牌第三、四行都声明了该线路时，第三行出向即停靠线。
+     */
+    private final Set<String> sidingIds = new LinkedHashSet<>();
 
     /**
      * @param directionStr 出向字符串（方向或 TCC 节点名）
@@ -42,6 +56,43 @@ public class BcSwitcherBranch {
     public BcSwitcherBranch(String directionStr, List<String> lineIds) {
         this.directionStr = directionStr;
         this.lineIds = lineIds == null ? Collections.emptyList() : lineIds;
+    }
+
+    /**
+     * @param directionStr 出向字符串（方向或 TCC 节点名）
+     * @param lineIds      线路 id 列表（至少一个）
+     * @param mainlineIds  以本出向为正线的线路 id
+     * @param sidingIds    以本出向为停靠线的线路 id
+     */
+    public BcSwitcherBranch(String directionStr, List<String> lineIds,
+                            Collection<String> mainlineIds, Collection<String> sidingIds) {
+        this(directionStr, lineIds);
+        if (mainlineIds != null) {
+            this.mainlineIds.addAll(mainlineIds);
+        }
+        if (sidingIds != null) {
+            this.sidingIds.addAll(sidingIds);
+        }
+    }
+
+    /**
+     * 本出向是否为该线路的正线。
+     *
+     * @param lineId 线路 id
+     * @return true 表示正线
+     */
+    public boolean isMainlineOf(String lineId) {
+        return mainlineIds.contains(lineId);
+    }
+
+    /**
+     * 本出向是否为该线路的停靠线。
+     *
+     * @param lineId 线路 id
+     * @return true 表示停靠线
+     */
+    public boolean isSidingOf(String lineId) {
+        return sidingIds.contains(lineId);
     }
 
     /**
