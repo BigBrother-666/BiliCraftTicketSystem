@@ -8,6 +8,7 @@ import org.geojson.Feature;
 import org.geojson.FeatureCollection;
 import org.geojson.GeoJsonObject;
 import org.geojson.LineString;
+import org.geojson.LngLatAlt;
 import org.geojson.Point;
 
 import java.io.File;
@@ -126,7 +127,7 @@ public class GeoGraphLoader {
 
     private void addLinks(GeoRouteGraph graph, FeatureCollection fc) {
         for (Feature feature : fc.getFeatures()) {
-            if (!(feature.getGeometry() instanceof LineString)) {
+            if (!(feature.getGeometry() instanceof LineString lineString)) {
                 continue;
             }
             Map<String, Object> props = feature.getProperties();
@@ -158,10 +159,33 @@ public class GeoGraphLoader {
             if (existing != null) {
                 existing.mergeEnterFacesFrom(enterFrom);
                 existing.mergeTrack(track);
+                if (existing.getPolyline() == null) {
+                    existing.setPolyline(toPolyline(lineString));
+                }
                 continue;
             }
-            graph.addLink(new GeoLink(id, from, to, lineId, distance, color, departDir, enterFrom, enterTo, track));
+            GeoLink link = new GeoLink(id, from, to, lineId, distance, color, departDir, enterFrom, enterTo, track);
+            link.setPolyline(toPolyline(lineString));
+            graph.addLink(link);
         }
+    }
+
+    /**
+     * LineString 坐标转紧凑折线（坐标约定：经度=x、纬度=z、高度=y）。顶点不足 2 个返回 null。
+     */
+    private static GeoPolyline toPolyline(LineString lineString) {
+        List<LngLatAlt> points = lineString.getCoordinates();
+        if (points == null || points.size() < 2) {
+            return null;
+        }
+        double[] coords = new double[points.size() * 3];
+        for (int i = 0; i < points.size(); i++) {
+            LngLatAlt p = points.get(i);
+            coords[i * 3] = p.getLongitude();
+            coords[i * 3 + 1] = p.getAltitude();
+            coords[i * 3 + 2] = p.getLatitude();
+        }
+        return new GeoPolyline(coords);
     }
 
     private static String str(Object o) {

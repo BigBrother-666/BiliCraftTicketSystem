@@ -1,6 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.route.geograph;
 
 import lombok.Getter;
+import lombok.Setter;
 
 import java.util.Set;
 
@@ -60,6 +61,12 @@ public class GeoLink {
      * 正线 / 停靠线标记（geojson {@code track}）：{@code main} 正线、{@code siding} 停靠线，普通段为 null。
      */
     private String track;
+    /**
+     * 本段轨道折线几何（geojson LineString 坐标，按 from→to 排列），供 bossbar 实时进度投影。
+     * 无几何 / 顶点不足时为 null。
+     */
+    @Setter
+    private GeoPolyline polyline;
 
     /**
      * 本段是否为停靠线（进站道岔第三行出向起到第一个 platform 为止）。

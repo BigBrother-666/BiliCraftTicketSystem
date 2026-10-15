@@ -2,8 +2,10 @@ package com.bigbrother.bilicraftticketsystem.signactions.component;
 
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
+import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRouteTrack;
 import lombok.Getter;
 import net.kyori.adventure.bossbar.BossBar;
+import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
@@ -19,6 +21,10 @@ import org.bukkit.entity.Player;
  * </ul>
  * 另有一个 {@link #refreshProgress} 钩子，供列车经过<b>道岔</b>（非进出站，不属于 onArrive/onLeave 语义）
  * 时刷新直达车进度；普通车默认空实现。
+ * <p>
+ * 实时进度：{@link BossbarManager} 的定时任务每隔 {@code bossbar.update-interval-ticks} 调用 {@link #tick}，
+ * 两种 bossbar 把车头位置投影到 geojson 轨道折线上（{@link GeoRouteTrack}），按沿线已行驶距离 / 总距离
+ * 刷新进度条；轨迹构建失败（缺几何 / 图中无路）时退化为按节点 / 车站计数的旧逻辑。
  * <p>
  * 注意：bossbar 方法只<b>读</b>导航状态来刷新显示，绝不推进导航指针——指针推进属于导航逻辑，
  * 由 platform / bcswitcher 控制牌负责。
@@ -58,6 +64,15 @@ public abstract class RouteBossbarBase {
      * @param total 节点步骤序列总长
      */
     public void refreshProgress(int index, int total) {
+    }
+
+    /**
+     * 定时刷新实时进度（主线程，由 {@link BossbarManager} 的定时任务调用）。默认空实现。
+     *
+     * @param group 列车
+     * @param head  车头位置
+     */
+    public void tick(MinecartGroup group, Location head) {
     }
 
     /**

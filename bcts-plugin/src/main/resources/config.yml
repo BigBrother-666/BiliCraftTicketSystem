@@ -158,6 +158,9 @@ bossbar:
   passed-num: 2
   # 未过站最大显示个数
   not-passed-num: 3
+  # 直达车 / 普通车 bossbar 实时进度刷新间隔（tick）：按列车位置投影到 geojson 轨道折线计算沿线进度。
+  # <=0 关闭实时刷新（退化为按经过节点 / 车站个数显示进度）
+  update-interval-ticks: 10
   # 到站标题：使用 railway_routes.yml 中各线路的 bossbar-arrival-notice（占位符 {curr_station}），
   # 该线路留空则到站时显示滚动站名带（…上一站 → 当前站 → 下一站…）
 

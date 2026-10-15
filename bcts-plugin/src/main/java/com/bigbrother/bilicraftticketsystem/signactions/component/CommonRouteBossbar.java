@@ -6,6 +6,9 @@ import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemConfig;
 import com.bigbrother.bilicraftticketsystem.config.system.RailwaySystemInfo;
+import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRouteEngine;
+import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRouteGraph;
+import com.bigbrother.bilicraftticketsystem.route.geograph.GeoRouteTrack;
 import com.bigbrother.bilicraftticketsystem.signactions.SignActionPlatform;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
 import com.bigbrother.bilicraftticketsystem.utils.PlaceholderParser;
@@ -15,11 +18,13 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.Location;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * 普通车 bossbar：列车沿当前线路每站停，bossbar 显示「…上一站 → 当前站 → 下一站…」滚动站名带。
@@ -29,6 +34,11 @@ import java.util.Map;
  * （未过站颜色未配置时回退到该线路的标志色）。到站标题模板取自该线路的
  * {@link LineInfo#getBossbarArrivalNotice()}（占位符 {@code {curr_station}}），留空则显示滚动站名带。
  * 由 {@link SignActionPlatform} 在进出站时驱动。
+ * <p>
+ * 进度条（非环线）按<b>实时位置</b>刷新：首次使用时沿本线把相邻车站的站台节点在路由图中连成整线轨迹
+ * （{@link GeoRouteTrack#ofLineStations}），定时任务（{@link #tick}）把车头投影到「上一站 → 下一站」区间的
+ * 轨道折线上，进度 = 沿线距离 / 全线距离。轨迹构建失败（车站缺站台节点 / 图中无路 / 缺几何）时退化为按车站计数。
+ * 环线恒为满进度。
  */
 public class CommonRouteBossbar extends RouteBossbarBase {
     /**
@@ -46,6 +56,24 @@ public class CommonRouteBossbar extends RouteBossbarBase {
     private final int notPassedNum;
     private final String arrivalNotice;
     private final String lineName;
+
+    /**
+     * 整线轨迹缓存（lineId → 轨迹，失败存 Optional.empty）：bossbar 按车厢绑定，同一列车多节车厢 /
+     * 同线多列车共享，避免重复寻路。路由图整体替换（reload / 重新遍历）后清空。
+     */
+    private static final Map<String, Optional<GeoRouteTrack.StationTrack>> TRACK_CACHE = new HashMap<>();
+    private static GeoRouteGraph cachedGraph;
+
+    /**
+     * 整线轨迹（懒构建，{@link #trackBuilt} 标记已尝试过，失败为 null 走计数退化）。
+     */
+    private GeoRouteTrack.StationTrack track;
+    private boolean trackBuilt;
+    private final GeoRouteTrack.Cursor cursor = new GeoRouteTrack.Cursor();
+    /**
+     * 已显示过的最大沿线距离：投影噪声 / 列车短暂回溯时进度条不倒退。
+     */
+    private double maxAlong;
 
     /**
      * @param line 列车当前所属线路信息
@@ -109,6 +137,10 @@ public class CommonRouteBossbar extends RouteBossbarBase {
         this.currStationIdx = idx;
         if (ring) {
             bossBar.progress(1.0f);
+        } else if (ensureTrack() != null) {
+            // 到站：进度对齐到本站沿线距离
+            maxAlong = Math.max(maxAlong, track.stationDistance(idx));
+            applyAlong();
         } else {
             bossBar.progress(Math.min((float) (currStationIdx + 1) / stations.size(), 1.0f));
         }
@@ -139,7 +171,7 @@ public class CommonRouteBossbar extends RouteBossbarBase {
         bossBar.name(buildScrollTitle(false));
         if (ring) {
             bossBar.progress(1.0f);
-        } else {
+        } else if (ensureTrack() == null) {
             bossBar.progress(Math.min((float) currStationIdx / stations.size(), 1.0f));
         }
     }
@@ -162,9 +194,65 @@ public class CommonRouteBossbar extends RouteBossbarBase {
         bossBar.name(buildScrollTitle(false));
         if (ring) {
             bossBar.progress(1.0f);
+        } else if (ensureTrack() != null) {
+            // 转入本线：进入站之前的车站视为已过，进度从上一站起算
+            maxAlong = currStationIdx > 0 ? track.stationDistance(currStationIdx - 1) : 0;
+            applyAlong();
         } else {
             bossBar.progress(Math.min((float) (currStationIdx) / stations.size(), 1.0f));
         }
+    }
+
+    @Override
+    public void tick(MinecartGroup group, Location head) {
+        if (bossBar == null || ring || stations.size() < 2 || head == null || head.getWorld() == null) {
+            return;
+        }
+        if (ensureTrack() == null || !head.getWorld().getName().equals(track.track().getWorld())) {
+            return;
+        }
+        // 列车位于「上一站 → 当前/下一站」区间：出站后 currStationIdx 已指向下一站，到站时指向本站
+        int last = stations.size() - 1;
+        int fromNode = track.stationNodeIndex()[Math.max(0, Math.min(currStationIdx - 1, last))];
+        int toNode = track.stationNodeIndex()[Math.max(0, Math.min(currStationIdx, last))];
+        // 区间内的跳为 [fromNode, toNode-1]，前后各放宽一跳容忍控制牌触发时机偏差
+        double along = track.track().locate(fromNode - 1, toNode, head.getX(), head.getY(), head.getZ(), cursor);
+        if (Double.isNaN(along)) {
+            return;
+        }
+        maxAlong = Math.max(maxAlong, along);
+        applyAlong();
+    }
+
+    /**
+     * 懒构建整线轨迹（仅非环线），只尝试一次。
+     *
+     * @return 轨迹；不可用返回 null
+     */
+    private GeoRouteTrack.StationTrack ensureTrack() {
+        if (!trackBuilt) {
+            trackBuilt = true;
+            if (!ring) {
+                track = cachedTrack(lineId, stations);
+            }
+        }
+        return track;
+    }
+
+    private static GeoRouteTrack.StationTrack cachedTrack(String lineId, List<String> stations) {
+        GeoRouteGraph graph = GeoRouteEngine.getGraph();
+        if (graph != cachedGraph) {
+            TRACK_CACHE.clear();
+            cachedGraph = graph;
+        }
+        return TRACK_CACHE.computeIfAbsent(lineId, id -> {
+            GeoRouteTrack.StationTrack built = GeoRouteTrack.ofLineStations(graph, stations, id);
+            return Optional.ofNullable(built != null && built.track().totalDistance() > 0 ? built : null);
+        }).orElse(null);
+    }
+
+    private void applyAlong() {
+        bossBar.progress((float) Math.min(Math.max(maxAlong / track.track().totalDistance(), 0), 1));
     }
 
     /**

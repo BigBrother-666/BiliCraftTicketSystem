@@ -121,6 +121,8 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
             RailwayRoutesConfig.load(this);
 
             MainConfig.loadMainConfig(this);
+            // bossbar 实时进度定时任务（按新间隔重启；须在主线程调度）
+            Bukkit.getScheduler().runTask(this, () -> BossbarManager.startTicker(this, MainConfig.bossbarUpdateIntervalTicks));
             RailwaySystemConfig.load(this);
             LineConfig.load(this);
             ItemsConfig.loadItemsConfig(this);
@@ -355,6 +357,7 @@ public final class BiliCraftTicketSystem extends JavaPlugin {
 
         // 停止全部站台引导并清理残留全息实体
         PlatformGuide.stopAll();
+        BossbarManager.stopTicker();
 
         // 按配置销毁所有 bcspawn 生成的列车（带 bcTrainId 属性），避免残留失去导航的列车
         if (MainConfig.cleanupBcspawnTrainsOnDisable) {

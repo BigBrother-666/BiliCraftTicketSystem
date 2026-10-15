@@ -106,6 +106,10 @@ public class MainConfig {
      * 普通车 bossbar 滚动站名带：未过站最大显示个数。
      */
     public static int bossbarNotPassedNum;
+    /**
+     * bossbar 实时进度刷新间隔（tick），<=0 关闭实时刷新（退化为按节点 / 车站计数）。
+     */
+    public static int bossbarUpdateIntervalTicks;
 
     /**
      * 「寻找上车站台」引导总开关。
@@ -221,6 +225,7 @@ public class MainConfig {
         bossbarNotPassedColor = bossbar.get("not-passed-color", String.class, null);
         bossbarPassedNum = bossbar.get("passed-num", 2);
         bossbarNotPassedNum = bossbar.get("not-passed-num", 3);
+        bossbarUpdateIntervalTicks = bossbar.get("update-interval-ticks", 10);
 
         ConfigurationNode guide = mainConfig.getNode("guide");
         guideEnabled = guide.get("enabled", true);
