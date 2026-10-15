@@ -846,8 +846,13 @@ public class GeoTraversalTask {
         if (allEdges.isEmpty()) {
             return 0;
         }
-        // 全局重算：assign 会把每条边 layer 归零后按空间交叉重新分层
-        LayerAssigner.assign(allEdges);
+        // 全局重算：按空间交叉重新分层
+        long startMs = System.currentTimeMillis();
+        int cyclic = LayerAssigner.assign(allEdges);
+        log.info("重算 layer：" + allEdges.size() + " 区间，耗时 " + (System.currentTimeMillis() - startMs) + " ms");
+        if (cyclic > 0) {
+            log.warn("重算 layer：" + cyclic + " 个区间的叠压约束成环（不同交叉点高低相反），已取同一层级");
+        }
         // 边 id -> 新 layer。同 id 边可能被多个单元各产出一份（共用轨道 / 越界边），
         // 几何相同故 layer 相同，取任一即可。
         Map<String, Integer> layerById = new HashMap<>();

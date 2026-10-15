@@ -201,4 +201,51 @@ public class GeoLayerTest {
         assertEquals(0, contact.getLayer());
         assertEquals(0, normal.getLayer());
     }
+
+    @Test
+    void longSegmentsSpanningManyGridCellsStillCross() {
+        // 两条跨越多个网格的长直线在远离原点处交叉：网格剪枝不能漏检，也不能重复计数
+        RailEdge a = edge("a1", "a2", Arrays.asList(p(-1000, 300, 80), p(1000, 300, 80)));
+        RailEdge b = edge("b1", "b2", Arrays.asList(p(500, -1000, 64), p(500, 1000, 64)));
+        LayerAssigner.assign(new ArrayList<>(Arrays.asList(a, b)));
+        assertEquals(1, a.getLayer());
+        assertEquals(0, b.getLayer());
+    }
+
+    @Test
+    void duplicateIdEdgesShareLayer() {
+        // 同 id 区间在多个文件各有一份：只算一次，每份写回相同 layer
+        RailEdge a1 = edge("a1", "a2", Arrays.asList(p(0, 5, 70), p(10, 5, 70)));
+        RailEdge a2 = edge("a1", "a2", Arrays.asList(p(0, 5, 70), p(10, 5, 70)));
+        RailEdge b = edge("b1", "b2", Arrays.asList(p(5, 0, 64), p(5, 10, 64)));
+        LayerAssigner.assign(new ArrayList<>(Arrays.asList(a1, b, a2)));
+        assertEquals(1, a1.getLayer());
+        assertEquals(1, a2.getLayer());
+        assertEquals(0, b.getLayer());
+    }
+
+    @Test
+    void differentWorldsDoNotInteract() {
+        // 不同世界的区间坐标重叠也互不影响
+        RailEdge a = edge("a1", "a2", Arrays.asList(p(0, 5, 70), p(10, 5, 70)));
+        RailEdge b = new RailEdge("b1", "b2", "L", "sys", Arrays.asList(p(5, 0, 64), p(5, 10, 64)),
+                "#FFFFFF", 1, 0, null, "other_world", null, null, "L");
+        LayerAssigner.assign(new ArrayList<>(Arrays.asList(a, b)));
+        assertEquals(0, a.getLayer());
+        assertEquals(0, b.getLayer());
+    }
+
+    @Test
+    void cyclicConstraintsShareLayerAndAreReported() {
+        // 三角互压：a 在 b 上(10,0)、b 在 c 上(10,10)、c 在 a 上(0,0)，环内取同一层；d 压在 b、c 之上
+        RailEdge a = edge("a1", "a2", Arrays.asList(p(-2, 0, 62), p(12, 0, 76)));
+        RailEdge b = edge("b1", "b2", Arrays.asList(p(10, -2, 70), p(10, 12, 70)));
+        RailEdge c = edge("c1", "c2", Arrays.asList(p(-2, -2, 68), p(12, 12, 68)));
+        RailEdge d = edge("d1", "d2", Arrays.asList(p(-5, 5, 100), p(15, 5, 100)));
+        int cyclic = LayerAssigner.assign(new ArrayList<>(Arrays.asList(a, b, c, d)));
+        assertEquals(3, cyclic);
+        assertEquals(a.getLayer(), b.getLayer());
+        assertEquals(b.getLayer(), c.getLayer());
+        assertEquals(a.getLayer() + 1, d.getLayer());
+    }
 }
