@@ -6,6 +6,10 @@ ticket-system-prefix: '<gold>[帕拉伦铁路系统] '
 # ================== 聊天栏 ==================
 ticket-buy-success: '<green>您成功花费 <bold>%.2f银币</bold> 购买了 <bold>%s</bold>'
 ticket-buy-failure: '<red>车票购买失败：%s'
+# /ticket buy 指令开始查找路线时的提示（%s 依次为起点站、终点站）
+ticket-buy-searching: '<gray>正在查找 %s → %s 的路线...'
+# /ticket buy 指令找不到直达或联程路线时的提示（%s 依次为起点站、终点站）
+ticket-buy-no-path: '<yellow>没有 <i><u>%s</i> 到 <i><u>%s</i> 的直达或联程路线'
 ticket-check-failed: '<red>检票失败！主手没有本次列车的车票。本次列车的车票信息：'
 ticket-old: '<red>旧版车票已禁用'
 ticket-not-support: '<red>不支持该车票'

@@ -40,6 +40,7 @@
 |-----------------------------------------|----------------------|-------------------------------------|
 | `/ticket`                               | bcts.ticket.open     | 打开购票界面                              |
 | `/ticketbg`                             | bcts.ticket.open     | 打开车票背景设置界面                          |
+| `/ticket buy <起点站名> <终点站名>`             | bcts.ticket.open     | 自动扣费购买一张两站间排名第一的直达或联程单程票            |
 | `/ticketbg upload <图片链接> <背景名> [字体颜色]`  | bcts.ticket.uploadbg | 上传车票 / 交通卡背景，字体颜色格式 `#RRGGBB`，不填为黑色 |
 | `/ticket weblogin <bind/unbind/status>` | bcts.ticket.weblogin | 绑定 / 解绑网页登录资格，或查看绑定状态               |
 
