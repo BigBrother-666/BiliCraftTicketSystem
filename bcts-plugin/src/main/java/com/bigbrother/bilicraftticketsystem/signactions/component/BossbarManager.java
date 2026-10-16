@@ -66,7 +66,11 @@ public class BossbarManager implements Listener {
         }
         Map<MinecartGroup, Location> heads = new HashMap<>();
         for (Map.Entry<MinecartMember<?>, RouteBossbarBase> entry : mapping.entrySet()) {
-            MinecartGroup group = entry.getKey().getGroup();
+            MinecartMember<?> member = entry.getKey();
+            if (member == null || member.isUnloaded()) {
+                continue;
+            }
+            MinecartGroup group = member.getGroup();
             if (group == null || group.isEmpty() || group.isUnloaded()) {
                 continue;
             }
