@@ -3,6 +3,7 @@ package com.bigbrother.bilicraftticketsystem.commands;
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.config.MainConfig;
 import com.bigbrother.bilicraftticketsystem.config.StationAliasConfig;
+import com.bigbrother.bilicraftticketsystem.config.StationConfigRules;
 import com.bigbrother.bilicraftticketsystem.config.StationGroupConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
@@ -31,10 +32,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
 
 public class ConfigEditCommand {
     private final BiliCraftTicketSystem plugin;
@@ -204,14 +205,14 @@ public class ConfigEditCommand {
      * @param lineId 线路 id
      */
     private void performRouteDelete(Player player, String lineId) {
-        LineConfig.delete(lineId);
+        deleteLineFiles(lineId);
         player.sendMessage(MainConfig.prefix.append(Component.text(
                 "已删除线路 [%s]，正在重载配置...".formatted(lineId), NamedTextColor.GREEN)));
         reloadConfig(player);
         removeGeodata(player, List.of(lineId), List.of());
     }
 
-    @CommandDescription("删除一个铁路系统配置（railway_system.yml），并连带删除其下所有线路")
+    @CommandDescription("删除一个铁路系统配置（railway_system.yml），并连带删除其下所有线路（仅创建者）")
     @Command("ticketconfig delSystem <systemId>")
     @Permission("bcts.ticket.editsystem")
     public void delSystem(
@@ -233,9 +234,9 @@ public class ConfigEditCommand {
                     "铁路系统 [%s] 不存在。".formatted(systemId), NamedTextColor.RED)));
             return;
         }
-        if (!system.isMember(player.getUniqueId())) {
+        if (!canDeleteSystem(player, system)) {
             player.sendMessage(MainConfig.prefix.append(Component.text(
-                    "你不是铁路系统 [%s] 的成员，无权删除。".formatted(systemId),
+                    "只有铁路系统 [%s] 的创建者可以删除该系统。".formatted(systemId),
                     NamedTextColor.RED)));
             return;
         }
@@ -268,9 +269,9 @@ public class ConfigEditCommand {
                                         "铁路系统 [%s] 已不存在。".formatted(systemId), NamedTextColor.RED)));
                                 return;
                             }
-                            if (!latest.isMember(player.getUniqueId())) {
+                            if (!canDeleteSystem(player, latest)) {
                                 player.sendMessage(MainConfig.prefix.append(Component.text(
-                                        "你不是铁路系统 [%s] 的成员，无权删除。".formatted(systemId), NamedTextColor.RED)));
+                                        "只有铁路系统 [%s] 的创建者可以删除该系统。".formatted(systemId), NamedTextColor.RED)));
                                 return;
                             }
                             performSystemDelete(player, systemId, LineConfig.getLineIdsOfSystem(systemId));
@@ -286,10 +287,7 @@ public class ConfigEditCommand {
      * @param lineIds  该系统下的线路 id 列表（删除前快照）
      */
     private void performSystemDelete(Player player, String systemId, List<String> lineIds) {
-        for (String lineId : lineIds) {
-            LineConfig.delete(lineId);
-        }
-        RailwaySystemConfig.delete(systemId);
+        deleteSystemFiles(systemId, lineIds);
         if (lineIds.isEmpty()) {
             player.sendMessage(MainConfig.prefix.append(Component.text(
                     "已删除铁路系统 [%s]，正在重载配置...".formatted(systemId), NamedTextColor.GREEN)));
@@ -316,6 +314,70 @@ public class ConfigEditCommand {
      * @param systemIds 被删除的铁路系统 id（只删线路时为空）
      */
     private void removeGeodata(Player player, Collection<String> lineIds, Collection<String> systemIds) {
+        removeGeodata(plugin, lineIds, systemIds, (result, error) -> {
+            if (error != null) {
+                player.sendMessage(MainConfig.prefix.append(Component.text(
+                        "清理线路图数据失败：%s。请用 /railgeo walkAll 重新构建线路图".formatted(error),
+                        NamedTextColor.RED)));
+                return;
+            }
+            player.sendMessage(MainConfig.prefix.append(Component.text(
+                    "已清理线路图数据（删除 %d 个文件，更新 %d 个文件）".formatted(
+                            result.deletedFiles(), result.rewrittenFiles()), NamedTextColor.GREEN)));
+        });
+    }
+
+    // ===== 共享删除流程（游戏内指令与网页端 config.request 共用） =====
+
+    /**
+     * delSystem 权限：仅系统创建者或拥有 {@code bcts.bypass} 的玩家可删除。
+     *
+     * @param player 操作玩家
+     * @param system 铁路系统
+     * @return true 表示允许删除
+     */
+    public static boolean canDeleteSystem(Player player, RailwaySystemInfo system) {
+        return system.isCreator(player.getUniqueId()) || player.hasPermission(GeoTraversalTask.PERM_BYPASS_COOLDOWN);
+    }
+
+    /**
+     * 从 railway_routes.yml 删除一条线路（仅写文件，调用方随后重载并 {@link #removeGeodata}）。
+     *
+     * @param lineId 线路 id
+     */
+    public static void deleteLineFiles(String lineId) {
+        LineConfig.delete(lineId);
+    }
+
+    /**
+     * 删除铁路系统：先删其下所有线路，再删系统本身（仅写文件，调用方随后重载并 {@link #removeGeodata}）。
+     *
+     * @param systemId 系统 id
+     * @param lineIds  该系统下的线路 id 列表（删除前快照）
+     */
+    public static void deleteSystemFiles(String systemId, Collection<String> lineIds) {
+        for (String lineId : lineIds) {
+            LineConfig.delete(lineId);
+        }
+        RailwaySystemConfig.delete(systemId);
+    }
+
+    /**
+     * 删除线路后同步清理其线路图数据，使删除立即生效、无需重新 {@code /railgeo walkAll}：
+     * <ol>
+     *   <li>删除这些线路登记的遍历起点（否则残留的起点会让下次遍历报错、也会挡住孤立文件清理）；</li>
+     *   <li>删除这些线路的 geojson 文件，并清掉其它线路文件中通往它们的区间（见 {@link GeodataLineRemover}）；</li>
+     *   <li>重载路由图，并在已连接网页后端时推送最新快照。</li>
+     * </ol>
+     * 文件读写放异步线程，完成后回主线程推送快照并回调 {@code onDone}（结果, 错误信息）。须在主线程调用。
+     *
+     * @param plugin    插件实例
+     * @param lineIds   被删除的线路 id
+     * @param systemIds 被删除的铁路系统 id（只删线路时为空）
+     * @param onDone    完成回调（主线程）：成功时 error 为 null
+     */
+    public static void removeGeodata(BiliCraftTicketSystem plugin, Collection<String> lineIds, Collection<String> systemIds,
+                                     BiConsumer<GeodataLineRemover.Result, String> onDone) {
         for (String lineId : lineIds) {
             plugin.getGeoDatabaseManager().deleteGeoNodeLoc(lineId);
         }
@@ -326,22 +388,16 @@ public class ConfigEditCommand {
                 result = new GeodataLineRemover().removeLines(plugin.getGeodataDir(), lineIds, systemIds);
                 GeoRouteEngine.load(plugin.getGeodataDir(), plugin.getComponentLogger());
             } catch (Exception e) {
-                error = e.getMessage();
+                error = e.getMessage() == null ? e.toString() : e.getMessage();
             }
             String finalError = error;
             GeodataLineRemover.Result finalResult = result;
             Bukkit.getScheduler().runTask(plugin, () -> {
-                if (finalError != null) {
-                    player.sendMessage(MainConfig.prefix.append(Component.text(
-                            "清理线路图数据失败：%s。请用 /railgeo walkAll 重新构建线路图".formatted(finalError),
-                            NamedTextColor.RED)));
-                    return;
-                }
-                player.sendMessage(MainConfig.prefix.append(Component.text(
-                        "已清理线路图数据（删除 %d 个文件，更新 %d 个文件）".formatted(
-                                finalResult.deletedFiles(), finalResult.rewrittenFiles()), NamedTextColor.GREEN)));
-                if (plugin.getWebLink() != null && plugin.getWebLink().getClient().isConnected()) {
+                if (finalError == null && plugin.getWebLink() != null && plugin.getWebLink().getClient().isConnected()) {
                     plugin.getWebLink().getSnapshotPublisher().publishAll();
+                }
+                if (onDone != null) {
+                    onDone.accept(finalResult, finalError);
                 }
             });
         });
@@ -381,7 +437,7 @@ public class ConfigEditCommand {
             return;
         }
         // 合并连续空白，保留单词间单个空格
-        String en = englishName.trim().replaceAll("\\s+", " ");
+        String en = StationConfigRules.normalizeEnglishName(englishName);
         warnIfStationMissing(sender, List.of(stationName));
         String old = StationAliasConfig.get(stationName);
         StationAliasConfig.upsert(stationName, en);
@@ -421,12 +477,7 @@ public class ConfigEditCommand {
             String stations
     ) {
         // 去重并保持输入顺序
-        Set<String> unique = new LinkedHashSet<>();
-        for (String token : stations.trim().split("\\s+")) {
-            if (!token.isEmpty()) {
-                unique.add(token);
-            }
-        }
+        Set<String> unique = StationConfigRules.distinctStations(List.of(stations.trim().split("\\s+")));
         if (unique.size() < 2) {
             sender.sendMessage(MainConfig.prefix.append(Component.text(
                     "车站组至少需要两个不同的车站：/ticketconfig editStationGroup <组名> <车站1> <车站2> [车站3...]",
@@ -435,11 +486,8 @@ public class ConfigEditCommand {
         }
         // 一个车站最多属于一个车站组（覆盖本组时，本组原有车站不算冲突）
         List<String> conflicts = new ArrayList<>();
-        for (String station : unique) {
-            String owner = StationGroupConfig.groupOf(station);
-            if (owner != null && !owner.equals(groupName)) {
-                conflicts.add("%s(已在组 %s)".formatted(station, owner));
-            }
+        for (Map.Entry<String, String> e : StationConfigRules.groupConflicts(groupName, unique).entrySet()) {
+            conflicts.add("%s(已在组 %s)".formatted(e.getKey(), e.getValue()));
         }
         if (!conflicts.isEmpty()) {
             sender.sendMessage(MainConfig.prefix.append(Component.text(
@@ -499,17 +547,9 @@ public class ConfigEditCommand {
      * @param stations 待检查的车站名
      */
     private void warnIfStationMissing(CommandSender sender, Collection<String> stations) {
-        Collection<String> known = GeoRouteEngine.getGraph().allStationNames();
-        List<String> missing = new ArrayList<>();
-        for (String station : stations) {
-            if (!known.contains(station)) {
-                missing.add(station);
-            }
-        }
-        if (!missing.isEmpty()) {
-            sender.sendMessage(MainConfig.prefix.append(Component.text(
-                    "警告：当前线路图中不存在车站 %s，仍将保存。".formatted(String.join("、", missing)),
-                    NamedTextColor.YELLOW)));
+        String warning = StationConfigRules.missingStationsWarning(stations);
+        if (warning != null) {
+            sender.sendMessage(MainConfig.prefix.append(Component.text(warning, NamedTextColor.YELLOW)));
         }
     }
 

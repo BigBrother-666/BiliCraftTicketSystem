@@ -38,6 +38,11 @@ public class RailwaySystemInfo {
      */
     private final Double pricePerKm;
     /**
+     * railway_system.yml 中显式配置的每公里价格；未配置 {@code price-per-km} 时为 {@code null}
+     * （此时 {@link #pricePerKm} 已回退为全局默认值）。用于向导预填与网页端私有快照，保证写回无损。
+     */
+    private final Double configuredPricePerKm;
+    /**
      * 系统创建者 UUID（游戏内创建时写入，之后不可修改）；历史 / 手写配置可能为 {@code null}。
      */
     private final UUID creator;
@@ -57,16 +62,18 @@ public class RailwaySystemInfo {
      * @param name       系统显示名称
      * @param members    成员 UUID 集合
      * @param pricePerKm 每公里价格（null 表示沿用全局默认）
+     * @param configuredPricePerKm 文件中显式配置的每公里价格（未配置为 null）
      * @param creator    创建者 UUID（可空）
      * @param income     累计收入
      * @param withdrawn  已取出金额
      */
     public RailwaySystemInfo(String id, String name, Set<UUID> members, Double pricePerKm,
-                             UUID creator, double income, double withdrawn) {
+                             Double configuredPricePerKm, UUID creator, double income, double withdrawn) {
         this.id = id;
         this.name = name;
         this.members = members == null ? new LinkedHashSet<>() : new LinkedHashSet<>(members);
         this.pricePerKm = pricePerKm;
+        this.configuredPricePerKm = configuredPricePerKm;
         this.creator = creator;
         this.income = income;
         this.withdrawn = withdrawn;

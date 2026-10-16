@@ -53,7 +53,8 @@ public class RailwaySystemConfig {
         String id = node.getName();
         String name = node.get("name", id);
         // 每公里价格选填：未配置回退到全局 price-per-km
-        Double pricePerKm = node.contains("price-per-km") ? node.get("price-per-km", Double.class, MainConfig.pricePerKm) : MainConfig.pricePerKm;
+        Double configuredPricePerKm = node.contains("price-per-km") ? node.get("price-per-km", Double.class, null) : null;
+        Double pricePerKm = configuredPricePerKm != null ? configuredPricePerKm : MainConfig.pricePerKm;
         UUID creator = parseUuid(node.get("creator", String.class, null));
         double income = node.get("income", 0.0);
         double withdrawn = node.get("withdrawn", 0.0);
@@ -70,7 +71,7 @@ public class RailwaySystemConfig {
                 }
             }
         }
-        return new RailwaySystemInfo(id, name, members, pricePerKm, creator, income, withdrawn);
+        return new RailwaySystemInfo(id, name, members, pricePerKm, configuredPricePerKm, creator, income, withdrawn);
     }
 
     /**
@@ -181,6 +182,17 @@ public class RailwaySystemConfig {
         }
         if (changed) {
             config.save();
+            notifyIncomeChanged();
+        }
+    }
+
+    /**
+     * 收入 / 已取出变动后通知网页对接（节流推送私有系统快照）。未启用网页对接时无操作。
+     */
+    private static void notifyIncomeChanged() {
+        var webLink = BiliCraftTicketSystem.plugin == null ? null : BiliCraftTicketSystem.plugin.getWebLink();
+        if (webLink != null) {
+            webLink.getSnapshotPublisher().requestIncomePush();
         }
     }
 
@@ -208,6 +220,7 @@ public class RailwaySystemConfig {
             info.setWithdrawn(income);
         }
         config.save();
+        notifyIncomeChanged();
         return payout;
     }
 

@@ -185,6 +185,25 @@ public class LineInfo {
     }
 
     /**
+     * 还原 railway_routes.yml 中 {@code bossbar-stations} 的原样条目：折返站带 {@code :RV} 后缀，
+     * 有转线目标时末尾追加 {@code <线路id>} 或 {@code <线路id>:<进入站名>}。与 {@link LineConfig} 解析互逆，
+     * 供修改向导预填与网页端私有快照使用。
+     *
+     * @return 原样车站条目列表（新列表，可修改）
+     */
+    public List<String> getRawBossbarStations() {
+        List<String> result = new java.util.ArrayList<>();
+        for (int i = 0; i < bossbarStations.size(); i++) {
+            result.add(isReverseStation(i) ? bossbarStations.get(i) + ":RV" : bossbarStations.get(i));
+        }
+        if (nextLineId != null && !nextLineId.isEmpty()) {
+            result.add(nextLineEntryStation == null || nextLineEntryStation.isEmpty()
+                    ? nextLineId : nextLineId + ":" + nextLineEntryStation);
+        }
+        return result;
+    }
+
+    /**
      * 判断该线路是否为环线（bossbar 车站列表首尾相同）。
      *
      * @return true 表示环线

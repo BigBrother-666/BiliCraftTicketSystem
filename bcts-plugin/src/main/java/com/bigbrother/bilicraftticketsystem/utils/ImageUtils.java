@@ -1,6 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.utils;
 
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
+import com.bigbrother.bilicraftticketsystem.config.MapConfig;
 import org.bukkit.entity.Player;
 
 import javax.imageio.ImageIO;
@@ -42,6 +43,62 @@ public class ImageUtils {
      */
     public static File getSystemImageFileWeb(String systemId) {
         return new File(getLogoFolder(), "web" + File.separator + systemId + ".png");
+    }
+
+    /**
+     * 铁路系统 logo 原图大小上限（与向导一致：3MB）。
+     */
+    public static final long MAX_LOGO_BYTES = 3000 * 1024;
+
+    /**
+     * 把原图缩放并保存为铁路系统 logo（向导下载与网页端上传共用）。
+     * <ul>
+     *   <li>{@code isWeb=true}：保存网页 logo（web-logo-dim）；若游戏内 logo 尚不存在，同时用该图生成游戏内 logo。</li>
+     *   <li>{@code isWeb=false}：保存游戏内 logo（mc-logo-dim）。</li>
+     * </ul>
+     * 涉及文件 IO 与图片处理，应在异步线程调用。
+     *
+     * @param systemId   铁路系统 id
+     * @param imageBytes 原图字节
+     * @param isWeb      是否网页 logo
+     * @return 失败时返回中文错误提示；成功返回 null
+     * @throws IOException 写文件失败
+     */
+    public static String saveSystemLogo(String systemId, byte[] imageBytes, boolean isWeb) throws IOException {
+        if (imageBytes == null || imageBytes.length == 0) {
+            return "图片为空";
+        }
+        if (imageBytes.length > MAX_LOGO_BYTES) {
+            return "图片大小不能超过3MB，当前大小：" + (imageBytes.length / 1024 / 1024) + " MB";
+        }
+        if (isWeb) {
+            String err = writeResized(imageBytes, MapConfig.getWebLogoDim(), getSystemImageFileWeb(systemId));
+            if (err != null) {
+                return err;
+            }
+        }
+        if (!isWeb || !getSystemImageFileMc(systemId).exists()) {
+            return writeResized(imageBytes, MapConfig.getMcLogoDim(), getSystemImageFileMc(systemId));
+        }
+        return null;
+    }
+
+    private static String writeResized(byte[] imageBytes, int dim, File target) throws IOException {
+        byte[] resized;
+        try {
+            resized = convertTonxn(imageBytes, dim);
+        } catch (IOException e) {
+            return "图片格式不支持或图片损坏！错误信息：" + e.getMessage();
+        }
+        if (resized == null) {
+            return "图片尺寸转化失败";
+        }
+        if (!target.getParentFile().exists()) {
+            //noinspection ResultOfMethodCallIgnored
+            target.getParentFile().mkdirs();
+        }
+        java.nio.file.Files.write(target.toPath(), resized);
+        return null;
     }
 
     /**

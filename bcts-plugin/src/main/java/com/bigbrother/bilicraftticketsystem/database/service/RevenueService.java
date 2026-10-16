@@ -5,16 +5,20 @@ import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.database.dao.RevenueDao;
 import com.bigbrother.bilicraftticketsystem.ticket.BCTicket;
 import com.bigbrother.bilicraftticketsystem.utils.CommonUtils;
+import com.bigbrother.bilicraftticketsystem.web.outbound.RevenueEventPublisher;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.HoverEvent;
 import org.bukkit.Bukkit;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
- * 统一收入服务：购票款与交通卡充值款都记入 {@code revenue_info}，并提供营收统计展示。
+ * 统一收入服务：购票款与交通卡充值款都记入 {@code revenue_info}，并提供营收统计展示；
+ * 同时把购票 / 充值 / 刷卡乘车推送为 {@code revenue.event}（刷卡乘车只推送、不入表）。
  */
 public class RevenueService {
     private final BiliCraftTicketSystem plugin;
@@ -32,8 +36,13 @@ public class RevenueService {
      * @param uuid       玩家 uuid（可空）
      * @param price      购票金额
      * @param ticketNbt  车票 NBT（取起止站作为明细）
+     * @param allocations 同一笔交易计入各铁路系统的分摊金额（即传给 {@code RailwaySystemConfig.addIncome} 的值），
+     *                    随 {@code revenue.event} 推送给网页后端
      */
-    public void recordTicketPurchase(String playerName, String uuid, double price, CommonTagCompound ticketNbt) {
+    public void recordTicketPurchase(String playerName, String uuid, double price, CommonTagCompound ticketNbt,
+                                     Map<String, Double> allocations) {
+        long time = System.currentTimeMillis();
+        Map<String, Double> allocCopy = allocations == null ? Map.of() : new LinkedHashMap<>(allocations);
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             if (uuid != null) {
                 revenueDao.updatePlayerNameByUuid(uuid, playerName);
@@ -42,6 +51,7 @@ public class RevenueService {
             String endStation = ticketNbt.getValue(BCTicket.KEY_TICKET_END_STATION, "Unknown");
             String detail = startStation + " -> " + endStation;
             revenueDao.insertRevenue(RevenueDao.TYPE_TICKET, uuid, playerName, nowAsString(), price, detail);
+            publishRevenue(RevenueDao.TYPE_TICKET, uuid, playerName, price, detail, allocCopy, time);
         });
     }
 
@@ -54,8 +64,42 @@ public class RevenueService {
      * @param cardUuid   交通卡 uuid（作为明细）
      */
     public void recordCardCharge(String playerUuid, String playerName, double amount, String cardUuid) {
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () ->
-                revenueDao.insertRevenue(RevenueDao.TYPE_CARD_CHARGE, playerUuid, playerName, nowAsString(), amount, cardUuid));
+        long time = System.currentTimeMillis();
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            revenueDao.insertRevenue(RevenueDao.TYPE_CARD_CHARGE, playerUuid, playerName, nowAsString(), amount, cardUuid);
+            // 充值款尚未归属任何铁路系统（刷卡乘车时才分摊），故无 allocations
+            publishRevenue(RevenueDao.TYPE_CARD_CHARGE, playerUuid, playerName, amount, cardUuid, null, time);
+        });
+    }
+
+    /**
+     * 记录一次交通卡刷卡乘车：仅推送 {@code revenue.event}（type=card_ride），携带本次计入各铁路系统的分摊金额。
+     * <p>
+     * 不写 {@code revenue_info}：卡内余额在充值时已计入收入流水（card_charge），刷卡只是把这笔钱分摊给铁路系统，
+     * 再写一行会让 {@code /ticketadmin statistics} 重复计算。
+     *
+     * @param playerUuid  玩家 uuid
+     * @param playerName  玩家名
+     * @param price       本次扣费
+     * @param detail      明细（「起点 -> 终点」）
+     * @param allocations 同一次刷卡传给 {@code RailwaySystemConfig.addIncome} 的分摊金额
+     */
+    public void recordCardRide(String playerUuid, String playerName, double price, String detail,
+                               Map<String, Double> allocations) {
+        long time = System.currentTimeMillis();
+        Map<String, Double> allocCopy = allocations == null ? Map.of() : new LinkedHashMap<>(allocations);
+        publishRevenue(RevenueEventPublisher.TYPE_CARD_RIDE, playerUuid, playerName, price, detail, allocCopy, time);
+    }
+
+    /**
+     * 与收入流水同步推送 {@code revenue.event}（网页对接未启用时无操作）。
+     */
+    private void publishRevenue(String type, String uuid, String playerName, double amount, String detail,
+                                Map<String, Double> allocations, long time) {
+        var webLink = plugin.getWebLink();
+        if (webLink != null) {
+            webLink.getRevenueEventPublisher().publish(type, uuid, playerName, amount, detail, allocations, time);
+        }
     }
 
     public Component getDailyRevenue(int days) {

@@ -11,4 +11,5 @@ public final class TrainDatabaseConstants {
     public static final String CARD_INFO_TABLE_NAME = "card_info";
     public static final String REVENUE_TABLE_NAME = "revenue_info";
     public static final String SLOWDOWN_CACHE_TABLE_NAME = "slowdown_cache";
+    public static final String WEB_OUTBOX_TABLE_NAME = "web_outbox";
 }

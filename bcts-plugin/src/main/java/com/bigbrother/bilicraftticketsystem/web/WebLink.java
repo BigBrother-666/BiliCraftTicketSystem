@@ -2,9 +2,13 @@ package com.bigbrother.bilicraftticketsystem.web;
 
 import com.bigbrother.bilicraftticketsystem.BiliCraftTicketSystem;
 import com.bigbrother.bilicraftticketsystem.config.MapConfig;
+import com.bigbrother.bilicraftticketsystem.web.inbound.ConfigRequestHandler;
 import com.bigbrother.bilicraftticketsystem.web.inbound.PurchaseHandler;
 import com.bigbrother.bilicraftticketsystem.web.inbound.SyncHandler;
 import com.bigbrother.bilicraftticketsystem.web.outbound.BindPublisher;
+import com.bigbrother.bilicraftticketsystem.web.outbound.EventOutbox;
+import com.bigbrother.bilicraftticketsystem.web.outbound.LegacyRevenueBackfill;
+import com.bigbrother.bilicraftticketsystem.web.outbound.RevenueEventPublisher;
 import com.bigbrother.bilicraftticketsystem.web.outbound.RideEventPublisher;
 import com.bigbrother.bilicraftticketsystem.web.outbound.SnapshotPublisher;
 import com.bigbrother.bilicraftticketsystem.web.outbound.TrainTelemetryTask;
@@ -26,8 +30,12 @@ public class WebLink {
     private final WebLinkClient client;
     private final SnapshotPublisher snapshotPublisher;
     private final BindPublisher bindPublisher;
+    private final EventOutbox eventOutbox;
     private final RideEventPublisher rideEventPublisher;
+    private final RevenueEventPublisher revenueEventPublisher;
+    private final LegacyRevenueBackfill legacyRevenueBackfill;
     private final PurchaseHandler purchaseHandler;
+    private final ConfigRequestHandler configRequestHandler;
     private final SyncHandler syncHandler;
 
     private BukkitTask telemetryTask;
@@ -38,8 +46,12 @@ public class WebLink {
         this.client = new WebLinkClient(plugin, this::buildHelloData, this::onWelcome, this::dispatch);
         this.snapshotPublisher = new SnapshotPublisher(plugin, client);
         this.bindPublisher = new BindPublisher(plugin, client);
-        this.rideEventPublisher = new RideEventPublisher(client);
+        this.eventOutbox = new EventOutbox(plugin, client);
+        this.rideEventPublisher = new RideEventPublisher(eventOutbox);
+        this.revenueEventPublisher = new RevenueEventPublisher(eventOutbox);
+        this.legacyRevenueBackfill = new LegacyRevenueBackfill(plugin, eventOutbox);
         this.purchaseHandler = new PurchaseHandler(plugin, client);
+        this.configRequestHandler = new ConfigRequestHandler(plugin, client, snapshotPublisher);
         this.syncHandler = new SyncHandler(snapshotPublisher);
     }
 
@@ -66,13 +78,14 @@ public class WebLink {
     }
 
     /**
-     * 优雅关闭：停遥测任务、关闭 WS。
+     * 优雅关闭：停遥测任务、等待 outbox 写库完成、关闭 WS。
      */
     public void shutdown() {
         if (telemetryTask != null) {
             telemetryTask.cancel();
             telemetryTask = null;
         }
+        eventOutbox.shutdown();
         client.shutdown();
     }
 
@@ -97,11 +110,12 @@ public class WebLink {
     }
 
     /**
-     * 握手完成：全量同步快照 + 重推绑定列表（须在已连接后）。
+     * 握手完成：全量同步快照 + 重推绑定列表 + 补发离线期间积压的事件（须在已连接后）。
      */
     private void onWelcome() {
         snapshotPublisher.publishAll();
         bindPublisher.republishAll();
+        eventOutbox.replay();
     }
 
     /**
@@ -114,6 +128,8 @@ public class WebLink {
         switch (type) {
             case MsgType.PURCHASE_REQUEST -> purchaseHandler.handle(env);
             case MsgType.SYNC_REQUEST -> syncHandler.handle(env);
+            case MsgType.CONFIG_REQUEST -> configRequestHandler.handle(env);
+            case MsgType.EVENT_ACK -> eventOutbox.onAck(env);
             default -> {
                 // 未知消息类型，忽略
             }

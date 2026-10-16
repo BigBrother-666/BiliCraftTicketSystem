@@ -45,17 +45,17 @@
 
 ### 2.2 线路配置指令
 
-| 指令                                                         | 权限                       | 说明                     |
-|------------------------------------------------------------|--------------------------|------------------------|
-| `/ticketconfig editSystem <系统id>`                          | bcts.ticket.editsystem   | 新建 / 修改铁路系统            |
-| `/ticketconfig delSystem <系统id>`                           | bcts.ticket.editsystem   | 删除铁路系统（会连带删除其下所有线路）    |
-| `/ticketconfig editRoute <线路id>`                           | bcts.ticket.editroute    | 新建 / 修改线路              |
-| `/ticketconfig delRoute <线路id>`                            | bcts.ticket.editroute    | 删除线路                   |
-| `/ticketconfig editStationAlias <中文车站名> <英文车站名>`           | bcts.ticket.stationalias | 新增 / 修改车站英文名，英文名可含空格   |
-| `/ticketconfig delStationAlias <中文车站名>`                    | bcts.ticket.stationalias | 删除车站英文名                |
-| `/ticketconfig editStationGroup <组名> <车站1> <车站2> [车站3...]` | bcts.ticket.stationgroup | 新建 / 覆盖车站组，组内车站两两之间可换乘 |
-| `/ticketconfig listStationGroup`                           | bcts.ticket.stationgroup | 列出所有车站组                |
-| `/ticketconfig delStationGroup <组名>`                       | bcts.ticket.stationgroup | 删除车站组                  |
+| 指令                                                         | 权限                       | 说明                                            |
+|------------------------------------------------------------|--------------------------|-----------------------------------------------|
+| `/ticketconfig editSystem <系统id>`                          | bcts.ticket.editsystem   | 新建 / 修改铁路系统                                   |
+| `/ticketconfig delSystem <系统id>`                           | bcts.ticket.editsystem   | 删除铁路系统（会连带删除其下所有线路），仅创建者或拥有 bcts.bypass 的玩家可用 |
+| `/ticketconfig editRoute <线路id>`                           | bcts.ticket.editroute    | 新建 / 修改线路                                     |
+| `/ticketconfig delRoute <线路id>`                            | bcts.ticket.editroute    | 删除线路                                          |
+| `/ticketconfig editStationAlias <中文车站名> <英文车站名>`           | bcts.ticket.stationalias | 新增 / 修改车站英文名，英文名可含空格                          |
+| `/ticketconfig delStationAlias <中文车站名>`                    | bcts.ticket.stationalias | 删除车站英文名                                       |
+| `/ticketconfig editStationGroup <组名> <车站1> <车站2> [车站3...]` | bcts.ticket.stationgroup | 新建 / 覆盖车站组，组内车站两两之间可换乘                        |
+| `/ticketconfig listStationGroup`                           | bcts.ticket.stationgroup | 列出所有车站组                                       |
+| `/ticketconfig delStationGroup <组名>`                       | bcts.ticket.stationgroup | 删除车站组                                         |
 
 - **车站英文名**：只用于展示。车票系统选站界面显示为「中文车站名 (英文车站名)」，网页线路图在中文站名下方显示英文名。车站不在当前线路图中时会提示警告，但仍会保存。
 - **车站组**：车票系统默认只有同名车站之间可以换乘。把距离较近的不同名车站加入同一车站组后，查询联程票时可以在组内任一车站下车、在另一车站上车。车站组只影响联程票，不影响直达票。一个车站只能属于一个车站组。

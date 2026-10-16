@@ -297,6 +297,9 @@ public class BCCard extends BCTransitPass {
         double baseFare = effectiveBaseFare();
         Map<String, Double> perSystem = allocateIncome(price, baseFare);
         RailwaySystemConfig.addIncome(perSystem);
+        plugin.getTrainDatabaseManager().getRevenueService().recordCardRide(
+                usedPlayer.getUniqueId().toString(), usedPlayer.getName(), price,
+                pathInfo.getStartStationName() + " -> " + pathInfo.getEndStationName(), perSystem);
 
         usedPlayer.sendMessage(MainConfig.prefix.append(
                 CommonUtils.mmStr2Component(message.get("card-used", "刷卡成功，扣费 %.2f 银币，剩余 %.2f 银币").formatted(price, this.cardInfo.getBalance()))

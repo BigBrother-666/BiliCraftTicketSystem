@@ -7,6 +7,7 @@ import com.bigbrother.bilicraftticketsystem.database.dao.RevenueDao;
 import com.bigbrother.bilicraftticketsystem.database.dao.SlowdownCacheDao;
 import com.bigbrother.bilicraftticketsystem.database.dao.TransitPassDao;
 import com.bigbrother.bilicraftticketsystem.database.dao.TicketbgDao;
+import com.bigbrother.bilicraftticketsystem.database.dao.WebOutboxDao;
 import com.bigbrother.bilicraftticketsystem.database.service.BcspawnService;
 import com.bigbrother.bilicraftticketsystem.database.service.CardInfoService;
 import com.bigbrother.bilicraftticketsystem.database.service.RevenueService;
@@ -35,6 +36,8 @@ public class TrainDatabaseManager {
     private final BcspawnRecordDao bcspawnRecordDao;
     private final RevenueDao revenueDao;
     private final SlowdownCacheDao slowdownCacheDao;
+    @Getter
+    private final WebOutboxDao webOutboxDao;
     @Getter
     private final TicketbgService ticketbgService;
     @Getter
@@ -66,6 +69,7 @@ public class TrainDatabaseManager {
         this.cardInfoDao = new CardInfoDao(plugin, ds);
         this.revenueDao = new RevenueDao(plugin, ds);
         this.slowdownCacheDao = new SlowdownCacheDao(plugin, ds);
+        this.webOutboxDao = new WebOutboxDao(plugin, ds);
 
         this.ticketbgService = new TicketbgService(plugin, ticketbgDao);
         this.transitPassService = new TransitPassService(plugin, transitPassDao);
@@ -183,6 +187,18 @@ public class TrainDatabaseManager {
                                 UNIQUE(world, x, y, z, train_type, platform_x, platform_y, platform_z)
                     );
                     """.formatted(TrainDatabaseConstants.SLOWDOWN_CACHE_TABLE_NAME));
+
+            // 网页后端事件 outbox：营收 / 乘车事件先落此表再发送，后端 event.ack 后删除；
+            // 断线期间积压的事件在重连握手（welcome）后按 created_at 顺序补发。
+            statement.execute("""
+                    CREATE TABLE IF NOT EXISTS %s (
+                                event_id TEXT PRIMARY KEY,
+                                type TEXT NOT NULL,
+                                payload TEXT NOT NULL,
+                                created_at INTEGER NOT NULL
+                    );
+                    """.formatted(TrainDatabaseConstants.WEB_OUTBOX_TABLE_NAME));
+            statement.execute("CREATE INDEX IF NOT EXISTS idx_%s_created_at ON %s (created_at);".formatted(TrainDatabaseConstants.WEB_OUTBOX_TABLE_NAME, TrainDatabaseConstants.WEB_OUTBOX_TABLE_NAME));
         } catch (SQLException e) {
             plugin.getComponentLogger().warn(Component.text(e.toString(), NamedTextColor.YELLOW));
         }

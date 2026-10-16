@@ -21,10 +21,16 @@ public final class MsgType {
     public static final String PONG = "pong";
     public static final String AUTH_BIND = "auth.bind";
     public static final String AUTH_UNBIND = "auth.unbind";
+    public static final String SNAPSHOT_SYSTEMS_PRIVATE = "snapshot.systems.private";
+    public static final String SNAPSHOT_LINES_PRIVATE = "snapshot.lines.private";
+    public static final String CONFIG_RESULT = "config.result";
+    public static final String REVENUE_EVENT = "revenue.event";
 
     // 后端 → 插件
     public static final String WELCOME = "welcome";
     public static final String PING = "ping";
     public static final String PURCHASE_REQUEST = "purchase.request";
     public static final String SYNC_REQUEST = "sync.request";
+    public static final String CONFIG_REQUEST = "config.request";
+    public static final String EVENT_ACK = "event.ack";
 }

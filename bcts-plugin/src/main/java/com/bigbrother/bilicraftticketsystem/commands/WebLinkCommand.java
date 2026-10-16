@@ -16,7 +16,8 @@ import org.incendo.cloud.annotations.Permission;
  * 网页对接相关指令（见 docs/PLUGIN_ADDENDUM.md §七、§七·补）：
  * <ul>
  *   <li>玩家：{@code /ticket weblogin bind|unbind|status} 绑定 / 解绑网页登录资格。</li>
- *   <li>管理：{@code /ticketadmin weblink status|sync|reconnect} 查看连接 / 强制同步 / 重连。</li>
+ *   <li>管理：{@code /ticketadmin weblink status|sync|reconnect} 查看连接 / 强制同步 / 重连；
+ *       {@code /ticketadmin weblink backfill} 一次性同步历史营收。</li>
  * </ul>
  */
 public class WebLinkCommand {
@@ -104,6 +105,23 @@ public class WebLinkCommand {
             default -> web.getSnapshotPublisher().publishAll();
         }
         sender.sendMessage(Component.text("已推送快照：" + what, NamedTextColor.GREEN));
+    }
+
+    @CommandDescription("一次性把升级前的历史营收（购票 / 充值 / 刷卡乘车）同步到线路图后端；重复执行不会重复计算")
+    @Command("ticketadmin weblink backfill")
+    @Permission("bcts.ticket.reload")
+    public void weblinkBackfill(CommandSender sender) {
+        WebLink web = plugin.getWebLink();
+        if (web == null) {
+            sender.sendMessage(Component.text("网页对接未启用", NamedTextColor.RED));
+            return;
+        }
+        if (!web.getClient().isConnected()) {
+            sender.sendMessage(Component.text("后端未连接；数据会先存入 outbox，连接后自动补发", NamedTextColor.YELLOW));
+        }
+        if (!web.getLegacyRevenueBackfill().start(sender)) {
+            sender.sendMessage(Component.text("历史数据同步正在进行中，请稍候", NamedTextColor.YELLOW));
+        }
     }
 
     @CommandDescription("重连线路图后端")

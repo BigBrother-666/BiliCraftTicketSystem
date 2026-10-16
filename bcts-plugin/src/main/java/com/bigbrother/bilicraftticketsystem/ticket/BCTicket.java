@@ -164,9 +164,11 @@ public class BCTicket extends BCTransitPass {
     public void deliverAfterPayment(double paidAmount) {
         this.give();
         // 按段所属铁路系统分摊实付金额，实时累加各系统收入（车票在购买时一次性结算全部次数）
-        RailwaySystemConfig.addIncome(allocateIncome(paidAmount, 0.0));
+        // 分摊结果只算一次：同一份既计入系统收入，又随收入流水推送给网页后端（revenue.event allocations）
+        Map<String, Double> allocations = allocateIncome(paidAmount, 0.0);
+        RailwaySystemConfig.addIncome(allocations);
         // 写入数据库
-        plugin.getTrainDatabaseManager().getRevenueService().recordTicketPurchase(owner.getName(), owner.getUniqueId().toString(), paidAmount, CommonItemStack.of(itemStack).getCustomData());
+        plugin.getTrainDatabaseManager().getRevenueService().recordTicketPurchase(owner.getName(), owner.getUniqueId().toString(), paidAmount, CommonItemStack.of(itemStack).getCustomData(), allocations);
     }
 
     public void give() {

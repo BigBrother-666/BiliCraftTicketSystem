@@ -14,9 +14,6 @@ import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -66,8 +63,9 @@ public class SystemWizard extends ConfigWizard {
             if (info != null) {
                 values.put("name", info.getName());
                 values.put(MEMBERS_KEY, new LinkedHashSet<>(info.getMembersView()));
-                if (info.getPricePerKm() != null) {
-                    values.put("price-per-km", info.getPricePerKm());
+                // 仅预填文件中显式配置的价格：未配置时保持「沿用全局默认」，避免把全局值写死进文件
+                if (info.getConfiguredPricePerKm() != null) {
+                    values.put("price-per-km", info.getConfiguredPricePerKm());
                 }
                 this.isCreator = info.isCreator(player.getUniqueId());
             } else {
@@ -90,9 +88,7 @@ public class SystemWizard extends ConfigWizard {
         steps.add(new WizardStep("name",
                 Component.text("输入铁路系统名称", NamedTextColor.WHITE),
                 true,
-                input -> input.isBlank()
-                        ? WizardStep.Result.error("名称不能为空")
-                        : WizardStep.Result.ok(input)));
+                ConfigValidators::systemName));
         // 成员增删仅创建者可用：非创建者不展示此步骤（仍可改名称 / 价格 / logo）
         if (isCreator) {
             steps.add(new WizardStep(MEMBERS_KEY,
@@ -106,7 +102,7 @@ public class SystemWizard extends ConfigWizard {
                 Component.text("输入本系统每公里价格（数字，范围 %.2f ~ %.2f）；跳过则使用全局默认价格（%.2f/km）"
                         .formatted(MainConfig.pricePerKmMin, MainConfig.pricePerKmMax, MainConfig.pricePerKm), NamedTextColor.WHITE),
                 false,
-                this::parsePricePerKm));
+                ConfigValidators::parsePricePerKm));
         steps.add(new WizardStep("web-logo-path",
                 Component.text("输入本系统的logo图片直链，该图片会在网页端显示，图片分辨率会统一设置为%s*%s"
                         .formatted(MapConfig.getWebLogoDim(), MapConfig.getWebLogoDim()), NamedTextColor.WHITE),
@@ -146,42 +142,10 @@ public class SystemWizard extends ConfigWizard {
             // 接收文件
             byte[] imageBytes = ImageUtils.getImageBytes(imageUrl);
 
-            // 保存图片
-            // 保存web logo
-            if (isWeb) {
-                byte[] webImageBytes;
-                try {
-                    webImageBytes = ImageUtils.convertTonxn(imageBytes, MapConfig.getWebLogoDim());
-                    if (webImageBytes == null) {
-                        return WizardStep.Result.error("图片尺寸转化失败");
-                    }
-                } catch (IOException e) {
-                    return WizardStep.Result.error("图片格式不支持或图片损坏！错误信息：" + e.getMessage());
-                }
-
-                File imageWeb = ImageUtils.getSystemImageFileWeb(systemId);
-                if (!imageWeb.getParentFile().exists()) {
-                    imageWeb.getParentFile().mkdirs();
-                }
-                Files.write(imageWeb.toPath(), webImageBytes);
-            }
-
-            if (!isWeb || !ImageUtils.getSystemImageFileMc(systemId).exists()) {
-                // 保存游戏内logo
-                byte[] mcImageBytes;
-                try {
-                    mcImageBytes = ImageUtils.convertTonxn(imageBytes, MapConfig.getMcLogoDim());
-                    if (mcImageBytes == null) {
-                        return WizardStep.Result.error("图片尺寸转化失败");
-                    }
-                } catch (IOException e) {
-                    return WizardStep.Result.error("图片格式不支持或图片损坏！错误信息：" + e.getMessage());
-                }
-                File imageMc = ImageUtils.getSystemImageFileMc(systemId);
-                if (!imageMc.getParentFile().exists()) {
-                    imageMc.getParentFile().mkdirs();
-                }
-                Files.write(imageMc.toPath(), mcImageBytes);
+            // 缩放并保存（与网页端上传共用同一流程）
+            String error = ImageUtils.saveSystemLogo(systemId, imageBytes, isWeb);
+            if (error != null) {
+                return WizardStep.Result.error(error);
             }
 
             // 下载 + 处理成功，提示玩家（player.sendMessage 线程安全，可在异步线程调用）
@@ -190,22 +154,6 @@ public class SystemWizard extends ConfigWizard {
             return WizardStep.Result.ok(null);
         } catch (Exception e) {
             return WizardStep.Result.error("上传或处理图片时发生错误：" + e.getMessage());
-        }
-    }
-
-    /**
-     * 解析每公里价格：必须为数字，且落在 config.yml 配置的 price-per-km-range 区间内（含边界）。
-     */
-    private WizardStep.Result parsePricePerKm(String input) {
-        try {
-            double value = Double.parseDouble(input.trim());
-            if (value < MainConfig.pricePerKmMin || value > MainConfig.pricePerKmMax) {
-                return WizardStep.Result.error("每公里价格必须在 %.2f ~ %.2f 之间"
-                        .formatted(MainConfig.pricePerKmMin, MainConfig.pricePerKmMax));
-            }
-            return WizardStep.Result.ok(value);
-        } catch (NumberFormatException e) {
-            return WizardStep.Result.error("\"" + input + "\" 不是合法数字");
         }
     }
 
@@ -378,6 +326,12 @@ public class SystemWizard extends ConfigWizard {
         } catch (Exception e) {
             player.sendMessage(MainConfig.prefix.append(Component.text(
                     "配置重载时发生错误：" + e.getMessage(), NamedTextColor.RED)));
+        }
+
+        // 已连接网页后端时推送最新快照（公开 + 私有）
+        var webLink = BiliCraftTicketSystem.plugin.getWebLink();
+        if (webLink != null && webLink.getClient().isConnected()) {
+            webLink.getSnapshotPublisher().publishSystems();
         }
     }
 }

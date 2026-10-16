@@ -39,25 +39,13 @@ public class RouteWizard extends ConfigWizard {
                 values.put("railway-system", info.getRailwaySystemId());
                 values.put("line-name", info.getLineName());
                 values.put("line-color", info.getLineColor());
-                values.put("bossbar-stations", reconstructStations(info));
+                values.put("bossbar-stations", info.getRawBossbarStations());
                 values.put("bossbar-arrival-notice", info.getBossbarArrivalNotice());
                 values.put("bossbar-color", info.getBossbarColor());
                 values.put("notice-arrival", new ArrayList<>(info.getNoticeArrival()));
                 values.put("notice-departure", new ArrayList<>(info.getNoticeDeparture()));
             }
         }
-    }
-
-    /**
-     * 从 LineInfo 还原带 :RV 后缀的原始车站列表（修改模式展示 / 保留用）。
-     */
-    private List<String> reconstructStations(LineInfo info) {
-        List<String> stations = info.getBossbarStations();
-        List<String> result = new ArrayList<>();
-        for (int i = 0; i < stations.size(); i++) {
-            result.add(info.isReverseStation(i) ? stations.get(i) + ":RV" : stations.get(i));
-        }
-        return result;
     }
 
     @Override
@@ -74,13 +62,12 @@ public class RouteWizard extends ConfigWizard {
         steps.add(new WizardStep("line-name",
                 Component.text("输入线路名称（如 环线（顺时针方向））", NamedTextColor.WHITE),
                 true,
-                input -> input.isBlank() ? WizardStep.Result.error("线路名称不能为空")
-                        : WizardStep.Result.ok(input)));
+                ConfigValidators::lineName));
 
         steps.add(new WizardStep("line-color",
                 Component.text("输入线路标志色，格式 #RRGGBB（如 #AA0000）", NamedTextColor.WHITE),
                 true,
-                this::parseHexColor));
+                ConfigValidators::hexColor));
 
         steps.add(new WizardStep("bossbar-stations",
                 Component.text("""
@@ -90,7 +77,7 @@ public class RouteWizard extends ConfigWizard {
                                 例子：StationA->StationB:RV->StationC->StationD->otherLineId:Station S""",
                         NamedTextColor.WHITE),
                 true,
-                this::parseStations));
+                ConfigValidators::parseStations));
 
         steps.add(new WizardStep("bossbar-arrival-notice",
                 Component.text("输入到站 bossbar 提示（可用占位符 {curr_station} {next_station} {line_name} {line_color}）", NamedTextColor.WHITE),
@@ -100,19 +87,19 @@ public class RouteWizard extends ConfigWizard {
         steps.add(new WizardStep("bossbar-color",
                 Component.text("输入 bossbar 颜色（PINK/BLUE/RED/GREEN/YELLOW/PURPLE/WHITE）", NamedTextColor.WHITE),
                 false,
-                this::parseBossbarColor));
+                ConfigValidators::bossbarColor));
 
         steps.add(new WizardStep("notice-arrival",
                 Component.text("输入进站提示，多条用双竖线 || 分隔（支持 sound:... / announce:...）",
                         NamedTextColor.WHITE),
                 false,
-                this::parseList));
+                ConfigValidators::noticeList));
 
         steps.add(new WizardStep("notice-departure",
                 Component.text("输入出站提示，多条用双竖线 || 分隔（支持 sound:... / announce:...）",
                         NamedTextColor.WHITE),
                 false,
-                this::parseList));
+                ConfigValidators::noticeList));
 
         return steps;
     }
@@ -127,117 +114,16 @@ public class RouteWizard extends ConfigWizard {
      * 校验所属铁路系统：必须是已存在的系统，且玩家须是该系统成员。
      */
     private WizardStep.Result parseRailwaySystem(String input) {
-        String id = input.trim();
-        if (id.isEmpty()) {
-            return WizardStep.Result.error("铁路系统 id 不能为空");
+        WizardStep.Result r = ConfigValidators.existingSystem(input);
+        if (!r.isOk()) {
+            return r;
         }
-        if (!RailwaySystemConfig.contains(id)) {
-            return WizardStep.Result.error("铁路系统 [" + id + "] 不存在，请先用 /ticketconfig editSystem 创建");
-        }
+        String id = (String) r.getValue();
         RailwaySystemInfo info = RailwaySystemConfig.get(id);
         if (!info.isMember(player.getUniqueId())) {
             return WizardStep.Result.error("你不是铁路系统 [" + id + "] 的成员，无权把线路归入该系统");
         }
-        return WizardStep.Result.ok(id);
-    }
-
-    private WizardStep.Result parseHexColor(String input) {
-        String s = input.trim();
-        if (!s.matches("#[0-9a-fA-F]{6}")) {
-            return WizardStep.Result.error("颜色格式应为 #RRGGBB，如 #AA0000");
-        }
-        return WizardStep.Result.ok(s);
-    }
-
-    private WizardStep.Result parseStations(String input) {
-        List<String> stations = new ArrayList<>();
-        for (String part : input.split("->")) {
-            String s = part.trim();
-            if (!s.isEmpty()) {
-                stations.add(s);
-            }
-        }
-        if (stations.size() < 2) {
-            return WizardStep.Result.error("车站列表至少需要 2 站，用 -> 分隔");
-        }
-        return WizardStep.Result.ok(stations);
-    }
-
-    private WizardStep.Result parseBossbarColor(String input) {
-        String s = input.trim().toUpperCase();
-        try {
-            net.kyori.adventure.bossbar.BossBar.Color.valueOf(s);
-            return WizardStep.Result.ok(s);
-        } catch (IllegalArgumentException e) {
-            return WizardStep.Result.error("无效的 bossbar 颜色：" + input
-                    + "（可选 PINK/BLUE/RED/GREEN/YELLOW/PURPLE/WHITE）");
-        }
-    }
-
-    private WizardStep.Result parseList(String input) {
-        List<String> list = new ArrayList<>();
-        for (String part : input.split("\\|\\|")) {
-            String s = part.trim();
-            if (s.isEmpty()) {
-                continue;
-            }
-            WizardStep.Result err = validateNotice(s);
-            if (err != null) {
-                return err;
-            }
-            list.add(s);
-        }
-        return WizardStep.Result.ok(list);
-    }
-
-    /**
-     * 校验单条提示格式，须为 {@code sound:<音效名>,<音调>,<音量>} 或 {@code announce:<文字>}。
-     *
-     * @param notice 单条提示（已去除首尾空白）
-     * @return 校验失败时返回错误 Result，通过时返回 null
-     */
-    private WizardStep.Result validateNotice(String notice) {
-        int idx = notice.indexOf(':');
-        if (idx < 0) {
-            return WizardStep.Result.error("无效的提示：" + notice
-                    + "（格式应为 sound:<音效名>,<音调>,<音量> 或 announce:<文字>）");
-        }
-        String type = notice.substring(0, idx).trim().toLowerCase();
-        String body = notice.substring(idx + 1);
-        switch (type) {
-            case "announce" -> {
-                if (body.isBlank()) {
-                    return WizardStep.Result.error("announce 提示的文字不能为空：" + notice);
-                }
-            }
-            case "sound" -> {
-                String[] parts = body.split(",");
-                if (parts.length == 0 || parts[0].trim().isEmpty()) {
-                    return WizardStep.Result.error("sound 提示缺少音效名：" + notice
-                            + "（格式应为 sound:<音效名>,<音调>,<音量>）");
-                }
-                if (parts.length > 1 && !isNumber(parts[1])) {
-                    return WizardStep.Result.error("sound 的音调必须是数字：" + notice);
-                }
-                if (parts.length > 2 && !isNumber(parts[2])) {
-                    return WizardStep.Result.error("sound 的音量必须是数字：" + notice);
-                }
-            }
-            default -> {
-                return WizardStep.Result.error("未知的提示类型 " + type + "：" + notice
-                        + "（应为 sound 或 announce）");
-            }
-        }
-        return null;
-    }
-
-    private boolean isNumber(String s) {
-        try {
-            Float.parseFloat(s.trim());
-            return true;
-        } catch (NumberFormatException e) {
-            return false;
-        }
+        return r;
     }
 
     @Override
@@ -293,6 +179,12 @@ public class RouteWizard extends ConfigWizard {
         } catch (Exception e) {
             player.sendMessage(MainConfig.prefix.append(Component.text(
                     "配置重载时发生错误：" + e.getMessage(), NamedTextColor.RED)));
+        }
+
+        // 已连接网页后端时推送最新快照（公开 + 私有）
+        var webLink = BiliCraftTicketSystem.plugin.getWebLink();
+        if (webLink != null && webLink.getClient().isConnected()) {
+            webLink.getSnapshotPublisher().publishLines();
         }
     }
 }
