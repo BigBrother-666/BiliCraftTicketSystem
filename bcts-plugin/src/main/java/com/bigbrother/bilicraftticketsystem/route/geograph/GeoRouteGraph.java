@@ -48,6 +48,10 @@ public class GeoRouteGraph {
      * 进站道岔索引缓存（见 {@link #mainlineSwitchStations()}），加边时失效。
      */
     private volatile Map<String, String> mainlineSwitchCache;
+    /**
+     * 寻路整数化索引缓存（见 {@link #searchIndex()}），加节点 / 加边时失效。
+     */
+    private volatile GeoSearchIndex searchIndexCache;
 
     /**
      * 加入或合并一个节点。若该 id 已存在，累积其 lineIds（保留已有节点对象）。
@@ -57,6 +61,7 @@ public class GeoRouteGraph {
      */
     @SuppressWarnings("UnusedReturnValue")
     public GeoNode addNode(GeoNode node) {
+        searchIndexCache = null;
         GeoNode existing = nodes.get(node.getId());
         if (existing != null) {
             existing.getLineIds().addAll(node.getLineIds());
@@ -76,6 +81,7 @@ public class GeoRouteGraph {
      */
     public void addLink(GeoLink link) {
         mainlineSwitchCache = null;
+        searchIndexCache = null;
         linksById.put(link.getId(), link);
         adjacency.computeIfAbsent(link.getFromNodeId(), k -> new ArrayList<>()).add(link);
         GeoNode from = nodes.get(link.getFromNodeId());
@@ -225,6 +231,25 @@ public class GeoRouteGraph {
 
     private static String mainlineSwitchKey(String nodeId, String lineId) {
         return nodeId + "|" + lineId;
+    }
+
+    /**
+     * 寻路热路径用的整数化索引（{@link GeoSearchIndex}）。图构建完成后首次寻路时惰性构建一次并缓存，
+     * 之后多个查询线程共享只读使用；图在 reload 时整体替换，缓存随之失效。
+     *
+     * @return 寻路索引
+     */
+    GeoSearchIndex searchIndex() {
+        GeoSearchIndex cache = searchIndexCache;
+        if (cache != null) {
+            return cache;
+        }
+        synchronized (this) {
+            if (searchIndexCache == null) {
+                searchIndexCache = new GeoSearchIndex(this);
+            }
+            return searchIndexCache;
+        }
     }
 
     /**

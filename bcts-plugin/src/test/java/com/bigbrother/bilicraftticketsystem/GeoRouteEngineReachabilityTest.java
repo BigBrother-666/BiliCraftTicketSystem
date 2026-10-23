@@ -17,11 +17,11 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * {@code GeoRouteEngine} 新增的「不可达快速短路」+「计算耗时上限」纯逻辑单测。
+ * {@code GeoRouteEngine} 的「不可达快速判定」（A* 启发式剩余距离为 +Inf 时直接返回空）+「计算耗时上限」纯逻辑单测。
  * <p>
  * 只通过公开方法（{@link GeoRouteEngine#findByStation(String, String, int, long)} /
  * {@link GeoRouteEngine#findFromNode}）验证行为，与 {@link GeoRouteEngineTest} 同一套测试风格
- * （不反射访问私有的 {@code reachableIgnoringRevisit}），复用其中部分 fixture 构造 helper。
+ * （不反射访问私有的启发式计算），复用其中部分 fixture 构造 helper。
  */
 public class GeoRouteEngineReachabilityTest {
 
@@ -95,7 +95,7 @@ public class GeoRouteEngineReachabilityTest {
     @Test
     void unreachableWhenEnterFaceGatingBlocksAllPaths() {
         // 复刻 GeoRouteEngineTest.enterFaceGatesOutEdgeAtSharedSwitchNode 的图：右来直行到 F 应被
-        // 门控拦截——快速短路命中后 findByStation 应直接返回空，而不是穷举到 KSP_MAX_POPS。
+        // 门控拦截——启发式判定不可达后 findByStation 应直接返回空，而不是穷举到 KSP_MAX_POPS。
         FeatureCollection f = new FeatureCollection();
         f.add(point("nL", "station", "L", 0, 64, 0));
         f.add(point("nR", "station", "R", 0, 64, 20));
@@ -109,11 +109,11 @@ public class GeoRouteEngineReachabilityTest {
         GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(f));
 
         assertTrue(GeoRouteEngine.findByStation("R", "F", 0, 0L).isEmpty(),
-                "右来直行到 F 应被入向面门控拦截（快速短路应判定不可达）");
+                "右来直行到 F 应被入向面门控拦截（启发式应判定不可达）");
         assertFalse(GeoRouteEngine.findByStation("R", "S", 0, 0L).isEmpty(),
-                "右来转到 S 合法，不应被短路误判为不可达");
+                "右来转到 S 合法，不应被误判为不可达");
         assertFalse(GeoRouteEngine.findByStation("L", "F", 0, 0L).isEmpty(),
-                "左来直行到 F 合法，不应被短路误判为不可达");
+                "左来直行到 F 合法，不应被误判为不可达");
     }
 
     @Test
@@ -152,7 +152,7 @@ public class GeoRouteEngineReachabilityTest {
     @Test
     void standingStillAtStartIsNotArrivalWhenNoOutgoingEdges() {
         // 单节点：起点站台没有任何出边。查询「A -> A」不应因为"起点本身就是终点"而误判为可达，
-        // 必须走过至少一条边才算命中（与 kShortest 现有的 cur.prevLink()!=null 语义一致）。
+        // 必须走过至少一条边才算命中（与 kShortest「已走过至少一段」语义一致）。
         FeatureCollection f = new FeatureCollection();
         f.add(point("nA", "station", "A", 0, 64, 0));
         GeoRouteEngine.setGraph(new GeoGraphLoader(null).loadFeatureCollection(f));
@@ -164,7 +164,7 @@ public class GeoRouteEngineReachabilityTest {
     @Test
     void loopBackToSameNamedStationCountsAsReachable() {
         // 复刻 GeoRouteEngineTest.sameStationLoopsBackOnRingLine 的环线图：应判定可达（走过至少一条
-        // 边后绕回同名站），不应被短路误判为不可达。
+        // 边后绕回同名站），不应被误判为不可达。
         FeatureCollection f = new FeatureCollection();
         f.add(point("nR", "station", "R", 0, 64, 0));
         f.add(point("sx", "switch", null, 10, 64, 0));
