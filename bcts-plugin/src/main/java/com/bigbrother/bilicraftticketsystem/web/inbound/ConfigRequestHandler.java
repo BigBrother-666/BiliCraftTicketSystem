@@ -103,10 +103,10 @@ public class ConfigRequestHandler {
             if (result != null) {
                 // result == null 表示异步继续处理（logo），由其自行 complete
                 complete(finalRequestId, result);
-                if (result.path("success").asBoolean()) {
-                    plugin.getComponentLogger().info(Component.text(
-                            "[WebLink] 网页端 %s 执行了配置操作 %s".formatted(actor, op), NamedTextColor.DARK_AQUA));
-                }
+//                if (result.path("success").asBoolean()) {
+//                    plugin.getComponentLogger().info(Component.text(
+//                            "[WebLink] 网页端 %s 执行了配置操作 %s".formatted(actor, op), NamedTextColor.DARK_AQUA));
+//                }
             }
         });
     }

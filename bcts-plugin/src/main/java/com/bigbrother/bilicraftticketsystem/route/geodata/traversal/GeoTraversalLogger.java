@@ -154,7 +154,7 @@ public class GeoTraversalLogger {
                 plugin.getComponentLogger().info(Component.text(msg, color));
             } else {
                 sender.sendMessage(Component.text(msg, color));
-                plugin.getComponentLogger().info(Component.text(msg, color));
+//                plugin.getComponentLogger().info(Component.text(msg, color));
             }
         }
     }
@@ -172,7 +172,7 @@ public class GeoTraversalLogger {
                 plugin.getComponentLogger().info(Component.text(msg, color));
             } else {
                 sender.sendMessage(Component.text(msg, color));
-                plugin.getComponentLogger().info(Component.text(msg, color));
+//                plugin.getComponentLogger().info(Component.text(msg, color));
             }
         }
     }
@@ -201,8 +201,9 @@ public class GeoTraversalLogger {
         }
         if (!(sender instanceof ConsoleCommandSender)) {
             sender.sendMessage(component);
+        } else {
+            plugin.getComponentLogger().info(component);
         }
-        plugin.getComponentLogger().info(component);
     }
 
     /**
