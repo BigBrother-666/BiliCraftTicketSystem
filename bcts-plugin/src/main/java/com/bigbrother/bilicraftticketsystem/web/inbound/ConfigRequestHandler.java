@@ -316,7 +316,9 @@ public class ConfigRequestHandler {
         @SuppressWarnings("unchecked")
         List<String> noticeDeparture = (List<String>) r.getValue();
 
-        LineConfig.upsert(lineId, systemId, name, color, stations, arrivalNotice, bossbarColor, noticeArrival, noticeDeparture);
+        boolean displayOnly = p.path("displayOnly").asBoolean(false);
+
+        LineConfig.upsert(lineId, systemId, name, color, stations, arrivalNotice, bossbarColor, noticeArrival, noticeDeparture, displayOnly);
         LineConfig.load(plugin);
         snapshots.publishLines();
         ObjectNode res = ok(null);

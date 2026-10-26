@@ -1,6 +1,7 @@
 package com.bigbrother.bilicraftticketsystem.route.geograph;
 
 import com.bigbrother.bilicraftticketsystem.config.StationGroupConfig;
+import com.bigbrother.bilicraftticketsystem.config.line.LineConfig;
 import com.bigbrother.bilicraftticketsystem.config.line.LineInfo;
 import lombok.Getter;
 import lombok.Setter;
@@ -209,6 +210,7 @@ public class GeoRouteEngine {
      *   <li>逐对 {@code nodeIds[i] -> nodeIds[i+1]} 须存在一条出边（{@link GeoRouteGraph#links}）；</li>
      *   <li>两节点间存在多条平行边（共用轨道、不同 lineId）时，用 {@code lineIdSequence[i]} 消歧；
      *       {@code lineIdSequence} 为 null 时取首条匹配边。</li>
+     *   <li>仅展示线路（{@link LineConfig#isDisplayOnly}）的边不可用。</li>
      * </ul>
      * 任一步无匹配边 / 节点不存在 / 起终点非车站 → 返回 null（非法）。
      *
@@ -245,6 +247,10 @@ public class GeoRouteEngine {
                     continue;
                 }
                 if (wantLine != null && !wantLine.equals(link.getLineId())) {
+                    continue;
+                }
+                // 仅展示线路不参与购票，与 kShortest 一致
+                if (LineConfig.isDisplayOnly(link.getLineId())) {
                     continue;
                 }
                 // 入向面门控：与 kShortest 一致，拒绝「从错误到达面接反向牌出边」的非法接续。
@@ -381,7 +387,7 @@ public class GeoRouteEngine {
      * <p>
      * {@code h[l]} 是「沿边 l 到达其终点节点之后」到任一终点站节点的最短剩余距离（米）：套用 kShortest 除
      * 「不可重复经过同一节点 / 同名站」之外的全部边约束（入向面门控 / 停靠线中途站跳过 / 折返站跳过 /
-     * 终点站不再穿越），不可达为 +Inf。状态取「到达所经的边」，因为入向面门控只取决于它的到达面。
+     * 仅展示线路跳过 / 终点站不再穿越），不可达为 +Inf。状态取「到达所经的边」，因为入向面门控只取决于它的到达面。
      * <p>
      * 忽略重复经过约束只会让剩余距离更短，故 h 是真实剩余距离的下界（可采纳）；又对每个合法接续 l→l'
      * 有 {@code h[l] <= w(l') + h[l']}（一致），A* 按 g+h 出队时终点仍按真实距离非降序出队，找到的 K 条路线
@@ -422,13 +428,13 @@ public class GeoRouteEngine {
         double[] h = new double[m];
         Arrays.fill(h, Double.POSITIVE_INFINITY);
         Target t = new Target(endName, h);
-        // blocked：kShortest 必然剪掉的边——目标节点不存在，或是「非终点」中途车站且经停靠线进入 / 属于折返站
+        // blocked：kShortest 必然剪掉的边——目标节点不存在、属于仅展示线路，或是「非终点」中途车站且经停靠线进入 / 属于折返站
         boolean[] blocked = new boolean[m];
         PriorityQueue<double[]> pq = new PriorityQueue<>(Comparator.comparingDouble(e -> e[0]));
         for (int l = 0; l < m; l++) {
             int to = ix.linkTo[l];
             GeoNode toNode = ix.nodes[to];
-            if (toNode == null) {
+            if (toNode == null || LineConfig.isDisplayOnly(ix.links[l].getLineId())) {
                 blocked[l] = true;
                 continue;
             }
@@ -661,7 +667,7 @@ public class GeoRouteEngine {
                 GeoLink inLink = cur.link() >= 0 ? ix.links[cur.link()] : null;
                 boolean uIsSwitch = !ix.isStation[u];
                 for (int l : ix.out[u]) {
-                    // h=+Inf 已涵盖：目标节点不存在、经停靠线进入中途站（该站有正线可跨越）、折返站，
+                    // h=+Inf 已涵盖：目标节点不存在、仅展示线路、经停靠线进入中途站（该站有正线可跨越）、折返站，
                     // 以及之后无论如何到不了终点
                     double h = t.h[l];
                     if (Double.isInfinite(h)) {

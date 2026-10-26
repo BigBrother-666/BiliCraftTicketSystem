@@ -79,6 +79,11 @@ public class LineInfo {
      * {@code {next_station}}。
      */
     private final String nextLineEntryStation;
+    /**
+     * 是否为仅展示线路（railway_routes.yml 的 {@code display-only}，缺省 false）：只在网页地图上展示，
+     * 寻路 / 购票 / 交通卡 / 列车导航都不经过该线路。
+     */
+    private final boolean displayOnly;
 
     /**
      * @param id                    线路 id
@@ -93,6 +98,7 @@ public class LineInfo {
      * @param noticeDeparture       出站提示列表
      * @param nextLineId            转线目标线路 id（无则 null）
      * @param nextLineEntryStation  转线后的进入站名（无则 null / 空串）
+     * @param displayOnly           是否为仅展示线路
      */
     public LineInfo(String id,
                     String railwaySystemId,
@@ -105,7 +111,8 @@ public class LineInfo {
                     List<String> noticeArrival,
                     List<String> noticeDeparture,
                     String nextLineId,
-                    String nextLineEntryStation) {
+                    String nextLineEntryStation,
+                    boolean displayOnly) {
         this.id = id;
         this.railwaySystemId = railwaySystemId;
         this.lineName = lineName;
@@ -118,6 +125,7 @@ public class LineInfo {
         this.noticeDeparture = noticeDeparture == null ? Collections.emptyList() : noticeDeparture;
         this.nextLineId = nextLineId;
         this.nextLineEntryStation = nextLineEntryStation;
+        this.displayOnly = displayOnly;
     }
 
     /**

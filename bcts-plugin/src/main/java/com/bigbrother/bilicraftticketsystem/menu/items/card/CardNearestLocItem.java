@@ -39,6 +39,10 @@ public class CardNearestLocItem extends CardLocationItem {
             return;
         }
 
+        if (nearestPlatform != null && StationProvider.isDisplayOnlyStation(nearestPlatform.getStationName())) {
+            player.sendMessage(Component.text("最近的车站 %s 仅有展示线路经过，无法购票".formatted(nearestPlatform.getStationName()), NamedTextColor.RED));
+            return;
+        }
         if (nearestPlatform != null) {
             MenuCard menu = MenuCard.getMenu(player);
             Component name = StationProvider.stationNameComponent(nearestPlatform.getStationName());
@@ -77,7 +81,10 @@ public class CardNearestLocItem extends CardLocationItem {
             // 添加lore
             ItemMeta itemMeta = this.itemStack.getItemMeta();
             List<Component> lore = new ArrayList<>();
-            if (nearestPlatform != null) {
+            if (nearestPlatform != null && StationProvider.isDisplayOnlyStation(nearestPlatform.getStationName())) {
+                lore.add(Component.text("距离最近的车站：%s(%.2fm)，该车站仅有展示线路经过，无法购票"
+                        .formatted(nearestPlatform.getStationName(), Math.sqrt(minDistanceSquared)), NamedTextColor.RED));
+            } else if (nearestPlatform != null) {
                 lore.add(Component.text("距离最近的车站：%s(%.2fm)，位于(x=%d, z=%d, z=%d)附近"
                         .formatted(nearestPlatform.getStationName(), Math.sqrt(minDistanceSquared), nearestPlatform.getCoordX(), nearestPlatform.getFixedY(), nearestPlatform.getCoordZ()), NamedTextColor.DARK_AQUA));
             } else {

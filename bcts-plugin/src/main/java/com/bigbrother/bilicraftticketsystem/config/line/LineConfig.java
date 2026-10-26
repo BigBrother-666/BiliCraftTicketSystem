@@ -63,6 +63,7 @@ public class LineConfig {
         String bossbarColor = node.get("bossbar-color", "WHITE");
         List<String> noticeArrival = node.getList("notice-arrival", String.class, null);
         List<String> noticeDeparture = node.getList("notice-departure", String.class, null);
+        boolean displayOnly = node.get("display-only", false);
 
         // 转线目标：bossbar-stations 最后一项若是 "<线路id>" 或 "<线路id>:<进入站名>"（线路 id 为某条
         // 已存在线路、非本线），表示普通车到达本线终点站后转入该线路。该项不当站名处理（从车站列表剥离）。
@@ -112,7 +113,8 @@ public class LineConfig {
                 noticeArrival,
                 noticeDeparture,
                 nextLineId,
-                nextLineEntryStation
+                nextLineEntryStation,
+                displayOnly
         );
     }
 
@@ -161,6 +163,30 @@ public class LineConfig {
     }
 
     /**
+     * 判断线路是否为仅展示线路（寻路 / 购票不经过）。
+     *
+     * @param lineId 线路 id
+     * @return true 表示仅展示；线路不存在返回 false
+     */
+    public static boolean isDisplayOnly(String lineId) {
+        LineInfo info = lines.get(lineId);
+        return info != null && info.isDisplayOnly();
+    }
+
+    /**
+     * 整体替换内存中的线路（不写文件），便于在无 Bukkit 环境的单元测试中使用。
+     *
+     * @param infos 线路信息
+     */
+    public static void replaceAll(Collection<LineInfo> infos) {
+        Map<String, LineInfo> map = new LinkedHashMap<>();
+        for (LineInfo info : infos) {
+            map.put(info.getId(), info);
+        }
+        lines = map;
+    }
+
+    /**
      * 判断给定线路 id 是否存在于配置中。
      *
      * @param lineId 线路 id
@@ -186,6 +212,7 @@ public class LineConfig {
      * @param bossbarColor         bossbar 颜色名（可空）
      * @param noticeArrival        进站提示列表（可空）
      * @param noticeDeparture      出站提示列表（可空）
+     * @param displayOnly          是否为仅展示线路（false 时不写该项）
      */
     public static void upsert(String lineId,
                               String railwaySystemId,
@@ -195,7 +222,8 @@ public class LineConfig {
                               String bossbarArrivalNotice,
                               String bossbarColor,
                               List<String> noticeArrival,
-                              List<String> noticeDeparture) {
+                              List<String> noticeDeparture,
+                              boolean displayOnly) {
         ConfigurationNode node = config.getNode(lineId);
         node.set("railway-system", railwaySystemId);
         node.set("line-name", lineName);
@@ -205,6 +233,11 @@ public class LineConfig {
         setOrRemove(node, "bossbar-color", bossbarColor);
         setOrRemoveList(node, "notice-arrival", noticeArrival);
         setOrRemoveList(node, "notice-departure", noticeDeparture);
+        if (displayOnly) {
+            node.set("display-only", true);
+        } else {
+            node.remove("display-only");
+        }
         config.save();
     }
 

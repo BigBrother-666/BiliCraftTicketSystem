@@ -143,6 +143,20 @@ public final class ConfigValidators {
     }
 
     /**
+     * 解析是 / 否输入（是/否、y/n、yes/no、true/false，忽略大小写）。
+     *
+     * @return 成功值为 {@code Boolean}
+     */
+    public static WizardStep.Result yesNo(String input) {
+        String s = input == null ? "" : input.trim().toLowerCase();
+        return switch (s) {
+            case "是", "y", "yes", "true" -> WizardStep.Result.ok(true);
+            case "否", "n", "no", "false" -> WizardStep.Result.ok(false);
+            default -> WizardStep.Result.error("请输入 true 或 false");
+        };
+    }
+
+    /**
      * 校验 bossbar 颜色名（忽略大小写）。
      *
      * @return 成功值为大写颜色名

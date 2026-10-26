@@ -73,19 +73,47 @@ public class StationProvider {
     }
 
     /**
-     * 列出所有车站，按站名拼音正序排序。同名多站台节点的 lineIds 聚合。
+     * 列出所有可购票车站（排除 {@link #isDisplayOnlyStation 仅展示车站}），按站名拼音正序排序。
+     * 同名多站台节点的 lineIds 聚合。
      *
      * @return 车站条目列表
      */
     public static List<StationEntry> listStations() {
-        return toEntries(sortByPinyin(new ArrayList<>(GeoRouteEngine.getGraph().allStationNames())));
+        List<String> names = new ArrayList<>();
+        for (String name : GeoRouteEngine.getGraph().allStationNames()) {
+            if (!isDisplayOnlyStation(name)) {
+                names.add(name);
+            }
+        }
+        return toEntries(sortByPinyin(names));
+    }
+
+    /**
+     * 判断车站是否只有仅展示线路经过（不计联络线）：这类车站不能购票，购票 UI 不显示。
+     * 只有联络线经过（或图中没有线路信息）的车站不算。
+     *
+     * @param stationName 车站名
+     * @return true 表示仅展示车站
+     */
+    public static boolean isDisplayOnlyStation(String stationName) {
+        boolean any = false;
+        for (String lineId : lineIdsOf(stationName)) {
+            if (RailwaySystemConfig.CONTACT_ID.equals(LineConfig.getSystemId(lineId))) {
+                continue;
+            }
+            if (!LineConfig.isDisplayOnly(lineId)) {
+                return false;
+            }
+            any = true;
+        }
+        return any;
     }
 
     /**
      * 列出属于指定铁路系统的车站，按站名拼音正序排序。
      * <p>
-     * 判定方式：车站经过的任一线路（lineId）经 {@link LineConfig#getSystemId} 属于该系统，
-     * 即视为该系统的车站。{@code systemId} 为 null 时返回全部车站。
+     * 判定方式：车站经过的任一<b>非仅展示</b>线路（lineId）经 {@link LineConfig#getSystemId} 属于该系统，
+     * 即视为该系统的车站。{@code systemId} 为 null 时返回全部可购票车站。
      *
      * @param systemId 铁路系统 id
      * @return 车站条目列表
@@ -104,7 +132,7 @@ public class StationProvider {
     }
 
     /**
-     * 按关键字搜索车站（站名包含关键字，忽略大小写），按站名拼音正序排序。
+     * 按关键字搜索可购票车站（站名包含关键字，忽略大小写，排除仅展示车站），按站名拼音正序排序。
      * <p>
      * 关键字为空 / 空白时返回全部车站（与 {@link #listStations()} 等价）。
      *
@@ -118,7 +146,7 @@ public class StationProvider {
         String needle = keyword.trim().toLowerCase(Locale.ROOT);
         List<String> names = new ArrayList<>();
         for (String name : GeoRouteEngine.getGraph().allStationNames()) {
-            if (name != null && name.toLowerCase(Locale.ROOT).contains(needle)) {
+            if (name != null && name.toLowerCase(Locale.ROOT).contains(needle) && !isDisplayOnlyStation(name)) {
                 names.add(name);
             }
         }
@@ -148,11 +176,11 @@ public class StationProvider {
     }
 
     /**
-     * 判断某车站是否属于指定铁路系统（任一经过线路归属该系统即算）。
+     * 判断某车站是否属于指定铁路系统（任一经过的非仅展示线路归属该系统即算）。
      */
     private static boolean belongsToSystem(String stationName, String systemId) {
         for (String lineId : lineIdsOf(stationName)) {
-            if (systemId.equals(LineConfig.getSystemId(lineId))) {
+            if (systemId.equals(LineConfig.getSystemId(lineId)) && !LineConfig.isDisplayOnly(lineId)) {
                 return true;
             }
         }

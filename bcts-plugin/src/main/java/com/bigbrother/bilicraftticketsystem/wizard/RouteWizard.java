@@ -18,7 +18,7 @@ import java.util.Map;
  * 线路编辑向导（{@code /ticketconfig editRoute <lineId>}）。
  * <p>
  * 按 railway_routes.yml 字段顺序引导填写：所属铁路系统、线路名、标志色（必填），bossbar 车站列表（必填，
- * 以 {@code ->} 分隔），到站提示、bossbar 颜色、进/出站提示（选填，进出站提示以 {@code ,} 分隔）。
+ * 以 {@code ->} 分隔），到站提示、bossbar 颜色、进/出站提示（选填，进出站提示以 {@code ,} 分隔），是否仅展示线路（选填，默认否）。
  * 新建模式必填项不可跳过；修改模式预填现有值、均可跳过。完成后写回 railway_routes.yml 并自动重载，
  * 并提示路径变动需重新遍历。
  */
@@ -44,6 +44,7 @@ public class RouteWizard extends ConfigWizard {
                 values.put("bossbar-color", info.getBossbarColor());
                 values.put("notice-arrival", new ArrayList<>(info.getNoticeArrival()));
                 values.put("notice-departure", new ArrayList<>(info.getNoticeDeparture()));
+                values.put("display-only", info.isDisplayOnly());
             }
         }
     }
@@ -101,6 +102,12 @@ public class RouteWizard extends ConfigWizard {
                 false,
                 ConfigValidators::noticeList));
 
+        steps.add(new WizardStep("display-only",
+                Component.text("是否为仅展示线路？输入 true / false（默认false）。仅展示线路只在网页地图上展示，"
+                        + "查询车票、交通卡与列车导航都不会经过该线路", NamedTextColor.WHITE),
+                false,
+                ConfigValidators::yesNo));
+
         return steps;
     }
 
@@ -138,6 +145,9 @@ public class RouteWizard extends ConfigWizard {
             }
             return String.join(", ", listToStrings(list));
         }
+        if (v instanceof Boolean b) {
+            return b.toString();
+        }
         return String.valueOf(v);
     }
 
@@ -163,9 +173,10 @@ public class RouteWizard extends ConfigWizard {
                 ? (List<String>) collected.get("notice-arrival") : null;
         List<String> noticeDeparture = collected.get("notice-departure") instanceof List
                 ? (List<String>) collected.get("notice-departure") : null;
+        boolean displayOnly = Boolean.TRUE.equals(collected.get("display-only"));
 
         LineConfig.upsert(lineId, railwaySystem, lineName, lineColor, stations,
-                arrivalNotice, bossbarColor, noticeArrival, noticeDeparture);
+                arrivalNotice, bossbarColor, noticeArrival, noticeDeparture, displayOnly);
 
         player.sendMessage(MainConfig.prefix.append(Component.text(
                 "已保存线路 [%s]，正在重载配置...".formatted(lineId), NamedTextColor.GREEN)));

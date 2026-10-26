@@ -40,6 +40,8 @@ pr-cw:
     - "sound:noteblock.xxxx,0.8,0.5"
     - "announce:欢迎乘坐{line_color}{line_name}"
     - "announce:下一站: {line_color}{next_station}"
+  # 仅展示线路（选填，默认false）：只在网页地图上展示，查询车票、交通卡与列车导航都不会经过该线路
+  display-only: false
 
 pr-s1:
   railway-system: "paralon-railway"

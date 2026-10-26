@@ -216,6 +216,7 @@ public class SnapshotPublisher {
      *       {@code <线路id>} / {@code <线路id>:<进入站名>}）。</li>
      *   <li>{@code noticeArrival} / {@code noticeDeparture}：与向导输入一致的 {@code ||} 连接字符串（无则空串）。</li>
      *   <li>选填字符串字段缺省为空串。</li>
+     *   <li>{@code displayOnly}：yml {@code display-only}（仅展示线路），缺省 false。</li>
      * </ul>
      */
     public void publishLinesPrivate() {
@@ -234,6 +235,7 @@ public class SnapshotPublisher {
             line.put("bossbarColor", nullToEmpty(info.getBossbarColor()));
             line.put("noticeArrival", ConfigValidators.joinNotices(info.getNoticeArrival()));
             line.put("noticeDeparture", ConfigValidators.joinNotices(info.getNoticeDeparture()));
+            line.put("displayOnly", info.isDisplayOnly());
         }
         ObjectNode data = Envelope.MAPPER.createObjectNode();
         data.set("lines", arr);
@@ -245,7 +247,7 @@ public class SnapshotPublisher {
     }
 
     /**
-     * 推 {@code snapshot.lines}（id/name/color/systemId/stations/ring）。
+     * 推 {@code snapshot.lines}（id/name/color/systemId/stations/ring/reverseStations/displayOnly）。
      */
     public void publishLinesPublic() {
         ArrayNode arr = Envelope.MAPPER.createArrayNode();
@@ -265,6 +267,8 @@ public class SnapshotPublisher {
             for (String s : info.getReverseStationNames()) {
                 reverse.add(s);
             }
+            // 仅展示线路：前后端寻路据此跳过该线路，与插件 GeoRouteEngine 同步
+            line.put("displayOnly", info.isDisplayOnly());
             arr.add(line);
         }
         ObjectNode data = Envelope.MAPPER.createObjectNode();

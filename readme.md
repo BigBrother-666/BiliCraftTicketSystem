@@ -229,12 +229,15 @@ switchline
 | `bossbar-color`          | bossbar 颜色，如 `RED`、`BLUE`                            |
 | `notice-arrival`         | 进站提示列表，每项为 `sound:<音效名>,<音调>,<音量>` 或 `announce:<文字>` |
 | `notice-departure`       | 出站提示列表，格式同上                                          |
+| `display-only`           | 是否为仅展示线路，默认 `false`，见下                               |
 
 **车站列表 `bossbar-stations` 的写法：**
 
 - 按列车行驶顺序列出车站名。首尾站名相同表示环线。
 - 站名后加 `:RV` 表示折返站（列车进站后反向驶出），如 `StationA:RV`。
 - 最后一项写 `<线路id>` 或 `<线路id>:<进入站名>` 表示**转线**：普通车到达本线终点站后，转到该线路继续运行，进入站名是转线后的下一站。
+
+**仅展示线路 `display-only: true`：** 只在网页地图上展示，查询车票（游戏内 / 网页）、交通卡计费与列车导航都不会经过该线路；只有仅展示线路经过的车站（不计联络线）不会出现在购票界面的车站列表中。可在 `/ticketconfig editRoute` 向导最后一步或网页个人中心设置，修改后无需重新遍历。
 
 **提示文字中可用的占位符：** `{curr_station}` 当前站、`{next_station}` 下一站、`{line_name}` 线路名、`{line_color}` 线路标志色、`{railway_system}` 铁路系统名。
 

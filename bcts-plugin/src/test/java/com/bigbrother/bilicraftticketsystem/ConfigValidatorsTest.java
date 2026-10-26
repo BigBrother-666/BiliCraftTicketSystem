@@ -44,10 +44,10 @@ class ConfigValidatorsTest {
     @Test
     void rawStationsRoundTrip() {
         LineInfo info = new LineInfo("l1", "sys", "L1", "#000000",
-                List.of("A", "B", "C"), Set.of(1), null, "WHITE", null, null, "l2", "S");
+                List.of("A", "B", "C"), Set.of(1), null, "WHITE", null, null, "l2", "S", false);
         assertEquals(List.of("A", "B:RV", "C", "l2:S"), info.getRawBossbarStations());
         LineInfo noEntry = new LineInfo("l1", "sys", "L1", "#000000",
-                List.of("A", "B"), Set.of(), null, "WHITE", null, null, "l2", "");
+                List.of("A", "B"), Set.of(), null, "WHITE", null, null, "l2", "", false);
         assertEquals(List.of("A", "B", "l2"), noEntry.getRawBossbarStations());
     }
 
