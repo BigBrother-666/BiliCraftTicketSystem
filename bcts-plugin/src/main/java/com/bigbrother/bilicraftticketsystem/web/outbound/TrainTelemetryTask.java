@@ -123,6 +123,11 @@ public class TrainTelemetryTask extends BukkitRunnable {
                 for (GeoNode node : path.getNodes()) {
                     routeNodeIds.add(node.getId());
                 }
+                // 逐段 lineId（与 routeNodeIds 相邻对一一对应）：共线段据此确定所属线路，网页按实际线路取色
+                if (path.getLineIdSequence() != null) {
+                    ArrayNode routeLineIds = dto.putArray("routeLineIds");
+                    path.getLineIdSequence().forEach(routeLineIds::add);
+                }
             }
         }
         return dto;
